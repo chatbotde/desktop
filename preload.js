@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld("api", {
     // Content protection
     toggleContentProtection: () => ipcRenderer.invoke('window-toggle-content-protection'),
     getContentProtection: () => ipcRenderer.invoke('window-get-content-protection'),
+    // Theme
+    setTheme: (theme) => ipcRenderer.invoke('window-set-theme', theme),
+    getTheme: () => ipcRenderer.invoke('window-get-theme'),
+    onThemeChanged: (callback) => ipcRenderer.on('theme-changed', (event, theme) => callback(theme)),
+
     // Screen capture
     getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
     getScreenInfo: () => ipcRenderer.invoke('get-screen-info'),

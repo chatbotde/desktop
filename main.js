@@ -1,96 +1,125 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, desktopCapturer, screen } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  globalShortcut,
+  desktopCapturer,
+  screen,
+} = require("electron");
 const path = require("path");
 
-function createWindow() {
-    const win = new BrowserWindow({
-        width: 800,
-        height: 600,
-        frame: false,
-        transparent: true,
-        hasShadow: true,
-        alwaysOnTop: true,
-        skipTaskbar: true,
-        hiddenInMissionControl: true, // Hide from mission control/task switcher
-        roundedCorners: true,
-        vibrancy: 'ultra-dark',
-        resizable: true,
-        minimizable: true,
-        maximizable: true,
-        closable: true,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            backgroundThrottling: false,
-            webSecurity: true,
-            allowRunningInsecureContent: false,
-            spellcheck: true,
-            preload: path.join(__dirname, "preload.js")
-        },
-        backgroundColor: 'rgba(0, 0, 0, 0)',
-        titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
-        // Cross-platform window properties
-        focusable: true,
-        fullscreenable: false,
-        kiosk: false,
-        autoHideMenuBar: true,
-        // Linux-specific properties
-        ...(process.platform === 'linux' && {
-            icon: path.join(__dirname, 'assets/icon.png'), // Add app icon for Linux
-            frame: false,
-        }),
-    });
+let currentWindow = null;
+let currentTheme = "transparent";
 
-    // Set the window to always stay on top with highest priority
-    // This ensures it stays above taskbar/dock and all other windows across all platforms
-    win.setAlwaysOnTop(true, 'screen-saver', 1);
-    
-    // Platform-specific configurations for maximum always-on-top behavior
-    if (process.platform === 'win32') {
-        // Windows: Stay above taskbar and system menus
-        win.setAlwaysOnTop(true, 'pop-up-menu', 1);
-    } else if (process.platform === 'darwin') {
-        // macOS: Stay above dock and mission control
-        win.setAlwaysOnTop(true, 'floating', 1);
-        win.setAlwaysOnTop(true, 'pop-up-menu', 1);
-    } else if (process.platform === 'linux') {
-        // Linux: Stay above panels and system elements
-        win.setAlwaysOnTop(true, 'pop-up-menu', 1);
-        // Additional Linux-specific settings
-        win.setAlwaysOnTop(true, 'modal-panel', 1);
-    }
+function createWindow(theme = "transparent") {
+  // Close existing window if it exists
+  if (currentWindow && !currentWindow.isDestroyed()) {
+    currentWindow.close();
+  }
 
-    // Enable content protection to prevent this app from being captured/recorded
-    // while still allowing it to capture other applications
-    win.setContentProtection(true);
+  const windowOptions = {
+    width: 800,
+    height: 600,
+    frame: false,
+    transparent: theme === "transparent",
+    hasShadow: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    hiddenInMissionControl: true, // Hide from mission control/task switcher
+    roundedCorners: true,
+    vibrancy: theme === "transparent" ? "ultra-dark" : undefined,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    closable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      backgroundThrottling: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      spellcheck: true,
+      preload: path.join(__dirname, "preload.js"),
+    },
+    backgroundColor: theme === "black" ? "#000000" : "rgba(0, 0, 0, 0)",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
+    // Cross-platform window properties
+    focusable: true,
+    fullscreenable: false,
+    kiosk: false,
+    autoHideMenuBar: true,
+    // Linux-specific properties
+    ...(process.platform === "linux" && {
+      icon: path.join(__dirname, "assets/icon.png"), // Add app icon for Linux
+      frame: false,
+    }),
+  };
 
-    // Add blue light border and rounded corners styling
-    win.webContents.on('did-finish-load', () => {
-        win.webContents.insertCSS(`
+  const win = new BrowserWindow(windowOptions);
+  currentWindow = win;
+  currentTheme = theme;
+
+  setupWindow(win);
+  return win;
+}
+
+function setupWindow(win) {
+  // Set the window to always stay on top with highest priority
+  // This ensures it stays above taskbar/dock and all other windows across all platforms
+  win.setAlwaysOnTop(true, "screen-saver", 1);
+
+  // Platform-specific configurations for maximum always-on-top behavior
+  if (process.platform === "win32") {
+    // Windows: Stay above taskbar and system menus
+    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+  } else if (process.platform === "darwin") {
+    // macOS: Stay above dock and mission control
+    win.setAlwaysOnTop(true, "floating", 1);
+    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+  } else if (process.platform === "linux") {
+    // Linux: Stay above panels and system elements
+    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+    // Additional Linux-specific settings
+    win.setAlwaysOnTop(true, "modal-panel", 1);
+  }
+
+  // Enable content protection to prevent this app from being captured/recorded
+  // while still allowing it to capture other applications
+  win.setContentProtection(true);
+
+  // Opacity tracking variable
+  let currentOpacity = 1.0; // Default opacity
+
+  // Function to apply basic styling based on theme
+  function applyStyling(opacity = currentOpacity, theme = currentTheme) {
+    const isBlackTheme = theme === "black";
+
+    win.webContents.insertCSS(`
             * {
                 box-sizing: border-box;
             }
             
             html {
-                background: transparent;
+                background: ${isBlackTheme ? "#000000" : "rgba(0, 0, 0, 0.1)"};
                 border-radius: 15px;
                 overflow: hidden;
             }
             
             body {
-                border: 2px solid #00a8ff;
+                border: 2px solid ${isBlackTheme ? "#333333" : "#00a8ff"};
                 border-radius: 15px;
                 box-shadow: 
-                    0 0 20px rgba(0, 168, 255, 0.4),
-                    0 0 40px rgba(0, 168, 255, 0.2);
+                    0 0 20px ${isBlackTheme ? "rgba(51, 51, 51, 0.4)" : "rgba(0, 168, 255, 0.4)"},
+                    0 0 40px ${isBlackTheme ? "rgba(51, 51, 51, 0.2)" : "rgba(0, 168, 255, 0.2)"};
                 overflow: hidden;
                 margin: 0;
                 padding: 0;
-                background: rgba(255, 255, 255, 0.05);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
+                background: ${isBlackTheme ? "#000000" : "rgba(255, 255, 255, 0.05)"};
+                ${!isBlackTheme ? "backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" : ""}
                 width: 100vw;
                 height: 100vh;
                 position: relative;
+                opacity: ${opacity};
             }
             
             /* Mask to create rounded window effect */
@@ -120,165 +149,225 @@ function createWindow() {
                 mask-composite: intersect;
             }
         `);
-    });
+  }
 
-    if (process.env.NODE_ENV === "development") {
-        win.loadURL("http://localhost:5173");
+  // Add styling on window load
+  win.webContents.on("did-finish-load", () => {
+    applyStyling(currentOpacity, currentTheme);
+  });
+
+  if (process.env.NODE_ENV === "development") {
+    win.loadURL("http://localhost:5173");
+  } else {
+    // Load the local HTML file as fallback, or the built frontend
+    const frontendPath = path.join(__dirname, "frontend/dist/index.html");
+    const fallbackPath = path.join(__dirname, "index.html");
+
+    // Check if frontend build exists, otherwise use fallback
+    const fs = require("fs");
+    if (fs.existsSync(frontendPath)) {
+      win.loadFile(frontendPath);
     } else {
-        // Load the local HTML file as fallback, or the built frontend
+      win.loadFile(fallbackPath);
+    }
+  }
+
+  // IPC handlers for window controls
+  ipcMain.handle("window-close", () => {
+    currentWindow.close();
+  });
+
+  ipcMain.handle("window-minimize", () => {
+    currentWindow.minimize();
+  });
+
+  ipcMain.handle("window-maximize", () => {
+    if (currentWindow.isMaximized()) {
+      currentWindow.unmaximize();
+    } else {
+      currentWindow.maximize();
+    }
+  });
+
+  ipcMain.handle("window-set-opacity", (event, opacity) => {
+    currentOpacity = opacity;
+    currentWindow.setOpacity(opacity);
+    applyStyling(opacity, currentTheme);
+  });
+
+  // Track mouse ignore state
+  let mouseIgnoreEnabled = false;
+  // Track content protection state
+  let contentProtectionEnabled = true; // Default to enabled as set above
+
+  ipcMain.handle("window-toggle-mouse-ignore", () => {
+    mouseIgnoreEnabled = !mouseIgnoreEnabled;
+    currentWindow.setIgnoreMouseEvents(mouseIgnoreEnabled);
+    return mouseIgnoreEnabled;
+  });
+
+  // Content protection toggle handler
+  ipcMain.handle("window-toggle-content-protection", () => {
+    contentProtectionEnabled = !contentProtectionEnabled;
+    currentWindow.setContentProtection(contentProtectionEnabled);
+    console.log(
+      `Content protection ${contentProtectionEnabled ? "enabled" : "disabled"}`
+    );
+    return contentProtectionEnabled;
+  });
+
+  // Get current content protection state
+  ipcMain.handle("window-get-content-protection", () => {
+    return contentProtectionEnabled;
+  });
+
+  // Get current theme
+  ipcMain.handle("window-get-theme", () => {
+    return currentTheme;
+  });
+
+  // Theme handler - recreate window with proper transparency settings
+  ipcMain.handle("window-set-theme", (event, theme) => {
+    console.log(`Theme changed to: ${theme}`);
+
+    if (theme !== currentTheme) {
+      // Store current window position and size
+      const bounds = currentWindow.getBounds();
+      const isMaximized = currentWindow.isMaximized();
+
+      // Create new window with the correct theme
+      createWindow(theme);
+
+      // Restore window position and size
+      currentWindow.setBounds(bounds);
+      if (isMaximized) {
+        currentWindow.maximize();
+      }
+
+      // Load the content
+      if (process.env.NODE_ENV === "development") {
+        currentWindow.loadURL("http://localhost:5173");
+      } else {
         const frontendPath = path.join(__dirname, "frontend/dist/index.html");
         const fallbackPath = path.join(__dirname, "index.html");
-        
-        // Check if frontend build exists, otherwise use fallback
-        const fs = require('fs');
+
+        const fs = require("fs");
         if (fs.existsSync(frontendPath)) {
-            win.loadFile(frontendPath);
+          currentWindow.loadFile(frontendPath);
         } else {
-            win.loadFile(fallbackPath);
+          currentWindow.loadFile(fallbackPath);
         }
+      }
+
+      // Reapply all the window settings
+      setupWindow(currentWindow);
+
+      // Send theme update to frontend after window is ready
+      currentWindow.webContents.once("did-finish-load", () => {
+        currentWindow.webContents.send("theme-changed", theme);
+      });
     }
 
-    // IPC handlers for window controls
-    ipcMain.handle('window-close', () => {
-        win.close();
-    });
+    return currentTheme;
+  });
 
-    ipcMain.handle('window-minimize', () => {
-        win.minimize();
-    });
+  // Screen capture handlers
+  ipcMain.handle("get-desktop-sources", async () => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ["window", "screen"],
+        thumbnailSize: { width: 150, height: 150 },
+      });
 
-    ipcMain.handle('window-maximize', () => {
-        if (win.isMaximized()) {
-            win.unmaximize();
-        } else {
-            win.maximize();
-        }
-    });
+      // Filter out this application's own window to avoid showing it in capture list
+      const filteredSources = sources.filter((source) => {
+        // Cross-platform filtering for own window
+        const isOwnWindow =
+          source.name.toLowerCase().includes("buddy") ||
+          source.name.toLowerCase().includes("electron") ||
+          source.id.includes(currentWindow.webContents.id.toString()) ||
+          // Additional filters for different platforms
+          (process.platform === "win32" && source.name.includes("Buddy")) ||
+          (process.platform === "darwin" && source.name.includes("Buddy")) ||
+          (process.platform === "linux" &&
+            (source.name.includes("Buddy") || source.name.includes("buddy")));
+        return !isOwnWindow;
+      });
 
-    ipcMain.handle('window-set-opacity', (event, opacity) => {
-        win.setOpacity(opacity);
-    });
-
-    // Track mouse ignore state
-    let mouseIgnoreEnabled = false;
-    // Track content protection state
-    let contentProtectionEnabled = true; // Default to enabled as set above
-
-    ipcMain.handle('window-toggle-mouse-ignore', () => {
-        mouseIgnoreEnabled = !mouseIgnoreEnabled;
-        win.setIgnoreMouseEvents(mouseIgnoreEnabled);
-        return mouseIgnoreEnabled;
-    });
-
-    // Content protection toggle handler
-    ipcMain.handle('window-toggle-content-protection', () => {
-        contentProtectionEnabled = !contentProtectionEnabled;
-        win.setContentProtection(contentProtectionEnabled);
-        console.log(`Content protection ${contentProtectionEnabled ? 'enabled' : 'disabled'}`);
-        return contentProtectionEnabled;
-    });
-
-    // Get current content protection state
-    ipcMain.handle('window-get-content-protection', () => {
-        return contentProtectionEnabled;
-    });
-
-    // Screen capture handlers
-    ipcMain.handle('get-desktop-sources', async () => {
-        try {
-            const sources = await desktopCapturer.getSources({
-                types: ['window', 'screen'],
-                thumbnailSize: { width: 150, height: 150 }
-            });
-            
-            // Filter out this application's own window to avoid showing it in capture list
-            const filteredSources = sources.filter(source => {
-                // Cross-platform filtering for own window
-                const isOwnWindow = source.name.toLowerCase().includes('buddy') ||
-                                  source.name.toLowerCase().includes('electron') ||
-                                  source.id.includes(win.webContents.id.toString()) ||
-                                  // Additional filters for different platforms
-                                  (process.platform === 'win32' && source.name.includes('Buddy')) ||
-                                  (process.platform === 'darwin' && source.name.includes('Buddy')) ||
-                                  (process.platform === 'linux' && (source.name.includes('Buddy') || source.name.includes('buddy')));
-                return !isOwnWindow;
-            });
-            
-            return filteredSources.map(source => ({
-                id: source.id,
-                name: source.name,
-                thumbnail: source.thumbnail.toDataURL()
-            }));
-        } catch (error) {
-            console.error('Error getting desktop sources:', error);
-            return [];
-        }
-    });
-
-    ipcMain.handle('get-screen-info', () => {
-        const displays = screen.getAllDisplays();
-        const primaryDisplay = screen.getPrimaryDisplay();
-        return {
-            displays: displays.map(display => ({
-                id: display.id,
-                bounds: display.bounds,
-                workArea: display.workArea,
-                scaleFactor: display.scaleFactor,
-                rotation: display.rotation,
-                primary: display.id === primaryDisplay.id
-            })),
-            primaryDisplay: {
-                id: primaryDisplay.id,
-                bounds: primaryDisplay.bounds,
-                workArea: primaryDisplay.workArea,
-                scaleFactor: primaryDisplay.scaleFactor
-            }
-        };
-    });
-
-    // Register global shortcuts with cross-platform compatibility
-    // Hide/show window shortcut
-    const hideShowShortcut = process.platform === 'darwin' ? 'Cmd+\\' : 'Ctrl+\\';
-    
-    globalShortcut.register(hideShowShortcut, () => {
-        if (win.isVisible()) {
-            win.hide();
-        } else {
-            win.showInactive();
-        }
-    });
-
-    // Mouse ignore toggle shortcut
-    const mouseIgnoreShortcut = process.platform === 'darwin' ? 'Cmd+Shift+\\' : 'Ctrl+Shift+\\';
-    
-    globalShortcut.register(mouseIgnoreShortcut, () => {
-        mouseIgnoreEnabled = !mouseIgnoreEnabled;
-        win.setIgnoreMouseEvents(mouseIgnoreEnabled);
-        console.log(`Mouse ignore ${mouseIgnoreEnabled ? 'enabled' : 'disabled'}`);
-    });
-
-    // Additional Linux-specific shortcuts (if needed)
-    if (process.platform === 'linux') {
-        // Alternative shortcut for Linux window managers that might intercept Ctrl+\
-        const linuxHideShowShortcut = 'Ctrl+Alt+\\';
-        globalShortcut.register(linuxHideShowShortcut, () => {
-            if (win.isVisible()) {
-                win.hide();
-            } else {
-                win.showInactive();
-            }
-        });
+      return filteredSources.map((source) => ({
+        id: source.id,
+        name: source.name,
+        thumbnail: source.thumbnail.toDataURL(),
+      }));
+    } catch (error) {
+      console.error("Error getting desktop sources:", error);
+      return [];
     }
+  });
 
-    // Log shortcut registration with platform info
-    console.log(`Global shortcuts registered for ${process.platform}:`);
-    console.log(`- ${hideShowShortcut}: Toggle window visibility`);
-    console.log(`- ${mouseIgnoreShortcut}: Toggle mouse ignore`);
-    if (process.platform === 'linux') {
-        console.log(`- Ctrl+Alt+\\: Alternative toggle window visibility (Linux)`);
+  ipcMain.handle("get-screen-info", () => {
+    const displays = screen.getAllDisplays();
+    const primaryDisplay = screen.getPrimaryDisplay();
+    return {
+      displays: displays.map((display) => ({
+        id: display.id,
+        bounds: display.bounds,
+        workArea: display.workArea,
+        scaleFactor: display.scaleFactor,
+        rotation: display.rotation,
+        primary: display.id === primaryDisplay.id,
+      })),
+      primaryDisplay: {
+        id: primaryDisplay.id,
+        bounds: primaryDisplay.bounds,
+        workArea: primaryDisplay.workArea,
+        scaleFactor: primaryDisplay.scaleFactor,
+      },
+    };
+  });
+
+  // Register global shortcuts with cross-platform compatibility
+  // Hide/show window shortcut
+  const hideShowShortcut = process.platform === "darwin" ? "Cmd+\\" : "Ctrl+\\";
+
+  globalShortcut.register(hideShowShortcut, () => {
+    if (currentWindow.isVisible()) {
+      currentWindow.hide();
+    } else {
+      currentWindow.showInactive();
     }
+  });
 
-    return win;
+  // Mouse ignore toggle shortcut
+  const mouseIgnoreShortcut =
+    process.platform === "darwin" ? "Cmd+Shift+\\" : "Ctrl+Shift+\\";
+
+  globalShortcut.register(mouseIgnoreShortcut, () => {
+    mouseIgnoreEnabled = !mouseIgnoreEnabled;
+    currentWindow.setIgnoreMouseEvents(mouseIgnoreEnabled);
+    console.log(`Mouse ignore ${mouseIgnoreEnabled ? "enabled" : "disabled"}`);
+  });
+
+  // Additional Linux-specific shortcuts (if needed)
+  if (process.platform === "linux") {
+    // Alternative shortcut for Linux window managers that might intercept Ctrl+\
+    const linuxHideShowShortcut = "Ctrl+Alt+\\";
+    globalShortcut.register(linuxHideShowShortcut, () => {
+      if (currentWindow.isVisible()) {
+        currentWindow.hide();
+      } else {
+        currentWindow.showInactive();
+      }
+    });
+  }
+
+  // Log shortcut registration with platform info
+  console.log(`Global shortcuts registered for ${process.platform}:`);
+  console.log(`- ${hideShowShortcut}: Toggle window visibility`);
+  console.log(`- ${mouseIgnoreShortcut}: Toggle mouse ignore`);
+  if (process.platform === "linux") {
+    console.log(`- Ctrl+Alt+\\: Alternative toggle window visibility (Linux)`);
+  }
 }
 
 app.whenReady().then(createWindow);
@@ -286,7 +375,7 @@ app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
   // Unregister all global shortcuts
   globalShortcut.unregisterAll();
-  
+
   if (process.platform !== "darwin") app.quit();
 });
 
