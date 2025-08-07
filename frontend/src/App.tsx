@@ -1,19 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, Copy, MessageSquare } from 'lucide-react'
+import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare } from 'lucide-react'
 import { PromptInputWithActions } from '@/components/chat-input'
-import { 
-  Message, 
-  MessageAvatar, 
-  MessageContent, 
-  MessageActions
-} from '@/components/prompt-kit/message'
-import { 
-  Tooltip, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip'
+import { Messages } from '@/components/Messages'
+import type { ChatMessage } from '@/components/Messages'
 
 // Declare the window.api interface for TypeScript
 declare global {
@@ -53,12 +44,7 @@ declare global {
   }
 }
 
-interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-}
+
 
 function App() {
   const [count, setCount] = useState(0)
@@ -77,7 +63,6 @@ function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [showChat, setShowChat] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     // Load screen info on mount
@@ -95,14 +80,7 @@ function App() {
     }
   }, [])
 
-  // Auto-scroll to bottom when new messages are added
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, isTyping])
 
   const handleClose = () => {
     if (window.api?.closeWindow) {
@@ -329,68 +307,11 @@ function App() {
           <div className="flex-1 flex">
             {/* Chat Messages Area */}
             {showChat && (
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-scrollbar smooth-scroll">
-                  {messages.map((message) => (
-                    <Message key={message.id} className="max-w-4xl mx-auto message-appear">
-                      <MessageAvatar
-                        src={message.role === 'user' ? '/user-avatar.png' : '/bot-avatar.png'}
-                        alt={message.role === 'user' ? 'User' : 'Assistant'}
-                        fallback={message.role === 'user' ? 'U' : 'B'}
-                        className="bg-white/10 backdrop-blur-sm border border-white/20"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <MessageContent 
-                          markdown={message.role === 'assistant'}
-                          className="bg-white/5 backdrop-blur-lg border border-white/20 text-white/90 transition-all duration-200 hover:bg-white/10"
-                        >
-                          {message.content}
-                        </MessageContent>
-                        <MessageActions>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-white/60 hover:text-white/90 hover:bg-white/10 transition-all duration-200"
-                                  onClick={() => copyToClipboard(message.content)}
-                                >
-                                  <Copy className="w-3 h-3" />
-                                </Button>
-                              </TooltipTrigger>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </MessageActions>
-                      </div>
-                    </Message>
-                  ))}
-                  
-                  {/* Typing indicator */}
-                  {isTyping && (
-                    <Message className="max-w-4xl mx-auto message-appear">
-                      <MessageAvatar
-                        src="/bot-avatar.png"
-                        alt="Assistant"
-                        fallback="B"
-                        className="bg-white/10 backdrop-blur-sm border border-white/20"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div className="bg-white/5 backdrop-blur-lg border border-white/20 text-white/90 rounded-lg p-2">
-                          <div className="flex items-center space-x-1">
-                            <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </Message>
-                  )}
-                  
-                  {/* Invisible element to scroll to */}
-                  <div ref={messagesEndRef} className="h-1" />
-                </div>
-              </div>
+              <Messages
+                messages={messages}
+                isTyping={isTyping}
+                onCopyMessage={copyToClipboard}
+              />
             )}
 
             {/* Welcome Content (shown when no chat) */}
