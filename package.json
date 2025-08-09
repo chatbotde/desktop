@@ -7,13 +7,14 @@
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
+    "build:all": "npm run build && node build-frontend.js",
     "build:electron": "npm run build && electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "package": "npm run build:all && electron-forge package",
+    "make": "npm run build:all && electron-forge make"
   },
   "keywords": [],
-  "author": "",
+  "author": "sonicthinking",
   "license": "ISC",
   "description": "A desktop companion app built with Electron",
   "devDependencies": {

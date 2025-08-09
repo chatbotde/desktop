@@ -159,15 +159,37 @@ function setupWindow(win) {
   if (process.env.NODE_ENV === "development") {
     win.loadURL("http://localhost:5173");
   } else {
-    // Load the local HTML file as fallback, or the built frontend
-    const frontendPath = path.join(__dirname, "frontend/dist/index.html");
+    // Load the frontend files in production
+    const appFrontendPath = path.join(__dirname, "app-frontend/index.html");
+    const frontendDistPath = path.join(__dirname, "frontend/dist/index.html");
     const fallbackPath = path.join(__dirname, "index.html");
 
-    // Check if frontend build exists, otherwise use fallback
+    // Check for frontend files in order of preference
     const fs = require("fs");
-    if (fs.existsSync(frontendPath)) {
-      win.loadFile(frontendPath);
+    
+    // Debug: Log the current directory and check what files exist
+    console.log("Current directory:", __dirname);
+    console.log("Checking paths:");
+    console.log("- app-frontend:", appFrontendPath, "exists:", fs.existsSync(appFrontendPath));
+    console.log("- frontend/dist:", frontendDistPath, "exists:", fs.existsSync(frontendDistPath));
+    console.log("- fallback:", fallbackPath, "exists:", fs.existsSync(fallbackPath));
+    
+    // List contents of current directory for debugging
+    try {
+      const contents = fs.readdirSync(__dirname);
+      console.log("Directory contents:", contents);
+    } catch (e) {
+      console.log("Could not read directory:", e.message);
+    }
+    
+    if (fs.existsSync(appFrontendPath)) {
+      console.log("Loading from app-frontend:", appFrontendPath);
+      win.loadFile(appFrontendPath);
+    } else if (fs.existsSync(frontendDistPath)) {
+      console.log("Loading from frontend/dist:", frontendDistPath);
+      win.loadFile(frontendDistPath);
     } else {
+      console.log("Loading fallback:", fallbackPath);
       win.loadFile(fallbackPath);
     }
   }
@@ -248,13 +270,19 @@ function setupWindow(win) {
       if (process.env.NODE_ENV === "development") {
         currentWindow.loadURL("http://localhost:5173");
       } else {
-        const frontendPath = path.join(__dirname, "frontend/dist/index.html");
+        const appFrontendPath = path.join(__dirname, "app-frontend/index.html");
+        const frontendDistPath = path.join(__dirname, "frontend/dist/index.html");
         const fallbackPath = path.join(__dirname, "index.html");
 
         const fs = require("fs");
-        if (fs.existsSync(frontendPath)) {
-          currentWindow.loadFile(frontendPath);
+        if (fs.existsSync(appFrontendPath)) {
+          console.log("Theme change: Loading from app-frontend:", appFrontendPath);
+          currentWindow.loadFile(appFrontendPath);
+        } else if (fs.existsSync(frontendDistPath)) {
+          console.log("Theme change: Loading from frontend/dist:", frontendDistPath);
+          currentWindow.loadFile(frontendDistPath);
         } else {
+          console.log("Theme change: Loading fallback:", fallbackPath);
           currentWindow.loadFile(fallbackPath);
         }
       }

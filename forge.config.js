@@ -4,12 +4,21 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    ignore: [
+      /^\/frontend\/node_modules/,
+      /^\/frontend\/src/,
+      /^\/frontend\/public/,
+      /^\/node_modules/
+    ],
   },
   rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        authors: 'sonicthinking',
+        description: 'A desktop companion app built with Electron'
+      },
     },
     {
       name: '@electron-forge/maker-zip',

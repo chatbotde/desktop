@@ -94,7 +94,6 @@ export function PromptInputWithActions({ onSendMessage }: { onSendMessage?: (con
         onValueChange={setInput}
         isLoading={isLoading}
         onSubmit={handleSubmit}
-        maxHeight={200}
         className="w-full bg-white/10 backdrop-blur-md rounded-lg border-0 p-3"
       >
       {files.length > 0 && (
