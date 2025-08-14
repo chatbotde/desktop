@@ -48,10 +48,21 @@ function createWindow(theme = "transparent") {
     fullscreenable: false,
     kiosk: false,
     autoHideMenuBar: true,
+    // Additional properties to help stay above taskbar
+    modal: false,
+    parent: null,
+    acceptFirstMouse: true,
+    disableAutoHideCursor: false,
+    // Windows-specific properties to help with taskbar behavior
+    ...(process.platform === "win32" && {
+      type: "toolbar", // This helps with staying above taskbar on Windows
+      thickFrame: false,
+    }),
     // Linux-specific properties
     ...(process.platform === "linux" && {
       icon: path.join(__dirname, "assets/icon.png"), // Add app icon for Linux
       frame: false,
+      type: "dock", // This can help with panel/taskbar behavior on Linux
     }),
   };
 
@@ -66,26 +77,79 @@ function createWindow(theme = "transparent") {
 function setupWindow(win) {
   // Set the window to always stay on top with highest priority
   // This ensures it stays above taskbar/dock and all other windows across all platforms
-  win.setAlwaysOnTop(true, "screen-saver", 1);
+  win.setAlwaysOnTop(true, "screen-saver", 2);
 
   // Platform-specific configurations for maximum always-on-top behavior
   if (process.platform === "win32") {
-    // Windows: Stay above taskbar and system menus
-    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+    // Windows: Stay above taskbar and system menus with maximum priority
+    win.setAlwaysOnTop(true, "pop-up-menu", 2);
+    // Additional Windows-specific setting to ensure it stays above taskbar
+    win.setAlwaysOnTop(true, "floating", 2);
+    
+    // Force the window to stay above all other windows including taskbar
+    setTimeout(() => {
+      win.setAlwaysOnTop(false);
+      win.setAlwaysOnTop(true, "screen-saver", 2);
+    }, 100);
   } else if (process.platform === "darwin") {
     // macOS: Stay above dock and mission control
-    win.setAlwaysOnTop(true, "floating", 1);
-    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+    win.setAlwaysOnTop(true, "floating", 2);
+    win.setAlwaysOnTop(true, "pop-up-menu", 2);
   } else if (process.platform === "linux") {
     // Linux: Stay above panels and system elements
-    win.setAlwaysOnTop(true, "pop-up-menu", 1);
+    win.setAlwaysOnTop(true, "pop-up-menu", 2);
     // Additional Linux-specific settings
-    win.setAlwaysOnTop(true, "modal-panel", 1);
+    win.setAlwaysOnTop(true, "modal-panel", 2);
+    win.setAlwaysOnTop(true, "floating", 2);
   }
+
+  // Add event listener to maintain always-on-top behavior
+  win.on('focus', () => {
+    // Ensure the window stays on top when it gains focus
+    if (process.platform === "win32") {
+      win.setAlwaysOnTop(true, "screen-saver", 2);
+    }
+  });
+
+  // Add event listener for when other windows might affect our position
+  win.on('blur', () => {
+    // Maintain always-on-top even when window loses focus
+    setTimeout(() => {
+      if (win && !win.isDestroyed()) {
+        if (process.platform === "win32") {
+          win.setAlwaysOnTop(true, "screen-saver", 2);
+        } else {
+          win.setAlwaysOnTop(true, "floating", 2);
+        }
+      }
+    }, 50);
+  });
 
   // Enable content protection to prevent this app from being captured/recorded
   // while still allowing it to capture other applications
   win.setContentProtection(true);
+
+  // Periodic check to ensure window stays above taskbar (especially important on Windows)
+  const maintainAlwaysOnTop = () => {
+    if (win && !win.isDestroyed() && win.isVisible()) {
+      if (process.platform === "win32") {
+        // Re-apply always on top with highest priority
+        win.setAlwaysOnTop(true, "screen-saver", 2);
+      } else {
+        win.setAlwaysOnTop(true, "floating", 2);
+      }
+    }
+  };
+
+  // Check every 2 seconds to maintain position above taskbar
+  const alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 2000);
+  
+  // Clean up interval when window is destroyed
+  win.on('closed', () => {
+    if (alwaysOnTopInterval) {
+      clearInterval(alwaysOnTopInterval);
+    }
+  });
 
   // Opacity tracking variable
   let currentOpacity = 1.0; // Default opacity
@@ -211,6 +275,25 @@ function setupWindow(win) {
     }
   });
 
+  // Force window to stay above taskbar
+  ipcMain.handle("window-force-above-taskbar", () => {
+    if (currentWindow && !currentWindow.isDestroyed()) {
+      // Force the window above taskbar with multiple attempts
+      currentWindow.setAlwaysOnTop(false);
+      setTimeout(() => {
+        if (process.platform === "win32") {
+          currentWindow.setAlwaysOnTop(true, "screen-saver", 2);
+          currentWindow.setAlwaysOnTop(true, "floating", 2);
+        } else {
+          currentWindow.setAlwaysOnTop(true, "floating", 2);
+        }
+        // Bring to front
+        currentWindow.showInactive();
+        currentWindow.focus();
+      }, 50);
+    }
+  });
+
   ipcMain.handle("window-set-opacity", (event, opacity) => {
     currentOpacity = opacity;
     currentWindow.setOpacity(opacity);
@@ -236,11 +319,13 @@ function setupWindow(win) {
       `Content protection ${contentProtectionEnabled ? "enabled" : "disabled"}`
     );
     return contentProtectionEnabled;
+    
   });
 
   // Get current content protection state
   ipcMain.handle("window-get-content-protection", () => {
     return contentProtectionEnabled;
+    
   });
 
   // Get current theme

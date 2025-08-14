@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("api", {
     maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
     setOpacity: (opacity) => ipcRenderer.invoke('window-set-opacity', opacity),
     toggleMouseIgnore: () => ipcRenderer.invoke('window-toggle-mouse-ignore'),
+    forceAboveTaskbar: () => ipcRenderer.invoke('window-force-above-taskbar'),
     // Content protection
     toggleContentProtection: () => ipcRenderer.invoke('window-toggle-content-protection'),
     getContentProtection: () => ipcRenderer.invoke('window-get-content-protection'),
