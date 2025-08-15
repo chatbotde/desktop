@@ -19,12 +19,12 @@ class LaunchWindowManager {
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
     
     // Tablet-like dimensions
-    const windowWidth = 80;
-    const windowHeight = 300;
+    const windowWidth = 20;
+    const windowHeight = 200;
     
     // Position: half outside screen on right side
     const x = screenWidth - (windowWidth / 2);
-    const y = (screenHeight - windowHeight) / 2;
+    const y = (screenHeight - windowHeight) / 4;
 
     this.launchWindow = new BrowserWindow({
       width: windowWidth,
