@@ -1,40 +1,40 @@
-const { app } = require("electron");
-const { WindowManager, ShortcutManager } = require("./window-main");
+const { app, ipcMain } = require("electron");
+const { LaunchWindowManager } = require("./launch-window");
+const { registerIpcHandlers } = require("./window-main");
 
 // Global instances
-let windowManager = null;
-let shortcutManager = null;
+let launchWindowManager = null;
+let ipcHandlersRegistered = false;
 
-function createWindow(theme = "transparent") {
-  if (!windowManager) {
-    windowManager = new WindowManager();
+function createLaunchWindow() {
+  if (!launchWindowManager) {
+    launchWindowManager = new LaunchWindowManager();
   }
   
-  const win = windowManager.createWindow(theme);
+  const launchWin = launchWindowManager.createLaunchWindow();
   
-  // Setup shortcuts if not already done
-  if (!shortcutManager) {
-    shortcutManager = new ShortcutManager(windowManager);
-    shortcutManager.registerAllShortcuts();
+  // Setup IPC handler for opening main window (only once)
+  if (!ipcHandlersRegistered) {
+    ipcMain.on('open-main-window', () => {
+      launchWindowManager.openMainWindow();
+    });
+    ipcHandlersRegistered = true;
   }
   
-  return win;
+  return launchWin;
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createLaunchWindow);
 
 app.on("window-all-closed", () => {
-  // Unregister all global shortcuts
-  if (shortcutManager) {
-    shortcutManager.unregisterAllShortcuts();
-  }
-
-  if (process.platform !== "darwin") app.quit();
+  // Don't quit the app when all windows are closed
+  // The launch window should persist
+  // Only quit when explicitly closed via Ctrl+Alt+Y
 });
 
 app.on("will-quit", () => {
-  // Unregister all global shortcuts before quitting
-  if (shortcutManager) {
-    shortcutManager.unregisterAllShortcuts();
+  // Clean up when quitting
+  if (launchWindowManager) {
+    launchWindowManager.closeLaunchWindow();
   }
 });

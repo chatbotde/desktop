@@ -98,6 +98,18 @@ class ShortcutManager {
     console.log("All global shortcuts unregistered");
   }
 
+  unregisterMainWindowShortcuts() {
+    // Unregister only the shortcuts registered by this manager
+    this.registeredShortcuts.forEach(({ shortcut }) => {
+      if (globalShortcut.isRegistered(shortcut)) {
+        globalShortcut.unregister(shortcut);
+        console.log(`Unregistered shortcut: ${shortcut}`);
+      }
+    });
+    this.registeredShortcuts = [];
+    console.log("Main window shortcuts unregistered");
+  }
+
   getRegisteredShortcuts() {
     return [...this.registeredShortcuts];
   }

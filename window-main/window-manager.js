@@ -5,6 +5,9 @@ const { applyWindowStyling } = require("./window-styling");
 const { registerIpcHandlers } = require("./ipc-handlers");
 const { title } = require("process");
 
+// Global flag to ensure IPC handlers are registered only once
+let globalIpcHandlersRegistered = false;
+
 class WindowManager {
   constructor() {
     this.currentWindow = null;
@@ -12,6 +15,7 @@ class WindowManager {
     this.currentOpacity = 1.0;
     this.mouseIgnoreEnabled = false;
     this.contentProtectionEnabled = true;
+    this.ipcHandlersRegistered = false;
   }
 
   createWindow(theme = "transparent") {
@@ -85,8 +89,12 @@ class WindowManager {
     // Setup styling
     applyWindowStyling(win, this.currentOpacity, this.currentTheme);
     
-    // Register IPC handlers
-    registerIpcHandlers(this);
+    // Register IPC handlers only once globally
+    if (!globalIpcHandlersRegistered) {
+      registerIpcHandlers(this);
+      globalIpcHandlersRegistered = true;
+      this.ipcHandlersRegistered = true;
+    }
     
     // Load content
     this.loadContent(win);
