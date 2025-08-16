@@ -36,7 +36,8 @@ function removeExistingHandlers() {
     "window-get-theme",
     "window-set-theme",
     "get-desktop-sources",
-    "get-screen-info"
+    "get-screen-info",
+    "content-size-changed"
   ];
 
   handlersToRemove.forEach(handler => {
@@ -111,6 +112,17 @@ function registerWindowPropertyHandlers(windowManager) {
 
   ipcMain.handle("window-get-content-protection", () => {
     return windowManager.isContentProtectionEnabled();
+  });
+
+  // New handler for content size changes
+  ipcMain.handle("content-size-changed", (event, width, height) => {
+    const currentWindow = windowManager.getCurrentWindow();
+    if (currentWindow) {
+      // Call the resize method on the window manager
+      if (windowManager.resizeWindowToContent) {
+        windowManager.resizeWindowToContent(currentWindow, width, height);
+      }
+    }
   });
 }
 

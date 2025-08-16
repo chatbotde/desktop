@@ -1,55 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare } from 'lucide-react'
+import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare, ArrowUp } from 'lucide-react'
 import { Messages } from '@/components/Messages'
 import type { ChatMessage } from '@/components/Messages'
+import { windowResizeManager } from '@/lib/window-resize'
 
-// Declare the window.api interface for TypeScript
-declare global {
-  interface Window {
-    api?: {
-      closeWindow: () => void
-      minimizeWindow: () => void
-      maximizeWindow: () => void
-      setOpacity: (opacity: number) => void
-      toggleMouseIgnore: () => Promise<boolean>
-      toggleContentProtection: () => Promise<boolean>
-      getContentProtection: () => Promise<boolean>
-      setTheme: (theme: string) => void
-      getTheme: () => Promise<string>
-      onThemeChanged: (callback: (theme: string) => void) => void
-      
-      getDesktopSources: () => Promise<Array<{
-        id: string
-        name: string
-        thumbnail: string
-      }>>
-      getScreenInfo: () => Promise<{
-        displays: Array<{
-          id: number
-          bounds: { x: number, y: number, width: number, height: number }
-          workArea: { x: number, y: number, width: number, height: number }
-          scaleFactor: number
-          rotation: number
-          primary: boolean
-        }>
-        primaryDisplay: {
-          id: number
-          bounds: { x: number, y: number, width: number, height: number }
-          workArea: { x: number, y: number, width: number, height: number }
-          scaleFactor: number
-        }
-      }>
-      ping: () => string
-      getVersions: () => Promise<{ electron: string; node: string }>
-      
-      // Chat input integration
-      onChatMessage: (callback: (messageData: any) => void) => void
-      sendChatInputToggle: () => void
-    }
-  }
-}
+// Note: Window API interface is now declared in types/electron.d.ts
 
 
 
@@ -71,8 +28,72 @@ function App() {
   const [showChat, setShowChat] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [currentTheme, setCurrentTheme] = useState<'transparent' | 'black'>('transparent')
+  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  const mainContentRef = useRef<HTMLDivElement>(null)
+  const messageCounterRef = useRef(0)
+  const processedMessageIds = useRef(new Set<string>())
+
+  const handleChatMessage = useCallback((messageData: any) => {
+    console.log('Main Window: Received message from chat input window:', messageData);
+    
+    // Generate a unique message ID
+    const messageId = messageData.id || `msg_${Date.now()}_${++messageCounterRef.current}`;
+    
+    // Prevent duplicate messages by checking if message with same ID already exists
+    if (processedMessageIds.current.has(messageId)) {
+      console.log('Main Window: Duplicate message detected, ignoring:', messageId);
+      return;
+    }
+    
+    // Mark this message ID as processed
+    processedMessageIds.current.add(messageId);
+    
+    const userMessage: ChatMessage = {
+      id: messageId,
+      role: 'user',
+      content: messageData.content,
+      timestamp: new Date(messageData.timestamp || Date.now())
+    }
+
+    console.log('Main Window: Adding user message:', userMessage);
+    setMessages(prev => [...prev, userMessage])
+    setShowChat(true)
+    setIsTyping(true)
+
+    // Trigger window resize after content change
+    setTimeout(() => {
+      if (windowResizeManager) {
+        windowResizeManager.forceResize();
+      }
+    }, 100)
+
+    // Simulate AI response
+    setTimeout(() => {
+      setIsTyping(false)
+      const assistantMessage: ChatMessage = {
+        id: `assistant_${Date.now()}_${++messageCounterRef.current}`,
+        role: 'assistant',
+        content: `I received your message: "${messageData.content}". This is a demo response from Buddy!`,
+        timestamp: new Date()
+      }
+      console.log('Main Window: Adding assistant message:', assistantMessage);
+      setMessages(prev => [...prev, assistantMessage])
+      
+      // Trigger window resize after content change
+      setTimeout(() => {
+        if (windowResizeManager) {
+          windowResizeManager.forceResize();
+        }
+      }, 100)
+    }, 1500)
+  }, [windowResizeManager])
 
   useEffect(() => {
+    // Initialize window resize manager for dynamic sizing
+    if (windowResizeManager) {
+      console.log('App: Window resize manager initialized');
+    }
+
     // Load screen info on mount
     if (window.api?.getScreenInfo) {
       window.api.getScreenInfo().then(info => {
@@ -101,34 +122,6 @@ function App() {
       })
     }
 
-    // Listen for messages from chat input window
-    const handleChatMessage = (messageData: any) => {
-      console.log('Main Window: Received message from chat input window:', messageData);
-      
-      const userMessage: ChatMessage = {
-        id: messageData.id || Date.now().toString(),
-        role: 'user',
-        content: messageData.content,
-        timestamp: new Date(messageData.timestamp || Date.now())
-      }
-
-      setMessages(prev => [...prev, userMessage])
-      setShowChat(true)
-      setIsTyping(true)
-
-      // Simulate AI response
-      setTimeout(() => {
-        setIsTyping(false)
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: `I received your message: "${messageData.content}". This is a demo response from Buddy!`,
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, assistantMessage])
-      }, 1500)
-    }
-
     // Set up the message listener using the exposed API
     if (window.api?.onChatMessage) {
       console.log('Main Window: Setting up chat message listener');
@@ -138,8 +131,46 @@ function App() {
     }
 
     // Cleanup is handled automatically by the contextBridge
-  }, [])
+    
+    // Return cleanup function for window resize manager and chat message listener
+    return () => {
+      if (windowResizeManager) {
+        windowResizeManager.destroy();
+        console.log('App: Window resize manager cleaned up');
+      }
+      
+      // Clean up chat message listener if possible
+      if (window.api?.removeAllListeners) {
+        try {
+          window.api.removeAllListeners('receive-chat-message');
+          console.log('App: Chat message listener cleaned up');
+        } catch (error) {
+          console.log('App: Could not clean up chat message listener:', error);
+        }
+      }
+    };
+  }, [handleChatMessage])
 
+  // Handle scroll events for scroll-to-top button
+  const handleScroll = () => {
+    if (mainContentRef.current) {
+      const scrollTop = mainContentRef.current.scrollTop;
+      const scrollHeight = mainContentRef.current.scrollHeight;
+      const clientHeight = mainContentRef.current.clientHeight;
+      
+      console.log('Scroll event:', { scrollTop, scrollHeight, clientHeight, canScroll: scrollHeight > clientHeight });
+      setShowScrollToTop(scrollTop > 100);
+    }
+  };
+
+  const scrollToTop = () => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
 
 
   const handleClose = () => {
@@ -228,12 +259,23 @@ function App() {
     setMessages([])
     setShowChat(false)
     setIsTyping(false)
+    
+    // Clear processed message IDs to allow new messages
+    processedMessageIds.current.clear()
+    messageCounterRef.current = 0
+    
+    // Trigger window resize after content change
+    setTimeout(() => {
+      if (windowResizeManager) {
+        windowResizeManager.forceResize();
+      }
+    }, 100)
   }
 
   return (
     <div className={`h-screen w-full flex flex-col ${currentTheme === 'black' ? 'bg-black' : 'bg-transparent'}`}>
-      {/* Custom Title Bar */}
-      <div className={`h-8 ${currentTheme === 'black' ? 'bg-gray-900 border-b border-gray-700' : 'bg-black/5 backdrop-blur-md border-b border-white/10'} flex items-center justify-between px-4 drag-region relative overflow-hidden`}>
+      {/* Fixed Header - Always on top */}
+      <div className={`h-8 flex-shrink-0 fixed-header ${currentTheme === 'black' ? 'bg-gray-900 border-b border-gray-700' : 'bg-black/5 backdrop-blur-md border-b border-white/10'} flex items-center justify-between px-4 drag-region relative overflow-hidden`}>
         {/* Glassmorphism overlay */}
         {currentTheme === 'transparent' && (
           <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 backdrop-blur-lg"></div>
@@ -260,8 +302,6 @@ function App() {
               {Math.round(opacity[0] * 100)}%
             </span>
           </div>
-
-
 
           {/* Content Protection Toggle */}
           <Button
@@ -349,8 +389,8 @@ function App() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 relative">
+      {/* Scrollable Content Area - Below Fixed Header */}
+      <div className="flex-1 relative overflow-hidden mt-8">
         {/* Background - Conditional based on theme */}
         {currentTheme === 'transparent' ? (
           <>
@@ -367,128 +407,151 @@ function App() {
           </>
         )}
 
-        <div className="relative z-10 h-full flex flex-col">
-          {/* Main Content Area */}
-          <div className="flex-1 flex">
-            {/* Chat Messages Area */}
-            {showChat && (
-              <div className="flex-1 flex flex-col">
-                {/* Theme Selector for Chat Mode */}
-                
-                
-                <Messages
-                  messages={messages}
-                  isTyping={isTyping}
-                  onCopyMessage={copyToClipboard}
-                />
-              </div>
-            )}
+        {/* Scrollable Content Container */}
+        <div className="relative z-10 h-full scrollable-content" ref={mainContentRef} onScroll={handleScroll}>
+          {/* Chat Messages Area */}
+          {showChat && (
+            <div className="min-h-full flex flex-col">
+              <Messages
+                messages={messages}
+                isTyping={isTyping}
+                onCopyMessage={copyToClipboard}
+              />
+            </div>
+          )}
 
-            {/* Welcome Content (shown when no chat) */}
-            {!showChat && (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center space-y-8 max-w-md mx-auto p-8">
-                  <div className="space-y-4">
-                    <div className={`text-6xl ${currentTheme === 'black' ? 'text-white/20' : 'text-white/30'}`}>
-                      <Rocket className="w-16 h-16 mx-auto mb-4" />
-                    </div>
-                    <h1 className={`text-2xl font-bold ${currentTheme === 'black' ? 'text-white/90' : 'text-white/90'}`}>
-                      Welcome to Buddy
-                    </h1>
-                    <p className={`text-lg ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/70'}`}>
-                      Your AI desktop companion
-                    </p>
-                    <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-2`}>
-                      <p>Click the <MessageSquare className="w-4 h-4 inline mx-1" /> button to open the floating chat input</p>
-                      <p>Start typing to begin your conversation</p>
-                    </div>
+          {/* Welcome Content (shown when no chat) */}
+          {!showChat && (
+            <div className="min-h-full flex items-start justify-center py-8">
+              <div className="text-center space-y-8 max-w-md mx-auto p-8 w-full">
+                <div className="space-y-4">
+                  <div className={`text-6xl ${currentTheme === 'black' ? 'text-white/20' : 'text-white/30'}`}>
+                    <Rocket className="w-16 h-16 mx-auto mb-4" />
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Screen Capture Section - Overlay */}
-          {showSettings && (
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-20">
-              <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/20 shadow-2xl relative overflow-hidden max-w-2xl mx-auto">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 rounded-xl"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white/90 text-lg font-medium">Screen Capture</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSettings(false)}
-                      className="text-white/60 hover:text-white/90"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                  <h1 className={`text-2xl font-bold ${currentTheme === 'black' ? 'text-white/90' : 'text-white/90'}`}>
+                    Welcome to Buddy
+                  </h1>
+                  <p className={`text-lg ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/70'}`}>
+                    Your AI desktop companion
+                  </p>
+                  <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-2`}>
+                    <p>Click the <MessageSquare className="w-4 h-4 inline mx-1" /> button to open the floating chat input</p>
+                    <p>Start typing to begin your conversation</p>
                   </div>
-
-                  {isCapturing ? (
-                    <div className="text-center py-4">
-                      <div className="text-white/70">Loading available sources...</div>
+                  
+                  {/* Test content to demonstrate scrolling */}
+                  <div className="space-y-4 mt-8">
+                    <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-600' : 'text-white/40'} space-y-2`}>
+                      <p>Scroll down to see more content...</p>
+                      <p>This demonstrates the main window scrolling functionality</p>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="text-white/70 text-sm">
-                        {screenInfo ? `Found ${screenInfo.displays.length} display(s)` : 'Getting screen info...'}
+                    
+                    {/* Generate some test content to make scrolling necessary */}
+                    {Array.from({ length: 20 }, (_, i) => (
+                      <div key={i} className={`p-3 rounded-lg ${currentTheme === 'black' ? 'bg-gray-800/50' : 'bg-white/5'} border ${currentTheme === 'black' ? 'border-gray-700' : 'border-white/10'}`}>
+                        <p className={`text-xs ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}>
+                          Test content item {i + 1} - This helps demonstrate scrolling
+                        </p>
                       </div>
-
-                      {desktopSources.length > 0 && (
-                        <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
-                          {desktopSources.map((source) => (
-                            <div
-                              key={source.id}
-                              className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedSource === source.id
-                                ? 'border-blue-400 bg-blue-500/20'
-                                : 'border-white/20 bg-white/5 hover:bg-white/10'
-                                }`}
-                              onClick={() => handleSourceSelect(source.id)}
-                            >
-                              <img
-                                src={source.thumbnail}
-                                alt={source.name}
-                                className="w-full h-16 object-cover rounded mb-2"
-                              />
-                              <div className="text-white/80 text-xs truncate">
-                                {source.name}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleGetDesktopSources}
-                          className="bg-purple-600/80 hover:bg-purple-700/80 text-white px-4 py-2 text-sm backdrop-blur-sm border border-purple-400/30"
-                          size="sm"
-                        >
-                          <Camera className="w-4 h-4 mr-2" />
-                          Refresh Sources
-                        </Button>
-
-                        {selectedSource && (
-                          <Button
-                            onClick={() => console.log('Start capture with:', selectedSource)}
-                            className="bg-green-600/80 hover:bg-green-700/80 text-white px-4 py-2 text-sm backdrop-blur-sm border border-green-400/30"
-                            size="sm"
-                          >
-                            Start Capture
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           )}
-
-
         </div>
+
+        {/* Screen Capture Section - Overlay */}
+        {showSettings && (
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/20 shadow-2xl relative overflow-hidden max-w-2xl mx-auto">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 rounded-xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white/90 text-lg font-medium">Screen Capture</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSettings(false)}
+                    className="text-white/60 hover:text-white/90"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {isCapturing ? (
+                  <div className="text-center py-4">
+                    <div className="text-white/70">Loading available sources...</div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-white/70 text-sm">
+                      {screenInfo ? `Found ${screenInfo.displays.length} display(s)` : 'Getting screen info...'}
+                    </div>
+
+                    {desktopSources.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+                        {desktopSources.map((source) => (
+                          <div
+                            key={source.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedSource === source.id
+                              ? 'border-blue-400 bg-blue-500/20'
+                              : 'border-white/20 bg-white/5 hover:bg-white/10'
+                              }`}
+                            onClick={() => handleSourceSelect(source.id)}
+                          >
+                            <img
+                              src={source.thumbnail}
+                              alt={source.name}
+                              className="w-full h-16 object-cover rounded mb-2"
+                            />
+                            <div className="text-white/80 text-xs truncate">
+                              {source.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleGetDesktopSources}
+                        className="bg-purple-600/80 hover:bg-purple-700/80 text-white px-4 py-2 text-sm backdrop-blur-sm border border-purple-400/30"
+                        size="sm"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Refresh Sources
+                      </Button>
+
+                      {selectedSource && (
+                        <Button
+                          onClick={() => console.log('Start capture with:', selectedSource)}
+                          className="bg-green-600/80 hover:bg-green-700/80 text-white px-4 py-2 text-sm backdrop-blur-sm border border-green-400/30"
+                          size="sm"
+                        >
+                          Start Capture
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scroll to Top Button */}
+        {showScrollToTop && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute bottom-6 right-6 h-10 w-10 bg-blue-500/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-blue-500/30 transition-all duration-200 z-30"
+            onClick={scrollToTop}
+            title="Scroll to top"
+          >
+            <ArrowUp className="w-5 h-5" />
+          </Button>
+        )}
       </div>
     </div>
   )

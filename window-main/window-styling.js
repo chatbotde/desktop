@@ -20,7 +20,7 @@ function applyStyling(win, opacity, theme) {
     html {
       background: ${isBlackTheme ? "#000000" : "rgba(0, 0, 0, 0.1)"};
       border-radius: 15px;
-      overflow: hidden;
+      overflow: auto;
     }
     
     body {
@@ -29,7 +29,7 @@ function applyStyling(win, opacity, theme) {
       box-shadow: 
         0 0 20px ${isBlackTheme ? "rgba(51, 51, 51, 0.4)" : "rgba(0, 168, 255, 0.4)"},
         0 0 40px ${isBlackTheme ? "rgba(51, 51, 51, 0.2)" : "rgba(0, 168, 255, 0.2)"};
-      overflow: hidden;
+      overflow: auto;
       margin: 0;
       padding: 0;
       background: ${isBlackTheme ? "#000000" : "rgba(255, 255, 255, 0.05)"};
@@ -38,6 +38,139 @@ function applyStyling(win, opacity, theme) {
       height: 100vh;
       position: relative;
       opacity: ${opacity};
+    }
+    
+    /* Main content area scroll styling */
+    .main-content-scroll {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      scrollbar-width: thin;
+      scrollbar-color: ${isBlackTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.4)"} transparent;
+      height: 100%;
+      max-height: 100%;
+    }
+    
+    .main-content-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .main-content-scroll::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 4px;
+    }
+    
+    .main-content-scroll::-webkit-scrollbar-thumb {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.4)"};
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    
+    .main-content-scroll::-webkit-scrollbar-thumb:hover {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.6)"};
+    }
+    
+    .main-content-scroll::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    
+    /* Chat messages scroll styling */
+    .chat-messages-scroll {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      scrollbar-width: thin;
+      scrollbar-color: ${isBlackTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"} transparent;
+      scroll-behavior: smooth;
+      height: 100%;
+      max-height: 100%;
+    }
+    
+    .chat-messages-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .chat-messages-scroll::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 3px;
+    }
+    
+    .chat-messages-scroll::-webkit-scrollbar-thumb {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"};
+      border-radius: 3px;
+      transition: background 0.2s ease;
+    }
+    
+    .chat-messages-scroll::-webkit-scrollbar-thumb:hover {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.5)"};
+    }
+    
+    /* Fixed header styling */
+    .fixed-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+    
+    /* Scrollable content area */
+    .scrollable-content {
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: ${isBlackTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.4)"} transparent;
+      height: calc(100vh - 32px); /* Subtract header height */
+      max-height: calc(100vh - 32px);
+    }
+    
+    .scrollable-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .scrollable-content::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 4px;
+    }
+    
+    .scrollable-content::-webkit-scrollbar-thumb {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.4)"};
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    
+    .scrollable-content::-webkit-scrollbar-thumb:hover {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.6)"};
+    }
+    
+    .scrollable-content::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    
+    /* Enhanced scroll behavior for all scrollable elements */
+    * {
+      scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar for webkit browsers */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"};
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.5)"};
+    }
+    
+    ::-webkit-scrollbar-corner {
+      background: transparent;
     }
     
     /* Mask to create rounded window effect */

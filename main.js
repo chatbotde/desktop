@@ -7,6 +7,7 @@ const { ChatInputWindow } = require("./chat-input/chat-input-window");
 let launchWindowManager = null;
 let chatInputWindow = null;
 let ipcHandlersRegistered = false;
+let chatInputIpcHandlersRegistered = false;
 
 function createLaunchWindow() {
   if (!launchWindowManager) {

@@ -16,11 +16,16 @@ class WindowManager {
     this.mouseIgnoreEnabled = false;
     this.contentProtectionEnabled = true;
     this.ipcHandlersRegistered = false;
+    this.windowBounds = null; // Store window bounds to maintain size
+    this.minWindowSize = { width: 600, height: 500 }; // Minimum window size
+    this.maxWindowSize = { width: 800, height: 600 }; // Maximum window size
   }
 
   createWindow(theme = "transparent") {
     // Close existing window if it exists
     if (this.currentWindow && !this.currentWindow.isDestroyed()) {
+      // Store current bounds before closing
+      this.windowBounds = this.currentWindow.getBounds();
       this.currentWindow.close();
     }
 
@@ -35,9 +40,17 @@ class WindowManager {
   }
 
   getWindowOptions(theme) {
+    // Use stored bounds if available, otherwise use smaller default size
+    const defaultWidth = 400;
+    const defaultHeight = 300;
+    
     return {
-      width: 800,
-      height: 600,
+      width: this.windowBounds ? this.windowBounds.width : defaultWidth,
+      height: this.windowBounds ? this.windowBounds.height : defaultHeight,
+      minWidth: this.minWindowSize.width,
+      minHeight: this.minWindowSize.height,
+      maxWidth: this.maxWindowSize.width,
+      maxHeight: this.maxWindowSize.height,
       frame: false,
       transparent: theme === "transparent",
       hasShadow: true,
@@ -98,6 +111,113 @@ class WindowManager {
     
     // Load content
     this.loadContent(win);
+    
+    // Store bounds when window is resized
+    win.on('resize', () => {
+      if (!win.isMaximized()) {
+        this.windowBounds = win.getBounds();
+      }
+    });
+    
+    win.on('move', () => {
+      if (!win.isMaximized()) {
+        this.windowBounds = win.getBounds();
+      }
+    });
+
+    // Add content-based resizing functionality
+    this.setupContentBasedResizing(win);
+  }
+
+  setupContentBasedResizing(win) {
+    // Listen for content size changes from renderer
+    win.webContents.on('ipc-message', (event, channel, ...args) => {
+      if (channel === 'content-size-changed') {
+        const [width, height] = args;
+        this.resizeWindowToContent(win, width, height);
+      }
+    });
+
+    // Alternative: Listen for DOM content loaded and check content size
+    win.webContents.on('did-finish-load', () => {
+      // Wait a bit for content to render, then check size
+      setTimeout(() => {
+        this.checkContentSizeAndResize(win);
+      }, 500);
+    });
+  }
+
+  resizeWindowToContent(win, contentWidth, contentHeight) {
+    if (!win || win.isDestroyed()) return;
+
+    const currentBounds = win.getBounds();
+    const padding = 40; // Padding around content
+    
+    // Calculate new size based on content
+    let newWidth = Math.max(contentWidth + padding, this.minWindowSize.width);
+    let newHeight = Math.max(contentHeight + padding, this.minWindowSize.height);
+    
+    // Ensure we don't exceed maximum size
+    newWidth = Math.min(newWidth, this.maxWindowSize.width);
+    newHeight = Math.min(newHeight, this.maxWindowSize.height);
+    
+    // Only resize if the new size is significantly different
+    const widthDiff = Math.abs(newWidth - currentBounds.width);
+    const heightDiff = Math.abs(newHeight - currentBounds.height);
+    
+    if (widthDiff > 20 || heightDiff > 20) {
+      // Smooth resize animation
+      win.setSize(newWidth, newHeight, true);
+      
+      // Center the window if it's a significant size change
+      if (widthDiff > 50 || heightDiff > 50) {
+        const screen = require('electron').screen;
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        
+        const x = Math.max(0, (screenWidth - newWidth) / 2);
+        const y = Math.max(0, (screenHeight - newHeight) / 2);
+        
+        win.setPosition(x, y);
+      }
+    }
+  }
+
+  checkContentSizeAndResize(win) {
+    if (!win || win.isDestroyed()) return;
+
+    // Execute script to get content dimensions
+    win.webContents.executeJavaScript(`
+      (() => {
+        const body = document.body;
+        const html = document.documentElement;
+        
+        // Get the actual content size
+        const contentWidth = Math.max(
+          body.scrollWidth,
+          body.offsetWidth,
+          html.clientWidth,
+          html.scrollWidth,
+          html.offsetWidth
+        );
+        
+        const contentHeight = Math.max(
+          body.scrollHeight,
+          body.offsetHeight,
+          html.clientHeight,
+          html.scrollHeight,
+          html.offsetHeight
+        );
+        
+        return [contentWidth, contentHeight];
+      })();
+    `).then(([width, height]) => {
+      if (width && height) {
+        this.resizeWindowToContent(win, width, height);
+      }
+    }).catch(err => {
+      console.log('Error checking content size:', err);
+    });
   }
 
   loadContent(win) {
@@ -158,6 +278,19 @@ class WindowManager {
     }
 
     return this.currentTheme;
+  }
+
+  // Method to receive chat messages without changing window state
+  receiveChatMessage(messageData) {
+    if (this.currentWindow && !this.currentWindow.isDestroyed()) {
+      // Send message to frontend without changing window focus or size
+      this.currentWindow.webContents.send('receive-chat-message', messageData);
+      
+      // Only ensure window is visible, don't change focus or size
+      if (!this.currentWindow.isVisible()) {
+        this.currentWindow.show();
+      }
+    }
   }
 
   // Getters

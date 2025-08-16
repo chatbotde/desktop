@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy } from 'lucide-react'
+import { Copy, ArrowUp } from 'lucide-react'
 import { MessageContent } from '@/components/prompt-kit/message'
 import {
   Tooltip,
@@ -34,8 +34,8 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
   }, [messages, isTyping])
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col">
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+    <div className="flex-1 flex flex-col min-h-full relative">
+      <div className="flex-1 p-6 space-y-4">
         {messages.map((message) => (
           <div key={message.id} className="flex justify-start message-appear">
             <div className="max-w-[70%] group">
@@ -91,6 +91,21 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
         {/* Invisible element to scroll to */}
         <div ref={messagesEndRef} className="h-1" />
       </div>
+
+      {/* Scroll to bottom indicator */}
+      {messages.length > 0 && (
+        <div className="absolute bottom-4 right-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 bg-blue-500/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-blue-500/30 transition-all duration-200"
+            onClick={scrollToBottom}
+            title="Scroll to bottom"
+          >
+            <ArrowUp className="w-4 h-4 rotate-180" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -17,6 +17,27 @@ contextBridge.exposeInMainWorld("api", {
     getTheme: () => ipcRenderer.invoke('window-get-theme'),
     onThemeChanged: (callback) => ipcRenderer.on('theme-changed', (event, theme) => callback(theme)),
 
+    // Dynamic window resizing
+    notifyContentSizeChanged: (width, height) => ipcRenderer.invoke('content-size-changed', width, height),
+    getContentSize: () => {
+        return {
+            width: Math.max(
+                document.body.scrollWidth,
+                document.body.offsetWidth,
+                document.documentElement.clientWidth,
+                document.documentElement.scrollWidth,
+                document.documentElement.offsetWidth
+            ),
+            height: Math.max(
+                document.body.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.clientHeight,
+                document.documentElement.scrollHeight,
+                document.documentElement.offsetHeight
+            )
+        };
+    },
+
     // Chat input integration
     onChatMessage: (callback) => {
         console.log('Main Preload: Setting up chat message listener');
@@ -28,6 +49,10 @@ contextBridge.exposeInMainWorld("api", {
     sendChatInputToggle: () => {
         console.log('Main Preload: Sending toggle chat input');
         ipcRenderer.send('toggle-chat-input');
+    },
+    removeAllListeners: (channel) => {
+        console.log('Main Preload: Removing all listeners for channel:', channel);
+        ipcRenderer.removeAllListeners(channel);
     },
 
     // Screen capture

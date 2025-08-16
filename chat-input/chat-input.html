@@ -209,58 +209,86 @@
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typingIndicator');
 
+        // Prevent multiple sends
+        let isSending = false;
+        let lastMessageSent = '';
+
         // Auto-resize textarea
         function autoResize() {
             messageInput.style.height = 'auto';
             messageInput.style.height = Math.min(messageInput.scrollHeight, 100) + 'px';
         }
 
-        // Send message function
+        // Send message function with duplicate prevention
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (message) {
-                console.log('Chat Input: Sending message:', message);
+            
+            // Prevent sending empty messages
+            if (!message) {
+                return;
+            }
+            
+            // Prevent duplicate sends
+            if (isSending || message === lastMessageSent) {
+                console.log('Chat Input: Message already being sent or duplicate message');
+                return;
+            }
+            
+            console.log('Chat Input: Sending message:', message);
+            
+            // Check if API is available
+            if (!window.chatInputAPI) {
+                console.error('Chat Input: chatInputAPI not available');
+                return;
+            }
+            
+            // Set sending state to prevent duplicates
+            isSending = true;
+            lastMessageSent = message;
+            
+            // Show typing indicator and disable send button
+            typingIndicator.classList.add('active');
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+            
+            // Send message to main process using the exposed API
+            try {
+                window.chatInputAPI.sendMessage({
+                    content: message,
+                    timestamp: new Date().toISOString(),
+                    id: Date.now().toString()
+                });
+                console.log('Chat Input: Message sent successfully');
                 
-                // Check if API is available
-                if (!window.chatInputAPI) {
-                    console.error('Chat Input: chatInputAPI not available');
-                    return;
-                }
-                
-                // Show typing indicator
-                typingIndicator.classList.add('active');
-                sendButton.disabled = true;
-                
-                // Send message to main process using the exposed API
-                try {
-                    window.chatInputAPI.sendMessage({
-                        content: message,
-                        timestamp: new Date().toISOString(),
-                        id: Date.now().toString()
-                    });
-                    console.log('Chat Input: Message sent successfully');
-                } catch (error) {
-                    console.error('Chat Input: Error sending message:', error);
-                }
-                
-                // Clear input
+                // Clear input immediately after sending
                 messageInput.value = '';
                 autoResize();
                 
-                // Hide typing indicator after a short delay
-                setTimeout(() => {
-                    typingIndicator.classList.remove('active');
-                    sendButton.disabled = false;
-                    messageInput.focus();
-                }, 1500);
+            } catch (error) {
+                console.error('Chat Input: Error sending message:', error);
+                // Re-enable input on error
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                isSending = false;
+                lastMessageSent = '';
             }
+            
+            // Reset sending state after a delay
+            setTimeout(() => {
+                typingIndicator.classList.remove('active');
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                isSending = false;
+                lastMessageSent = '';
+                messageInput.focus();
+            }, 1000);
         }
 
         // Event listeners
         messageInput.addEventListener('input', autoResize);
         
         messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
@@ -270,13 +298,19 @@
 
         // IPC listeners using the exposed API
         window.chatInputAPI.onClearInput(() => {
+            console.log('Chat Input: Clearing input via IPC');
             messageInput.value = '';
             autoResize();
             typingIndicator.classList.remove('active');
             sendButton.disabled = false;
+            messageInput.disabled = false;
+            isSending = false;
+            lastMessageSent = '';
+            messageInput.focus();
         });
 
         window.chatInputAPI.onFocusInput(() => {
+            console.log('Chat Input: Focusing input via IPC');
             messageInput.focus();
         });
 
