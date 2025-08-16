@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare } from 'lucide-react'
-import { PromptInputWithActions } from '@/components/chat-input'
 import { Messages } from '@/components/Messages'
 import type { ChatMessage } from '@/components/Messages'
 
@@ -44,6 +43,10 @@ declare global {
       }>
       ping: () => string
       getVersions: () => Promise<{ electron: string; node: string }>
+      
+      // Chat input integration
+      onChatMessage: (callback: (messageData: any) => void) => void
+      sendChatInputToggle: () => void
     }
   }
 }
@@ -97,6 +100,44 @@ function App() {
         setCurrentTheme(theme as 'transparent' | 'black')
       })
     }
+
+    // Listen for messages from chat input window
+    const handleChatMessage = (messageData: any) => {
+      console.log('Main Window: Received message from chat input window:', messageData);
+      
+      const userMessage: ChatMessage = {
+        id: messageData.id || Date.now().toString(),
+        role: 'user',
+        content: messageData.content,
+        timestamp: new Date(messageData.timestamp || Date.now())
+      }
+
+      setMessages(prev => [...prev, userMessage])
+      setShowChat(true)
+      setIsTyping(true)
+
+      // Simulate AI response
+      setTimeout(() => {
+        setIsTyping(false)
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `I received your message: "${messageData.content}". This is a demo response from Buddy!`,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, assistantMessage])
+      }, 1500)
+    }
+
+    // Set up the message listener using the exposed API
+    if (window.api?.onChatMessage) {
+      console.log('Main Window: Setting up chat message listener');
+      window.api.onChatMessage(handleChatMessage);
+    } else {
+      console.error('Main Window: window.api.onChatMessage not available');
+    }
+
+    // Cleanup is handled automatically by the contextBridge
   }, [])
 
 
@@ -181,32 +222,7 @@ function App() {
     }
   }
 
-  const handleSendMessage = (content: string) => {
-    if (!content.trim()) return
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: content.trim(),
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    setShowChat(true)
-    setIsTyping(true)
-
-    // Simulate AI response with typing indicator
-    setTimeout(() => {
-      setIsTyping(false)
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `I received your message: "${content.trim()}". This is a demo response from Buddy!`,
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, assistantMessage])
-    }, 1500)
-  }
 
   const clearChat = () => {
     setMessages([])
@@ -261,6 +277,21 @@ function App() {
             {contentProtection ? <Shield className="w-3 h-3" /> : <ShieldOff className="w-3 h-3" />}
           </Button>
 
+          {/* Toggle Chat Input Window */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 w-6 p-0 hover:bg-blue-500/20 hover:text-blue-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
+            onClick={() => {
+              if (window.api?.sendChatInputToggle) {
+                window.api.sendChatInputToggle();
+              }
+            }}
+            title="Toggle Chat Input Window"
+          >
+            <MessageSquare className="w-3 h-3" />
+          </Button>
+
           {/* Clear Chat Button */}
           <Button
             variant="ghost"
@@ -269,7 +300,7 @@ function App() {
             onClick={clearChat}
             title="Clear Chat"
           >
-            <MessageSquare className="w-3 h-3" />
+            <X className="w-3 h-3" />
           </Button>
 
           {/* Window Controls */}
@@ -357,8 +388,21 @@ function App() {
             {!showChat && (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center space-y-8 max-w-md mx-auto p-8">
-                  {/* Welcome Message */}
-                  
+                  <div className="space-y-4">
+                    <div className={`text-6xl ${currentTheme === 'black' ? 'text-white/20' : 'text-white/30'}`}>
+                      <Rocket className="w-16 h-16 mx-auto mb-4" />
+                    </div>
+                    <h1 className={`text-2xl font-bold ${currentTheme === 'black' ? 'text-white/90' : 'text-white/90'}`}>
+                      Welcome to Buddy
+                    </h1>
+                    <p className={`text-lg ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/70'}`}>
+                      Your AI desktop companion
+                    </p>
+                    <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-2`}>
+                      <p>Click the <MessageSquare className="w-4 h-4 inline mx-1" /> button to open the floating chat input</p>
+                      <p>Start typing to begin your conversation</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -443,12 +487,7 @@ function App() {
             </div>
           )}
 
-          {/* Chat Input at Bottom - Enhanced */}
-          <footer className={`w-full flex justify-center px-0 py-6 border-t ${currentTheme === 'black' ? 'border-gray-700 bg-gray-900/50' : 'border-white/20 bg-black/10 backdrop-blur-lg'}`}>
-            <div className="w-full max-w-3xl px-0 py-0">
-              <PromptInputWithActions onSendMessage={handleSendMessage} />
-            </div>
-          </footer>
+
         </div>
       </div>
     </div>
