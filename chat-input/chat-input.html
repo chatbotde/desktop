@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,63 +12,82 @@
             box-sizing: border-box;
         }
 
-        body {
+        :root {
+            --bg: #1e1e1f;
+            --bg-alt: #262627;
+            --bg-popover: #2a2a2b;
+            --border: #333436;
+            --border-hover: #3d3f42;
+            --text: #f5f5f5;
+            --text-dim: #9ca3af;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --radius: 24px;
+            --focus-ring: 0 0 0 2px #1e3a8a, 0 0 0 4px rgba(59, 130, 246, 0.4);
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
             background: transparent;
             overflow: hidden;
+            color: var(--text);
             -webkit-app-region: no-drag;
         }
 
         .chat-input-container {
-            width: 100%;
-            height: 100vh;
+            position: absolute;
+            inset: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
-            padding: 10px;
+            padding: 12px 16px;
+            max-width: 768px;
+            margin: 0 auto;
         }
 
-        .chat-input-wrapper {
+        .prompt-input {
+            position: relative;
+            z-index: 10;
             width: 100%;
-            max-width: 480px;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            padding: 12px 20px;
+            background: var(--bg-popover);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-xs);
+            transition: all 0.18s ease;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: slideUp 0.28s ease forwards;
+        }
+
+        .prompt-input:focus-within {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 0 1px var(--border-hover), var(--shadow-sm);
+        }
+
+        .prompt-content {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s ease;
+            flex-direction: column;
         }
 
-        .chat-input-wrapper:hover {
-            background: rgba(0, 0, 0, 0.9);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .chat-input-wrapper:focus-within {
-            background: rgba(0, 0, 0, 0.95);
-            border-color: rgba(59, 130, 246, 0.5);
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 12px 40px rgba(0, 0, 0, 0.4);
+        .input-area {
+            padding: 12px 16px 0;
         }
 
         #messageInput {
-            flex: 1;
+            width: 100%;
             background: transparent;
             border: none;
-            outline: none;
-            color: white;
-            font-size: 14px;
-            font-weight: 400;
-            line-height: 1.4;
             resize: none;
-            min-height: 20px;
-            max-height: 100px;
-            overflow-y: auto;
+            outline: none;
+            color: var(--text);
+            font-size: 16px;
+            line-height: 1.3;
+            min-height: 44px;
+            max-height: 200px;
+            padding: 12px 0;
+            font-family: inherit;
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -77,71 +97,112 @@
         }
 
         #messageInput::placeholder {
-            color: rgba(255, 255, 255, 0.6);
+            color: var(--text-dim);
         }
 
-        .send-button {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
+        .prompt-actions {
+            margin-top: 20px;
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 0 12px 12px;
+        }
+
+        .left-actions {
             display: flex;
             align-items: center;
+            gap: 8px;
+        }
+
+        .right-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            color: var(--text-dim);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            transition: all 0.15s ease;
             flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
         }
 
-        .send-button:hover {
-            background: linear-gradient(135deg, #2563eb, #1e40af);
-            transform: scale(1.05);
+        .action-btn:hover {
+            background: #303132;
+            color: var(--text);
+            border-color: var(--border-hover);
         }
 
-        .send-button:active {
-            transform: scale(0.95);
+        .action-btn:active {
+            background: #353637;
         }
 
-        .send-button svg {
-            width: 16px;
-            height: 16px;
-            color: white;
+        .action-btn:focus-visible {
+            outline: none;
+            box-shadow: var(--focus-ring);
         }
 
-        .send-button:disabled {
-            background: rgba(255, 255, 255, 0.1);
+        .action-btn[disabled] {
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .send-button:disabled svg {
-            color: rgba(255, 255, 255, 0.4);
+        .action-btn.icon-only {
+            width: 36px;
+            height: 36px;
         }
 
-        /* Animation for window appearance */
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .action-btn.with-text {
+            padding: 8px 16px;
+            border-radius: 18px;
+            gap: 8px;
         }
 
-        .chat-input-container {
-            animation: slideUp 0.3s ease-out;
+        .action-btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
 
-        /* Typing indicator */
+        .action-btn.primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+
+        .action-btn.primary:active {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+
+        .loading-spinner {
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 2px;
+            animation: spin 1s linear infinite;
+        }
+
         .typing-indicator {
+            position: absolute;
+            left: 16px;
+            bottom: -24px;
             display: none;
             align-items: center;
             gap: 4px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 12px;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-weight: 500;
         }
 
         .typing-indicator.active {
@@ -151,7 +212,7 @@
         .typing-dot {
             width: 4px;
             height: 4px;
-            background: rgba(255, 255, 255, 0.6);
+            background: var(--text-dim);
             border-radius: 50%;
             animation: typingDot 1.4s infinite ease-in-out;
         }
@@ -164,164 +225,469 @@
             animation-delay: 0.4s;
         }
 
-        @keyframes typingDot {
-            0%, 80%, 100% {
-                opacity: 0.3;
-                transform: scale(0.8);
+        .action-btn.mic-recording {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        /* Transparency/Lighting Effect Button */
+        .action-btn.lighting {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn.lighting::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+
+        .action-btn.lighting:hover::before {
+            opacity: 1;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        .action-btn.lighting.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn.lighting.active::before {
+            background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+        }
+
+        /* Transparency states for the whole window */
+        .prompt-input.transparent {
+            background: rgba(42, 42, 43, 0.3);
+            backdrop-filter: blur(20px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .prompt-input.transparent:focus-within {
+            background: rgba(42, 42, 43, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
             }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typingDot {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0.3;
+                transform: scale(0.6);
+            }
+
             40% {
                 opacity: 1;
                 transform: scale(1);
             }
         }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .chat-input-container {
+                padding: 8px 12px;
+            }
+
+            .prompt-actions {
+                gap: 6px;
+                padding: 0 8px 8px;
+            }
+
+            .left-actions,
+            .right-actions {
+                gap: 6px;
+            }
+
+            #messageInput {
+                font-size: 14px;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            border: 0;
+        }
     </style>
 </head>
+
 <body>
     <div class="chat-input-container">
-        <div class="chat-input-wrapper">
-            <textarea 
-                id="messageInput" 
-                placeholder="Type your message here... (Press Enter to send)" 
-                rows="1"
-                autocomplete="off"
-                spellcheck="false"
-            ></textarea>
-            
-            <div class="typing-indicator" id="typingIndicator">
+        <div class="prompt-input" role="form" aria-label="Chat input">
+            <div class="prompt-content">
+                <div class="input-area">
+                    <textarea id="messageInput" placeholder="Ask anything" rows="1" autocomplete="off"
+                        spellcheck="false" aria-label="Message input"></textarea>
+                </div>
+
+                <div class="prompt-actions">
+                    <div class="left-actions">
+                        <button class="action-btn icon-only" id="addButton" aria-label="Add attachment"
+                            title="Add attachment">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                        </button>
+
+                        <!-- Transparency/Lighting Effect Button -->
+                        <button class="action-btn icon-only lighting" id="lightingButton"
+                            aria-label="Toggle transparency" title="Toggle lighting effect">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+                            </svg>
+                        </button>
+
+                        <!-- Future: Search Button (commented out for now)
+                        <button class="action-btn with-text" id="searchButton" aria-label="Search" title="Search">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                                <path d="M2 12h20" />
+                            </svg>
+                            Search
+                        </button>
+                        -->
+
+                        <!-- Future: More Actions Button (commented out for now)
+                        <button class="action-btn icon-only" id="moreButton" aria-label="More actions"
+                            title="More actions">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="1" />
+                                <circle cx="19" cy="12" r="1" />
+                                <circle cx="5" cy="12" r="1" />
+                            </svg>
+                        </button>
+                        -->
+                    </div>
+
+                    <div class="right-actions">
+                        <!-- Future: Voice Input Button (commented out for now)
+                        <button class="action-btn icon-only" id="micButton" aria-label="Voice input"
+                            title="Voice input">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z" />
+                                <path d="M19 10a7 7 0 0 1-14 0" />
+                                <path d="M12 17v6" />
+                                <path d="M8 23h8" />
+                            </svg>
+                        </button>
+                        -->
+
+                        <button class="action-btn icon-only primary" id="sendButton" aria-label="Send message"
+                            title="Send (Enter)">
+                            <svg id="sendIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m5 12 7-7 7 7" />
+                                <path d="m12 19 0-14" />
+                            </svg>
+                            <div id="loadingSpinner" class="loading-spinner" style="display: none;"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" aria-live="polite">
+                <span class="sr-only">Assistant is typing</span>
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
             </div>
-            
-            <button class="send-button" id="sendButton" title="Send message">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-                    <path d="M2 2l7.586 7.586"/>
-                    <circle cx="11" cy="11" r="2"/>
-                </svg>
-            </button>
         </div>
     </div>
 
     <script>
+        // DOM Elements
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const sendIcon = document.getElementById('sendIcon');
+        const loadingSpinner = document.getElementById('loadingSpinner');
         const typingIndicator = document.getElementById('typingIndicator');
+        const addButton = document.getElementById('addButton');
+        const lightingButton = document.getElementById('lightingButton');
+        const promptInput = document.querySelector('.prompt-input');
 
-        // Prevent multiple sends
+        // Future buttons (commented out)
+        // const micButton = document.getElementById('micButton');
+        // const searchButton = document.getElementById('searchButton');
+        // const moreButton = document.getElementById('moreButton');
+
+        // State management
         let isSending = false;
         let lastMessageSent = '';
+        let isTransparent = false;
+        // let recording = false; // Future voice recording state
 
-        // Auto-resize textarea
+        // Auto-resize textarea with smooth expansion
         function autoResize() {
             messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 100) + 'px';
+            const maxHeight = 200;
+            const newHeight = Math.min(messageInput.scrollHeight, maxHeight);
+            messageInput.style.height = newHeight + 'px';
+
+            // Adjust window height dynamically
+            adjustWindowHeight();
         }
 
-        // Send message function with duplicate prevention
+        // Adjust window height based on content
+        function adjustWindowHeight() {
+            const container = document.querySelector('.chat-input-container');
+            const promptInput = document.querySelector('.prompt-input');
+            const currentHeight = promptInput.offsetHeight;
+
+            // Notify main process about height change for window resizing
+            if (window.chatInputAPI?.updateWindowHeight) {
+                window.chatInputAPI.updateWindowHeight(currentHeight + 40); // Add padding
+            }
+        }
+
+        // Update send button state
+        function updateSendButton() {
+            const hasText = messageInput.value.trim().length > 0;
+            sendButton.disabled = !hasText || isSending;
+
+            if (isSending) {
+                sendIcon.style.display = 'none';
+                loadingSpinner.style.display = 'block';
+            } else {
+                sendIcon.style.display = 'block';
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Send message function with enhanced feedback
         function sendMessage() {
             const message = messageInput.value.trim();
-            
-            // Prevent sending empty messages
-            if (!message) {
-                return;
-            }
-            
-            // Prevent duplicate sends
-            if (isSending || message === lastMessageSent) {
-                console.log('Chat Input: Message already being sent or duplicate message');
-                return;
-            }
-            
-            console.log('Chat Input: Sending message:', message);
-            
-            // Check if API is available
+            if (!message || isSending || message === lastMessageSent) return;
+
             if (!window.chatInputAPI) {
                 console.error('Chat Input: chatInputAPI not available');
                 return;
             }
-            
-            // Set sending state to prevent duplicates
+
+            // Set loading state
             isSending = true;
             lastMessageSent = message;
-            
-            // Show typing indicator and disable send button
+            updateSendButton();
             typingIndicator.classList.add('active');
-            sendButton.disabled = true;
             messageInput.disabled = true;
-            
-            // Send message to main process using the exposed API
+
             try {
                 window.chatInputAPI.sendMessage({
                     content: message,
                     timestamp: new Date().toISOString(),
-                    id: Date.now().toString()
+                    id: Date.now().toString(),
+                    type: 'text'
                 });
-                console.log('Chat Input: Message sent successfully');
-                
-                // Clear input immediately after sending
+
+                // Clear input immediately for better UX
                 messageInput.value = '';
                 autoResize();
-                
-            } catch (error) {
-                console.error('Chat Input: Error sending message:', error);
-                // Re-enable input on error
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-                isSending = false;
-                lastMessageSent = '';
+
+            } catch (err) {
+                console.error('Chat Input: Error sending message', err);
+                resetSendingState();
             }
-            
-            // Reset sending state after a delay
+
+            // Reset state after delay
             setTimeout(() => {
-                typingIndicator.classList.remove('active');
-                sendButton.disabled = false;
-                messageInput.disabled = false;
-                isSending = false;
-                lastMessageSent = '';
+                resetSendingState();
                 messageInput.focus();
-            }, 1000);
+            }, 1200);
         }
 
-        // Event listeners
-        messageInput.addEventListener('input', autoResize);
-        
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        sendButton.addEventListener('click', sendMessage);
-
-        // IPC listeners using the exposed API
-        window.chatInputAPI.onClearInput(() => {
-            console.log('Chat Input: Clearing input via IPC');
-            messageInput.value = '';
-            autoResize();
-            typingIndicator.classList.remove('active');
-            sendButton.disabled = false;
-            messageInput.disabled = false;
+        // Reset sending state
+        function resetSendingState() {
             isSending = false;
             lastMessageSent = '';
-            messageInput.focus();
-        });
+            typingIndicator.classList.remove('active');
+            messageInput.disabled = false;
+            updateSendButton();
+        }
 
-        window.chatInputAPI.onFocusInput(() => {
-            console.log('Chat Input: Focusing input via IPC');
-            messageInput.focus();
-        });
+        // Toggle transparency/lighting effect
+        function toggleLighting() {
+            isTransparent = !isTransparent;
+            promptInput.classList.toggle('transparent', isTransparent);
+            lightingButton.classList.toggle('active', isTransparent);
+            lightingButton.setAttribute('aria-pressed', isTransparent.toString());
 
-        // Focus input when window loads
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('Chat Input: DOM loaded, checking API availability');
-            console.log('Chat Input: chatInputAPI available:', !!window.chatInputAPI);
-            if (window.chatInputAPI) {
-                console.log('Chat Input: API methods:', Object.keys(window.chatInputAPI));
+            // Visual feedback animation
+            lightingButton.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.1)' },
+                { transform: 'scale(1)' }
+            ], { duration: 200, easing: 'ease-out' });
+        }
+
+        // Future: Voice recording toggle (commented out)
+        /*
+        function toggleRecording() {
+            recording = !recording;
+            micButton.classList.toggle('mic-recording', recording);
+            micButton.setAttribute('aria-pressed', recording.toString());
+
+            if (recording) {
+                typingIndicator.classList.add('active');
+                // Future: Start actual voice recording
+            } else {
+                typingIndicator.classList.remove('active');
+                // Future: Stop voice recording and process
             }
+        }
+        */
+
+        // Add attachment handler with animation
+        function handleAdd() {
+            if (window.chatInputAPI?.openAttachmentPicker) {
+                window.chatInputAPI.openAttachmentPicker();
+            } else {
+                // Visual feedback animation
+                addButton.animate([
+                    { transform: 'scale(1)', background: 'transparent' },
+                    { transform: 'scale(1.1)', background: '#303132' },
+                    { transform: 'scale(1)', background: 'transparent' }
+                ], { duration: 200, easing: 'ease-out' });
+            }
+        }
+
+        // Future: Search handler (commented out)
+        /*
+        function handleSearch() {
+            if (window.chatInputAPI?.openSearch) {
+                window.chatInputAPI.openSearch();
+            } else {
+                // Visual feedback
+                searchButton.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(1.05)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 150, easing: 'ease-out' });
+            }
+        }
+        */
+
+        // Future: More actions handler (commented out)
+        /*
+        function handleMore() {
+            if (window.chatInputAPI?.openMoreActions) {
+                window.chatInputAPI.openMoreActions();
+            } else {
+                // Visual feedback
+                moreButton.animate([
+                    { transform: 'rotate(0deg)' },
+                    { transform: 'rotate(90deg)' },
+                    { transform: 'rotate(0deg)' }
+                ], { duration: 200, easing: 'ease-out' });
+            }
+        }
+        */
+
+        // Event listeners
+        messageInput.addEventListener('input', () => {
+            autoResize();
+            updateSendButton();
+        });
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            } else if (e.key === 'Escape') {
+                messageInput.blur();
+            }
+        });
+
+        // Button event listeners
+        sendButton.addEventListener('click', sendMessage);
+        addButton.addEventListener('click', handleAdd);
+        lightingButton.addEventListener('click', toggleLighting);
+
+        // Future button listeners (commented out)
+        // micButton.addEventListener('click', toggleRecording);
+        // searchButton.addEventListener('click', handleSearch);
+        // moreButton.addEventListener('click', handleMore);
+
+        // IPC listeners using the exposed API
+        if (window.chatInputAPI) {
+            window.chatInputAPI.onClearInput(() => {
+                messageInput.value = '';
+                autoResize();
+                resetSendingState();
+                messageInput.focus();
+            });
+
+            window.chatInputAPI.onFocusInput(() => {
+                messageInput.focus();
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
             messageInput.focus();
+            autoResize();
+            updateSendButton();
         });
 
         // Handle window focus
@@ -329,14 +695,24 @@
             messageInput.focus();
         });
 
-        // Auto-focus on any keypress
+        // Auto-focus on keypress
         document.addEventListener('keydown', (e) => {
-            if (document.activeElement !== messageInput && 
+            if (document.activeElement !== messageInput &&
                 !e.ctrlKey && !e.altKey && !e.metaKey &&
-                e.key.length === 1) {
+                e.key.length === 1 &&
+                /^[a-zA-Z0-9\s]$/.test(e.key)) {
                 messageInput.focus();
             }
         });
+
+        // Handle paste events
+        messageInput.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                autoResize();
+                updateSendButton();
+            }, 0);
+        });
     </script>
 </body>
+
 </html>

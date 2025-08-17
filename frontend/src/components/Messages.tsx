@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, ArrowUp } from 'lucide-react'
+import { Copy, ArrowUp, Check } from 'lucide-react'
 import { MessageContent } from '@/components/prompt-kit/message'
 import {
   Tooltip,
@@ -23,10 +23,18 @@ interface MessagesProps {
 
 export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   // Auto-scroll to bottom when new messages are added
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // Handle copy with indication
+  const handleCopyMessage = (messageId: string, text: string) => {
+    onCopyMessage(text)
+    setCopiedMessageId(messageId)
+    setTimeout(() => setCopiedMessageId(null), 2000) // Clear after 2 seconds
   }
 
   useEffect(() => {
@@ -35,39 +43,67 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
 
   return (
     <div className="flex-1 flex flex-col min-h-full relative">
-      <div className="flex-1 p-6 space-y-4">
+      <div className="flex-1 px-6 py-6 space-y-6">
         {messages.map((message) => (
-          <div key={message.id} className="flex justify-start message-appear">
-            <div className="max-w-[70%] group">
+          <div key={message.id} className={`message-appear flex ${
+            message.role === 'user' 
+              ? 'justify-end pl-16' 
+              : 'justify-start pr-16'
+          }`}>
+            <div className={`group ${
+              message.role === 'user' 
+                ? 'max-w-full' 
+                : 'max-w-full'
+            }`}>
               <div className="relative">
                 <MessageContent
                   markdown={message.role === 'assistant'}
-                  className={`bg-white/5 backdrop-blur-lg text-white/90 transition-all duration-200 hover:bg-white/10 ${
-                    message.role === 'user'
-                      ? 'border border-white/20'
-                      : 'border-0'
-                  }`}
+                  className={`
+                    backdrop-blur-lg text-white transition-all duration-300 hover:shadow-lg
+                    ${message.role === 'user'
+                      ? 'bg-blue-600/80 hover:bg-blue-600/90 border border-blue-400/30 rounded-2xl rounded-br-sm shadow-lg'
+                      : 'bg-gray-800/60 hover:bg-gray-800/70 border border-gray-600/20 rounded-2xl shadow-md'
+                    }
+                    px-4 py-3 leading-relaxed
+                  `}
                 >
                   {message.content}
                 </MessageContent>
 
                 {/* Copy button - appears on hover */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className={`absolute top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                  message.role === 'user' ? 'left-2' : 'right-2'
+                }`}>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-white/60 hover:text-white/90 hover:bg-white/20 transition-all duration-200 bg-black/20 backdrop-blur-sm"
-                          onClick={() => onCopyMessage(message.content)}
+                          className={`h-7 w-7 p-0 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 backdrop-blur-sm rounded-full ${
+                            copiedMessageId === message.id 
+                              ? 'bg-green-500/40 text-green-300' 
+                              : 'bg-black/30'
+                          }`}
+                          onClick={() => handleCopyMessage(message.id, message.content)}
                         >
-                          <Copy className="w-3 h-3" />
+                          {copiedMessageId === message.id ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
                         </Button>
                       </TooltipTrigger>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
+              </div>
+              
+              {/* Message timestamp */}
+              <div className={`text-xs text-white/40 mt-1 ${
+                message.role === 'user' ? 'text-right' : 'text-left'
+              }`}>
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
@@ -75,13 +111,14 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start message-appear">
-            <div className="max-w-[70%]">
-              <div className="bg-white/5 backdrop-blur-lg text-white/90 rounded-lg p-3">
-                <div className="flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="flex justify-start pr-16 message-appear">
+            <div className="max-w-full">
+              <div className="bg-gray-800/60 backdrop-blur-lg text-white rounded-2xl p-4 border border-gray-600/20 shadow-md">
+                <div className="flex items-center space-x-2">
+                  <div className="text-sm text-white/70 mr-2">AI is typing</div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
               </div>
             </div>

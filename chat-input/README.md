@@ -1,18 +1,23 @@
 # Chat Input Window
 
-A floating chat input window component for the Buddy desktop app.
+A modern, flexible floating chat input window component for the Buddy desktop app with an enhanced prompt-style interface.
 
 ## Features
 
-- **Floating Window**: Always-on-top chat input that appears at the bottom center of the screen
-- **Rounded Corners**: Modern glassmorphism design with rounded corners and blur effects
-- **Auto-resize**: Input field automatically expands as you type (up to 100px height)
+- **Modern Prompt Interface**: React-inspired design with action buttons and flexible layout
+- **Dynamic Window Resizing**: Window automatically adjusts height based on content expansion
+- **Enhanced Action Bar**: Multiple action buttons including add, search, voice, and more actions
+- **Flexible Input Area**: Auto-expanding textarea with smooth animations (up to 200px height)
+- **Loading States**: Visual feedback with loading spinner and disabled states
+- **Voice Recording**: Visual feedback for voice input with pulse animation
 - **Message Integration**: Messages sent from this window appear in the main window's chat interface
 - **Keyboard Shortcuts**: 
   - Enter to send message
   - Shift+Enter for new line
+  - Escape to blur input
   - Auto-focus on any keypress
-- **Visual Feedback**: Typing indicator and smooth animations
+- **Responsive Design**: Adapts to different screen sizes with mobile-friendly layout
+- **Accessibility**: Full ARIA support and keyboard navigation
 
 ## Usage
 
@@ -55,21 +60,41 @@ The chat input window automatically forwards messages to the main window via IPC
 
 ### Styling
 
-The window features a modern glassmorphism design:
-- Semi-transparent black background with blur effect
-- Rounded corners (25px border-radius)
-- Smooth hover and focus transitions
-- Blue accent color for send button
-- Responsive design that adapts to content
+The window features a modern prompt-style design:
+- Clean, rounded interface with subtle shadows
+- Dynamic height adjustment based on content
+- Smooth animations and transitions
+- Action buttons with hover states and visual feedback
+- Blue accent color for primary actions
+- Loading states with spinner animations
+- Responsive design that adapts to content and screen size
 
 ### IPC Events
 
 **Outgoing (from chat input window):**
 - `send-chat-message`: Sends message data to main process
+- `chat-input-resize-height`: Requests window height adjustment
 
 **Incoming (to chat input window):**
 - `clear-input`: Clears the input field
 - `focus-input`: Focuses the input field
+
+### Action Buttons
+
+The current interface includes these active buttons:
+
+- **Add Button**: For attachments and file uploads (extensible)
+- **Lighting Button**: Toggles transparency/diamond lighting effect
+- **Send Button**: Primary action with loading states
+
+### Future Buttons (Commented Out)
+
+These buttons are prepared for future implementation:
+- **Search Button**: For web search functionality 
+- **Voice Button**: For voice input with recording feedback
+- **More Actions**: For additional features and settings
+
+All action buttons are designed to be easily extensible for future features.
 
 ## File Structure
 

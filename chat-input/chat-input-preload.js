@@ -8,6 +8,35 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('send-chat-message', messageData);
   },
   
+  // Update window height dynamically
+  updateWindowHeight: (height) => {
+    ipcRenderer.send('chat-input-resize-height', height);
+  },
+  
+  // Future extensibility - placeholder functions for additional features
+  openAttachmentPicker: () => {
+    console.log('Preload: Opening attachment picker (placeholder)');
+    // Future implementation
+  },
+  
+  // Future functions (commented out for now)
+  /*
+  openSearch: () => {
+    console.log('Preload: Opening search (placeholder)');
+    // Future implementation
+  },
+  
+  openMoreActions: () => {
+    console.log('Preload: Opening more actions (placeholder)');
+    // Future implementation
+  },
+  
+  openVoiceRecording: () => {
+    console.log('Preload: Opening voice recording (placeholder)');
+    // Future implementation
+  },
+  */
+  
   // Listen for commands from main process
   onClearInput: (callback) => ipcRenderer.on('clear-input', callback),
   onFocusInput: (callback) => ipcRenderer.on('focus-input', callback),

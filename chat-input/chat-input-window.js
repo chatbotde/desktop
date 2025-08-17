@@ -23,9 +23,9 @@ class ChatInputWindow {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
     
-    // Chat input window dimensions
-    const windowWidth = 500;
-    const windowHeight = 80;
+    // Chat input window dimensions - increased for new UI
+    const windowWidth = 600;
+    const windowHeight = 120; // Increased base height for new design
     
     // Position at bottom center of screen
     const x = (screenWidth - windowWidth) / 2;
@@ -53,9 +53,13 @@ class ChatInputWindow {
       alwaysOnTop: true,
       skipTaskbar: true,
       title: 'Buddy Chat',
-      resizable: false,
+      resizable: true,
       minimizable: false,
       maximizable: false,
+      minWidth: 400,
+      maxWidth: 800,
+      minHeight: 80,
+      maxHeight: 400,
       closable: true,
       focusable: true,
       show: false, // Don't show immediately
@@ -254,6 +258,32 @@ class ChatInputWindow {
         } catch (error) {
           console.error('IPC: Error clearing chat input:', error);
         }
+      }
+    });
+
+    // Handle dynamic window height adjustment
+    ipcMain.on('chat-input-resize-height', (event, newHeight) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find(win => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes('chat-input.html');
+        } catch {
+          return false;
+        }
+      });
+      
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const [currentWidth] = chatInputWindow.getSize();
+        const [currentX, currentY] = chatInputWindow.getPosition();
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { height: screenHeight } = primaryDisplay.workAreaSize;
+        
+        // Adjust Y position to keep window at bottom
+        const newY = screenHeight - newHeight - 50;
+        
+        chatInputWindow.setSize(currentWidth, Math.max(80, Math.min(400, newHeight)));
+        chatInputWindow.setPosition(currentX, newY);
       }
     });
 
