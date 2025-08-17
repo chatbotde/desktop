@@ -36,6 +36,22 @@
             -webkit-app-region: no-drag;
         }
 
+        .drag-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            -webkit-app-region: drag;
+            cursor: move;
+            z-index: 20;
+            background: transparent;
+        }
+
+        .drag-handle:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
         .chat-input-container {
             position: absolute;
             inset: 0;
@@ -108,18 +124,29 @@
             justify-content: space-between;
             gap: 8px;
             padding: 0 12px 12px;
+            cursor: move;
         }
 
         .left-actions {
             display: flex;
             align-items: center;
             gap: 8px;
+            cursor: move;
         }
 
         .right-actions {
             display: flex;
             align-items: center;
             gap: 8px;
+            cursor: move;
+        }
+
+        .draggable-area {
+            cursor: move;
+            flex: 1;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
         }
 
         .action-btn {
@@ -371,6 +398,7 @@
 <body>
     <div class="chat-input-container">
         <div class="prompt-input" role="form" aria-label="Chat input">
+            <div class="drag-handle" title="Drag to move window"></div>
             <div class="prompt-content">
                 <div class="input-area">
                     <textarea id="messageInput" placeholder="Ask anything" rows="1" autocomplete="off"
@@ -421,6 +449,8 @@
                         -->
                     </div>
 
+                    <div class="draggable-area" title="Drag to move window"></div>
+
                     <div class="right-actions">
                         <!-- Future: Voice Input Button (commented out for now)
                         <button class="action-btn icon-only" id="micButton" aria-label="Voice input"
@@ -467,6 +497,11 @@
         const addButton = document.getElementById('addButton');
         const lightingButton = document.getElementById('lightingButton');
         const promptInput = document.querySelector('.prompt-input');
+        const dragHandle = document.querySelector('.drag-handle');
+        const promptActions = document.querySelector('.prompt-actions');
+        const leftActions = document.querySelector('.left-actions');
+        const rightActions = document.querySelector('.right-actions');
+        const draggableArea = document.querySelector('.draggable-area');
 
         // Future buttons (commented out)
         // const micButton = document.getElementById('micButton');
@@ -478,6 +513,10 @@
         let lastMessageSent = '';
         let isTransparent = false;
         // let recording = false; // Future voice recording state
+        
+        // Drag state
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
 
         // Auto-resize textarea with smooth expansion
         function autoResize() {
@@ -712,6 +751,86 @@
                 updateSendButton();
             }, 0);
         });
+
+        // Drag functionality
+        function initDragHandling() {
+            let startX, startY;
+            let lastMoveTime = 0;
+            let draggedElement = null;
+
+            // Function to start dragging
+            function startDrag(e, element) {
+                // Don't start drag if clicking on buttons
+                if (e.target.closest('.action-btn')) {
+                    return false;
+                }
+
+                isDragging = true;
+                draggedElement = element;
+                startX = e.screenX;
+                startY = e.screenY;
+                
+                element.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+                return true;
+            }
+
+            // Add drag listeners to multiple elements
+            const draggableElements = [dragHandle, promptActions, leftActions, rightActions, draggableArea];
+            
+            draggableElements.forEach(element => {
+                if (element) {
+                    element.addEventListener('mousedown', (e) => {
+                        startDrag(e, element);
+                    });
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging || !draggedElement) return;
+                
+                // Throttle move events for better performance
+                const now = Date.now();
+                if (now - lastMoveTime < 16) return; // ~60fps
+                lastMoveTime = now;
+                
+                const deltaX = e.screenX - startX;
+                const deltaY = e.screenY - startY;
+                
+                if (window.chatInputAPI?.setWindowPosition) {
+                    window.chatInputAPI.setWindowPosition(deltaX, deltaY);
+                }
+                
+                // Update start position for next move
+                startX = e.screenX;
+                startY = e.screenY;
+                
+                e.preventDefault();
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging && draggedElement) {
+                    isDragging = false;
+                    draggedElement.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                    draggedElement = null;
+                }
+            });
+
+            // Handle drag leaving window
+            document.addEventListener('mouseleave', () => {
+                if (isDragging && draggedElement) {
+                    isDragging = false;
+                    draggedElement.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                    draggedElement = null;
+                }
+            });
+        }
+
+        // Initialize drag handling
+        initDragHandling();
     </script>
 </body>
 

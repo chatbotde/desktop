@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('chat-input-resize-height', height);
   },
   
+  // Window drag functionality
+  setWindowPosition: (deltaX, deltaY) => {
+    ipcRenderer.send('chat-input-set-position', { deltaX, deltaY });
+  },
+  
   // Future extensibility - placeholder functions for additional features
   openAttachmentPicker: () => {
     console.log('Preload: Opening attachment picker (placeholder)');
