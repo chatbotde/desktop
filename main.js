@@ -1,7 +1,13 @@
 const { app, ipcMain } = require("electron");
+const path = require("path");
 const { LaunchWindowManager } = require("./launch-window");
 const { registerIpcHandlers } = require("./window-main");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
+
+// Set app icon
+if (process.platform === 'win32') {
+  app.setAppUserModelId("com.sonicthinking.buddy");
+}
 
 // Global instances
 let launchWindowManager = null;
@@ -15,6 +21,13 @@ function createLaunchWindow() {
   }
   
   const launchWin = launchWindowManager.createLaunchWindow();
+  
+  // Ensure launch window has highest priority from start
+  setTimeout(() => {
+    if (launchWindowManager) {
+      launchWindowManager.forceWindowAboveAll();
+    }
+  }, 500);
   
   // Setup IPC handlers (only once)
   if (!ipcHandlersRegistered) {
@@ -34,11 +47,25 @@ function createLaunchWindow() {
         // Show chat input window after a short delay to ensure main window is ready
         setTimeout(() => {
           chatInputWindow.show();
+          
+          // Ensure launch window stays above chat input
+          setTimeout(() => {
+            if (launchWindowManager) {
+              launchWindowManager.forceWindowAboveAll();
+            }
+          }, 200);
         }, 1000);
       } else {
         console.log('Main: Reusing existing chat input window');
         chatInputWindow.setMainWindow(mainWindow);
         chatInputWindow.show();
+        
+        // Ensure launch window stays above chat input
+        setTimeout(() => {
+          if (launchWindowManager) {
+            launchWindowManager.forceWindowAboveAll();
+          }
+        }, 200);
       }
     });
 
@@ -58,7 +85,49 @@ function createLaunchWindow() {
       } else {
         console.log('Main: Toggling existing chat input window');
         chatInputWindow.toggle();
+        
+        // Ensure launch window stays above chat input when toggled
+        setTimeout(() => {
+          if (launchWindowManager) {
+            launchWindowManager.forceWindowAboveAll();
+          }
+        }, 200);
       }
+    });
+
+    // Launch window content protection handlers (Highest Priority)
+    ipcMain.handle('launch-window-toggle-content-protection', () => {
+      if (launchWindowManager) {
+        const enabled = launchWindowManager.toggleContentProtection();
+        console.log(`Main: Launch window content protection ${enabled ? 'ENABLED' : 'DISABLED'} with highest priority`);
+        return enabled;
+      }
+      return false;
+    });
+
+    ipcMain.handle('launch-window-get-content-protection', () => {
+      if (launchWindowManager) {
+        return launchWindowManager.isContentProtectionEnabled();
+      }
+      return false;
+    });
+
+    ipcMain.handle('launch-window-enable-content-protection', () => {
+      if (launchWindowManager) {
+        launchWindowManager.enableContentProtection();
+        console.log('Main: Launch window content protection ENABLED with highest priority');
+        return true;
+      }
+      return false;
+    });
+
+    ipcMain.handle('launch-window-disable-content-protection', () => {
+      if (launchWindowManager) {
+        launchWindowManager.disableContentProtection();
+        console.log('Main: Launch window content protection DISABLED');
+        return true;
+      }
+      return false;
     });
 
     ipcHandlersRegistered = true;

@@ -1,7 +1,13 @@
 {
   "name": "buddy",
+  "productName": "Buddy",
   "version": "1.0.0",
   "main": "main.js",
+  "homepage": "https://github.com/sonicthinking/buddy",
+  "repository": {
+    "type": "git", 
+    "url": "https://github.com/sonicthinking/buddy.git"
+  },
   "scripts": {
     "start": "electron-forge start",
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
@@ -14,7 +20,7 @@
     "package": "npm run build:all && electron-forge package",
     "make": "npm run build:all && electron-forge make"
   },
-  "keywords": [],
+  "keywords": ["desktop", "companion", "productivity", "electron"],
   "author": "sonicthinking",
   "license": "ISC",
   "description": "A desktop companion app built with Electron",

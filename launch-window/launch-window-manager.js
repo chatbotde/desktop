@@ -8,6 +8,7 @@ class LaunchWindowManager {
     this.windowManager = null;
     this.shortcutManager = null;
     this.isMainWindowOpen = false;
+    this.contentProtectionEnabled = true; // Enable content protection by default with highest priority
   }
 
   createLaunchWindow() {
@@ -26,11 +27,23 @@ class LaunchWindowManager {
     const x = screenWidth - (windowWidth / 2);
     const y = (screenHeight - windowHeight) / 4;
 
+    // Get the appropriate icon path based on platform
+    const getIconPath = () => {
+      if (process.platform === 'win32') {
+        return path.join(__dirname, "..", "icons", "icon.ico");
+      } else if (process.platform === 'darwin') {
+        return path.join(__dirname, "..", "icons", "icon.icns");
+      } else {
+        return path.join(__dirname, "..", "icons", "icon.png");
+      }
+    };
+
     this.launchWindow = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
       x: x,
       y: y,
+      icon: getIconPath(),
       frame: false,
       transparent: true,
       alwaysOnTop: true,
@@ -43,9 +56,16 @@ class LaunchWindowManager {
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
-        enableRemoteModule: true
+        enableRemoteModule: true,
+        webSecurity: false, // Disable web security for content protection
+        allowRunningInsecureContent: false,
+        experimentalFeatures: false,
+        preload: path.join(__dirname, 'launch-window-preload.js') // Add preload script for security
       }
     });
+
+    // Enable content protection with highest priority immediately
+    this.applyContentProtection();
 
     // Load the launch window HTML
     this.launchWindow.loadFile(path.join(__dirname, 'launch-window.html'));
@@ -69,6 +89,9 @@ class LaunchWindowManager {
 
     // Handle click to open main window
     this.launchWindow.webContents.on('did-finish-load', () => {
+      // Apply content protection after load
+      this.applyContentProtection();
+      
       this.launchWindow.webContents.executeJavaScript(`
         document.addEventListener('click', () => {
           require('electron').ipcRenderer.send('open-main-window');
@@ -76,8 +99,14 @@ class LaunchWindowManager {
       `);
     });
 
-    // Keep window always on top and in position
-    this.launchWindow.setAlwaysOnTop(true, 'screen-saver');
+    // Keep window always on top and in position with higher priority than chat-input
+    this.launchWindow.setAlwaysOnTop(true, 'screen-saver', 5);
+    
+    // Platform-specific configurations for maximum always-on-top behavior
+    this.configurePlatformSpecificBehavior();
+    
+    // Setup event listeners for maintaining behavior
+    this.setupEventListeners();
     
     // Ensure window stays in position
     this.launchWindow.on('moved', () => {
@@ -100,6 +129,83 @@ class LaunchWindowManager {
         this.closeLaunchWindow();
       });
     }
+  }
+
+  configurePlatformSpecificBehavior() {
+    if (!this.launchWindow) return;
+
+    if (process.platform === "win32") {
+      // Windows: Stay above taskbar and system menus with maximum priority (higher than chat-input)
+      this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
+      this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+      
+      // Force the window to stay above all other windows including taskbar and chat-input
+      setTimeout(() => {
+        this.launchWindow.setAlwaysOnTop(false);
+        this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+      }, 100);
+    } else if (process.platform === "darwin") {
+      // macOS: Stay above dock and mission control with highest priority
+      this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+      this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
+    } else if (process.platform === "linux") {
+      // Linux: Stay above panels and system elements with highest priority
+      this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
+      this.launchWindow.setAlwaysOnTop(true, "modal-panel", 5);
+      this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+    }
+  }
+
+  setupEventListeners() {
+    if (!this.launchWindow) return;
+
+    // Add event listener to maintain always-on-top behavior with highest priority
+    this.launchWindow.on('focus', () => {
+      if (process.platform === "win32") {
+        this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+      }
+    });
+
+    // Add event listener for when other windows might affect our position
+    this.launchWindow.on('blur', () => {
+      setTimeout(() => {
+        if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+          if (process.platform === "win32") {
+            this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+          } else {
+            this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+          }
+        }
+      }, 50);
+    });
+
+    // Setup periodic maintenance to ensure it stays above chat-input
+    this.setupPeriodicMaintenance();
+  }
+
+  setupPeriodicMaintenance() {
+    if (!this.launchWindow) return;
+
+    // Periodic check to ensure window stays above all other windows including chat-input
+    const maintainAlwaysOnTop = () => {
+      if (this.launchWindow && !this.launchWindow.isDestroyed() && this.launchWindow.isVisible()) {
+        if (process.platform === "win32") {
+          this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+        } else {
+          this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+        }
+      }
+    };
+
+    // Check every 1.5 seconds to maintain position above all windows (more frequent than chat-input)
+    const alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 1500);
+    
+    // Clean up interval when window is destroyed
+    this.launchWindow.on('closed', () => {
+      if (alwaysOnTopInterval) {
+        clearInterval(alwaysOnTopInterval);
+      }
+    });
   }
 
   openMainWindow() {
@@ -178,6 +284,106 @@ class LaunchWindowManager {
 
   getMainWindow() {
     return this.mainWindow;
+  }
+
+  forceWindowAboveAll() {
+    if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+      // Force the launch window above all other windows including chat-input
+      this.launchWindow.setAlwaysOnTop(false);
+      setTimeout(() => {
+        if (process.platform === "win32") {
+          this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+          this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+        } else {
+          this.launchWindow.setAlwaysOnTop(true, "floating", 5);
+        }
+        // Bring to front
+        this.launchWindow.showInactive();
+        this.launchWindow.focus();
+      }, 50);
+    }
+  }
+
+  // Content Protection Methods (Highest Priority)
+  applyContentProtection() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) {
+      return;
+    }
+
+    try {
+      // Enable content protection with highest priority
+      this.launchWindow.setContentProtection(this.contentProtectionEnabled);
+      
+      // Disable developer tools completely
+      this.launchWindow.webContents.closeDevTools();
+      this.launchWindow.webContents.on('devtools-opened', () => {
+        this.launchWindow.webContents.closeDevTools();
+      });
+
+      // Prevent right-click context menu
+      this.launchWindow.webContents.on('context-menu', (event) => {
+        event.preventDefault();
+      });
+
+      // Prevent keyboard shortcuts that could compromise security
+      this.launchWindow.webContents.on('before-input-event', (event, input) => {
+        // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
+        if (
+          input.key === 'F12' ||
+          (input.control && input.shift && (input.key === 'I' || input.key === 'J' || input.key === 'C')) ||
+          (input.control && input.key === 'U')
+        ) {
+          event.preventDefault();
+        }
+      });
+
+      // Block new window creation attempts
+      this.launchWindow.webContents.setWindowOpenHandler(() => {
+        return { action: 'deny' };
+      });
+
+      // Prevent navigation to external URLs
+      this.launchWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        const allowedProtocols = ['file:', 'data:'];
+        const url = new URL(navigationUrl);
+        if (!allowedProtocols.includes(url.protocol)) {
+          event.preventDefault();
+        }
+      });
+
+      // Monitor and log content protection status
+      console.log(`Launch Window: Content protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'} with HIGHEST PRIORITY`);
+      
+    } catch (error) {
+      console.error('Launch Window: Failed to apply content protection:', error);
+    }
+  }
+
+  enableContentProtection() {
+    this.contentProtectionEnabled = true;
+    this.applyContentProtection();
+    console.log('Launch Window: Content protection ENABLED with highest priority');
+  }
+
+  disableContentProtection() {
+    this.contentProtectionEnabled = false;
+    if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+      this.launchWindow.setContentProtection(false);
+    }
+    console.log('Launch Window: Content protection DISABLED');
+  }
+
+  isContentProtectionEnabled() {
+    return this.contentProtectionEnabled;
+  }
+
+  toggleContentProtection() {
+    if (this.contentProtectionEnabled) {
+      this.disableContentProtection();
+    } else {
+      this.enableContentProtection();
+    }
+    return this.contentProtectionEnabled;
   }
 }
 

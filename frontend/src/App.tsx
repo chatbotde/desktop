@@ -521,14 +521,7 @@ function App() {
                       <p>This demonstrates the main window scrolling functionality</p>
                     </div>
                     
-                    {/* Generate some test content to make scrolling necessary */}
-                    {Array.from({ length: 20 }, (_, i) => (
-                      <div key={i} className={`p-3 rounded-lg ${currentTheme === 'black' ? 'bg-gray-800/50' : 'bg-white/5'} border ${currentTheme === 'black' ? 'border-gray-700' : 'border-white/10'}`}>
-                        <p className={`text-xs ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}>
-                          Test content item {i + 1} - This helps demonstrate scrolling
-                        </p>
-                      </div>
-                    ))}
+                
                   </div>
                 </div>
               </div>

@@ -44,6 +44,17 @@ class WindowManager {
     const defaultWidth = 400;
     const defaultHeight = 300;
     
+    // Get the appropriate icon path based on platform
+    const getIconPath = () => {
+      if (process.platform === 'win32') {
+        return path.join(__dirname, "..", "icons", "icon.ico");
+      } else if (process.platform === 'darwin') {
+        return path.join(__dirname, "..", "icons", "icon.icns");
+      } else {
+        return path.join(__dirname, "..", "icons", "icon.png");
+      }
+    };
+    
     return {
       width: this.windowBounds ? this.windowBounds.width : defaultWidth,
       height: this.windowBounds ? this.windowBounds.height : defaultHeight,
@@ -51,11 +62,12 @@ class WindowManager {
       minHeight: this.minWindowSize.height,
       maxWidth: this.maxWindowSize.width,
       maxHeight: this.maxWindowSize.height,
+      icon: getIconPath(),
       frame: false,
       transparent: theme === "transparent",
-      hasShadow: true,
+      hasShadow: false,
       alwaysOnTop: true,
-      title:'',
+      title: 'Buddy',
       skipTaskbar: true,
       hiddenInMissionControl: true,
       roundedCorners: true,
@@ -88,7 +100,6 @@ class WindowManager {
         thickFrame: false,
       }),
       ...(process.platform === "linux" && {
-        icon: path.join(__dirname, "..", "assets/icon.png"),
         frame: false,
         type: "dock",
       }),
