@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare, ArrowUp } from 'lucide-react'
+import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Camera, Eye, EyeOff, Shield, ShieldOff, MessageSquare, ArrowUp, AlertCircle } from 'lucide-react'
 import { Messages } from '@/components/Messages'
 import type { ChatMessage } from '@/components/Messages'
 import { windowResizeManager } from '@/lib/window-resize'
+import { sendToGemini } from '@/lib/ai/gemini'
+import { isGeminiConfigured, getGeminiConfigStatus } from '@/lib/ai/gemini-utils'
 
 // Note: Window API interface is now declared in types/electron.d.ts
 
@@ -33,7 +35,7 @@ function App() {
   const messageCounterRef = useRef(0)
   const processedMessageIds = useRef(new Set<string>())
 
-  const handleChatMessage = useCallback((messageData: any) => {
+  const handleChatMessage = useCallback(async (messageData: any) => {
     console.log('Main Window: Received message from chat input window:', messageData);
     
     // Generate a unique message ID
@@ -67,25 +69,65 @@ function App() {
       }
     }, 100)
 
-    // Simulate AI response
-    setTimeout(() => {
-      setIsTyping(false)
+    try {
+      // Send message to Gemini and handle streaming response
+      const responseStream = await sendToGemini(messageData.content);
+      
+      setIsTyping(false);
+      
+      // Create assistant message with empty content initially
+      const assistantMessageId = `assistant_${Date.now()}_${++messageCounterRef.current}`;
       const assistantMessage: ChatMessage = {
-        id: `assistant_${Date.now()}_${++messageCounterRef.current}`,
+        id: assistantMessageId,
         role: 'assistant',
-        content: `I received your message: "${messageData.content}". This is a demo response from Buddy!`,
+        content: '',
         timestamp: new Date()
-      }
+      };
+      
       console.log('Main Window: Adding assistant message:', assistantMessage);
-      setMessages(prev => [...prev, assistantMessage])
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Stream the response content
+      let fullResponse = '';
+      for await (const chunk of responseStream) {
+        fullResponse += chunk;
+        
+        // Update the assistant message with accumulated content
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: fullResponse }
+            : msg
+        ));
+      }
       
       // Trigger window resize after content change
       setTimeout(() => {
         if (windowResizeManager) {
           windowResizeManager.forceResize();
         }
-      }, 100)
-    }, 1500)
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error getting response from Gemini:', error);
+      setIsTyping(false);
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: `error_${Date.now()}_${++messageCounterRef.current}`,
+        role: 'assistant',
+        content: `Sorry, I encountered an error while processing your message. Please make sure your Gemini API key is configured correctly. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
+      // Trigger window resize after content change
+      setTimeout(() => {
+        if (windowResizeManager) {
+          windowResizeManager.forceResize();
+        }
+      }, 100);
+    }
   }, [windowResizeManager])
 
   useEffect(() => {
@@ -434,9 +476,42 @@ function App() {
                   <p className={`text-lg ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/70'}`}>
                     Your AI desktop companion
                   </p>
+                  
+                  {/* Gemini Configuration Status */}
+                  <div className={`p-3 rounded-lg border ${
+                    isGeminiConfigured() 
+                      ? `${currentTheme === 'black' ? 'bg-green-900/20 border-green-700' : 'bg-green-500/10 border-green-400/30'}`
+                      : `${currentTheme === 'black' ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-500/10 border-orange-400/30'}`
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className={`w-4 h-4 ${
+                        isGeminiConfigured() 
+                          ? 'text-green-400' 
+                          : 'text-orange-400'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        isGeminiConfigured() 
+                          ? 'text-green-400' 
+                          : 'text-orange-400'
+                      }`}>
+                        Gemini AI Status
+                      </span>
+                    </div>
+                    <p className={`text-xs ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}>
+                      {getGeminiConfigStatus().message}
+                    </p>
+                    {!isGeminiConfigured() && (
+                      <div className={`mt-2 text-xs ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-1`}>
+                        {getGeminiConfigStatus().instructions?.map((instruction, index) => (
+                          <div key={index}>• {instruction}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-2`}>
                     <p>Click the <MessageSquare className="w-4 h-4 inline mx-1" /> button to open the floating chat input</p>
-                    <p>Start typing to begin your conversation</p>
+                    <p>Start typing to begin your conversation with Gemini AI</p>
                   </div>
                   
                   {/* Test content to demonstrate scrolling */}
