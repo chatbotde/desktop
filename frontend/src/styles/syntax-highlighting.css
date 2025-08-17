@@ -1,0 +1,306 @@
+/* Syntax highlighting for code blocks */
+.language-javascript .token.keyword,
+.language-js .token.keyword,
+.language-typescript .token.keyword,
+.language-ts .token.keyword {
+  color: #ff79c6;
+}
+
+.language-javascript .token.string,
+.language-js .token.string,
+.language-typescript .token.string,
+.language-ts .token.string {
+  color: #f1fa8c;
+}
+
+.language-javascript .token.function,
+.language-js .token.function,
+.language-typescript .token.function,
+.language-ts .token.function {
+  color: #50fa7b;
+}
+
+.language-javascript .token.number,
+.language-js .token.number,
+.language-typescript .token.number,
+.language-ts .token.number {
+  color: #bd93f9;
+}
+
+.language-javascript .token.comment,
+.language-js .token.comment,
+.language-typescript .token.comment,
+.language-ts .token.comment {
+  color: #6272a4;
+  font-style: italic;
+}
+
+.language-python .token.keyword {
+  color: #ff79c6;
+}
+
+.language-python .token.string {
+  color: #f1fa8c;
+}
+
+.language-python .token.function {
+  color: #50fa7b;
+}
+
+.language-python .token.number {
+  color: #bd93f9;
+}
+
+.language-python .token.comment {
+  color: #6272a4;
+  font-style: italic;
+}
+
+.language-html .token.tag {
+  color: #ff79c6;
+}
+
+.language-html .token.attr-name {
+  color: #50fa7b;
+}
+
+.language-html .token.attr-value {
+  color: #f1fa8c;
+}
+
+.language-css .token.property {
+  color: #50fa7b;
+}
+
+.language-css .token.selector {
+  color: #ff79c6;
+}
+
+.language-css .token.string {
+  color: #f1fa8c;
+}
+
+.language-json .token.property {
+  color: #50fa7b;
+}
+
+.language-json .token.string {
+  color: #f1fa8c;
+}
+
+.language-json .token.number {
+  color: #bd93f9;
+}
+
+.language-json .token.boolean {
+  color: #ff79c6;
+}
+
+/* Enhanced code block styling */
+.code-block-enhanced {
+  position: relative;
+  margin: 1rem 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.code-block-enhanced .code-header {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.code-block-enhanced .code-content {
+  background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+  padding: 1rem;
+  overflow-x: auto;
+  max-height: 32rem;
+}
+
+.code-block-enhanced pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Terminal styling */
+.terminal-block {
+  background: #000;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin: 1rem 0;
+}
+
+.terminal-header {
+  background: #2d2d2d;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #404040;
+}
+
+.terminal-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.terminal-control {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+.terminal-control.close { background: #ff5f57; }
+.terminal-control.minimize { background: #ffbd2e; }
+.terminal-control.maximize { background: #28ca42; }
+
+.terminal-content {
+  padding: 1rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #00ff00;
+  background: #000;
+  overflow-x: auto;
+  max-height: 32rem;
+}
+
+/* JSON formatting */
+.json-block {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(51, 65, 85, 0.3);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.json-content {
+  padding: 1rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 32rem;
+}
+
+/* Improved markdown styling */
+.markdown-content h1 {
+  color: #f8fafc;
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+}
+
+.markdown-content h2 {
+  color: #f1f5f9;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem 0;
+}
+
+.markdown-content h3 {
+  color: #e2e8f0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.markdown-content p {
+  color: #cbd5e1;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  color: #cbd5e1;
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.markdown-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #e2e8f0;
+  font-style: italic;
+}
+
+.markdown-content code {
+  background: rgba(51, 65, 85, 0.6);
+  color: #7dd3fc;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.875rem;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.markdown-content a {
+  color: #60a5fa;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.markdown-content a:hover {
+  color: #93c5fd;
+}
+
+/* Animation for message appearance */
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-appear {
+  animation: messageAppear 0.3s ease-out;
+}
+
+/* Scrollbar styling */
+.code-content::-webkit-scrollbar,
+.terminal-content::-webkit-scrollbar,
+.json-content::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.code-content::-webkit-scrollbar-track,
+.terminal-content::-webkit-scrollbar-track,
+.json-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.code-content::-webkit-scrollbar-thumb,
+.terminal-content::-webkit-scrollbar-thumb,
+.json-content::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+.code-content::-webkit-scrollbar-thumb:hover,
+.terminal-content::-webkit-scrollbar-thumb:hover,
+.json-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}

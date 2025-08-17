@@ -1,12 +1,7 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, ArrowUp, Check } from 'lucide-react'
-import { MessageContent } from '@/components/prompt-kit/message'
-import {
-  Tooltip,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
+import { ArrowUp } from 'lucide-react'
+import { SmartMessage } from './SmartMessage'
 
 export interface ChatMessage {
   id: string
@@ -23,18 +18,10 @@ interface MessagesProps {
 
 export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   // Auto-scroll to bottom when new messages are added
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  // Handle copy with indication
-  const handleCopyMessage = (messageId: string, text: string) => {
-    onCopyMessage(text)
-    setCopiedMessageId(messageId)
-    setTimeout(() => setCopiedMessageId(null), 2000) // Clear after 2 seconds
   }
 
   useEffect(() => {
@@ -50,54 +37,12 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
               ? 'justify-end pl-16' 
               : 'justify-start pr-16'
           }`}>
-            <div className={`group ${
-              message.role === 'user' 
-                ? 'max-w-full' 
-                : 'max-w-full'
-            }`}>
-              <div className="relative">
-                <MessageContent
-                  markdown={message.role === 'assistant'}
-                  className={`
-                    backdrop-blur-lg text-white transition-all duration-300 hover:shadow-lg
-                    ${message.role === 'user'
-                      ? 'bg-blue-600/80 hover:bg-blue-600/90 border border-blue-400/30 rounded-2xl rounded-br-sm shadow-lg'
-                      : 'bg-gray-800/60 hover:bg-gray-800/70 border border-gray-600/20 rounded-2xl shadow-md'
-                    }
-                    px-4 py-3 leading-relaxed
-                  `}
-                >
-                  {message.content}
-                </MessageContent>
-
-                {/* Copy button - appears on hover */}
-                <div className={`absolute top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
-                  message.role === 'user' ? 'left-2' : 'right-2'
-                }`}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-7 w-7 p-0 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 backdrop-blur-sm rounded-full ${
-                            copiedMessageId === message.id 
-                              ? 'bg-green-500/40 text-green-300' 
-                              : 'bg-black/30'
-                          }`}
-                          onClick={() => handleCopyMessage(message.id, message.content)}
-                        >
-                          {copiedMessageId === message.id ? (
-                            <Check className="w-3.5 h-3.5" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
+            <div className="max-w-full">
+              <SmartMessage
+                content={message.content}
+                role={message.role}
+                onCopy={onCopyMessage}
+              />
               
               {/* Message timestamp */}
               <div className={`text-xs text-white/40 mt-1 ${

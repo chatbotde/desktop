@@ -1,6 +1,7 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/syntax-highlighting.css";
 
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
