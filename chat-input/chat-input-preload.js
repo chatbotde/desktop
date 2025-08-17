@@ -18,6 +18,12 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('chat-input-set-position', { deltaX, deltaY });
   },
   
+  // Window visibility controls
+  hideWindow: () => {
+    console.log('Preload: Hiding chat input window');
+    ipcRenderer.send('hide-chat-input');
+  },
+  
   // Future extensibility - placeholder functions for additional features
   openAttachmentPicker: () => {
     console.log('Preload: Opening attachment picker (placeholder)');

@@ -1,4 +1,4 @@
-const { app, ipcMain } = require("electron");
+const { app, ipcMain, globalShortcut } = require("electron");
 const path = require("path");
 const { LaunchWindowManager } = require("./launch-window");
 const { registerIpcHandlers } = require("./window-main");
@@ -95,6 +95,14 @@ function createLaunchWindow() {
       }
     });
 
+    // Handle chat input hide request
+    ipcMain.on('hide-chat-input', () => {
+      console.log('Main: Hide chat input requested');
+      if (chatInputWindow) {
+        chatInputWindow.hide();
+      }
+    });
+
     // Launch window content protection handlers (Highest Priority)
     ipcMain.handle('launch-window-toggle-content-protection', () => {
       if (launchWindowManager) {
@@ -137,7 +145,47 @@ function createLaunchWindow() {
   return launchWin;
 }
 
-app.whenReady().then(createLaunchWindow);
+app.whenReady().then(() => {
+  createLaunchWindow();
+  
+  // Register global shortcuts
+  registerGlobalShortcuts();
+});
+
+function registerGlobalShortcuts() {
+  // Register Ctrl+H to hide/show chat input window
+  const ret = globalShortcut.register('CommandOrControl+H', () => {
+    console.log('Main: Global shortcut Ctrl+H pressed');
+    if (chatInputWindow) {
+      if (chatInputWindow.getChatInputWindow() && chatInputWindow.getChatInputWindow().isVisible()) {
+        console.log('Main: Hiding chat input via global shortcut');
+        chatInputWindow.hide();
+      } else {
+        console.log('Main: Showing chat input via global shortcut');
+        chatInputWindow.show();
+      }
+    } else {
+      console.log('Main: Chat input window not available, creating new one');
+      // Create chat input window if it doesn't exist
+      chatInputWindow = new ChatInputWindow();
+      chatInputWindow.createChatInputWindow();
+      
+      // Set main window reference if available
+      const mainWindow = launchWindowManager ? launchWindowManager.getMainWindow() : null;
+      if (mainWindow) {
+        chatInputWindow.setMainWindow(mainWindow);
+      }
+      
+      chatInputWindow.show();
+    }
+  });
+
+  if (!ret) {
+    console.log('Main: Failed to register global shortcut Ctrl+H');
+  } else {
+    console.log('Main: Global shortcut Ctrl+H registered successfully');
+  }
+}
 
 app.on("window-all-closed", () => {
   // Don't quit the app when all windows are closed
@@ -146,6 +194,9 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
+  // Unregister all global shortcuts
+  globalShortcut.unregisterAll();
+  
   // Clean up when quitting
   if (chatInputWindow) {
     chatInputWindow.destroy();

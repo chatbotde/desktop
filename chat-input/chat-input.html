@@ -424,6 +424,17 @@
                             </svg>
                         </button>
 
+                        <!-- Hide/Show Window Button -->
+                        <button class="action-btn icon-only" id="hideShowButton"
+                            aria-label="Hide window" title="Hide window (Ctrl+H)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18l-2-2H5l-2 2z"/>
+                                <path d="M21 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6"/>
+                                <path d="m8 10 4 4 4-4"/>
+                            </svg>
+                        </button>
+
                         <!-- Future: Search Button (commented out for now)
                         <button class="action-btn with-text" id="searchButton" aria-label="Search" title="Search">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -496,6 +507,7 @@
         const typingIndicator = document.getElementById('typingIndicator');
         const addButton = document.getElementById('addButton');
         const lightingButton = document.getElementById('lightingButton');
+        const hideShowButton = document.getElementById('hideShowButton');
         const promptInput = document.querySelector('.prompt-input');
         const dragHandle = document.querySelector('.drag-handle');
         const promptActions = document.querySelector('.prompt-actions');
@@ -620,6 +632,22 @@
             ], { duration: 200, easing: 'ease-out' });
         }
 
+        // Hide/Show window function
+        function toggleWindowVisibility() {
+            if (window.chatInputAPI?.hideWindow) {
+                window.chatInputAPI.hideWindow();
+            } else {
+                console.log('Chat Input: Hide window API not available');
+            }
+
+            // Visual feedback animation
+            hideShowButton.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(0.9)' },
+                { transform: 'scale(1)' }
+            ], { duration: 150, easing: 'ease-out' });
+        }
+
         // Future: Voice recording toggle (commented out)
         /*
         function toggleRecording() {
@@ -695,6 +723,9 @@
                 sendMessage();
             } else if (e.key === 'Escape') {
                 messageInput.blur();
+            } else if (e.key === 'h' && e.ctrlKey) {
+                e.preventDefault();
+                toggleWindowVisibility();
             }
         });
 
@@ -702,6 +733,7 @@
         sendButton.addEventListener('click', sendMessage);
         addButton.addEventListener('click', handleAdd);
         lightingButton.addEventListener('click', toggleLighting);
+        hideShowButton.addEventListener('click', toggleWindowVisibility);
 
         // Future button listeners (commented out)
         // micButton.addEventListener('click', toggleRecording);
@@ -734,8 +766,16 @@
             messageInput.focus();
         });
 
-        // Auto-focus on keypress
+        // Auto-focus on keypress and global shortcuts
         document.addEventListener('keydown', (e) => {
+            // Global shortcut for hide/show
+            if (e.key === 'h' && e.ctrlKey) {
+                e.preventDefault();
+                toggleWindowVisibility();
+                return;
+            }
+
+            // Auto-focus on typing
             if (document.activeElement !== messageInput &&
                 !e.ctrlKey && !e.altKey && !e.metaKey &&
                 e.key.length === 1 &&
