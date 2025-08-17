@@ -42,8 +42,8 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
   }, [messages, isTyping])
 
   return (
-    <div className="flex-1 flex flex-col min-h-full relative">
-      <div className="flex-1 px-6 py-6 space-y-6">
+    <div className="flex flex-col relative">
+      <div className="px-4 py-2 space-y-3">
         {messages.map((message) => (
           <div key={message.id} className={`message-appear flex ${
             message.role === 'user' 
@@ -126,7 +126,7 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
         )}
 
         {/* Invisible element to scroll to */}
-        <div ref={messagesEndRef} className="h-1" />
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Scroll to bottom indicator */}

@@ -7,6 +7,7 @@ The Chat Input Window is a floating, always-on-top input field that allows you t
 ## Features
 
 ### Design
+
 - **Rounded Corners**: Modern glassmorphism design with 25px border-radius
 - **Transparent Background**: Semi-transparent black with blur effects
 - **Always On Top**: Stays above all other windows
@@ -14,8 +15,9 @@ The Chat Input Window is a floating, always-on-top input field that allows you t
 - **Responsive**: Auto-resizes as you type (up to 100px height)
 
 ### Functionality
+
 - **Message Integration**: Messages appear instantly in main window chat
-- **Keyboard Shortcuts**: 
+- **Keyboard Shortcuts**:
   - `Enter` to send message
   - `Shift + Enter` for new line
   - Auto-focus on any keypress
@@ -51,14 +53,14 @@ The chat input window communicates with the main window via Electron IPC:
 
 ```javascript
 // Sending message from chat input
-ipcRenderer.send('send-chat-message', {
-  content: 'Hello world!',
+ipcRenderer.send("send-chat-message", {
+  content: "Hello world!",
   timestamp: new Date().toISOString(),
-  id: Date.now().toString()
+  id: Date.now().toString(),
 });
 
 // Receiving in main window
-ipcRenderer.on('receive-chat-message', (event, messageData) => {
+ipcRenderer.on("receive-chat-message", (event, messageData) => {
   // Add message to chat interface
 });
 ```
@@ -66,6 +68,7 @@ ipcRenderer.on('receive-chat-message', (event, messageData) => {
 ### Message Format
 
 Messages sent from the chat input window include:
+
 - `content`: The message text
 - `timestamp`: ISO timestamp when sent
 - `id`: Unique identifier for the message
@@ -101,15 +104,18 @@ The window uses a modern glassmorphism design:
 ## Troubleshooting
 
 ### Window Not Appearing
+
 - Check if main window is open first
 - Try toggling the chat input button in main window
 - Restart the application
 
 ### Messages Not Appearing in Main Window
+
 - Ensure main window is open
 - Check console for IPC communication errors
 - Verify the main window is properly receiving messages
 
 ### Styling Issues
+
 - Ensure your system supports backdrop-filter CSS property
 - Check if transparency is enabled in your OS settings

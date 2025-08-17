@@ -17,8 +17,8 @@ class WindowManager {
     this.contentProtectionEnabled = true;
     this.ipcHandlersRegistered = false;
     this.windowBounds = null; // Store window bounds to maintain size
-    this.minWindowSize = { width: 600, height: 500 }; // Minimum window size
-    this.maxWindowSize = { width: 800, height: 600 }; // Maximum window size
+    this.minWindowSize = { width: 400, height: 200 }; // Minimum window size
+    this.maxWindowSize = { width: 1000, height: 700 }; // Base maximum window size (can expand based on screen)
   }
 
   createWindow(theme = "transparent") {
@@ -40,9 +40,9 @@ class WindowManager {
   }
 
   getWindowOptions(theme) {
-    // Use stored bounds if available, otherwise use smaller default size
-    const defaultWidth = 400;
-    const defaultHeight = 300;
+    // Fixed width, compact default height
+    const fixedWidth = 480; // Fixed horizontal width
+    const defaultHeight = 220; // Small initial height
     
     // Get the appropriate icon path based on platform
     const getIconPath = () => {
@@ -56,8 +56,8 @@ class WindowManager {
     };
     
     return {
-      width: this.windowBounds ? this.windowBounds.width : defaultWidth,
-      height: this.windowBounds ? this.windowBounds.height : defaultHeight,
+      width: fixedWidth, // Always use fixed width
+      height: this.windowBounds ? this.windowBounds.height : defaultHeight, // Allow height to be restored
       minWidth: this.minWindowSize.width,
       minHeight: this.minWindowSize.height,
       maxWidth: this.maxWindowSize.width,
@@ -162,35 +162,66 @@ class WindowManager {
     if (!win || win.isDestroyed()) return;
 
     const currentBounds = win.getBounds();
-    const padding = 40; // Padding around content
     
-    // Calculate new size based on content
-    let newWidth = Math.max(contentWidth + padding, this.minWindowSize.width);
-    let newHeight = Math.max(contentHeight + padding, this.minWindowSize.height);
+    // FIXED WIDTH - Keep the current width, don't change it
+    const newWidth = currentBounds.width;
     
-    // Ensure we don't exceed maximum size
-    newWidth = Math.min(newWidth, this.maxWindowSize.width);
-    newHeight = Math.min(newHeight, this.maxWindowSize.height);
+    // DYNAMIC HEIGHT - Only adjust height based on content
+    let newHeight = Math.max(contentHeight, this.minWindowSize.height);
     
-    // Only resize if the new size is significantly different
-    const widthDiff = Math.abs(newWidth - currentBounds.width);
+    // Ensure height doesn't exceed screen bounds
+    const screen = require('electron').screen;
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Dynamic max height based on screen size (85% of screen height)
+    const dynamicMaxHeight = Math.floor(screenHeight * 0.85);
+    newHeight = Math.min(newHeight, dynamicMaxHeight);
+    
+    // Only resize if height difference is meaningful
     const heightDiff = Math.abs(newHeight - currentBounds.height);
     
-    if (widthDiff > 20 || heightDiff > 20) {
-      // Smooth resize animation
-      win.setSize(newWidth, newHeight, true);
+    if (heightDiff > 10) {
+      console.log(`Vertical resize: ${currentBounds.height} -> ${newHeight} (width fixed at ${newWidth})`);
       
-      // Center the window if it's a significant size change
-      if (widthDiff > 50 || heightDiff > 50) {
-        const screen = require('electron').screen;
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+      // Smooth vertical resize animation
+      const steps = 6;
+      const heightStep = (newHeight - currentBounds.height) / steps;
+      
+      let currentStep = 0;
+      const animateResize = () => {
+        if (currentStep >= steps || win.isDestroyed()) return;
         
-        const x = Math.max(0, (screenWidth - newWidth) / 2);
-        const y = Math.max(0, (screenHeight - newHeight) / 2);
+        currentStep++;
+        const intermediateHeight = Math.round(currentBounds.height + (heightStep * currentStep));
         
-        win.setPosition(x, y);
-      }
+        // Only change height, keep width fixed
+        win.setSize(newWidth, intermediateHeight, false);
+        
+        if (currentStep < steps) {
+          setTimeout(animateResize, 20); // Slightly slower for smoother vertical animation
+        }
+      };
+      
+      // Start smooth vertical animation
+      animateResize();
+      
+      // Adjust vertical position if window goes off screen
+      setTimeout(() => {
+        const newBounds = win.getBounds();
+        let y = newBounds.y;
+        
+        // Only adjust Y position if window goes off screen
+        if (y + newHeight > screenHeight) {
+          y = screenHeight - newHeight - 20;
+        }
+        if (y < 0) y = 20;
+        
+        // Only move vertically if necessary
+        if (y !== newBounds.y) {
+          win.setPosition(newBounds.x, y);
+        }
+      }, steps * 20 + 50);
     }
   }
 

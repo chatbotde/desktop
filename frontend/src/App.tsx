@@ -13,6 +13,7 @@ import {
   useWindowManager, 
   useScrollManager 
 } from '@/hooks'
+import { useIntelligentResize } from '@/hooks/useIntelligentResize'
 
 // Note: Window API interface is now declared in types/electron.d.ts
 
@@ -23,6 +24,18 @@ function App() {
   const chatManager = useChatManager()
   const windowManager = useWindowManager()
   const scrollManager = useScrollManager()
+  
+  // Use intelligent resizing with fixed width, ultra-minimal height
+  const { forceResize } = useIntelligentResize({
+    enabled: true,
+    smoothResize: true,
+    minWidth: 480, // Fixed width
+    minHeight: 80, // Ultra-minimal height
+    maxWidth: 480, // Same as minWidth for fixed width
+    maxHeight: 500,
+    paddingX: 5,  // Ultra-minimal horizontal padding
+    paddingY: 5   // Ultra-minimal vertical padding
+  })
 
   useEffect(() => {
     // Initialize window resize manager for dynamic sizing
@@ -55,13 +68,19 @@ function App() {
     if (window.api?.onThemeChanged) {
       window.api.onThemeChanged((theme: string) => {
         windowManager.setCurrentTheme(theme as 'transparent' | 'black')
+        // Force resize when theme changes as it affects sizing requirements
+        setTimeout(() => forceResize(), 300)
       })
     }
 
     // Set up the message listener using the exposed API
     if (window.api?.onChatMessage) {
       console.log('Main Window: Setting up chat message listener');
-      window.api.onChatMessage(chatManager.handleChatMessage);
+      window.api.onChatMessage((messageData: any) => {
+        chatManager.handleChatMessage(messageData);
+        // Force resize when new messages arrive to accommodate content
+        setTimeout(() => forceResize(), 100);
+      });
     } else {
       console.error('Main Window: window.api.onChatMessage not available');
     }
@@ -105,15 +124,15 @@ function App() {
       />
 
       {/* Scrollable Content Area - Below Fixed Header */}
-      <div className="flex-1 relative overflow-hidden mt-8">
+      <div className="relative overflow-hidden" style={{ marginTop: '32px' }}>
         {/* Background - Conditional based on theme */}
         <AppBackground currentTheme={windowManager.currentTheme} />
 
         {/* Scrollable Content Container */}
-        <div className="relative z-10 h-full scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
+        <div className="relative z-10 scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
           {/* Chat Messages Area */}
           {chatManager.showChat && (
-            <div className="min-h-full flex flex-col">
+            <div className="flex flex-col">
               <Messages
                 messages={chatManager.messages}
                 isTyping={chatManager.isTyping}

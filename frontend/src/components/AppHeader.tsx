@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Eye, EyeOff, Shield, ShieldOff, MessageSquare } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Minimize2, Maximize2, X, Rocket, Settings, Monitor, Eye, EyeOff, Shield, ShieldOff, MessageSquare, Menu } from 'lucide-react'
 
 interface AppHeaderProps {
   currentTheme: 'transparent' | 'black'
@@ -45,94 +46,117 @@ export function AppHeader({
         Buddy
       </div>
 
-      <div className="flex items-center gap-3 no-drag relative z-10">
-        {/* Opacity Slider */}
-        <div className={`flex items-center gap-2 px-3 py-1 ${currentTheme === 'black' ? 'bg-gray-700 border-gray-600' : 'bg-white/10 backdrop-blur-sm border-white/20'} rounded-full border`}>
-          <Settings className={`w-3 h-3 ${currentTheme === 'black' ? 'text-gray-300' : 'text-white/70'}`} />
-          <Slider
-            value={opacity}
-            onValueChange={onOpacityChange}
-            max={1}
-            min={0.1}
-            step={0.1}
-            className="w-16"
-          />
-          <span className={`text-xs ${currentTheme === 'black' ? 'text-gray-300' : 'text-white/70'} w-8 text-right`}>
-            {Math.round(opacity[0] * 100)}%
-          </span>
-        </div>
+      <div className="flex items-center gap-2 no-drag relative z-10">
+        {/* Dropdown Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-6 w-6 p-0 hover:bg-blue-500/20 hover:text-blue-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
+              title="Menu"
+            >
+              <Menu className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className={`${currentTheme === 'black' ? 'bg-gray-800 border-gray-700' : 'bg-black/80 backdrop-blur-md border-white/20'} text-white min-w-[200px]`}
+          >
+            {/* Opacity Control */}
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-3 h-3 text-white/70" />
+                <span className="text-xs text-white/70">Opacity</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Slider
+                  value={opacity}
+                  onValueChange={onOpacityChange}
+                  max={1}
+                  min={0.1}
+                  step={0.1}
+                  className="flex-1"
+                />
+                <span className="text-xs text-white/70 w-8 text-right">
+                  {Math.round(opacity[0] * 100)}%
+                </span>
+              </div>
+            </div>
 
-        {/* Content Protection Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 transition-colors ${contentProtection
-            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-            : `${currentTheme === 'black' ? 'text-gray-400 hover:bg-orange-500/20 hover:text-orange-400' : 'text-white/60 hover:bg-orange-500/20 hover:text-orange-400'}`
-            }`}
-          onClick={onContentProtectionToggle}
-          title={contentProtection ? "Content Protection: ON" : "Content Protection: OFF"}
-        >
-          {contentProtection ? <Shield className="w-3 h-3" /> : <ShieldOff className="w-3 h-3" />}
-        </Button>
+            <DropdownMenuSeparator className="bg-white/20" />
 
-        {/* Toggle Chat Input Window */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-blue-500/20 hover:text-blue-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onChatInputToggle}
-          title="Toggle Chat Input Window"
-        >
-          <MessageSquare className="w-3 h-3" />
-        </Button>
+            {/* Content Protection */}
+            <DropdownMenuItem
+              onClick={onContentProtectionToggle}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              {contentProtection ? <Shield className="w-3 h-3 text-green-400" /> : <ShieldOff className="w-3 h-3 text-orange-400" />}
+              <span className="text-sm">
+                Content Protection: {contentProtection ? 'ON' : 'OFF'}
+              </span>
+            </DropdownMenuItem>
 
-        {/* Clear Chat Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-red-500/20 hover:text-red-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onClearChat}
-          title="Clear Chat"
-        >
-          <X className="w-3 h-3" />
-        </Button>
+            {/* Chat Input Toggle */}
+            <DropdownMenuItem
+              onClick={onChatInputToggle}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              <MessageSquare className="w-3 h-3 text-blue-400" />
+              <span className="text-sm">Toggle Chat Input</span>
+            </DropdownMenuItem>
 
-        {/* Window Controls */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-blue-500/20 hover:text-blue-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onMouseIgnoreToggle}
-          title="Toggle Mouse Ignore"
-        >
-          {mouseIgnore ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-purple-500/20 hover:text-purple-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onGetDesktopSources}
-          title="Screen Capture"
-        >
-          <Monitor className="w-3 h-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-yellow-500/20 hover:text-yellow-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onMinimize}
-        >
-          <Minimize2 className="w-3 h-3" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-6 w-6 p-0 hover:bg-green-500/20 hover:text-green-400 ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/60'}`}
-          onClick={onMaximize}
-        >
-          <Maximize2 className="w-3 h-3" />
-        </Button>
+            {/* Clear Chat */}
+            <DropdownMenuItem
+              onClick={onClearChat}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              <X className="w-3 h-3 text-red-400" />
+              <span className="text-sm">Clear Chat</span>
+            </DropdownMenuItem>
+
+            {/* Mouse Ignore Toggle */}
+            <DropdownMenuItem
+              onClick={onMouseIgnoreToggle}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              {mouseIgnore ? <EyeOff className="w-3 h-3 text-blue-400" /> : <Eye className="w-3 h-3 text-blue-400" />}
+              <span className="text-sm">
+                Mouse Ignore: {mouseIgnore ? 'ON' : 'OFF'}
+              </span>
+            </DropdownMenuItem>
+
+            {/* Screen Capture */}
+            <DropdownMenuItem
+              onClick={onGetDesktopSources}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              <Monitor className="w-3 h-3 text-purple-400" />
+              <span className="text-sm">Screen Capture</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="bg-white/20" />
+
+            {/* Window Controls */}
+            <DropdownMenuItem
+              onClick={onMinimize}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              <Minimize2 className="w-3 h-3 text-yellow-400" />
+              <span className="text-sm">Minimize</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={onMaximize}
+              className="flex items-center gap-2 cursor-pointer hover:bg-white/10"
+            >
+              <Maximize2 className="w-3 h-3 text-green-400" />
+              <span className="text-sm">Maximize</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Close Button */}
         <Button
           variant="ghost"
           size="sm"
