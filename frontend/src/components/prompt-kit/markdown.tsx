@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import 'katex/dist/katex.min.css'
+import { InlineMath, BlockMath } from 'react-katex'
 import '../../styles/syntax-highlighting.css'
 import type { JSX } from 'react/jsx-runtime'
 
@@ -70,6 +72,28 @@ function InlineCode({ children }: { children: string }) {
   )
 }
 
+function InlineMathBlock({ math }: { math: string }) {
+  try {
+    return (
+      <span className="math-inline">
+        <InlineMath math={math} />
+      </span>
+    )
+  } catch (error) {
+    console.error('KaTeX inline math error:', error)
+    return <code className="text-red-400">${math}$</code>
+  }
+}
+
+function BlockMathBlock({ math }: { math: string }) {
+  try {
+    return <BlockMath math={math} />
+  } catch (error) {
+    console.error('KaTeX block math error:', error)
+    return <code className="text-red-400">$${math}$$</code>
+  }
+}
+
 export function Markdown({ children, className }: MarkdownProps) {
   const parseMarkdown = (text: string) => {
     const lines = text.split('\n')
@@ -78,6 +102,87 @@ export function Markdown({ children, className }: MarkdownProps) {
 
     while (i < lines.length) {
       const line = lines[i]
+      const trimmed = line.trim()
+
+      // Block math - support multi-line $$...$$ and \[...\]
+      if (trimmed.startsWith('$$')) {
+        let mathContent = ''
+        if (trimmed.endsWith('$$') && trimmed !== '$$') {
+          mathContent = trimmed.slice(2, -2)
+          elements.push(
+            <div key={`block-math-${elements.length}`} className="math-block">
+              <BlockMathBlock math={mathContent} />
+            </div>
+          )
+          i++
+          continue
+        }
+
+        // Collect until a line ending with $$
+        const collected: string[] = []
+        // If line is exactly '$$', skip it and start collecting from next line
+        if (trimmed !== '$$') {
+          collected.push(trimmed.slice(2))
+        }
+        i++
+        while (i < lines.length) {
+          const current = lines[i]
+          const currentTrimmed = current.trim()
+          if (currentTrimmed.endsWith('$$')) {
+            collected.push(currentTrimmed.slice(0, -2))
+            break
+          }
+          collected.push(current)
+          i++
+        }
+        mathContent = collected.join('\n')
+        elements.push(
+          <div key={`block-math-${elements.length}`} className="math-block">
+            <BlockMathBlock math={mathContent} />
+          </div>
+        )
+        i++
+        continue
+      }
+
+      if (trimmed.startsWith('\\[')) {
+        let mathContent = ''
+        if (trimmed.endsWith('\\]') && trimmed !== '\\[') {
+          mathContent = trimmed.slice(2, -2)
+          elements.push(
+            <div key={`block-math-${elements.length}`} className="math-block">
+              <BlockMathBlock math={mathContent} />
+            </div>
+          )
+          i++
+          continue
+        }
+
+        // Collect until a line ending with \]
+        const collected: string[] = []
+        if (trimmed !== '\\[') {
+          collected.push(trimmed.slice(2))
+        }
+        i++
+        while (i < lines.length) {
+          const current = lines[i]
+          const currentTrimmed = current.trim()
+          if (currentTrimmed.endsWith('\\]')) {
+            collected.push(currentTrimmed.slice(0, -2))
+            break
+          }
+          collected.push(current)
+          i++
+        }
+        mathContent = collected.join('\n')
+        elements.push(
+          <div key={`block-math-${elements.length}`} className="math-block">
+            <BlockMathBlock math={mathContent} />
+          </div>
+        )
+        i++
+        continue
+      }
 
       // Code blocks (```language)
       if (line.trim().startsWith('```')) {
@@ -106,19 +211,19 @@ export function Markdown({ children, className }: MarkdownProps) {
       if (line.startsWith('# ')) {
         elements.push(
           <h1 key={`h1-${elements.length}`} className="text-2xl font-bold mb-4 mt-6 text-white border-b border-gray-600/30 pb-2">
-            {line.slice(2)}
+            {parseInlineMarkdown(line.slice(2))}
           </h1>
         )
       } else if (line.startsWith('## ')) {
         elements.push(
           <h2 key={`h2-${elements.length}`} className="text-xl font-semibold mb-3 mt-5 text-white">
-            {line.slice(3)}
+            {parseInlineMarkdown(line.slice(3))}
           </h2>
         )
       } else if (line.startsWith('### ')) {
         elements.push(
           <h3 key={`h3-${elements.length}`} className="text-lg font-medium mb-2 mt-4 text-white">
-            {line.slice(4)}
+            {parseInlineMarkdown(line.slice(4))}
           </h3>
         )
       }
@@ -214,7 +319,53 @@ export function Markdown({ children, className }: MarkdownProps) {
         return <InlineCode key={index}>{part}</InlineCode>
       }
 
-      // Handle bold and italic for non-code parts
+      // Handle inline math: $...$ and \(...\) first (before other formatting)
+      const inlineMathRegex = /\\\((.+?)\\\)|\$([^$\n]+?)\$/g
+      const nodes: React.ReactNode[] = []
+      let lastIndex = 0
+      let match: RegExpExecArray | null
+      while ((match = inlineMathRegex.exec(part)) !== null) {
+        const matchStart = match.index
+        const matchEnd = inlineMathRegex.lastIndex
+        const before = part.slice(lastIndex, matchStart)
+        if (before) {
+          let processedBefore = before
+          processedBefore = processedBefore.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          processedBefore = processedBefore.replace(/__(.*?)__/g, '<strong>$1</strong>')
+          processedBefore = processedBefore.replace(/\*(.*?)\*/g, '<em>$1</em>')
+          processedBefore = processedBefore.replace(/_(.*?)_/g, '<em>$1</em>')
+          processedBefore = processedBefore.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+          nodes.push(
+            <span
+              key={`text-${index}-${lastIndex}`}
+              dangerouslySetInnerHTML={{ __html: processedBefore }}
+            />
+          )
+        }
+        const mathContent = match[1] ?? match[2] ?? ''
+        nodes.push(<InlineMathBlock key={`math-${index}-${matchStart}`} math={mathContent} />)
+        lastIndex = matchEnd
+      }
+      const rest = part.slice(lastIndex)
+      if (nodes.length > 0) {
+        if (rest) {
+          let processedRest = rest
+          processedRest = processedRest.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          processedRest = processedRest.replace(/__(.*?)__/g, '<strong>$1</strong>')
+          processedRest = processedRest.replace(/\*(.*?)\*/g, '<em>$1</em>')
+          processedRest = processedRest.replace(/_(.*?)_/g, '<em>$1</em>')
+          processedRest = processedRest.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+          nodes.push(
+            <span
+              key={`text-${index}-rest`}
+              dangerouslySetInnerHTML={{ __html: processedRest }}
+            />
+          )
+        }
+        return nodes
+      }
+
+      // No math expressions found, apply regular formatting
       let processed = part
 
       // Bold (**text** or __text__)
@@ -230,7 +381,7 @@ export function Markdown({ children, className }: MarkdownProps) {
 
       return (
         <span
-          key={index}
+          key={`text-${index}`}
           dangerouslySetInnerHTML={{ __html: processed }}
         />
       )
