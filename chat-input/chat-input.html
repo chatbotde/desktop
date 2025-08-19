@@ -392,6 +392,71 @@
             clip: rect(0 0 0 0);
             border: 0;
         }
+
+        /* Dropdown menu (attach) */
+        .dropdown-menu {
+            position: fixed;
+            z-index: 1000;
+            min-width: 230px;
+            max-width: 280px;
+            background: var(--bg-popover);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            padding: 6px;
+            display: none;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+            animation: slideUp 0.18s ease;
+        }
+
+        .dropdown-content {
+            max-height: none;
+            overflow: visible;
+            outline: none;
+        }
+
+        .dropdown-label {
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .dropdown-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 6px;
+            border-radius: 1px;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item[aria-selected="true"] {
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .dropdown-item[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -511,6 +576,54 @@
         </div>
     </div>
 
+    <!-- Attachment dropdown (opened from + button) -->
+    <div id="attachmentDropdown" class="dropdown-menu" role="menu" aria-hidden="true">
+        <div class="dropdown-content" role="none">
+            <div class="dropdown-label">Attachments</div>
+            <button class="dropdown-item" data-action="upload-document" role="menuitem" tabindex="-1">
+                <!-- icon: file-text -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                Upload document
+            </button>
+            <button class="dropdown-item" data-action="upload-image" role="menuitem" tabindex="-1">
+                <!-- icon: image -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                Upload image
+            </button>
+            <button class="dropdown-item" data-action="capture-image" role="menuitem" tabindex="-1">
+                <!-- icon: camera -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Capture image
+            </button>
+            <button class="dropdown-item" data-action="upload-video" role="menuitem" tabindex="-1">
+                <!-- icon: video -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/><path d="m22 7-6 4 6 4z"/></svg>
+                Upload video
+            </button>
+            <button class="dropdown-item" data-action="capture-video" role="menuitem" tabindex="-1">
+                <!-- icon: video camera -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-5 3v4l5 3V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                Capture video
+            </button>
+            <button class="dropdown-item" data-action="upload-audio" role="menuitem" tabindex="-1">
+                <!-- icon: audio (music) -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                Upload audio
+            </button>
+            <button class="dropdown-item" data-action="capture-audio" role="menuitem" tabindex="-1">
+                <!-- icon: mic -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v6"/><path d="M8 23h8"/></svg>
+                Capture audio
+            </button>
+            <div class="dropdown-separator" role="separator"></div>
+            <button class="dropdown-item" data-action="clear" role="menuitem" tabindex="-1">
+                <!-- icon: x -->
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+                Clear input
+            </button>
+        </div>
+    </div>
+
     <script>
         // DOM Elements
         const messageInput = document.getElementById('messageInput');
@@ -528,6 +641,7 @@
         const leftActions = document.querySelector('.left-actions');
         const rightActions = document.querySelector('.right-actions');
         const draggableArea = document.querySelector('.draggable-area');
+        const attachmentDropdown = document.getElementById('attachmentDropdown');
 
         // Future buttons (commented out)
         // const micButton = document.getElementById('micButton');
@@ -560,10 +674,16 @@
             const container = document.querySelector('.chat-input-container');
             const promptInput = document.querySelector('.prompt-input');
             const currentHeight = promptInput.offsetHeight;
-
+            const dropdown = document.getElementById('attachmentDropdown');
+            let targetHeight = currentHeight + 40; // base height with padding
+            if (dropdown && dropdown.classList.contains('open')) {
+                // Ensure dropdown bottom is visible inside the window
+                const menuRect = dropdown.getBoundingClientRect();
+                targetHeight = Math.max(targetHeight, Math.ceil(menuRect.bottom + 16));
+            }
             // Notify main process about height change for window resizing
             if (window.chatInputAPI?.updateWindowHeight) {
-                window.chatInputAPI.updateWindowHeight(currentHeight + 40); // Add padding
+                window.chatInputAPI.updateWindowHeight(targetHeight);
             }
         }
 
@@ -697,16 +817,126 @@
 
         // Add attachment handler with animation
         function handleAdd() {
-            if (window.chatInputAPI?.openAttachmentPicker) {
-                window.chatInputAPI.openAttachmentPicker();
+            // Visual feedback animation
+            addButton.animate([
+                { transform: 'scale(1)', background: 'transparent' },
+                { transform: 'scale(1.08)', background: '#303132' },
+                { transform: 'scale(1)', background: 'transparent' }
+            ], { duration: 160, easing: 'ease-out' });
+
+            toggleAttachmentMenu();
+        }
+
+        // Dropdown helpers
+        function openAttachmentMenu() {
+            if (!attachmentDropdown) return;
+            positionAttachmentMenu();
+            attachmentDropdown.classList.add('open');
+            attachmentDropdown.setAttribute('aria-hidden', 'false');
+            addButton.setAttribute('aria-expanded', 'true');
+            // Expand window to reveal the full menu
+            ensureDropdownVisibleByExpandingWindow();
+            // Re-run after layout paints to be certain size is correct
+            requestAnimationFrame(() => ensureDropdownVisibleByExpandingWindow());
+            // Focus first item for accessibility
+            const firstItem = attachmentDropdown.querySelector('.dropdown-item:not([disabled])');
+            if (firstItem) firstItem.focus({ preventScroll: true });
+        }
+
+        function closeAttachmentMenu() {
+            if (!attachmentDropdown) return;
+            attachmentDropdown.classList.remove('open');
+            attachmentDropdown.setAttribute('aria-hidden', 'true');
+            addButton.setAttribute('aria-expanded', 'false');
+            // Shrink window back down if extra space is no longer needed
+            adjustWindowHeight();
+        }
+
+        function toggleAttachmentMenu() {
+            if (attachmentDropdown.classList.contains('open')) {
+                closeAttachmentMenu();
             } else {
-                // Visual feedback animation
-                addButton.animate([
-                    { transform: 'scale(1)', background: 'transparent' },
-                    { transform: 'scale(1.1)', background: '#303132' },
-                    { transform: 'scale(1)', background: 'transparent' }
-                ], { duration: 200, easing: 'ease-out' });
+                openAttachmentMenu();
             }
+        }
+
+        function positionAttachmentMenu() {
+            const rect = addButton.getBoundingClientRect();
+            // Default: slightly above and to the right side of the attach button
+            const offsetX = 2; // slight side offset
+            const offsetY = 8; // space from button
+            attachmentDropdown.style.left = (rect.left + offsetX) + 'px';
+            attachmentDropdown.style.top = (rect.top - offsetY) + 'px';
+
+            // Prevent overflow to the right
+            attachmentDropdown.style.visibility = 'hidden';
+            attachmentDropdown.style.display = 'block';
+            const menuRect = attachmentDropdown.getBoundingClientRect();
+            attachmentDropdown.style.display = '';
+            attachmentDropdown.style.visibility = '';
+            const overflowRight = (menuRect.right > window.innerWidth - 8);
+            if (overflowRight) {
+                const newLeft = Math.max(8, rect.right - menuRect.width);
+                attachmentDropdown.style.left = newLeft + 'px';
+            }
+
+            // If placed above would hide off-screen, place below
+            const aboveTop = rect.top - menuRect.height - 6;
+            if (aboveTop < 8) {
+                const belowTop = Math.min(window.innerHeight - menuRect.height - 8, rect.bottom + 6);
+                attachmentDropdown.style.top = belowTop + 'px';
+            } else {
+                // Place above button by default (slightly above)
+                attachmentDropdown.style.top = (rect.top - menuRect.height - 6) + 'px';
+            }
+        }
+
+        function ensureDropdownVisibleByExpandingWindow() {
+            if (!attachmentDropdown || !attachmentDropdown.classList.contains('open')) return;
+            const menuRect = attachmentDropdown.getBoundingClientRect();
+            const overflow = Math.ceil(menuRect.bottom + 16 - window.innerHeight);
+            if (overflow > 0 && window.chatInputAPI?.updateWindowHeight) {
+                window.chatInputAPI.updateWindowHeight(window.innerHeight + overflow);
+            }
+        }
+
+        // Item actions
+        function handleAttachmentAction(action) {
+            switch (action) {
+                case 'pick-file':
+                    if (window.chatInputAPI?.openAttachmentPicker) {
+                        window.chatInputAPI.openAttachmentPicker();
+                    }
+                    break;
+                case 'paste':
+                    if (navigator.clipboard?.readText) {
+                        navigator.clipboard.readText().then((text) => {
+                            if (text) {
+                                const hadText = messageInput.value.length > 0;
+                                messageInput.value += (hadText ? '\n' : '') + text;
+                                autoResize();
+                                updateSendButton();
+                            }
+                        }).catch(() => {
+                            console.log('Clipboard read failed');
+                        });
+                    }
+                    break;
+                case 'screenshot':
+                    if (window.chatInputAPI?.openScreenCapture) {
+                        window.chatInputAPI.openScreenCapture();
+                    } else {
+                        console.log('Screen capture not implemented');
+                    }
+                    break;
+                case 'clear':
+                    messageInput.value = '';
+                    autoResize();
+                    updateSendButton();
+                    break;
+            }
+            closeAttachmentMenu();
+            messageInput.focus();
         }
 
         // Future: Search handler (commented out)
@@ -768,6 +998,40 @@
         lightingButton.addEventListener('click', toggleLighting);
         hideShowButton.addEventListener('click', toggleWindowVisibility);
         toggleMainWindowButton.addEventListener('click', toggleMainWindow);
+
+        // Dropdown interactions
+        attachmentDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('.dropdown-item');
+            if (!button) return;
+            const action = button.getAttribute('data-action');
+            if (action) {
+                handleAttachmentAction(action);
+            }
+        });
+
+        // Reposition on resize to stay anchored near the button
+        window.addEventListener('resize', () => {
+            if (attachmentDropdown.classList.contains('open')) {
+                positionAttachmentMenu();
+                ensureDropdownVisibleByExpandingWindow();
+            }
+        });
+
+        // Dismiss dropdown on outside click or Escape
+        document.addEventListener('mousedown', (e) => {
+            if (!attachmentDropdown.classList.contains('open')) return;
+            if (e.target === addButton || addButton.contains(e.target)) return;
+            if (!attachmentDropdown.contains(e.target)) {
+                closeAttachmentMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && attachmentDropdown.classList.contains('open')) {
+                closeAttachmentMenu();
+                addButton.focus();
+            }
+        });
 
         // Future button listeners (commented out)
         // micButton.addEventListener('click', toggleRecording);
