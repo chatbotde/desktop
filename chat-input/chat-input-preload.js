@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('hide-chat-input');
   },
   
+  // Toggle main window visibility
+  toggleMainWindow: () => {
+    console.log('Preload: Toggling main window visibility');
+    ipcRenderer.send('toggle-main-window');
+  },
+  
   // Future extensibility - placeholder functions for additional features
   openAttachmentPicker: () => {
     console.log('Preload: Opening attachment picker (placeholder)');
