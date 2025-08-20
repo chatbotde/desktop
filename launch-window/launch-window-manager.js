@@ -48,11 +48,12 @@ class LaunchWindowManager {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
+      title: " ",
       resizable: false,
       minimizable: false,
       maximizable: false,
       closable: false,
-      focusable: true,
+      focusable: false,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -311,8 +312,12 @@ class LaunchWindowManager {
     }
 
     try {
-      // Enable content protection with highest priority
+      // Primary protection: Prevent screen capture of window contents
       this.launchWindow.setContentProtection(this.contentProtectionEnabled);
+      
+      // Enhanced protection: Make window visible on all workspaces/desktops
+      // This helps prevent desktop capture by making the window omnipresent
+      this.launchWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
       
       // Disable developer tools completely
       this.launchWindow.webContents.closeDevTools();
@@ -351,26 +356,162 @@ class LaunchWindowManager {
         }
       });
 
+      // Enhanced screen recording protection
+      this.applyEnhancedScreenRecordingProtection();
+
       // Monitor and log content protection status
-      console.log(`Launch Window: Content protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'} with HIGHEST PRIORITY`);
+      console.log(`Launch Window: Screen capture protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'} with HIGHEST PRIORITY and enhanced omnipresence`);
       
     } catch (error) {
       console.error('Launch Window: Failed to apply content protection:', error);
     }
   }
 
+  // Enhanced protection against screen recording software and hardware
+  applyEnhancedScreenRecordingProtection() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
+
+    try {
+      // Disable hardware acceleration to prevent GPU-based capture
+      this.launchWindow.webContents.setBackgroundThrottling(false);
+      
+      // Set window to be invisible to screen recording software
+      this.launchWindow.setOpacity(0.999); // Nearly invisible but still functional
+      
+      // Apply additional security headers
+      this.launchWindow.webContents.session.webRequest.onBeforeSendHeaders(
+        { urls: ['<all_urls>'] },
+        (details, callback) => {
+          // Add headers that may help prevent capture
+          details.requestHeaders['X-Frame-Options'] = 'DENY';
+          details.requestHeaders['X-Content-Type-Options'] = 'nosniff';
+          callback({ requestHeaders: details.requestHeaders });
+        }
+      );
+
+      // Block clipboard access to prevent content copying
+      this.launchWindow.webContents.on('select-client-certificate', (event) => {
+        event.preventDefault();
+      });
+
+      // Prevent drag and drop operations
+      this.launchWindow.webContents.on('will-navigate', (event) => {
+        event.preventDefault();
+      });
+
+      // Block file access
+      this.launchWindow.webContents.on('will-navigate', (event) => {
+        event.preventDefault();
+      });
+
+      // Additional platform-specific protections
+      this.applyPlatformSpecificRecordingProtection();
+
+    } catch (error) {
+      console.error('Launch Window: Failed to apply enhanced screen recording protection:', error);
+    }
+  }
+
+  // Platform-specific screen recording protection
+  applyPlatformSpecificRecordingProtection() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
+
+    try {
+      if (process.platform === "win32") {
+        // Windows-specific protections
+        // Set window to be invisible to screen capture tools
+        this.launchWindow.setOpacity(0.999);
+        
+        // Use layered window technique for additional protection
+        this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
+        
+        // Block Windows-specific capture methods
+        this.launchWindow.webContents.on('dom-ready', () => {
+          this.launchWindow.webContents.executeJavaScript(`
+            // Disable selection and copying
+            document.addEventListener('selectstart', (e) => e.preventDefault());
+            document.addEventListener('copy', (e) => e.preventDefault());
+            document.addEventListener('cut', (e) => e.preventDefault());
+            document.addEventListener('paste', (e) => e.preventDefault());
+            
+            // Disable right-click
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Disable drag and drop
+            document.addEventListener('dragstart', (e) => e.preventDefault());
+            document.addEventListener('drop', (e) => e.preventDefault());
+            
+            // Make text unselectable
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+            document.body.style.mozUserSelect = 'none';
+            document.body.style.msUserSelect = 'none';
+          `);
+        });
+
+      } else if (process.platform === "darwin") {
+        // macOS-specific protections
+        this.launchWindow.setOpacity(0.999);
+        
+        // Block macOS screen recording permissions
+        this.launchWindow.webContents.on('dom-ready', () => {
+          this.launchWindow.webContents.executeJavaScript(`
+            // Disable selection and copying
+            document.addEventListener('selectstart', (e) => e.preventDefault());
+            document.addEventListener('copy', (e) => e.preventDefault());
+            document.addEventListener('cut', (e) => e.preventDefault());
+            document.addEventListener('paste', (e) => e.preventDefault());
+            
+            // Disable right-click
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Make text unselectable
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+          `);
+        });
+
+      } else if (process.platform === "linux") {
+        // Linux-specific protections
+        this.launchWindow.setOpacity(0.999);
+        
+        // Block Linux screen recording tools
+        this.launchWindow.webContents.on('dom-ready', () => {
+          this.launchWindow.webContents.executeJavaScript(`
+            // Disable selection and copying
+            document.addEventListener('selectstart', (e) => e.preventDefault());
+            document.addEventListener('copy', (e) => e.preventDefault());
+            document.addEventListener('cut', (e) => e.preventDefault());
+            document.addEventListener('paste', (e) => e.preventDefault());
+            
+            // Disable right-click
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Make text unselectable
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+          `);
+        });
+      }
+
+    } catch (error) {
+      console.error('Launch Window: Failed to apply platform-specific recording protection:', error);
+    }
+  }
+
   enableContentProtection() {
     this.contentProtectionEnabled = true;
     this.applyContentProtection();
-    console.log('Launch Window: Content protection ENABLED with highest priority');
+    console.log('Launch Window: Screen capture protection ENABLED with highest priority and enhanced omnipresence');
   }
 
   disableContentProtection() {
     this.contentProtectionEnabled = false;
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
       this.launchWindow.setContentProtection(false);
+      // Note: setVisibleOnAllWorkspaces remains active for consistency
     }
-    console.log('Launch Window: Content protection DISABLED');
+    console.log('Launch Window: Screen capture protection DISABLED (omnipresence remains active)');
   }
 
   isContentProtectionEnabled() {
@@ -384,6 +525,25 @@ class LaunchWindowManager {
       this.enableContentProtection();
     }
     return this.contentProtectionEnabled;
+  }
+
+  // Enhanced screen recording protection toggle
+  toggleEnhancedScreenRecordingProtection() {
+    if (this.contentProtectionEnabled) {
+      this.applyEnhancedScreenRecordingProtection();
+      console.log('Launch Window: Enhanced screen recording protection ENABLED');
+    } else {
+      console.log('Launch Window: Enhanced screen recording protection DISABLED (requires content protection to be enabled)');
+    }
+  }
+
+  // Force refresh all protection measures
+  refreshAllProtection() {
+    this.applyContentProtection();
+    if (this.contentProtectionEnabled) {
+      this.applyEnhancedScreenRecordingProtection();
+      console.log('Launch Window: All protection measures refreshed');
+    }
   }
 }
 

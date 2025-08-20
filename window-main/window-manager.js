@@ -67,7 +67,7 @@ class WindowManager {
       transparent: theme === "transparent",
       hasShadow: false,
       alwaysOnTop: true,
-      title: 'Buddy',
+      title: ' ',
       skipTaskbar: true,
       hiddenInMissionControl: true,
       roundedCorners: true,
@@ -112,6 +112,9 @@ class WindowManager {
     
     // Setup styling
     applyWindowStyling(win, this.currentOpacity, this.currentTheme);
+    
+    // Apply comprehensive screen capture protection
+    this.applyScreenCaptureProtection(win);
     
     // Register IPC handlers only once globally
     if (!globalIpcHandlersRegistered) {
@@ -367,6 +370,90 @@ class WindowManager {
 
   setContentProtectionEnabled(enabled) {
     this.contentProtectionEnabled = enabled;
+    // Apply protection to current window if it exists
+    if (this.currentWindow && !this.currentWindow.isDestroyed()) {
+      this.applyScreenCaptureProtection(this.currentWindow);
+    }
+  }
+
+  // Comprehensive screen capture protection method
+  applyScreenCaptureProtection(win) {
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+
+    try {
+      // Primary protection: Prevent screen capture of window contents
+      win.setContentProtection(this.contentProtectionEnabled);
+      
+      // Enhanced protection: Make window visible on all workspaces/desktops
+      // This helps prevent desktop capture by making the window omnipresent
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      
+      // Additional security measures
+      this.applyAdditionalSecurityMeasures(win);
+      
+      console.log(`Main Window: Screen capture protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'} with enhanced omnipresence`);
+      
+    } catch (error) {
+      console.error('Main Window: Failed to apply screen capture protection:', error);
+    }
+  }
+
+  // Additional security measures to prevent content exposure
+  applyAdditionalSecurityMeasures(win) {
+    if (!win || win.isDestroyed()) return;
+
+    try {
+      // Disable developer tools
+      win.webContents.closeDevTools();
+      win.webContents.on('devtools-opened', () => {
+        win.webContents.closeDevTools();
+      });
+
+      // Prevent right-click context menu
+      win.webContents.on('context-menu', (event) => {
+        if (this.contentProtectionEnabled) {
+          event.preventDefault();
+        }
+      });
+
+      // Block security-compromising keyboard shortcuts
+      win.webContents.on('before-input-event', (event, input) => {
+        if (this.contentProtectionEnabled) {
+          // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
+          if (
+            input.key === 'F12' ||
+            (input.control && input.shift && (input.key === 'I' || input.key === 'J' || input.key === 'C')) ||
+            (input.control && input.key === 'U')
+          ) {
+            event.preventDefault();
+          }
+        }
+      });
+
+      // Block new window creation attempts
+      win.webContents.setWindowOpenHandler(() => {
+        return { action: 'deny' };
+      });
+
+      // Prevent navigation to external URLs
+      win.webContents.on('will-navigate', (event, navigationUrl) => {
+        const allowedProtocols = ['file:', 'data:', 'http:', 'https:'];
+        try {
+          const url = new URL(navigationUrl);
+          if (!allowedProtocols.includes(url.protocol)) {
+            event.preventDefault();
+          }
+        } catch (error) {
+          // Invalid URL, prevent navigation
+          event.preventDefault();
+        }
+      });
+
+    } catch (error) {
+      console.error('Main Window: Failed to apply additional security measures:', error);
+    }
   }
 }
 

@@ -1,0 +1,30 @@
+{
+  "name": "chat-input-modules",
+  "version": "1.0.0",
+  "description": "Modular JavaScript modules for the chat input application",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "lint": "echo 'Linting not configured'",
+    "test": "echo 'Testing not configured'",
+    "build": "echo 'Build process not configured'"
+  },
+  "keywords": [
+    "chat",
+    "input",
+    "electron",
+    "modules",
+    "ui"
+  ],
+  "author": "Chat Input Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 61",
+    "Firefox >= 60",
+    "Safari >= 10.1",
+    "Electron >= 12.0.0"
+  ]
+}
