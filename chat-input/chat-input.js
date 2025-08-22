@@ -2,11 +2,13 @@
         // DOM Elements
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const expandButton = document.getElementById('expandButton');
         const collapseButton = document.getElementById('collapseButton');
         const sendIcon = document.getElementById('sendIcon');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const typingIndicator = document.getElementById('typingIndicator');
-        const addButton = document.getElementById('addButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const captureButton = document.getElementById('captureButton');
         const lightingButton = document.getElementById('lightingButton');
         const hideShowButton = document.getElementById('hideShowButton');
         const toggleMainWindowButton = document.getElementById('toggleMainWindowButton');
@@ -16,7 +18,8 @@
         const leftActions = document.querySelector('.left-actions');
         const rightActions = document.querySelector('.right-actions');
         const draggableArea = document.querySelector('.draggable-area');
-        const attachmentDropdown = document.getElementById('attachmentDropdown');
+        const uploadDropdown = document.getElementById('uploadDropdown');
+        const captureDropdown = document.getElementById('captureDropdown');
         
         // Image attachment elements
         const attachmentsSection = document.getElementById('attachmentsSection');
@@ -59,7 +62,11 @@
             imageAttachments.push(attachment);
             renderImageAttachment(attachment);
             updateAttachmentsVisibility();
-            adjustWindowHeight();
+            
+            // Delay height adjustment to allow DOM to settle
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 100);
             
             return attachment;
         }
@@ -70,14 +77,22 @@
             if (index !== -1) {
                 imageAttachments.splice(index, 1);
                 
-                // Remove from DOM
+                // Remove from DOM with smooth transition
                 const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
                 if (element) {
-                    element.remove();
+                    element.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                    element.style.opacity = '0';
+                    element.style.transform = 'scale(0.8)';
+                    
+                    setTimeout(() => {
+                        element.remove();
+                        updateAttachmentsVisibility();
+                        adjustWindowHeight();
+                    }, 200);
+                } else {
+                    updateAttachmentsVisibility();
+                    adjustWindowHeight();
                 }
-                
-                updateAttachmentsVisibility();
-                adjustWindowHeight();
             }
         }
         
@@ -95,6 +110,10 @@
             attachmentElement.className = 'attachment-item';
             attachmentElement.setAttribute('data-attachment-id', attachment.id);
             
+            // Start with invisible state for smooth entrance
+            attachmentElement.style.opacity = '0';
+            attachmentElement.style.transform = 'scale(0.8)';
+            
             attachmentElement.innerHTML = `
                 <img src="${attachment.data}" alt="${attachment.name}" class="attachment-preview" />
                 <div class="attachment-info">${attachment.name}</div>
@@ -107,6 +126,12 @@
             `;
             
             attachmentsGrid.appendChild(attachmentElement);
+            
+            // Smooth entrance animation
+            requestAnimationFrame(() => {
+                attachmentElement.style.opacity = '1';
+                attachmentElement.style.transform = 'scale(1)';
+            });
         }
         
         // Show loading attachment placeholder
@@ -114,9 +139,24 @@
             const loadingElement = document.createElement('div');
             loadingElement.className = 'attachment-loading';
             loadingElement.id = 'attachment-loading';
+            loadingElement.style.opacity = '0';
+            loadingElement.style.transform = 'scale(0.8)';
+            
             attachmentsGrid.appendChild(loadingElement);
             updateAttachmentsVisibility();
-            adjustWindowHeight();
+            
+            // Smooth entrance animation
+            requestAnimationFrame(() => {
+                loadingElement.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                loadingElement.style.opacity = '1';
+                loadingElement.style.transform = 'scale(1)';
+            });
+            
+            // Delay height adjustment to allow smooth transition
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 100);
+            
             return loadingElement;
         }
         
@@ -124,16 +164,46 @@
         function hideAttachmentLoading() {
             const loadingElement = document.getElementById('attachment-loading');
             if (loadingElement) {
-                loadingElement.remove();
-                updateAttachmentsVisibility();
-                adjustWindowHeight();
+                loadingElement.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                loadingElement.style.opacity = '0';
+                loadingElement.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    loadingElement.remove();
+                    updateAttachmentsVisibility();
+                    adjustWindowHeight();
+                }, 200);
             }
         }
         
-        // Update attachments section visibility
+        // Update attachments section visibility with smooth transition
         function updateAttachmentsVisibility() {
             const hasAttachments = imageAttachments.length > 0 || document.getElementById('attachment-loading');
-            attachmentsSection.style.display = hasAttachments ? 'block' : 'none';
+            const promptInputContainer = document.querySelector('.prompt-input');
+            const isExpanded = promptInputContainer.classList.contains('expanded');
+            
+            // Only show attachments if expanded or if there are attachments and we're not in compact mode
+            if (hasAttachments && isExpanded) {
+                if (attachmentsSection.style.display === 'none') {
+                    attachmentsSection.style.display = 'block';
+                    attachmentsSection.style.opacity = '0';
+                    attachmentsSection.style.maxHeight = '0px';
+                    
+                    requestAnimationFrame(() => {
+                        attachmentsSection.style.opacity = '1';
+                        attachmentsSection.style.maxHeight = '300px'; // Max height for attachments
+                    });
+                }
+            } else {
+                attachmentsSection.style.opacity = '0';
+                attachmentsSection.style.maxHeight = '0px';
+                
+                setTimeout(() => {
+                    if (imageAttachments.length === 0 && !document.getElementById('attachment-loading')) {
+                        attachmentsSection.style.display = 'none';
+                    }
+                }, 300); // Match CSS transition duration
+            }
         }
         
         // Handle file upload
@@ -215,6 +285,12 @@
         function expandUI() {
             const promptInputContainer = document.querySelector('.prompt-input');
             promptInputContainer.classList.add('expanded');
+            
+            // Show attachments section if there are attachments
+            if (imageAttachments.length > 0 && attachmentsSection.style.display === 'none') {
+                updateAttachmentsVisibility();
+            }
+            
             requestAnimationFrame(() => {
                 adjustWindowHeight();
             });
@@ -226,6 +302,15 @@
             
             // Clear the input content
             messageInput.value = '';
+            
+            // Hide attachments section in compact mode
+            if (attachmentsSection.style.display !== 'none') {
+                attachmentsSection.style.opacity = '0';
+                attachmentsSection.style.maxHeight = '0px';
+                setTimeout(() => {
+                    attachmentsSection.style.display = 'none';
+                }, 300);
+            }
             
             // Reset textarea height to single line
             messageInput.style.height = 'auto';
@@ -249,6 +334,10 @@
             collapseUI();
         });
         
+        expandButton.addEventListener('click', () => {
+            expandUI();
+        });
+        
         
         // --- FINAL & CORRECTED CODE FOR "EXPAND ON NEW LINE" --- //
 
@@ -269,11 +358,17 @@
             // 4. Check if the UI is currently in its compact state.
             const isCollapsed = !promptInputContainer.classList.contains('expanded');
 
+            // 5. Update send/expand button visibility
+            updateSendButton();
 
             // --- Expansion Logic ---
             // If the height grew AND the UI is currently collapsed, then expand.
             if (newHeight > oldHeight && isCollapsed) {
                 promptInputContainer.classList.add('expanded');
+                // Show attachments section if there are attachments
+                if (imageAttachments.length > 0 && attachmentsSection.style.display === 'none') {
+                    updateAttachmentsVisibility();
+                }
                 requestAnimationFrame(() => {
                     adjustWindowHeight();
                 });
@@ -297,29 +392,57 @@
             adjustWindowHeight();
         }
 
-        // Adjust window height based on content
+        // Debounced window height adjustment to prevent shaking
+        let adjustHeightTimeout = null;
+        let lastTargetHeight = 0;
+        
         function adjustWindowHeight() {
-            const container = document.querySelector('.chat-input-container');
-            const promptInput = document.querySelector('.prompt-input');
-            const currentHeight = promptInput.offsetHeight;
-            const dropdown = document.getElementById('attachmentDropdown');
-            let targetHeight = currentHeight + 40; // base height with padding
-            if (dropdown && dropdown.classList.contains('open')) {
-                // Ensure dropdown bottom is visible inside the window
-                const menuRect = dropdown.getBoundingClientRect();
-                targetHeight = Math.max(targetHeight, Math.ceil(menuRect.bottom + 16));
+            // Clear any pending adjustments
+            if (adjustHeightTimeout) {
+                clearTimeout(adjustHeightTimeout);
             }
-            // Notify main process about height change for window resizing
-            if (window.chatInputAPI?.updateWindowHeight) {
-                window.chatInputAPI.updateWindowHeight(targetHeight);
-            }
+            
+            adjustHeightTimeout = setTimeout(() => {
+                const container = document.querySelector('.chat-input-container');
+                const promptInput = document.querySelector('.prompt-input');
+                const currentHeight = promptInput.offsetHeight;
+                const dropdown = document.getElementById('attachmentDropdown');
+                let targetHeight = currentHeight + 40; // base height with padding
+                
+                if (dropdown && dropdown.classList.contains('open')) {
+                    // Ensure dropdown bottom is visible inside the window
+                    const menuRect = dropdown.getBoundingClientRect();
+                    targetHeight = Math.max(targetHeight, Math.ceil(menuRect.bottom + 16));
+                }
+                
+                // Only update if height actually changed significantly (avoid micro-adjustments)
+                if (Math.abs(targetHeight - lastTargetHeight) > 5) {
+                    lastTargetHeight = targetHeight;
+                    
+                    // Notify main process about height change for window resizing
+                    if (window.chatInputAPI?.updateWindowHeight) {
+                        window.chatInputAPI.updateWindowHeight(targetHeight);
+                    }
+                }
+            }, 50); // 50ms debounce to prevent rapid adjustments
         }
 
         // Update send button state
         function updateSendButton() {
             const hasText = messageInput.value.trim().length > 0;
             const hasAttachments = imageAttachments.length > 0;
-            sendButton.disabled = (!hasText && !hasAttachments) || isSending;
+            const promptInputContainer = document.querySelector('.prompt-input');
+            const isExpanded = promptInputContainer.classList.contains('expanded');
+            
+            // Show expand button when in compact mode and no text
+            if (!isExpanded && !hasText && !hasAttachments && !isSending) {
+                expandButton.style.display = 'block';
+                sendButton.style.display = 'none';
+            } else {
+                expandButton.style.display = 'none';
+                sendButton.style.display = 'block';
+                sendButton.disabled = (!hasText && !hasAttachments) || isSending;
+            }
 
             if (isSending) {
                 sendIcon.style.display = 'none';
@@ -457,86 +580,149 @@
         }
         */
 
-        // Add attachment handler with animation
-        function handleAdd() {
+        // Upload handler with animation
+        function handleUpload() {
             // Visual feedback animation
-            addButton.animate([
+            uploadButton.animate([
                 { transform: 'scale(1)', background: 'transparent' },
                 { transform: 'scale(1.08)', background: '#303132' },
                 { transform: 'scale(1)', background: 'transparent' }
             ], { duration: 160, easing: 'ease-out' });
 
-            toggleAttachmentMenu();
+            toggleUploadMenu();
         }
 
-        // Dropdown helpers
-        function openAttachmentMenu() {
-            if (!attachmentDropdown) return;
-            positionAttachmentMenu();
-            attachmentDropdown.classList.add('open');
-            attachmentDropdown.setAttribute('aria-hidden', 'false');
-            addButton.setAttribute('aria-expanded', 'true');
-            // Expand window to reveal the full menu
-            ensureDropdownVisibleByExpandingWindow();
-            // Re-run after layout paints to be certain size is correct
-            requestAnimationFrame(() => ensureDropdownVisibleByExpandingWindow());
+        // Capture handler with animation
+        function handleCapture() {
+            // Visual feedback animation
+            captureButton.animate([
+                { transform: 'scale(1)', background: 'transparent' },
+                { transform: 'scale(1.08)', background: '#303132' },
+                { transform: 'scale(1)', background: 'transparent' }
+            ], { duration: 160, easing: 'ease-out' });
+
+            toggleCaptureMenu();
+        }
+
+        // Upload dropdown helpers
+        function openUploadMenu() {
+            closeAllDropdowns(); // Close any open dropdown first
+            if (!uploadDropdown) return;
+            positionDropdownMenu(uploadDropdown, uploadButton);
+            uploadDropdown.classList.add('open');
+            uploadDropdown.setAttribute('aria-hidden', 'false');
+            uploadButton.setAttribute('aria-expanded', 'true');
+            
+            // Single delayed window adjustment to prevent shaking (compact dropdown needs less space)
+            setTimeout(() => {
+                ensureDropdownVisibleByExpandingWindow(uploadDropdown);
+            }, 100);
+            
             // Focus first item for accessibility
-            const firstItem = attachmentDropdown.querySelector('.dropdown-item:not([disabled])');
+            const firstItem = uploadDropdown.querySelector('.dropdown-item-compact:not([disabled])');
             if (firstItem) firstItem.focus({ preventScroll: true });
         }
 
-        function closeAttachmentMenu() {
-            if (!attachmentDropdown) return;
-            attachmentDropdown.classList.remove('open');
-            attachmentDropdown.setAttribute('aria-hidden', 'true');
-            addButton.setAttribute('aria-expanded', 'false');
-            // Shrink window back down if extra space is no longer needed
-            adjustWindowHeight();
+        function closeUploadMenu() {
+            if (!uploadDropdown) return;
+            uploadDropdown.classList.remove('open');
+            uploadDropdown.setAttribute('aria-hidden', 'true');
+            uploadButton.setAttribute('aria-expanded', 'false');
+            
+            // Delay window adjustment to allow smooth menu close animation
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 150);
         }
 
-        function toggleAttachmentMenu() {
-            if (attachmentDropdown.classList.contains('open')) {
-                closeAttachmentMenu();
+        function toggleUploadMenu() {
+            if (uploadDropdown.classList.contains('open')) {
+                closeUploadMenu();
             } else {
-                openAttachmentMenu();
+                openUploadMenu();
             }
         }
 
-        function positionAttachmentMenu() {
-            const rect = addButton.getBoundingClientRect();
-            // Default: slightly above and to the right side of the attach button
+        // Capture dropdown helpers
+        function openCaptureMenu() {
+            closeAllDropdowns(); // Close any open dropdown first
+            if (!captureDropdown) return;
+            positionDropdownMenu(captureDropdown, captureButton);
+            captureDropdown.classList.add('open');
+            captureDropdown.setAttribute('aria-hidden', 'false');
+            captureButton.setAttribute('aria-expanded', 'true');
+            
+            // Single delayed window adjustment to prevent shaking (compact dropdown needs less space)
+            setTimeout(() => {
+                ensureDropdownVisibleByExpandingWindow(captureDropdown);
+            }, 100);
+            
+            // Focus first item for accessibility
+            const firstItem = captureDropdown.querySelector('.dropdown-item-compact:not([disabled])');
+            if (firstItem) firstItem.focus({ preventScroll: true });
+        }
+
+        function closeCaptureMenu() {
+            if (!captureDropdown) return;
+            captureDropdown.classList.remove('open');
+            captureDropdown.setAttribute('aria-hidden', 'true');
+            captureButton.setAttribute('aria-expanded', 'false');
+            
+            // Delay window adjustment to allow smooth menu close animation
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 150);
+        }
+
+        function toggleCaptureMenu() {
+            if (captureDropdown.classList.contains('open')) {
+                closeCaptureMenu();
+            } else {
+                openCaptureMenu();
+            }
+        }
+
+        // Close all dropdowns
+        function closeAllDropdowns() {
+            closeUploadMenu();
+            closeCaptureMenu();
+        }
+
+        function positionDropdownMenu(dropdown, button) {
+            const rect = button.getBoundingClientRect();
+            // Default: slightly above and to the right side of the button
             const offsetX = 2; // slight side offset
-            const offsetY = 8; // space from button
-            attachmentDropdown.style.left = (rect.left + offsetX) + 'px';
-            attachmentDropdown.style.top = (rect.top - offsetY) + 'px';
+            const offsetY = 6; // space from button (smaller for compact dropdowns)
+            dropdown.style.left = (rect.left + offsetX) + 'px';
+            dropdown.style.top = (rect.top - offsetY) + 'px';
 
             // Prevent overflow to the right
-            attachmentDropdown.style.visibility = 'hidden';
-            attachmentDropdown.style.display = 'block';
-            const menuRect = attachmentDropdown.getBoundingClientRect();
-            attachmentDropdown.style.display = '';
-            attachmentDropdown.style.visibility = '';
+            dropdown.style.visibility = 'hidden';
+            dropdown.style.display = 'block';
+            const menuRect = dropdown.getBoundingClientRect();
+            dropdown.style.display = '';
+            dropdown.style.visibility = '';
             const overflowRight = (menuRect.right > window.innerWidth - 8);
             if (overflowRight) {
                 const newLeft = Math.max(8, rect.right - menuRect.width);
-                attachmentDropdown.style.left = newLeft + 'px';
+                dropdown.style.left = newLeft + 'px';
             }
 
             // If placed above would hide off-screen, place below
             const aboveTop = rect.top - menuRect.height - 6;
             if (aboveTop < 8) {
                 const belowTop = Math.min(window.innerHeight - menuRect.height - 8, rect.bottom + 6);
-                attachmentDropdown.style.top = belowTop + 'px';
+                dropdown.style.top = belowTop + 'px';
             } else {
                 // Place above button by default (slightly above)
-                attachmentDropdown.style.top = (rect.top - menuRect.height - 6) + 'px';
+                dropdown.style.top = (rect.top - menuRect.height - 6) + 'px';
             }
         }
 
-        function ensureDropdownVisibleByExpandingWindow() {
-            if (!attachmentDropdown || !attachmentDropdown.classList.contains('open')) return;
-            const menuRect = attachmentDropdown.getBoundingClientRect();
-            const overflow = Math.ceil(menuRect.bottom + 16 - window.innerHeight);
+        function ensureDropdownVisibleByExpandingWindow(dropdown) {
+            if (!dropdown || !dropdown.classList.contains('open')) return;
+            const menuRect = dropdown.getBoundingClientRect();
+            const overflow = Math.ceil(menuRect.bottom + 12 - window.innerHeight); // Reduced padding for compact dropdowns
             if (overflow > 0 && window.chatInputAPI?.updateWindowHeight) {
                 window.chatInputAPI.updateWindowHeight(window.innerHeight + overflow);
             }
@@ -548,8 +734,20 @@
                 case 'upload-image':
                     handleImageUpload();
                     break;
+                case 'upload-video':
+                    console.log('Video upload not yet implemented');
+                    break;
+                case 'upload-audio':
+                    console.log('Audio upload not yet implemented');
+                    break;
                 case 'capture-desktop':
                     handleDesktopCapture();
+                    break;
+                case 'capture-video':
+                    console.log('Video capture not yet implemented');
+                    break;
+                case 'capture-audio':
+                    console.log('Audio capture not yet implemented');
                     break;
                 case 'paste':
                     handlePasteContent();
@@ -564,7 +762,7 @@
                     console.log(`Action not implemented: ${action}`);
                     break;
             }
-            closeAttachmentMenu();
+            closeAllDropdowns();
             messageInput.focus();
         }
 
@@ -685,15 +883,25 @@
 
         // Button event listeners
         sendButton.addEventListener('click', sendMessage);
-        addButton.addEventListener('click', handleAdd);
+        uploadButton.addEventListener('click', handleUpload);
+        captureButton.addEventListener('click', handleCapture);
         lightingButton.addEventListener('click', toggleLighting);
         hideShowButton.addEventListener('click', toggleWindowVisibility);
         toggleMainWindowButton.addEventListener('click', toggleMainWindow);
         clearAllButton.addEventListener('click', clearAllAttachments);
 
         // Dropdown interactions
-        attachmentDropdown.addEventListener('click', (e) => {
-            const button = e.target.closest('.dropdown-item');
+        uploadDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('.dropdown-item-compact');
+            if (!button) return;
+            const action = button.getAttribute('data-action');
+            if (action) {
+                handleAttachmentAction(action);
+            }
+        });
+
+        captureDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('.dropdown-item-compact');
             if (!button) return;
             const action = button.getAttribute('data-action');
             if (action) {
@@ -703,25 +911,44 @@
 
         // Reposition on resize to stay anchored near the button
         window.addEventListener('resize', () => {
-            if (attachmentDropdown.classList.contains('open')) {
-                positionAttachmentMenu();
-                ensureDropdownVisibleByExpandingWindow();
+            if (uploadDropdown.classList.contains('open')) {
+                positionDropdownMenu(uploadDropdown, uploadButton);
+                ensureDropdownVisibleByExpandingWindow(uploadDropdown);
+            }
+            if (captureDropdown.classList.contains('open')) {
+                positionDropdownMenu(captureDropdown, captureButton);
+                ensureDropdownVisibleByExpandingWindow(captureDropdown);
             }
         });
 
         // Dismiss dropdown on outside click or Escape
         document.addEventListener('mousedown', (e) => {
-            if (!attachmentDropdown.classList.contains('open')) return;
-            if (e.target === addButton || addButton.contains(e.target)) return;
-            if (!attachmentDropdown.contains(e.target)) {
-                closeAttachmentMenu();
+            // Check upload dropdown
+            if (uploadDropdown.classList.contains('open')) {
+                if (e.target === uploadButton || uploadButton.contains(e.target)) return;
+                if (!uploadDropdown.contains(e.target)) {
+                    closeUploadMenu();
+                }
+            }
+            
+            // Check capture dropdown
+            if (captureDropdown.classList.contains('open')) {
+                if (e.target === captureButton || captureButton.contains(e.target)) return;
+                if (!captureDropdown.contains(e.target)) {
+                    closeCaptureMenu();
+                }
             }
         });
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && attachmentDropdown.classList.contains('open')) {
-                closeAttachmentMenu();
-                addButton.focus();
+            if (e.key === 'Escape') {
+                if (uploadDropdown.classList.contains('open')) {
+                    closeUploadMenu();
+                    uploadButton.focus();
+                } else if (captureDropdown.classList.contains('open')) {
+                    closeCaptureMenu();
+                    captureButton.focus();
+                }
             }
         });
 
@@ -976,4 +1203,5 @@
                 }
             }
         }
+    
     

@@ -271,33 +271,58 @@ class ChatInputWindow {
       }
     });
 
-    // Handle dynamic window height adjustment
+    // Handle dynamic window height adjustment with debouncing
+    let resizeTimeout = null;
+    let lastResizeHeight = 0;
+    
     ipcMain.on("chat-input-resize-height", (event, newHeight) => {
-      const allWindows = BrowserWindow.getAllWindows();
-      const chatInputWindow = allWindows.find((win) => {
-        if (win.isDestroyed()) return false;
-        try {
-          return win.webContents.getURL().includes("chat-input.html");
-        } catch {
-          return false;
-        }
-      });
-
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        const [currentWidth] = chatInputWindow.getSize();
-        const [currentX, currentY] = chatInputWindow.getPosition();
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { height: screenHeight } = primaryDisplay.workAreaSize;
-
-        // Adjust Y position to keep window at bottom
-        const newY = screenHeight - newHeight - 50;
-
-        chatInputWindow.setSize(
-          currentWidth,
-          Math.max(80, Math.min(400, newHeight))
-        );
-        chatInputWindow.setPosition(currentX, newY);
+      // Clear any pending resize operations
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
       }
+      
+      // Only proceed if height change is significant
+      if (Math.abs(newHeight - lastResizeHeight) < 5) {
+        return;
+      }
+      
+      resizeTimeout = setTimeout(() => {
+        const allWindows = BrowserWindow.getAllWindows();
+        const chatInputWindow = allWindows.find((win) => {
+          if (win.isDestroyed()) return false;
+          try {
+            return win.webContents.getURL().includes("chat-input.html");
+          } catch {
+            return false;
+          }
+        });
+
+        if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+          const [currentWidth, currentHeight] = chatInputWindow.getSize();
+          const [currentX, currentY] = chatInputWindow.getPosition();
+          const primaryDisplay = screen.getPrimaryDisplay();
+          const { height: screenHeight } = primaryDisplay.workAreaSize;
+          
+          const clampedHeight = Math.max(80, Math.min(400, newHeight));
+          
+          // Only resize if there's a meaningful difference
+          if (Math.abs(currentHeight - clampedHeight) > 3) {
+            // Calculate new Y position to keep window anchored at bottom
+            const heightDifference = clampedHeight - currentHeight;
+            const newY = Math.max(0, currentY - heightDifference);
+            
+            // Perform smooth resize with animation
+            chatInputWindow.setSize(currentWidth, clampedHeight, true);
+            
+            // Only adjust position if necessary
+            if (newY !== currentY) {
+              chatInputWindow.setPosition(currentX, newY, true);
+            }
+            
+            lastResizeHeight = clampedHeight;
+          }
+        }
+      }, 100); // 100ms debounce
     });
 
     // Handle chat input window controls
