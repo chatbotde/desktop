@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld("launchWindowAPI", {
   // Window Control
   openMainWindow: () => ipcRenderer.send('open-main-window'),
   
+  // Memory Optimization API
+  toggleMemoryOptimization: () => ipcRenderer.invoke('launch-window-toggle-memory-optimization'),
+  getMemoryStatus: () => ipcRenderer.invoke('launch-window-get-memory-status'),
+  
   // Security logging
   logSecurityEvent: (event, details) => {
     console.log(`Launch Window Security Event: ${event}`, details);

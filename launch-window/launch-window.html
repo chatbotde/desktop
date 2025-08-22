@@ -16,9 +16,8 @@
             width: 50%;
             height: 100vh;
             background: transparent;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 15px;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -26,7 +25,7 @@
             position: absolute;
             left: 40%;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid transparent;
             transition: all 0.3s ease;
         }
 
@@ -38,6 +37,51 @@
             -webkit-backdrop-filter: blur(25px);
             border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Inactive state - minimal visual presence */
+        body.inactive {
+            width: 40%;
+            left: 45%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.7;
+            transition: all 0.5s ease;
+        }
+
+        /* Active state - full visual presence */
+        body.active {
+            width: 50%;
+            left: 40%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 1;
+            transition: all 0.3s ease;
+        }
+
+        /* Active state hover */
+        body.active:hover {
+            width: 65%;
+            left: 5%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Inactive state hover - subtle activation */
+        body.inactive:hover {
+            width: 50%;
+            left: 40%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0.9;
         }        
     </style>
 </head>

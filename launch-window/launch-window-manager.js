@@ -9,6 +9,13 @@ class LaunchWindowManager {
     this.shortcutManager = null;
     this.isMainWindowOpen = false;
     this.contentProtectionEnabled = true; // Enable content protection by default with highest priority
+    
+    // Memory optimization states
+    this.isInactive = true; // Start in inactive state to save memory
+    this.inactiveTimer = null;
+    this.hoverTimeout = null;
+    this.memoryOptimizationEnabled = true;
+    this.inactiveDelay = 3000; // 3 seconds delay before going inactive
   }
 
   createLaunchWindow() {
@@ -19,9 +26,9 @@ class LaunchWindowManager {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
     
-    // Tablet-like dimensions
-    const windowWidth = 20;
-    const windowHeight = 200;
+    // Tablet-like dimensions - start smaller in inactive state
+    const windowWidth = this.isInactive ? 15 : 20;
+    const windowHeight = this.isInactive ? 150 : 200;
     
     // Position: half outside screen on right side
     const x = screenWidth - (windowWidth / 2);
@@ -74,6 +81,9 @@ class LaunchWindowManager {
     // Setup window behavior
     this.setupLaunchWindowBehavior();
     
+    // Setup memory optimization
+    this.setupMemoryOptimization();
+    
     // Register global shortcut for closing
     this.registerGlobalShortcuts();
 
@@ -96,6 +106,15 @@ class LaunchWindowManager {
       this.launchWindow.webContents.executeJavaScript(`
         document.addEventListener('click', () => {
           require('electron').ipcRenderer.send('open-main-window');
+        });
+        
+        // Setup hover events for memory optimization
+        document.addEventListener('mouseenter', () => {
+          require('electron').ipcRenderer.send('launch-window-hover-enter');
+        });
+        
+        document.addEventListener('mouseleave', () => {
+          require('electron').ipcRenderer.send('launch-window-hover-leave');
         });
       `);
     });
@@ -544,6 +563,249 @@ class LaunchWindowManager {
       this.applyEnhancedScreenRecordingProtection();
       console.log('Launch Window: All protection measures refreshed');
     }
+  }
+
+  // Memory Optimization Methods
+  setupMemoryOptimization() {
+    if (!this.memoryOptimizationEnabled || !this.launchWindow) return;
+
+    console.log('Launch Window: Setting up memory optimization');
+    
+    // Setup hover detection
+    this.launchWindow.on('mouse-enter', () => {
+      this.onHoverEnter();
+    });
+    
+    this.launchWindow.on('mouse-leave', () => {
+      this.onHoverLeave();
+    });
+    
+    // Start in inactive state after a short delay to ensure window is fully loaded
+    setTimeout(() => {
+      try {
+        this.setInactiveState();
+      } catch (error) {
+        console.error('Launch Window: Error setting initial inactive state:', error);
+      }
+    }, 1000);
+  }
+
+  onHoverEnter() {
+    if (!this.memoryOptimizationEnabled) return;
+    
+    console.log('Launch Window: Hover detected - activating');
+    
+    // Clear any pending inactive timer
+    if (this.inactiveTimer) {
+      clearTimeout(this.inactiveTimer);
+      this.inactiveTimer = null;
+    }
+    
+    // Clear hover timeout
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+    }
+    
+    // Activate immediately on hover
+    this.setActiveState();
+  }
+
+  onHoverLeave() {
+    if (!this.memoryOptimizationEnabled) return;
+    
+    try {
+      console.log('Launch Window: Hover ended - scheduling deactivation');
+      
+      // Set timer to go inactive after delay
+      this.hoverTimeout = setTimeout(() => {
+        try {
+          this.scheduleInactiveState();
+        } catch (error) {
+          console.error('Launch Window: Error in hover timeout callback:', error);
+        }
+      }, 500); // Short delay to prevent flickering
+    } catch (error) {
+      console.error('Launch Window: Error handling hover leave:', error);
+    }
+  }
+
+  scheduleInactiveState() {
+    if (!this.memoryOptimizationEnabled) return;
+    
+    try {
+      // Clear any existing timer
+      if (this.inactiveTimer) {
+        clearTimeout(this.inactiveTimer);
+        this.inactiveTimer = null;
+      }
+      
+      // Set timer to go inactive
+      this.inactiveTimer = setTimeout(() => {
+        try {
+          this.setInactiveState();
+        } catch (error) {
+          console.error('Launch Window: Error in inactive timer callback:', error);
+        }
+      }, this.inactiveDelay);
+    } catch (error) {
+      console.error('Launch Window: Error scheduling inactive state:', error);
+    }
+  }
+
+  setActiveState() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
+    
+    try {
+      console.log('Launch Window: Switching to ACTIVE state');
+      this.isInactive = false;
+    
+    // Increase window size
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    const windowWidth = 20;
+    const windowHeight = 200;
+    const x = screenWidth - (windowWidth / 2);
+    const y = (screenHeight - windowHeight) / 4;
+    
+    this.launchWindow.setSize(windowWidth, windowHeight);
+    this.launchWindow.setPosition(x, y);
+    
+    // Optimize for active state
+    this.optimizeForActiveState();
+    
+    // Resume periodic maintenance
+    this.setupPeriodicMaintenance();
+    
+    // Apply visual active state
+    this.launchWindow.webContents.executeJavaScript(`
+      document.body.classList.add('active');
+      document.body.classList.remove('inactive');
+    `);
+    
+    // Ensure always on top
+    this.forceWindowAboveAll();
+    
+    } catch (error) {
+      console.error('Launch Window: Error setting active state:', error);
+    }
+  }
+
+  setInactiveState() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed() || this.isInactive) return;
+    
+    try {
+      console.log('Launch Window: Switching to INACTIVE state for memory optimization');
+      this.isInactive = true;
+    
+    // Reduce window size to save resources
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    const windowWidth = 15;
+    const windowHeight = 150;
+    const x = screenWidth - (windowWidth / 2);
+    const y = (screenHeight - windowHeight) / 4;
+    
+    this.launchWindow.setSize(windowWidth, windowHeight);
+    this.launchWindow.setPosition(x, y);
+    
+    // Apply visual inactive state
+    this.launchWindow.webContents.executeJavaScript(`
+      document.body.classList.add('inactive');
+      document.body.classList.remove('active');
+    `);
+    
+    // Reduce resource usage
+    this.optimizeForInactiveState();
+    
+    } catch (error) {
+      console.error('Launch Window: Error setting inactive state:', error);
+      this.isInactive = false; // Reset state on error
+    }
+  }
+
+  optimizeForInactiveState() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
+    
+    try {
+      // Reduce frame rate to save CPU
+      this.launchWindow.webContents.setFrameRate(1); // 1 FPS when inactive
+      
+      // Throttle background processing
+      this.launchWindow.webContents.setBackgroundThrottling(true);
+      
+      // Reduce opacity slightly to indicate inactive state
+      this.launchWindow.setOpacity(0.8);
+      
+      console.log('Launch Window: Optimized for inactive state - minimal resource usage');
+    } catch (error) {
+      console.error('Launch Window: Failed to optimize for inactive state:', error);
+    }
+  }
+
+  optimizeForActiveState() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
+    
+    try {
+      // Restore normal frame rate
+      this.launchWindow.webContents.setFrameRate(60);
+      
+      // Disable background throttling for responsiveness
+      this.launchWindow.webContents.setBackgroundThrottling(false);
+      
+      // Restore full opacity
+      this.launchWindow.setOpacity(0.999);
+      
+      console.log('Launch Window: Optimized for active state - full responsiveness');
+    } catch (error) {
+      console.error('Launch Window: Failed to optimize for active state:', error);
+    }
+  }
+
+  // Memory optimization control methods
+  enableMemoryOptimization() {
+    this.memoryOptimizationEnabled = true;
+    this.setupMemoryOptimization();
+    console.log('Launch Window: Memory optimization ENABLED');
+  }
+
+  disableMemoryOptimization() {
+    this.memoryOptimizationEnabled = false;
+    
+    // Clear timers
+    if (this.inactiveTimer) {
+      clearTimeout(this.inactiveTimer);
+      this.inactiveTimer = null;
+    }
+    if (this.hoverTimeout) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+    
+    // Force active state
+    this.setActiveState();
+    console.log('Launch Window: Memory optimization DISABLED');
+  }
+
+  isMemoryOptimizationEnabled() {
+    return this.memoryOptimizationEnabled;
+  }
+
+  toggleMemoryOptimization() {
+    if (this.memoryOptimizationEnabled) {
+      this.disableMemoryOptimization();
+    } else {
+      this.enableMemoryOptimization();
+    }
+    return this.memoryOptimizationEnabled;
+  }
+
+  getMemoryOptimizationStatus() {
+    return {
+      enabled: this.memoryOptimizationEnabled,
+      isInactive: this.isInactive,
+      hasInactiveTimer: !!this.inactiveTimer,
+      hasHoverTimeout: !!this.hoverTimeout
+    };
   }
 }
 

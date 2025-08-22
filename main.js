@@ -3,6 +3,7 @@ const path = require("path");
 const { LaunchWindowManager } = require("./launch-window");
 const { registerIpcHandlers } = require("./window-main");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
+const { AutoStartupManager } = require("./startup");
 
 // Set app icon
 if (process.platform === 'win32') {
@@ -11,6 +12,7 @@ if (process.platform === 'win32') {
 
 // Global instances
 let launchWindowManager = null;
+let autoStartupManager = null;
 let chatInputWindow = null;
 let ipcHandlersRegistered = false;
 let chatInputIpcHandlersRegistered = false;
@@ -138,6 +140,35 @@ function createLaunchWindow() {
       return false;
     });
 
+    // Memory optimization handlers
+    ipcMain.on('launch-window-hover-enter', () => {
+      if (launchWindowManager) {
+        launchWindowManager.onHoverEnter();
+      }
+    });
+
+    ipcMain.on('launch-window-hover-leave', () => {
+      if (launchWindowManager) {
+        launchWindowManager.onHoverLeave();
+      }
+    });
+
+    ipcMain.handle('launch-window-toggle-memory-optimization', () => {
+      if (launchWindowManager) {
+        const enabled = launchWindowManager.toggleMemoryOptimization();
+        console.log(`Main: Launch window memory optimization ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        return enabled;
+      }
+      return false;
+    });
+
+    ipcMain.handle('launch-window-get-memory-status', () => {
+      if (launchWindowManager) {
+        return launchWindowManager.getMemoryOptimizationStatus();
+      }
+      return { enabled: false, isInactive: false, hasInactiveTimer: false, hasHoverTimeout: false };
+    });
+
     ipcHandlersRegistered = true;
     console.log('Main: IPC handlers registered');
   }
@@ -145,11 +176,24 @@ function createLaunchWindow() {
   return launchWin;
 }
 
-app.whenReady().then(() => {
-  createLaunchWindow();
-  
-  // Register global shortcuts
-  registerGlobalShortcuts();
+app.whenReady().then(async () => {
+  try {
+    // Initialize auto-startup functionality
+    autoStartupManager = new AutoStartupManager();
+    
+    // Setup auto-startup on first run or after installation
+    await autoStartupManager.setupAutoStartup();
+    
+    createLaunchWindow();
+    
+    // Register global shortcuts
+    registerGlobalShortcuts();
+  } catch (error) {
+    console.error('Main: Error during app initialization:', error);
+    // Continue with basic functionality even if auto-startup fails
+    createLaunchWindow();
+    registerGlobalShortcuts();
+  }
 });
 
 function registerGlobalShortcuts() {
