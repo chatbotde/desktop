@@ -17,6 +17,11 @@
         const rightActions = document.querySelector('.right-actions');
         const draggableArea = document.querySelector('.draggable-area');
         const attachmentDropdown = document.getElementById('attachmentDropdown');
+        
+        // Image attachment elements
+        const attachmentsSection = document.getElementById('attachmentsSection');
+        const attachmentsGrid = document.getElementById('attachmentsGrid');
+        const clearAllButton = document.getElementById('clearAllAttachments');
 
         // Future buttons (commented out)
         // const micButton = document.getElementById('micButton');
@@ -32,6 +37,180 @@
         // Drag state
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
+        
+        // Image attachments state
+        let imageAttachments = [];
+        let attachmentIdCounter = 0;
+
+        // === IMAGE ATTACHMENT FUNCTIONS ===
+        
+        // Add image attachment to state and UI
+        function addImageAttachment(imageData) {
+            const attachment = {
+                id: `attachment_${++attachmentIdCounter}`,
+                name: imageData.name,
+                type: imageData.type,
+                size: imageData.size,
+                data: imageData.data,
+                source: imageData.source || 'upload',
+                timestamp: Date.now()
+            };
+            
+            imageAttachments.push(attachment);
+            renderImageAttachment(attachment);
+            updateAttachmentsVisibility();
+            adjustWindowHeight();
+            
+            return attachment;
+        }
+        
+        // Remove image attachment
+        function removeImageAttachment(attachmentId) {
+            const index = imageAttachments.findIndex(att => att.id === attachmentId);
+            if (index !== -1) {
+                imageAttachments.splice(index, 1);
+                
+                // Remove from DOM
+                const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
+                if (element) {
+                    element.remove();
+                }
+                
+                updateAttachmentsVisibility();
+                adjustWindowHeight();
+            }
+        }
+        
+        // Clear all attachments
+        function clearAllAttachments() {
+            imageAttachments = [];
+            attachmentsGrid.innerHTML = '';
+            updateAttachmentsVisibility();
+            adjustWindowHeight();
+        }
+        
+        // Render image attachment in the UI
+        function renderImageAttachment(attachment) {
+            const attachmentElement = document.createElement('div');
+            attachmentElement.className = 'attachment-item';
+            attachmentElement.setAttribute('data-attachment-id', attachment.id);
+            
+            attachmentElement.innerHTML = `
+                <img src="${attachment.data}" alt="${attachment.name}" class="attachment-preview" />
+                <div class="attachment-info">${attachment.name}</div>
+                <button class="attachment-remove" onclick="removeImageAttachment('${attachment.id}')" title="Remove">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            `;
+            
+            attachmentsGrid.appendChild(attachmentElement);
+        }
+        
+        // Show loading attachment placeholder
+        function showAttachmentLoading() {
+            const loadingElement = document.createElement('div');
+            loadingElement.className = 'attachment-loading';
+            loadingElement.id = 'attachment-loading';
+            attachmentsGrid.appendChild(loadingElement);
+            updateAttachmentsVisibility();
+            adjustWindowHeight();
+            return loadingElement;
+        }
+        
+        // Remove loading placeholder
+        function hideAttachmentLoading() {
+            const loadingElement = document.getElementById('attachment-loading');
+            if (loadingElement) {
+                loadingElement.remove();
+                updateAttachmentsVisibility();
+                adjustWindowHeight();
+            }
+        }
+        
+        // Update attachments section visibility
+        function updateAttachmentsVisibility() {
+            const hasAttachments = imageAttachments.length > 0 || document.getElementById('attachment-loading');
+            attachmentsSection.style.display = hasAttachments ? 'block' : 'none';
+        }
+        
+        // Handle file upload
+        async function handleImageUpload() {
+            try {
+                const loading = showAttachmentLoading();
+                
+                const result = await window.chatInputAPI.openImagePicker();
+                
+                hideAttachmentLoading();
+                
+                if (result.success && result.file) {
+                    addImageAttachment(result.file);
+                } else if (!result.canceled) {
+                    console.error('Failed to upload image:', result.error);
+                }
+            } catch (error) {
+                hideAttachmentLoading();
+                console.error('Error uploading image:', error);
+            }
+        }
+        
+        // Handle desktop capture
+        async function handleDesktopCapture() {
+            try {
+                const loading = showAttachmentLoading();
+                
+                const result = await window.chatInputAPI.captureDesktop();
+                
+                hideAttachmentLoading();
+                
+                if (result.success && result.image) {
+                    addImageAttachment(result.image);
+                } else {
+                    console.error('Failed to capture desktop:', result.error);
+                }
+            } catch (error) {
+                hideAttachmentLoading();
+                console.error('Error capturing desktop:', error);
+            }
+        }
+        
+        // Handle paste image from clipboard
+        async function handleImagePaste(items) {
+            for (const item of items) {
+                if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
+                    try {
+                        const loading = showAttachmentLoading();
+                        
+                        const imageType = item.types.find(type => type.startsWith('image/'));
+                        const imageBlob = await item.getType(imageType);
+                        
+                        // Convert blob to base64
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            hideAttachmentLoading();
+                            
+                            const imageData = {
+                                name: `pasted-image-${Date.now()}.${imageType.split('/')[1]}`,
+                                type: imageType,
+                                size: imageBlob.size,
+                                data: e.target.result,
+                                source: 'paste'
+                            };
+                            
+                            addImageAttachment(imageData);
+                        };
+                        reader.readAsDataURL(imageBlob);
+                        
+                    } catch (error) {
+                        hideAttachmentLoading();
+                        console.error('Error processing pasted image:', error);
+                    }
+                }
+            }
+        }
+
         // Expand/Collapse UI functions
         function expandUI() {
             const promptInputContainer = document.querySelector('.prompt-input');
@@ -139,7 +318,8 @@
         // Update send button state
         function updateSendButton() {
             const hasText = messageInput.value.trim().length > 0;
-            sendButton.disabled = !hasText || isSending;
+            const hasAttachments = imageAttachments.length > 0;
+            sendButton.disabled = (!hasText && !hasAttachments) || isSending;
 
             if (isSending) {
                 sendIcon.style.display = 'none';
@@ -153,7 +333,9 @@
         // Send message function with enhanced feedback
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (!message || isSending || message === lastMessageSent) return;
+            const hasAttachments = imageAttachments.length > 0;
+            
+            if ((!message && !hasAttachments) || isSending) return;
 
             if (!window.chatInputAPI) {
                 console.error('Chat Input: chatInputAPI not available');
@@ -168,15 +350,26 @@
             messageInput.disabled = true;
 
             try {
-                window.chatInputAPI.sendMessage({
+                const messageData = {
                     content: message,
                     timestamp: new Date().toISOString(),
                     id: Date.now().toString(),
-                    type: 'text'
-                });
+                    type: hasAttachments ? 'mixed' : 'text',
+                    attachments: imageAttachments.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        type: att.type,
+                        size: att.size,
+                        data: att.data,
+                        source: att.source
+                    }))
+                };
+                
+                window.chatInputAPI.sendMessage(messageData);
 
-                // Clear input immediately for better UX
+                // Clear input and attachments immediately for better UX
                 messageInput.value = '';
+                clearAllAttachments();
                 autoResize();
 
             } catch (err) {
@@ -352,25 +545,23 @@
         // Item actions
         function handleAttachmentAction(action) {
             switch (action) {
-                case 'pick-file':
-                    if (window.chatInputAPI?.openAttachmentPicker) {
-                        window.chatInputAPI.openAttachmentPicker();
-                    }
+                case 'upload-image':
+                    handleImageUpload();
+                    break;
+                case 'capture-desktop':
+                    handleDesktopCapture();
                     break;
                 case 'paste':
                     handlePasteContent();
                     break;
-                case 'screenshot':
-                    if (window.chatInputAPI?.openScreenCapture) {
-                        window.chatInputAPI.openScreenCapture();
-                    } else {
-                        console.log('Screen capture not implemented');
-                    }
-                    break;
                 case 'clear':
                     messageInput.value = '';
+                    clearAllAttachments();
                     autoResize();
                     updateSendButton();
+                    break;
+                default:
+                    console.log(`Action not implemented: ${action}`);
                     break;
             }
             closeAttachmentMenu();
@@ -383,6 +574,9 @@
                 // Check if we can read clipboard items (for rich content)
                 if (navigator.clipboard?.read) {
                     const clipboardItems = await navigator.clipboard.read();
+                    
+                    // First handle images
+                    await handleImagePaste(clipboardItems);
                     
                     for (const item of clipboardItems) {
                         // Handle text
@@ -405,19 +599,6 @@
                             if (plainText) {
                                 appendToInput(plainText);
                             }
-                        }
-                        
-                        // Handle image data
-                        if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
-                            const imageBlob = await item.getType(item.types.find(type => type.startsWith('image/')));
-                            const imageUrl = URL.createObjectURL(imageBlob);
-                            
-                            // Add image reference to input (you can customize this format)
-                            const imageText = `[Image: ${imageUrl}]`;
-                            appendToInput(imageText);
-                            
-                            // Clean up the URL after a delay
-                            setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
                         }
                     }
                 } else if (navigator.clipboard?.readText) {
@@ -508,6 +689,7 @@
         lightingButton.addEventListener('click', toggleLighting);
         hideShowButton.addEventListener('click', toggleWindowVisibility);
         toggleMainWindowButton.addEventListener('click', toggleMainWindow);
+        clearAllButton.addEventListener('click', clearAllAttachments);
 
         // Dropdown interactions
         attachmentDropdown.addEventListener('click', (e) => {
@@ -704,4 +886,94 @@
 
         // Initialize drag handling
         initDragHandling();
+        
+        // Make removeImageAttachment available globally
+        window.removeImageAttachment = removeImageAttachment;
+        
+        // === DRAG & DROP IMAGE FUNCTIONALITY ===
+        let dragCounter = 0;
+        
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            promptInput.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // Highlight drop zone when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            promptInput.addEventListener(eventName, handleDragEnter, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            promptInput.addEventListener(eventName, handleDragLeave, false);
+        });
+        
+        // Handle dropped files
+        promptInput.addEventListener('drop', handleDrop, false);
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function handleDragEnter(e) {
+            dragCounter++;
+            if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+                promptInput.classList.add('drag-over');
+            }
+        }
+        
+        function handleDragLeave(e) {
+            dragCounter--;
+            if (dragCounter <= 0) {
+                promptInput.classList.remove('drag-over');
+                dragCounter = 0;
+            }
+        }
+        
+        async function handleDrop(e) {
+            dragCounter = 0;
+            promptInput.classList.remove('drag-over');
+            
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                await handleDroppedFiles(files);
+            }
+        }
+        
+        async function handleDroppedFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Check if it's an image
+                if (file.type.startsWith('image/')) {
+                    try {
+                        const loading = showAttachmentLoading();
+                        
+                        // Read file as base64
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            hideAttachmentLoading();
+                            
+                            const imageData = {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                data: e.target.result,
+                                source: 'drag-drop'
+                            };
+                            
+                            addImageAttachment(imageData);
+                        };
+                        reader.readAsDataURL(file);
+                        
+                    } catch (error) {
+                        hideAttachmentLoading();
+                        console.error('Error processing dropped file:', error);
+                    }
+                }
+            }
+        }
     

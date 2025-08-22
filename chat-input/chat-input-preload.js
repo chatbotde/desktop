@@ -30,6 +30,22 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('toggle-main-window');
   },
   
+  // Image and attachment handling
+  openImagePicker: () => {
+    console.log('Preload: Opening image picker');
+    return ipcRenderer.invoke('open-image-picker');
+  },
+
+  openFilePicker: (extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']) => {
+    console.log('Preload: Opening file picker for images');
+    return ipcRenderer.invoke('open-file-picker', { extensions });
+  },
+
+  captureDesktop: () => {
+    console.log('Preload: Starting desktop capture');
+    return ipcRenderer.invoke('capture-desktop');
+  },
+
   // Future extensibility - placeholder functions for additional features
   openAttachmentPicker: () => {
     console.log('Preload: Opening attachment picker (placeholder)');
