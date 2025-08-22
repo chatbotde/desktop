@@ -2,6 +2,7 @@
         // DOM Elements
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const collapseButton = document.getElementById('collapseButton');
         const sendIcon = document.getElementById('sendIcon');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const typingIndicator = document.getElementById('typingIndicator');
@@ -31,7 +32,81 @@
         // Drag state
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
+        // Expand/Collapse UI functions
+        function expandUI() {
+            const promptInputContainer = document.querySelector('.prompt-input');
+            promptInputContainer.classList.add('expanded');
+            requestAnimationFrame(() => {
+                adjustWindowHeight();
+            });
+        }
 
+        function collapseUI() {
+            const promptInputContainer = document.querySelector('.prompt-input');
+            promptInputContainer.classList.remove('expanded');
+            
+            // Clear the input content
+            messageInput.value = '';
+            
+            // Reset textarea height to single line
+            messageInput.style.height = 'auto';
+            const singleLineHeight = messageInput.scrollHeight;
+            messageInput.style.height = singleLineHeight + 'px';
+            
+            // Update send button state since input is now empty
+            updateSendButton();
+            
+            requestAnimationFrame(() => {
+                adjustWindowHeight();
+            });
+        }
+
+        // Event listeners for expand/collapse
+        messageInput.addEventListener('dblclick', () => {
+            expandUI();
+        });
+        
+        collapseButton.addEventListener('click', () => {
+            collapseUI();
+        });
+        
+        
+        // --- FINAL & CORRECTED CODE FOR "EXPAND ON NEW LINE" --- //
+
+        const promptInputContainer = document.querySelector('.prompt-input');
+
+        // This single event listener handles everything now.
+        messageInput.addEventListener('input', () => {
+            // 1. Get the height of the textarea *before* we ask it to resize.
+            const oldHeight = messageInput.clientHeight;
+
+            // 2. Run the existing auto-resize function. This is crucial as it will
+            //    calculate if a new line is needed and adjust the element's height property.
+            autoResize();
+
+            // 3. Get the height *after* the resize has been calculated.
+            const newHeight = messageInput.clientHeight;
+
+            // 4. Check if the UI is currently in its compact state.
+            const isCollapsed = !promptInputContainer.classList.contains('expanded');
+
+
+            // --- Expansion Logic ---
+            // If the height grew AND the UI is currently collapsed, then expand.
+            if (newHeight > oldHeight && isCollapsed) {
+                promptInputContainer.classList.add('expanded');
+                requestAnimationFrame(() => {
+                    adjustWindowHeight();
+                });
+            }
+
+            // --- Collapse Logic ---
+            // If the height shrank AND the UI is currently expanded, then collapse.
+            // This happens when the user deletes text, going from two lines back to one.
+            
+        });   
+        
+            
         // Auto-resize textarea with smooth expansion
         function autoResize() {
             messageInput.style.height = 'auto';

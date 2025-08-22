@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Button</title>
+    <style>
+        body {
+        background-color: #000000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        }
+
+        .chat-input-container {
+        background-color: #333333;
+        border-radius: 25px;
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        width: 250px; /* Initial smaller width */
+        transition: width 0.4s ease-in-out; /* Smooth transition for the width */
+        }
+
+        .chat-input-container.expanded {
+        width: 400px; /* Expanded width */
+        }
+
+        .chat-input {
+        background-color: transparent;
+        border: none;
+        color: #a0a0a0;
+        font-size: 16px;
+        outline: none;
+        padding: 10px;
+        width: 100%;
+        }
+
+        .chat-input::placeholder {
+        color: #a0a0a0;
+        }
+
+        .chat-button {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0 5px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+
+        .chat-button-icon {
+        background-color: #8e8e8e;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+        }
+
+        .chat-button-icon svg {
+        width: 16px;
+        height: 16px;
+        }
+        
+    </style>
+</head>
+<body>
+    
+    <div class="chat-input-container">
+        <input type="text" class="chat-input" placeholder="Ask anything">
+        <button class="chat-button">
+          <span class="chat-button-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5L12 19" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 11L12 5L6 11" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+    </div>
+    <script>
+            document.addEventListener('DOMContentLoaded', () => {
+            const chatInput = document.getElementById('chatInput');
+            const chatContainer = document.getElementById('chatContainer');
+
+            chatInput.addEventListener('input', () => {
+                if (chatInput.value.trim() !== '') {
+                    chatContainer.classList.add('expanded');
+                } else {
+                    chatContainer.classList.remove('expanded');
+                }
+            });
+        });
+    </script>
+    </body>
+</html>

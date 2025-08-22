@@ -450,3 +450,95 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        /* --- FINAL & POLISHED CODE FOR PERFECT INITIAL UI --- */
+
+        /* 1. Define smooth transitions on ALL properties that will change */
+        .prompt-input,
+        .prompt-content,
+        .prompt-actions,
+        #messageInput,
+        .action-btn.primary,
+        .action-btn.primary svg {
+            /* A refined cubic-bezier for a professional feel */
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 2. Style the INITIAL collapsed state (:not(.expanded)) with precision */
+
+        /* Main container: Tweak the radius and remove padding */
+        .prompt-input:not(.expanded) {
+            background: #333333;
+            border-color: transparent;
+            max-width: 200px;
+            border-radius: 40px; /* <-- FIX: Reduced radius for a modern look */
+            padding: 0;
+        }
+
+        /* Flexbox container: The key to horizontal alignment */
+        .prompt-input:not(.expanded) .prompt-content {
+            flex-direction: row;
+            align-items: center;
+            padding: 2px; /* A little bit of outer padding */
+        }
+
+        /* Text input area: Let it grow */
+        .prompt-input:not(.expanded) .input-area {
+            flex-grow: 1;
+            padding: 0;
+        }
+
+        /* Textarea: Remove conflicting styles and balance padding */
+        .prompt-input:not(.expanded) #messageInput {
+            /* <-- ALIGNMENT FIX: */
+            min-height: initial; /* Remove the minimum height that caused extra space */
+            padding: 8px 10px 8px 12px; /* Balanced padding for vertical centering */
+            line-height: 1.4; /* Helps center the text cursor */
+        }
+
+        /* Button container: Remove extra spacing */
+        .prompt-input:not(.expanded) .prompt-actions {
+            margin-top: 0;
+            padding: 0;
+        }
+
+        /* Hide unwanted elements cleanly */
+        .prompt-input:not(.expanded) .left-actions,
+        .prompt-input:not(.expanded) .draggable-area {
+            max-width: 0;
+            opacity: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Style the send button to exactly match the target UI */
+        
+
+        /* Style the send button's icon */
+        .prompt-input:not(.expanded) .action-btn.primary svg {
+            stroke: #333333;
+        }
+
+
+        /* 3. Style for the EXPANDED state (reverting to original theme) */
+        /* This section remains the same */
+        .prompt-input.expanded {
+            background: var(--bg-popover);
+            border-color: var(--border);
+            max-width: 768px;
+            border-radius: var(--radius); /* Revert to the original large radius */
+        }
+
+        .prompt-input.expanded .left-actions {
+            max-width: 2000px;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* This class is in your chat-css.css file */
+        .prompt-input.transparent {
+            background: rgba(42, 42, 43, 0.3); /* Semi-transparent background */
+            backdrop-filter: blur(20px);      /* This creates the frosted glass/blur effect */
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+       
