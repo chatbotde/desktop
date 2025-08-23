@@ -11,7 +11,7 @@ class LaunchWindowManager {
     this.contentProtectionEnabled = true; // Enable content protection by default with highest priority
     
     // Memory optimization states
-    this.isInactive = true; // Start in inactive state to save memory
+    this.isInactive = false; // Start in active state for better user visibility
     this.inactiveTimer = null;
     this.hoverTimeout = null;
     this.memoryOptimizationEnabled = true;
@@ -26,12 +26,12 @@ class LaunchWindowManager {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
     
-    // Tablet-like dimensions - start smaller in inactive state
-    const windowWidth = this.isInactive ? 15 : 20;
-    const windowHeight = this.isInactive ? 150 : 200;
+    // Tablet-like dimensions - start with better visibility (80x200px)
+    const windowWidth = 80;
+    const windowHeight = 200;
     
-    // Position: half outside screen on right side
-    const x = screenWidth - (windowWidth / 2);
+    // Position: show only the edge of the rectangle (about 15px visible)
+    const x = screenWidth - 15;
     const y = (screenHeight - windowHeight) / 4;
 
     // Get the appropriate icon path based on platform
@@ -128,14 +128,14 @@ class LaunchWindowManager {
     // Setup event listeners for maintaining behavior
     this.setupEventListeners();
     
-    // Ensure window stays in position
+    // Ensure window stays in position - show only edge
     this.launchWindow.on('moved', () => {
       const primaryDisplay = screen.getPrimaryDisplay();
       const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
       const windowWidth = 80;
-      const windowHeight = 300;
-      const x = screenWidth - (windowWidth / 2);
-      const y = (screenHeight - windowHeight) / 2;
+      const windowHeight = 200;
+      const x = screenWidth - 15; // Show only 15px of the window edge
+      const y = (screenHeight - windowHeight) / 4;
       
       this.launchWindow.setPosition(x, y);
     });
@@ -147,6 +147,13 @@ class LaunchWindowManager {
     if (!globalShortcut.isRegistered('CommandOrControl+Alt+Y')) {
       globalShortcut.register('CommandOrControl+Alt+Y', () => {
         this.closeLaunchWindow();
+      });
+    }
+    
+    // Register Ctrl+Alt+L to ensure window visibility (recovery shortcut)
+    if (!globalShortcut.isRegistered('CommandOrControl+Alt+L')) {
+      globalShortcut.register('CommandOrControl+Alt+L', () => {
+        this.ensureWindowVisible();
       });
     }
   }
@@ -266,9 +273,12 @@ class LaunchWindowManager {
   }
 
   closeLaunchWindow() {
-    // Unregister only the launch window shortcut
+    // Unregister launch window shortcuts
     if (globalShortcut.isRegistered('CommandOrControl+Alt+Y')) {
       globalShortcut.unregister('CommandOrControl+Alt+Y');
+    }
+    if (globalShortcut.isRegistered('CommandOrControl+Alt+L')) {
+      globalShortcut.unregister('CommandOrControl+Alt+L');
     }
     
     // Unregister main window shortcuts if they exist
@@ -580,12 +590,13 @@ class LaunchWindowManager {
       this.onHoverLeave();
     });
     
-    // Start in inactive state after a short delay to ensure window is fully loaded
+    // Start in active state for better user visibility
     setTimeout(() => {
       try {
-        this.setInactiveState();
+        this.setActiveState();
+        console.log('Launch Window: Started in active state for better visibility');
       } catch (error) {
-        console.error('Launch Window: Error setting initial inactive state:', error);
+        console.error('Launch Window: Error setting initial active state:', error);
       }
     }, 1000);
   }
@@ -659,12 +670,12 @@ class LaunchWindowManager {
       console.log('Launch Window: Switching to ACTIVE state');
       this.isInactive = false;
     
-    // Increase window size
+    // Set window size for better visibility
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    const windowWidth = 20;
+    const windowWidth = 80;
     const windowHeight = 200;
-    const x = screenWidth - (windowWidth / 2);
+    const x = screenWidth - 15; // Show only 15px of the edge
     const y = (screenHeight - windowHeight) / 4;
     
     this.launchWindow.setSize(windowWidth, windowHeight);
@@ -697,12 +708,12 @@ class LaunchWindowManager {
       console.log('Launch Window: Switching to INACTIVE state for memory optimization');
       this.isInactive = true;
     
-    // Reduce window size to save resources
+    // Reduce window size slightly but keep edge visible
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    const windowWidth = 15;
-    const windowHeight = 150;
-    const x = screenWidth - (windowWidth / 2);
+    const windowWidth = 60;
+    const windowHeight = 180;
+    const x = screenWidth - 12; // Show only 12px of the edge when inactive
     const y = (screenHeight - windowHeight) / 4;
     
     this.launchWindow.setSize(windowWidth, windowHeight);
@@ -797,6 +808,47 @@ class LaunchWindowManager {
       this.enableMemoryOptimization();
     }
     return this.memoryOptimizationEnabled;
+  }
+
+  // Ensure window is always visible - recovery method
+  ensureWindowVisible() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed()) {
+      console.log('Launch Window: Window not found, recreating...');
+      this.createLaunchWindow();
+      return;
+    }
+
+    try {
+      console.log('Launch Window: Ensuring visibility...');
+      
+      // Show the window if hidden
+      if (!this.launchWindow.isVisible()) {
+        this.launchWindow.show();
+      }
+      
+      // Restore proper size and position
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+      const windowWidth = 80;
+      const windowHeight = 200;
+      // Position to show only the edge (about 15px visible)
+      const x = screenWidth - 15;
+      const y = (screenHeight - windowHeight) / 4;
+      
+      this.launchWindow.setSize(windowWidth, windowHeight);
+      this.launchWindow.setPosition(x, y);
+      
+      // Ensure always on top
+      this.forceWindowAboveAll();
+      
+      // Set to active state for better visibility
+      this.setActiveState();
+      
+      console.log('Launch Window: Visibility ensured - window should now be visible');
+      
+    } catch (error) {
+      console.error('Launch Window: Error ensuring visibility:', error);
+    }
   }
 
   getMemoryOptimizationStatus() {
