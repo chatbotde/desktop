@@ -717,7 +717,7 @@
         }
 
         .prompt-input.drag-over::after {
-            content: 'Drop images here';
+            content: 'Drop media files here';
             position: absolute;
             inset: 0;
             background: rgba(59, 130, 246, 0.1);
@@ -729,5 +729,242 @@
             font-weight: 500;
             color: var(--accent);
             z-index: 10;
+        }
+        
+        /* === RECORDING UI STYLES === */
+        
+        /* Recording indicator */
+        .recording-indicator {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid #b91c1c;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin: 8px 12px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            animation: recordingPulse 2s ease-in-out infinite;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .recording-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .recording-icon {
+            font-size: 14px;
+            animation: recordingBounce 1s ease-in-out infinite;
+        }
+        
+        .recording-text {
+            flex: 1;
+            white-space: nowrap;
+        }
+        
+        .recording-timer {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .recording-stop {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        
+        .recording-stop:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+        
+        /* Recording button states */
+        .action-btn.recording {
+            background: var(--danger) !important;
+            border-color: var(--danger) !important;
+            color: #fff !important;
+            animation: recordingPulse 2s ease-in-out infinite;
+        }
+        
+        .action-btn.recording:hover {
+            background: #dc2626 !important;
+            border-color: #dc2626 !important;
+        }
+        
+        /* === MEDIA ATTACHMENT STYLES === */
+        
+        /* Enhanced attachment item for media */
+        .attachment-item.media-attachment {
+            width: auto;
+            min-width: 200px;
+            max-width: 300px;
+            height: auto;
+            padding: 8px;
+            background: var(--bg-alt);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .audio-preview,
+        .video-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+        
+        .media-icon {
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+        
+        .audio-preview audio {
+            width: 100%;
+            height: 32px;
+            border-radius: 6px;
+        }
+        
+        .video-preview video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            min-height: 120px;
+            object-fit: contain;
+            /* Force visibility and override any potential hiding */
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            /* Debugging borders - these will change based on video state */
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        
+        /* Video states for debugging */
+        .video-preview video[data-loaded="true"] {
+            border-color: #4caf50 !important;
+        }
+        
+        .video-preview video[data-error="true"] {
+            border-color: #f44336 !important;
+            background: #333 !important;
+        }
+        
+        .attachment-item.media-attachment .attachment-info {
+            position: static;
+            background: transparent;
+            color: var(--text);
+            font-size: 11px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .attachment-name {
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .attachment-meta {
+            color: var(--text-dim);
+            font-size: 10px;
+        }
+        
+        .attachment-item.media-attachment .attachment-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+        
+        .attachment-item.media-attachment:hover .attachment-remove {
+            opacity: 1;
+        }
+        
+        .attachment-item.media-attachment .attachment-remove:hover {
+            background: var(--danger);
+            transform: scale(1.1);
+        }
+        
+        /* === ANIMATIONS === */
+        
+        @keyframes recordingPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.02);
+            }
+        }
+        
+        @keyframes recordingBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-2px);
+            }
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* === RESPONSIVE DESIGN === */
+        
+        @media (max-width: 480px) {
+            .attachment-item.media-attachment {
+                min-width: 180px;
+                max-width: 280px;
+            }
+            
+            .recording-indicator {
+                margin: 6px 8px;
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            
+            .recording-text {
+                display: none;
+            }
         }
        

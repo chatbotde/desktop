@@ -35,6 +35,8 @@
         let isSending = false;
         let lastMessageSent = '';
         let isTransparent = false;
+        let isRecording = false;
+        let currentRecordingType = null;
         // let recording = false; // Future voice recording state
         
         // Drag state
@@ -44,6 +46,10 @@
         // Image attachments state
         let imageAttachments = [];
         let attachmentIdCounter = 0;
+        
+        // Media attachments state (enhanced)
+        let mediaAttachments = [];
+        let recordingStartTime = 0;
 
         // === IMAGE ATTACHMENT FUNCTIONS ===
         
@@ -98,10 +104,7 @@
         
         // Clear all attachments
         function clearAllAttachments() {
-            imageAttachments = [];
-            attachmentsGrid.innerHTML = '';
-            updateAttachmentsVisibility();
-            adjustWindowHeight();
+            clearAllMediaAttachments();
         }
         
         // Render image attachment in the UI
@@ -178,7 +181,7 @@
         
         // Update attachments section visibility with smooth transition
         function updateAttachmentsVisibility() {
-            const hasAttachments = imageAttachments.length > 0 || document.getElementById('attachment-loading');
+            const hasAttachments = imageAttachments.length > 0 || mediaAttachments.length > 0 || document.getElementById('attachment-loading');
             const promptInputContainer = document.querySelector('.prompt-input');
             const isExpanded = promptInputContainer.classList.contains('expanded');
             
@@ -199,7 +202,7 @@
                 attachmentsSection.style.maxHeight = '0px';
                 
                 setTimeout(() => {
-                    if (imageAttachments.length === 0 && !document.getElementById('attachment-loading')) {
+                    if (imageAttachments.length === 0 && mediaAttachments.length === 0 && !document.getElementById('attachment-loading')) {
                         attachmentsSection.style.display = 'none';
                     }
                 }, 300); // Match CSS transition duration
@@ -226,23 +229,559 @@
             }
         }
         
-        // Handle desktop capture
+        // Handle desktop capture (screenshot only)
         async function handleDesktopCapture() {
             try {
                 const loading = showAttachmentLoading();
                 
-                const result = await window.chatInputAPI.captureDesktop();
+                const result = await window.CaptureAPI.quickScreenshot();
                 
                 hideAttachmentLoading();
                 
-                if (result.success && result.image) {
-                    addImageAttachment(result.image);
+                if (result.success && result.screenshot) {
+                    addImageAttachment({
+                        name: result.screenshot.name,
+                        type: result.screenshot.type,
+                        size: result.screenshot.size,
+                        data: result.screenshot.data,
+                        source: 'screenshot'
+                    });
                 } else {
-                    console.error('Failed to capture desktop:', result.error);
+                    console.error('Failed to take screenshot:', result.error);
                 }
             } catch (error) {
                 hideAttachmentLoading();
-                console.error('Error capturing desktop:', error);
+                console.error('Error in desktop capture:', error);
+            }
+        }
+
+        // Handle audio capture
+        async function handleAudioCapture() {
+            try {
+                if (isRecording && currentRecordingType === 'audio') {
+                    // Stop recording
+                    const result = await stopCurrentRecording();
+                    if (result.success) {
+                        console.log('Audio recording stopped successfully');
+                    }
+                } else if (!isRecording) {
+                    // Start recording
+                    showRecordingState('audio');
+                    
+                    if (window.rendererCaptureAPI) {
+                        const result = await window.rendererCaptureAPI.startAudioRecording({
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        });
+                        
+                        if (result.success) {
+                            isRecording = true;
+                            currentRecordingType = 'audio';
+                            recordingStartTime = Date.now();
+                            window.currentAudioRecordingId = result.recordingId;
+                        } else {
+                            hideRecordingState();
+                            console.error('Failed to start audio recording:', result.error);
+                        }
+                    } else {
+                        hideRecordingState();
+                        console.error('Renderer capture API not available');
+                    }
+                }
+            } catch (error) {
+                hideRecordingState();
+                console.error('Error in audio capture:', error);
+            }
+        }
+
+
+        
+        // Handle video file upload
+        async function handleVideoUpload() {
+            try {
+                const loading = showAttachmentLoading();
+                
+                const result = await window.chatInputAPI.openVideoFilePicker();
+                
+                hideAttachmentLoading();
+                
+                if (result.success && result.file) {
+                    addMediaAttachment(result.file);
+                } else if (!result.canceled) {
+                    console.error('Failed to upload video:', result.error);
+                }
+            } catch (error) {
+                hideAttachmentLoading();
+                console.error('Error uploading video:', error);
+            }
+        }
+        
+        // Handle audio file upload
+        async function handleAudioUpload() {
+            try {
+                const loading = showAttachmentLoading();
+                
+                const result = await window.chatInputAPI.openAudioFilePicker();
+                
+                hideAttachmentLoading();
+                
+                if (result.success && result.file) {
+                    addMediaAttachment(result.file);
+                } else if (!result.canceled) {
+                    console.error('Failed to upload audio:', result.error);
+                }
+            } catch (error) {
+                hideAttachmentLoading();
+                console.error('Error uploading audio:', error);
+            }
+        }
+        
+        // Handle video capture (webcam/screen recording)
+        async function handleVideoCapture() {
+            try {
+                if (isRecording && currentRecordingType === 'video') {
+                    // Stop recording
+                    const result = await stopCurrentRecording();
+                    if (result.success) {
+                        console.log('Video recording stopped successfully');
+                    }
+                } else if (!isRecording) {
+                    // Start recording
+                    showRecordingState('video');
+                    
+                    if (window.rendererCaptureAPI) {
+                        // For video capture, we can use screen recording or webcam
+                        const result = await window.rendererCaptureAPI.startScreenRecording({
+                            quality: 'medium',
+                            includeAudio: true // Include audio for video recording
+                        });
+                        
+                        if (result.success) {
+                            isRecording = true;
+                            currentRecordingType = 'video';
+                            recordingStartTime = Date.now();
+                            window.currentVideoRecordingId = result.recordingId;
+                        } else {
+                            hideRecordingState();
+                            console.error('Failed to start video recording:', result.error);
+                        }
+                    } else {
+                        hideRecordingState();
+                        console.error('Renderer capture API not available');
+                    }
+                }
+            } catch (error) {
+                hideRecordingState();
+                console.error('Error in video capture:', error);
+            }
+        }
+        
+        // === ENHANCED MEDIA ATTACHMENT FUNCTIONS ===
+        
+        // Add media attachment (handles all media types)
+        function addMediaAttachment(mediaFile) {
+            console.log('Adding media attachment:', {
+                name: mediaFile.name,
+                type: mediaFile.type,
+                mediaType: mediaFile.mediaType,
+                size: mediaFile.size
+            });
+            
+            const attachment = {
+                id: `media_${++attachmentIdCounter}`,
+                name: mediaFile.name,
+                type: mediaFile.type,
+                size: mediaFile.size,
+                data: mediaFile.data,
+                mediaType: mediaFile.mediaType,
+                source: mediaFile.source || 'upload',
+                timestamp: Date.now(),
+                duration: mediaFile.duration,
+                dimensions: mediaFile.dimensions
+            };
+            
+            // Debug video data URL immediately
+            if (attachment.mediaType === window.MediaUtils.MediaType.VIDEO) {
+                debugVideoDataUrl(attachment);
+            }
+            
+            // Add to appropriate collection
+            if (attachment.mediaType === window.MediaUtils.MediaType.IMAGE) {
+                console.log('Adding as image attachment');
+                imageAttachments.push(attachment);
+                renderImageAttachment(attachment);
+            } else {
+                console.log('Adding as media attachment, type:', attachment.mediaType);
+                mediaAttachments.push(attachment);
+                renderMediaAttachment(attachment);
+            }
+            
+            updateAttachmentsVisibility();
+            
+            // Delay height adjustment to allow DOM to settle
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 100);
+            
+            return attachment;
+        }
+        
+        // Debug function to test video data URL
+        function debugVideoDataUrl(attachment) {
+            console.log('🔍 Debugging video data URL for:', attachment.name);
+            
+            // Create a test video element to validate the data
+            const testVideo = document.createElement('video');
+            testVideo.style.display = 'none';
+            testVideo.muted = true;
+            
+            testVideo.onloadedmetadata = () => {
+                console.log('✅ Video data URL is valid:', {
+                    width: testVideo.videoWidth,
+                    height: testVideo.videoHeight,
+                    duration: testVideo.duration,
+                    readyState: testVideo.readyState
+                });
+                document.body.removeChild(testVideo);
+            };
+            
+            testVideo.onerror = (error) => {
+                console.error('❌ Video data URL validation failed:', {
+                    error: testVideo.error,
+                    networkState: testVideo.networkState,
+                    readyState: testVideo.readyState
+                });
+                document.body.removeChild(testVideo);
+            };
+            
+            document.body.appendChild(testVideo);
+            testVideo.src = attachment.data;
+        }
+        
+        // Render media attachment (audio/video) in the UI
+        function renderMediaAttachment(attachment) {
+            console.log('Rendering media attachment:', attachment);
+            
+            const attachmentElement = document.createElement('div');
+            attachmentElement.className = 'attachment-item media-attachment';
+            attachmentElement.setAttribute('data-attachment-id', attachment.id);
+            
+            // Start with invisible state for smooth entrance
+            attachmentElement.style.opacity = '0';
+            attachmentElement.style.transform = 'scale(0.8)';
+            
+            let mediaPreview = '';
+            let mediaIcon = '';
+            
+            if (attachment.mediaType === window.MediaUtils.MediaType.AUDIO) {
+                console.log('Rendering audio attachment');
+                mediaIcon = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 18V5l12-2v13"/>
+                        <circle cx="6" cy="18" r="3"/>
+                        <circle cx="18" cy="16" r="3"/>
+                    </svg>
+                `;
+                mediaPreview = `
+                    <div class="audio-preview">
+                        <div class="media-icon">${mediaIcon}</div>
+                        <audio controls preload="metadata" style="width: 100%;">
+                            <source src="${attachment.data}" type="${attachment.type}">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                `;
+            } else if (attachment.mediaType === window.MediaUtils.MediaType.VIDEO) {
+                console.log('Rendering video attachment:', {
+                    name: attachment.name,
+                    type: attachment.type,
+                    size: attachment.size,
+                    dataLength: attachment.data?.length || 0,
+                    dataPrefix: attachment.data?.substring(0, 50) || 'no data'
+                });
+                
+                // Validate video data URL
+                const isValidDataUrl = attachment.data && attachment.data.startsWith('data:') && attachment.data.includes('base64,');
+                console.log('Video data URL validation:', {
+                    isValid: isValidDataUrl,
+                    startsWithData: attachment.data?.startsWith('data:'),
+                    hasBase64: attachment.data?.includes('base64,'),
+                    actualType: attachment.type
+                });
+                
+                mediaIcon = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="6" width="14" height="12" rx="2" ry="2"/>
+                        <path d="m22 7-6 4 6 4z"/>
+                    </svg>
+                `;
+                
+                const videoId = `video_${attachment.id}`;
+                mediaPreview = `
+                    <div class="video-preview" style="position: relative;">
+                        <div class="media-icon">${mediaIcon}</div>
+                        <video 
+                            id="${videoId}"
+                            controls 
+                            preload="metadata"
+                            muted
+                            playsinline
+                            webkit-playsinline
+                            crossorigin="anonymous"
+                            style="width: 100%; max-height: 200px; min-height: 120px; background: #000; display: block !important; visibility: visible !important; object-fit: contain; border-radius: 8px;" 
+                            onloadstart="console.log('🎬 Video ${videoId} loadstart - src:', this.src?.substring(0, 50) + '...');"
+                            onprogress="console.log('🎬 Video ${videoId} loading progress');"
+                            onloadedmetadata="console.log('🎬 Video ${videoId} metadata loaded - Dimensions:', this.videoWidth + 'x' + this.videoHeight, 'Duration:', this.duration + 's', 'Ready state:', this.readyState); this.style.border = '2px solid green';"
+                            onloadeddata="console.log('🎬 Video ${videoId} data loaded - Ready to play, buffered ranges:', this.buffered.length); this.style.background = '#111';"
+                            oncanplay="console.log('🎬 Video ${videoId} can play - Ready state:', this.readyState); this.style.background = 'transparent'; this.style.border = '2px solid blue';"
+                            oncanplaythrough="console.log('🎬 Video ${videoId} can play through completely'); this.style.border = '1px solid var(--border)';"
+                            onplay="console.log('🎬 Video ${videoId} started playing');"
+                            onwaiting="console.log('🎬 Video ${videoId} waiting for data');"
+                            onerror="console.error('❌ Video ${videoId} error - Code:', this.error?.code, 'Message:', this.error?.message, 'Network state:', this.networkState, 'Ready state:', this.readyState); this.style.background = '#333'; this.style.border = '2px solid red'; document.getElementById('${videoId}_error').style.display = 'block';"
+                            onstalled="console.warn('⚠️ Video ${videoId} stalled - Network state:', this.networkState);"
+                            onsuspend="console.warn('⚠️ Video ${videoId} suspended');"
+                            onabort="console.warn('⚠️ Video ${videoId} aborted');"
+                            onemptied="console.warn('⚠️ Video ${videoId} emptied');"
+                        >
+                            <source src="${attachment.data}" type="${attachment.type}">
+                            Your browser does not support the video element.
+                        </video>
+                        <div id="${videoId}_error" class="video-error" style="display: none; padding: 8px; background: #d32f2f; color: #fff; text-align: center; border-radius: 4px; margin-top: 4px; font-size: 11px;">
+                            ❌ Video cannot be displayed. This may be due to codec incompatibility or corrupted data.
+                        </div>
+                        <div class="video-info" style="padding: 4px 8px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; position: absolute; bottom: 4px; left: 4px; border-radius: 3px;">
+                            Video: ${attachment.type} • ${window.MediaUtils.formatFileSize(attachment.size)}
+                        </div>
+                        <div class="video-debug" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.8); color: #fff; font-size: 9px; padding: 2px 4px; border-radius: 2px; font-family: monospace;">
+                            ${attachment.dimensions ? `${attachment.dimensions.width}×${attachment.dimensions.height}` : 'Unknown'}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const durationText = attachment.duration ? ` (${formatDuration(attachment.duration)})` : '';
+            const sizeText = window.MediaUtils.formatFileSize(attachment.size);
+            
+            attachmentElement.innerHTML = `
+                ${mediaPreview}
+                <div class="attachment-info">
+                    <div class="attachment-name">${attachment.name}</div>
+                    <div class="attachment-meta">${sizeText}${durationText}</div>
+                </div>
+                <button class="attachment-remove" onclick="removeMediaAttachment('${attachment.id}')" title="Remove">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            `;
+            
+            attachmentsGrid.appendChild(attachmentElement);
+            
+            // Smooth entrance animation
+            requestAnimationFrame(() => {
+                attachmentElement.style.opacity = '1';
+                attachmentElement.style.transform = 'scale(1)';
+            });
+        }
+        
+        // Remove media attachment
+        function removeMediaAttachment(attachmentId) {
+            // Try to find in media attachments first
+            let index = mediaAttachments.findIndex(att => att.id === attachmentId);
+            if (index !== -1) {
+                mediaAttachments.splice(index, 1);
+            } else {
+                // Fallback to image attachments
+                index = imageAttachments.findIndex(att => att.id === attachmentId);
+                if (index !== -1) {
+                    imageAttachments.splice(index, 1);
+                }
+            }
+            
+            // Remove from DOM with smooth transition
+            const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
+            if (element) {
+                element.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                element.style.opacity = '0';
+                element.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    element.remove();
+                    updateAttachmentsVisibility();
+                    adjustWindowHeight();
+                }, 200);
+            } else {
+                updateAttachmentsVisibility();
+                adjustWindowHeight();
+            }
+        }
+        
+        // Clear all media attachments
+        function clearAllMediaAttachments() {
+            imageAttachments = [];
+            mediaAttachments = [];
+            attachmentsGrid.innerHTML = '';
+            updateAttachmentsVisibility();
+            adjustWindowHeight();
+        }
+        
+        // Format duration in MM:SS format
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // === RECORDING CONTROL FUNCTIONS ===
+        
+        // Show recording state UI
+        function showRecordingState(recordingType) {
+            isRecording = true;
+            currentRecordingType = recordingType;
+            recordingStartTime = Date.now();
+            
+            // Add recording indicator to the UI
+            addRecordingIndicator(recordingType);
+            
+            // Update button states
+            updateRecordingButtons(true);
+        }
+        
+        // Hide recording state UI
+        function hideRecordingState() {
+            isRecording = false;
+            currentRecordingType = null;
+            recordingStartTime = 0;
+            
+            // Remove recording indicator
+            removeRecordingIndicator();
+            
+            // Update button states
+            updateRecordingButtons(false);
+        }
+        
+        // Add recording indicator to the UI
+        function addRecordingIndicator(recordingType) {
+            const existingIndicator = document.getElementById('recording-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            const indicator = document.createElement('div');
+            indicator.id = 'recording-indicator';
+            indicator.className = 'recording-indicator';
+            
+            const icon = recordingType === 'audio' ? '🎤' : '🎥';
+            const typeText = recordingType === 'audio' ? 'Audio' : 'Video';
+            
+            indicator.innerHTML = `
+                <div class="recording-content">
+                    <span class="recording-icon">${icon}</span>
+                    <span class="recording-text">${typeText} Recording</span>
+                    <span class="recording-timer" id="recording-timer">00:00</span>
+                    <button class="recording-stop" onclick="stopCurrentRecording()" title="Stop Recording">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="6" y="6" width="12" height="12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            // Insert at the top of attachments section or before input
+            const targetElement = attachmentsSection.style.display !== 'none' ? attachmentsSection : document.querySelector('.input-area');
+            targetElement.parentNode.insertBefore(indicator, targetElement);
+            
+            // Start timer
+            startRecordingTimer();
+        }
+        
+        // Remove recording indicator
+        function removeRecordingIndicator() {
+            const indicator = document.getElementById('recording-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+            stopRecordingTimer();
+        }
+        
+        // Start recording timer
+        function startRecordingTimer() {
+            const timerElement = document.getElementById('recording-timer');
+            if (!timerElement) return;
+            
+            const updateTimer = () => {
+                if (!isRecording) return;
+                
+                const elapsed = Date.now() - recordingStartTime;
+                const seconds = Math.floor(elapsed / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+                
+                setTimeout(updateTimer, 1000);
+            };
+            
+            updateTimer();
+        }
+        
+        // Stop recording timer
+        function stopRecordingTimer() {
+            // Timer will stop automatically when isRecording becomes false
+        }
+        
+        // Update recording button states
+        function updateRecordingButtons(recording) {
+            const captureButton = document.getElementById('captureButton');
+            if (captureButton) {
+                captureButton.classList.toggle('recording', recording);
+            }
+        }
+        
+        // Stop current recording
+        async function stopCurrentRecording() {
+            try {
+                let result = { success: false };
+                
+                if (window.rendererCaptureAPI) {
+                    if (window.currentAudioRecordingId) {
+                        console.log('Stopping audio recording...');
+                        result = await window.rendererCaptureAPI.stopRecording(window.currentAudioRecordingId);
+                        
+                        if (result.success && result.audio) {
+                            addMediaAttachment(result.audio);
+                        }
+                        window.currentAudioRecordingId = null;
+                        
+                    } else if (window.currentVideoRecordingId) {
+                        console.log('Stopping video recording...');
+                        result = await window.rendererCaptureAPI.stopRecording(window.currentVideoRecordingId);
+                        
+                        if (result.success && result.video) {
+                            addMediaAttachment(result.video);
+                        }
+                        window.currentVideoRecordingId = null;
+                    }
+                }
+                
+                hideRecordingState();
+                return result;
+                
+            } catch (error) {
+                console.error('Error stopping recording:', error);
+                hideRecordingState();
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Update volume indicator for audio recording
+        function updateVolumeIndicator(volume) {
+            const indicator = document.getElementById('recording-indicator');
+            if (indicator && currentRecordingType === 'audio') {
+                // Add visual volume feedback
+                indicator.style.opacity = 0.7 + (volume / 100) * 0.3;
             }
         }
         
@@ -287,7 +826,7 @@
             promptInputContainer.classList.add('expanded');
             
             // Show attachments section if there are attachments
-            if (imageAttachments.length > 0 && attachmentsSection.style.display === 'none') {
+            if ((imageAttachments.length > 0 || mediaAttachments.length > 0) && attachmentsSection.style.display === 'none') {
                 updateAttachmentsVisibility();
             }
             
@@ -366,7 +905,7 @@
             if (newHeight > oldHeight && isCollapsed) {
                 promptInputContainer.classList.add('expanded');
                 // Show attachments section if there are attachments
-                if (imageAttachments.length > 0 && attachmentsSection.style.display === 'none') {
+                if ((imageAttachments.length > 0 || mediaAttachments.length > 0) && attachmentsSection.style.display === 'none') {
                     updateAttachmentsVisibility();
                 }
                 requestAnimationFrame(() => {
@@ -735,19 +1274,21 @@
                     handleImageUpload();
                     break;
                 case 'upload-video':
-                    console.log('Video upload not yet implemented');
+                    handleVideoUpload();
                     break;
                 case 'upload-audio':
-                    console.log('Audio upload not yet implemented');
+                    handleAudioUpload();
                     break;
                 case 'capture-desktop':
+                case 'desktop-capture':
                     handleDesktopCapture();
                     break;
-                case 'capture-video':
-                    console.log('Video capture not yet implemented');
-                    break;
                 case 'capture-audio':
-                    console.log('Audio capture not yet implemented');
+                case 'audio-capture':
+                    handleAudioCapture();
+                    break;
+                case 'capture-video':
+                    handleVideoCapture();
                     break;
                 case 'paste':
                     handlePasteContent();
@@ -1114,8 +1655,24 @@
         // Initialize drag handling
         initDragHandling();
         
+        // Initialize renderer capture API
+        if (window.RendererCaptureAPI) {
+            window.rendererCaptureAPI = new window.RendererCaptureAPI();
+            
+            // Set up volume callback for audio recording
+            window.rendererCaptureAPI.setVolumeCallback((data) => {
+                updateVolumeIndicator(data.volume);
+            });
+            
+            console.log('Renderer capture API initialized successfully');
+        } else {
+            console.warn('RendererCaptureAPI not available, capture features may not work');
+        }
+        
         // Make removeImageAttachment available globally
         window.removeImageAttachment = removeImageAttachment;
+        window.removeMediaAttachment = removeMediaAttachment;
+        window.stopCurrentRecording = stopCurrentRecording;
         
         // === DRAG & DROP IMAGE FUNCTIONALITY ===
         let dragCounter = 0;
@@ -1174,32 +1731,36 @@
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 
-                // Check if it's an image
-                if (file.type.startsWith('image/')) {
-                    try {
+                try {
+                    // Validate the file using MediaUtils
+                    const validation = window.MediaUtils.validateFile(file);
+                    
+                    if (validation.isValid) {
                         const loading = showAttachmentLoading();
                         
-                        // Read file as base64
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            hideAttachmentLoading();
-                            
-                            const imageData = {
-                                name: file.name,
-                                type: file.type,
-                                size: file.size,
-                                data: e.target.result,
-                                source: 'drag-drop'
-                            };
-                            
-                            addImageAttachment(imageData);
-                        };
-                        reader.readAsDataURL(file);
+                        // Create media file
+                        const mediaFile = await window.MediaUtils.createMediaFile(file, 'drag-drop');
                         
-                    } catch (error) {
                         hideAttachmentLoading();
-                        console.error('Error processing dropped file:', error);
+                        
+                        // Add to appropriate collection
+                        if (mediaFile.mediaType === window.MediaUtils.MediaType.IMAGE) {
+                            addImageAttachment({
+                                name: mediaFile.name,
+                                type: mediaFile.type,
+                                size: mediaFile.size,
+                                data: mediaFile.data,
+                                source: mediaFile.source
+                            });
+                        } else {
+                            addMediaAttachment(mediaFile);
+                        }
+                    } else {
+                        console.warn('Dropped file not supported:', file.name, validation.error);
                     }
+                } catch (error) {
+                    hideAttachmentLoading();
+                    console.error('Error processing dropped file:', error);
                 }
             }
         }
