@@ -526,11 +526,31 @@ class ChatInputWindow {
       try {
         const { extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'] } = options;
         
+        // Determine filter name based on file types
+        let filterName = 'Files';
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'svg', 'ico'];
+        const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'wmv', 'flv', '3gp', 'm4v'];
+        const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'opus'];
+        
+        const isImageOnly = extensions.every(ext => imageExts.includes(ext.toLowerCase()));
+        const isVideoOnly = extensions.every(ext => videoExts.includes(ext.toLowerCase()));
+        const isAudioOnly = extensions.every(ext => audioExts.includes(ext.toLowerCase()));
+        
+        if (isImageOnly) {
+          filterName = 'Images';
+        } else if (isVideoOnly) {
+          filterName = 'Videos';
+        } else if (isAudioOnly) {
+          filterName = 'Audio Files';
+        } else {
+          filterName = 'Media Files';
+        }
+        
         const result = await dialog.showOpenDialog({
           properties: ['openFile', 'multiSelections'],
           filters: [
             {
-              name: 'Images',
+              name: filterName,
               extensions: extensions
             }
           ]
@@ -543,16 +563,24 @@ class ChatInputWindow {
             try {
               const fileName = path.basename(filePath);
               const fileSize = fs.statSync(filePath).size;
+              const ext = path.extname(filePath).toLowerCase();
               
-              // Check file size (limit to 10MB)
-              if (fileSize > 10 * 1024 * 1024) {
-                console.warn(`File ${fileName} is too large (${fileSize} bytes)`);
+              // Dynamic file size limits based on file type
+              let maxSize = 10 * 1024 * 1024; // 10MB default for images
+              if (videoExts.includes(ext.substring(1))) {
+                maxSize = 100 * 1024 * 1024; // 100MB for videos
+              } else if (audioExts.includes(ext.substring(1))) {
+                maxSize = 50 * 1024 * 1024; // 50MB for audio
+              }
+              
+              if (fileSize > maxSize) {
+                console.warn(`File ${fileName} is too large (${fileSize} bytes, max: ${maxSize})`);
                 continue;
               }
               
               const fileBuffer = fs.readFileSync(filePath);
               const base64Data = fileBuffer.toString('base64');
-              const mimeType = getMimeType(path.extname(filePath));
+              const mimeType = getMimeType(ext);
               
               files.push({
                 name: fileName,
@@ -1189,6 +1217,7 @@ class ChatInputWindow {
 // Helper function to get MIME type from file extension
 function getMimeType(extension) {
   const mimeTypes = {
+    // Image formats
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.png': 'image/png',
@@ -1196,10 +1225,34 @@ function getMimeType(extension) {
     '.webp': 'image/webp',
     '.bmp': 'image/bmp',
     '.tiff': 'image/tiff',
-    '.tif': 'image/tiff'
+    '.tif': 'image/tiff',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    
+    // Video formats
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.mov': 'video/quicktime',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.wmv': 'video/x-ms-wmv',
+    '.flv': 'video/x-flv',
+    '.3gp': 'video/3gpp',
+    '.m4v': 'video/x-m4v',
+    
+    // Audio formats
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
+    '.flac': 'audio/flac',
+    '.wma': 'audio/x-ms-wma',
+    '.opus': 'audio/opus'
   };
   
-  return mimeTypes[extension.toLowerCase()] || 'image/jpeg';
+  const ext = extension.toLowerCase();
+  return mimeTypes[ext] || 'application/octet-stream';
 }
 
 module.exports = { ChatInputWindow };

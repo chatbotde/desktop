@@ -48,6 +48,8 @@
         <button class="test-button" onclick="testScreenshot()">Test Screenshot</button>
         <button class="test-button" onclick="testVideoRecording()">Test Video Recording</button>
         <button class="test-button" onclick="testAudioRecording()">Test Audio Recording</button>
+        <button class="test-button" onclick="testVideoUpload()">Test Video Upload</button>
+        <button class="test-button" onclick="testAudioUpload()">Test Audio Upload</button>
         <button class="test-button" onclick="testAPI()">Test API Availability</button>
     </div>
     
@@ -153,6 +155,62 @@
             } catch (error) {
                 addResult(`Audio recording error: ${error.message}`, 'error');
             }
+        }
+        
+        async function testVideoUpload() {
+            try {
+                addResult('Testing video file upload...', 'info');
+                
+                if (window.chatInputAPI && window.chatInputAPI.openFilePicker) {
+                    const result = await window.chatInputAPI.openFilePicker(['mp4', 'webm', 'mov', 'avi', 'mkv']);
+                    if (result.success && result.files && result.files.length > 0) {
+                        addResult(`Video upload successful! Selected ${result.files.length} file(s)`, 'success');
+                        result.files.forEach(file => {
+                            addResult(`- ${file.name} (${file.type}, ${formatFileSize(file.size)})`, 'info');
+                        });
+                    } else if (result.canceled) {
+                        addResult('Video upload canceled by user', 'info');
+                    } else {
+                        addResult(`Video upload failed: ${result.error}`, 'error');
+                    }
+                } else {
+                    addResult('chatInputAPI.openFilePicker not available', 'error');
+                }
+            } catch (error) {
+                addResult(`Video upload error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAudioUpload() {
+            try {
+                addResult('Testing audio file upload...', 'info');
+                
+                if (window.chatInputAPI && window.chatInputAPI.openFilePicker) {
+                    const result = await window.chatInputAPI.openFilePicker(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']);
+                    if (result.success && result.files && result.files.length > 0) {
+                        addResult(`Audio upload successful! Selected ${result.files.length} file(s)`, 'success');
+                        result.files.forEach(file => {
+                            addResult(`- ${file.name} (${file.type}, ${formatFileSize(file.size)})`, 'info');
+                        });
+                    } else if (result.canceled) {
+                        addResult('Audio upload canceled by user', 'info');
+                    } else {
+                        addResult(`Audio upload failed: ${result.error}`, 'error');
+                    }
+                } else {
+                    addResult('chatInputAPI.openFilePicker not available', 'error');
+                }
+            } catch (error) {
+                addResult(`Audio upload error: ${error.message}`, 'error');
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
         
         function testAPI() {

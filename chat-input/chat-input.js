@@ -209,17 +209,35 @@
             }
         }
         
-        // Handle file upload
+        // Handle image file upload
         async function handleImageUpload() {
             try {
                 const loading = showAttachmentLoading();
                 
-                const result = await window.chatInputAPI.openImagePicker();
+                const result = await window.chatInputAPI.openFilePicker(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff']);
                 
                 hideAttachmentLoading();
                 
-                if (result.success && result.file) {
-                    addImageAttachment(result.file);
+                if (result.success && result.files && result.files.length > 0) {
+                    // Handle multiple files
+                    for (const file of result.files) {
+                        addImageAttachment({
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: file.data,
+                            source: 'upload'
+                        });
+                    }
+                } else if (result.success && result.file) {
+                    // Handle single file (legacy support)
+                    addImageAttachment({
+                        name: result.file.name,
+                        type: result.file.type,
+                        size: result.file.size,
+                        data: result.file.data,
+                        source: 'upload'
+                    });
                 } else if (!result.canceled) {
                     console.error('Failed to upload image:', result.error);
                 }
@@ -302,12 +320,24 @@
             try {
                 const loading = showAttachmentLoading();
                 
-                const result = await window.chatInputAPI.openVideoFilePicker();
+                const result = await window.chatInputAPI.openFilePicker(['mp4', 'webm', 'mov', 'avi', 'mkv', 'wmv', 'flv', '3gp', 'm4v']);
                 
                 hideAttachmentLoading();
                 
-                if (result.success && result.file) {
-                    addMediaAttachment(result.file);
+                if (result.success && result.files && result.files.length > 0) {
+                    // Handle multiple files
+                    for (const file of result.files) {
+                        const mediaFile = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: file.data,
+                            mediaType: file.type.startsWith('video/') ? 'video' : 'audio',
+                            source: 'upload',
+                            timestamp: Date.now()
+                        };
+                        addMediaAttachment(mediaFile);
+                    }
                 } else if (!result.canceled) {
                     console.error('Failed to upload video:', result.error);
                 }
@@ -322,12 +352,24 @@
             try {
                 const loading = showAttachmentLoading();
                 
-                const result = await window.chatInputAPI.openAudioFilePicker();
+                const result = await window.chatInputAPI.openFilePicker(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'wma', 'opus']);
                 
                 hideAttachmentLoading();
                 
-                if (result.success && result.file) {
-                    addMediaAttachment(result.file);
+                if (result.success && result.files && result.files.length > 0) {
+                    // Handle multiple files
+                    for (const file of result.files) {
+                        const mediaFile = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: file.data,
+                            mediaType: file.type.startsWith('audio/') ? 'audio' : 'video',
+                            source: 'upload',
+                            timestamp: Date.now()
+                        };
+                        addMediaAttachment(mediaFile);
+                    }
                 } else if (!result.canceled) {
                     console.error('Failed to upload audio:', result.error);
                 }
