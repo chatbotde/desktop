@@ -1037,9 +1037,11 @@
         // Send message function with enhanced feedback
         function sendMessage() {
             const message = messageInput.value.trim();
-            const hasAttachments = imageAttachments.length > 0;
+            const hasImageAttachments = imageAttachments.length > 0;
+            const hasMediaAttachments = mediaAttachments.length > 0;
+            const hasAnyAttachments = hasImageAttachments || hasMediaAttachments;
             
-            if ((!message && !hasAttachments) || isSending) return;
+            if ((!message && !hasAnyAttachments) || isSending) return;
 
             if (!window.chatInputAPI) {
                 console.error('Chat Input: chatInputAPI not available');
@@ -1054,20 +1056,51 @@
             messageInput.disabled = true;
 
             try {
-                const messageData = {
-                    content: message,
-                    timestamp: new Date().toISOString(),
-                    id: Date.now().toString(),
-                    type: hasAttachments ? 'mixed' : 'text',
-                    attachments: imageAttachments.map(att => ({
+                // Combine all attachments
+                const allAttachments = [];
+                
+                // Add image attachments
+                if (hasImageAttachments) {
+                    allAttachments.push(...imageAttachments.map(att => ({
                         id: att.id,
                         name: att.name,
                         type: att.type,
                         size: att.size,
                         data: att.data,
-                        source: att.source
-                    }))
+                        source: att.source,
+                        mediaType: 'image',
+                        dimensions: att.dimensions
+                    })));
+                }
+                
+                // Add media attachments (video/audio)
+                if (hasMediaAttachments) {
+                    allAttachments.push(...mediaAttachments.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        type: att.type,
+                        size: att.size,
+                        data: att.data,
+                        source: att.source,
+                        mediaType: att.mediaType,
+                        dimensions: att.dimensions,
+                        duration: att.duration
+                    })));
+                }
+                
+                const messageData = {
+                    content: message,
+                    timestamp: new Date().toISOString(),
+                    id: Date.now().toString(),
+                    type: hasAnyAttachments ? 'mixed' : 'text',
+                    attachments: allAttachments
                 };
+                
+                console.log('Sending message with attachments:', {
+                    content: message,
+                    attachmentCount: allAttachments.length,
+                    attachmentTypes: allAttachments.map(att => att.mediaType)
+                });
                 
                 window.chatInputAPI.sendMessage(messageData);
 

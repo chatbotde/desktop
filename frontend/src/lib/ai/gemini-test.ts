@@ -84,7 +84,7 @@ export async function testChatHistory() {
     await sendToGeminiComplete('My name is John');
     await sendToGeminiComplete('What is my name?');
     
-    const history = geminiChat.getChatHistory();
+    const history = geminiChat.getHistory();
     console.log('✅ Chat history:', history);
     console.log('History length:', history.length);
     return true;

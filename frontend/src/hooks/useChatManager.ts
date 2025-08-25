@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
-import type { ChatMessage } from '@/components/Messages'
+import type { ChatMessage, MediaAttachment } from '@/components/Messages'
 import { windowResizeManager } from '@/lib/window-resize'
-import { sendToGemini } from '@/lib/ai/gemini'
+import { sendMediaToGemini } from '@/lib/ai/gemini'
 
 export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -25,11 +25,28 @@ export function useChatManager() {
     // Mark this message ID as processed
     processedMessageIds.current.add(messageId);
     
+    // Convert attachments to MediaAttachment format if present
+    let mediaAttachments: MediaAttachment[] | undefined;
+    if (messageData.attachments && messageData.attachments.length > 0) {
+      mediaAttachments = messageData.attachments.map((att: any) => ({
+        id: att.id,
+        name: att.name,
+        type: att.type,
+        size: att.size,
+        data: att.data,
+        source: att.source,
+        mediaType: att.mediaType || getMediaTypeFromMime(att.type),
+        dimensions: att.dimensions,
+        duration: att.duration
+      }));
+    }
+    
     const userMessage: ChatMessage = {
       id: messageId,
       role: 'user',
-      content: messageData.content,
-      timestamp: new Date(messageData.timestamp || Date.now())
+      content: messageData.content || '',
+      timestamp: new Date(messageData.timestamp || Date.now()),
+      attachments: mediaAttachments
     }
 
     console.log('Main Window: Adding user message:', userMessage);
@@ -45,8 +62,8 @@ export function useChatManager() {
     }, 100)
 
     try {
-      // Send message to Gemini and handle streaming response
-      const responseStream = await sendToGemini(messageData.content);
+      // Send message with media to Gemini and handle streaming response
+      const responseStream = await sendMediaToGemini(messageData.content || '', mediaAttachments);
       
       setIsTyping(false);
       
@@ -105,6 +122,14 @@ export function useChatManager() {
     }
   }, [])
 
+  // Helper function to determine media type from MIME type
+  const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'audio' => {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    return 'image'; // fallback
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -118,17 +143,8 @@ export function useChatManager() {
     setMessages([])
     setShowChat(false)
     setIsTyping(false)
-    
-    // Clear processed message IDs to allow new messages
     processedMessageIds.current.clear()
     messageCounterRef.current = 0
-    
-    // Trigger window resize after content change
-    setTimeout(() => {
-      if (windowResizeManager) {
-        windowResizeManager.forceResize();
-      }
-    }, 100)
   }
 
   return {

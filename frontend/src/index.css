@@ -213,3 +213,55 @@ body {
   border-radius: 4px;
   border: 1px solid rgba(68, 71, 90, 0.3);
 }
+
+/* Custom CSS for media attachments */
+.media-attachment {
+  @apply rounded-lg border border-gray-600/20 overflow-hidden;
+}
+
+.media-attachment.image-attachment img {
+  @apply w-full h-auto object-contain;
+}
+
+.media-attachment.video-attachment video {
+  @apply w-full h-auto object-contain bg-black;
+}
+
+.media-attachment.audio-attachment audio {
+  @apply w-full;
+}
+
+/* Message animation */
+.message-appear {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar styling */
+.scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}

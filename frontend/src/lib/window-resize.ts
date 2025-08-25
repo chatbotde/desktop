@@ -30,8 +30,6 @@ class WindowResizeManager {
     optimalWidth: 600,
     optimalHeight: 400
   };
-  private padding = { x: 40, y: 60 }; // Padding around content
-  private smoothResizeEnabled = true;
 
   constructor() {
     this.init();
@@ -201,73 +199,12 @@ class WindowResizeManager {
     return Math.max(contentHeight, headerHeight + 60);
   }
 
-  private getVisibleContentBounds(): ContentSize {
-    // Find all visible elements and calculate their bounding box
-    const visibleElements = Array.from(document.querySelectorAll('*')).filter(el => {
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && 
-             style.visibility !== 'hidden' && 
-             style.opacity !== '0' &&
-             el.offsetWidth > 0 && 
-             el.offsetHeight > 0;
-    });
-
-    if (visibleElements.length === 0) {
-      return { width: this.contentBounds.minWidth, height: this.contentBounds.minHeight };
-    }
-
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
-    visibleElements.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      minX = Math.min(minX, rect.left);
-      minY = Math.min(minY, rect.top);
-      maxX = Math.max(maxX, rect.right);
-      maxY = Math.max(maxY, rect.bottom);
-    });
-
-    return {
-      width: Math.max(maxX - minX, this.contentBounds.minWidth),
-      height: Math.max(maxY - minY, this.contentBounds.minHeight)
-    };
-  }
-
   private calculateSmartPadding(): { x: number; y: number } {
     // Ultra-minimal padding - just enough to prevent clipping
     const paddingX = 10;
     const paddingY = 5; // Almost no vertical padding
     
     return { x: paddingX, y: paddingY };
-  }
-
-  private calculateContentDensity(): number {
-    const totalArea = window.innerWidth * window.innerHeight;
-    const contentElements = document.querySelectorAll('*:not(script):not(style)');
-    let contentArea = 0;
-    
-    contentElements.forEach(el => {
-      const rect = el.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        contentArea += rect.width * rect.height;
-      }
-    });
-    
-    return Math.min(contentArea / totalArea, 1);
-  }
-
-  private applyVerticalContentAdjustments(height: number): number {
-    // Minimal adjustments - let actual content size drive the height
-    const hasDropdown = document.querySelector('[role="menu"], [class*="dropdown"]') !== null;
-    
-    let adjustedHeight = height;
-    
-    // Only add space for dropdown when actually open
-    if (hasDropdown) {
-      adjustedHeight += 30; // Minimal extra space for dropdown
-    }
-    
-    // No other adjustments - use actual content height
-    return adjustedHeight;
   }
 
   public enable() {
@@ -281,11 +218,11 @@ class WindowResizeManager {
   }
 
   public enableSmoothResize() {
-    this.smoothResizeEnabled = true;
+    // This method is no longer used, but keeping it for now
   }
 
   public disableSmoothResize() {
-    this.smoothResizeEnabled = false;
+    // This method is no longer used, but keeping it for now
   }
 
   public setContentBounds(bounds: Partial<ContentBounds>) {
@@ -293,8 +230,8 @@ class WindowResizeManager {
     console.log('Content bounds updated:', this.contentBounds);
   }
 
-  public setPadding(x: number, y: number) {
-    this.padding = { x, y };
+  public setPadding(_x: number, _y: number) {
+    // This method is no longer used, but keeping it for now
   }
 
   public getCurrentSize(): ContentSize | null {

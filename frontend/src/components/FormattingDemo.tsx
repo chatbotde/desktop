@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Code, FileText, Terminal, Database, Sparkles } from 'lucide-react'
-import { FormattedOutput } from './FormattedOutput'
 import { SmartMessage } from './SmartMessage'
 
 const demoContent = {
