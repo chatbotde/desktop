@@ -10,6 +10,7 @@
         const uploadButton = document.getElementById('uploadButton');
         const captureButton = document.getElementById('captureButton');
         const lightingButton = document.getElementById('lightingButton');
+        const themeToggleButton = document.getElementById('themeToggleButton');
         const hideShowButton = document.getElementById('hideShowButton');
         const toggleMainWindowButton = document.getElementById('toggleMainWindowButton');
         const promptInput = document.querySelector('.prompt-input');
@@ -37,6 +38,7 @@
         let isTransparent = false;
         let isRecording = false;
         let currentRecordingType = null;
+        let currentTheme = 'dark'; // 'dark' or 'paper'
         // let recording = false; // Future voice recording state
         
         // Drag state
@@ -50,6 +52,37 @@
         // Media attachments state (enhanced)
         let mediaAttachments = [];
         let recordingStartTime = 0;
+
+        // === THEME MANAGEMENT ===
+        
+        // Toggle between dark and paper themes
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'paper' : 'dark';
+            
+            if (currentTheme === 'paper') {
+                document.documentElement.setAttribute('data-theme', 'paper');
+                themeToggleButton.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                `;
+                themeToggleButton.title = 'Switch to Dark Theme';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggleButton.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                `;
+                themeToggleButton.title = 'Switch to Paper Theme';
+            }
+            
+            // Save theme preference to localStorage
+            localStorage.setItem('chatInputTheme', currentTheme);
+        }
 
         // === IMAGE ATTACHMENT FUNCTIONS ===
         
@@ -1502,6 +1535,7 @@
         uploadButton.addEventListener('click', handleUpload);
         captureButton.addEventListener('click', handleCapture);
         lightingButton.addEventListener('click', toggleLighting);
+        themeToggleButton.addEventListener('click', toggleTheme);
         hideShowButton.addEventListener('click', toggleWindowVisibility);
         toggleMainWindowButton.addEventListener('click', toggleMainWindow);
         clearAllButton.addEventListener('click', clearAllAttachments);
@@ -1589,6 +1623,20 @@
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            // Initialize theme
+            const savedTheme = localStorage.getItem('chatInputTheme');
+            if (savedTheme === 'paper') {
+                currentTheme = 'paper';
+                document.documentElement.setAttribute('data-theme', 'paper');
+                themeToggleButton.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                `;
+                themeToggleButton.title = 'Switch to Dark Theme';
+            }
+            
             messageInput.focus();
             autoResize();
             updateSendButton();
@@ -1612,6 +1660,13 @@
             if (e.key === 'm' && e.ctrlKey) {
                 e.preventDefault();
                 toggleMainWindow();
+                return;
+            }
+
+            // Global shortcut for theme toggle
+            if (e.key === 't' && e.ctrlKey) {
+                e.preventDefault();
+                toggleTheme();
                 return;
             }
 
