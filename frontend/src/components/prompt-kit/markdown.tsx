@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import 'katex/dist/katex.min.css'
 import { InlineMath, BlockMath } from 'react-katex'
+import { codeToHtml } from 'shiki'
 import '../../styles/syntax-highlighting.css'
 import type { JSX } from 'react/jsx-runtime'
 
@@ -20,6 +21,31 @@ interface CodeBlockProps {
 
 function CodeBlock({ code, language, className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
+  const [html, setHtml] = useState('')
+
+  useEffect(() => {
+    const highlight = async () => {
+      try {
+        // Default to plaintext if no language is specified
+        const lang = language || 'plaintext'
+        
+        // Generate highlighted HTML using Shiki
+        const highlighted = await codeToHtml(code, {
+          lang,
+          theme: 'github-dark'
+        })
+        setHtml(highlighted)
+      } catch (error) {
+        console.error('Error highlighting code:', error)
+        // Fallback to plain code display
+        setHtml(`<pre><code>${code}</code></pre>`)
+      }
+    }
+
+    if (code) {
+      highlight()
+    }
+  }, [code, language])
 
   const handleCopy = async () => {
     try {
@@ -52,13 +78,15 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
         </Button>
       </div>
 
-      {/* Code content */}
+      {/* Code content with Shiki highlighting */}
       <div className="code-content">
-        <pre>
-          <code className={`${language ? `language-${language}` : ''}`}>
-            {code}
-          </code>
-        </pre>
+        {html ? (
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <pre>
+            <code>{code}</code>
+          </pre>
+        )}
       </div>
     </div>
   )
@@ -66,7 +94,7 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
 
 function InlineCode({ children }: { children: string }) {
   return (
-    <code className="bg-gray-800/60 text-blue-300 px-2 py-1 rounded text-sm font-mono border border-gray-600/30">
+    <code className="text-blue-300 text-sm font-mono">
       {children}
     </code>
   )

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Copy, Check, Code, FileText, Terminal, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Markdown } from './prompt-kit/markdown'
+import { CodeEditor } from './animate-ui/code-editor'
 import '../styles/syntax-highlighting.css'
 
 interface FormattedOutputProps {
@@ -71,40 +72,12 @@ export function FormattedOutput({
       case 'code':
       case 'json':
         return (
-          <div className="code-block-enhanced">
-            {/* Header */}
-            <div className="code-header">
-              <div className="flex items-center gap-2">
-                {getIcon()}
-                <span className="font-mono text-xs uppercase tracking-wide text-gray-300">
-                  {title || getTypeLabel()}
-                </span>
-              </div>
-              {showCopy && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all duration-200"
-                  onClick={handleCopy}
-                >
-                  {copied ? (
-                    <Check className="w-3 h-3 text-green-400" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </Button>
-              )}
-            </div>
-            
-            {/* Content */}
-            <div className="code-content">
-              <pre>
-                <code className={`${language ? `language-${language}` : ''}`}>
-                  {type === 'json' ? JSON.stringify(JSON.parse(content), null, 2) : content}
-                </code>
-              </pre>
-            </div>
-          </div>
+          <CodeEditor
+            code={type === 'json' ? JSON.stringify(JSON.parse(content), null, 2) : content}
+            language={language || (type === 'json' ? 'json' : 'typescript')}
+            fileName={title}
+            showLineNumbers={true}
+          />
         )
       
       case 'terminal':
