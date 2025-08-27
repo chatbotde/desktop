@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { FormattedOutput, detectContentType, detectLanguage } from './FormattedOutput'
 import { MessageContent } from './prompt-kit/message'
 
-interface SmartMessageProps {
+interface FormattedMessageProps {
   content: string
   role: 'user' | 'assistant'
   className?: string
   onCopy?: (text: string) => void
 }
 
-export function SmartMessage({ content, role, className, onCopy }: SmartMessageProps) {
+export function FormattedMessage({ content, role, className, onCopy }: FormattedMessageProps) {
   const [copied, setCopied] = useState(false)
+  const [showRaw, setShowRaw] = useState(false)
 
   const handleCopy = async () => {
     try {
@@ -25,8 +27,24 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
     }
   }
 
+  // Detect if content should be formatted specially
+  const contentType = detectContentType(content)
+  const language = detectLanguage(content)
+  const shouldFormat = role === 'assistant' && (contentType !== 'text' || content.includes('```'))
+
   const renderContent = () => {
-    // Always render as MessageContent for separation
+    if (shouldFormat && !showRaw) {
+      return (
+        <FormattedOutput
+          content={content}
+          type={contentType}
+          language={language}
+          showCopy={false} // We handle copy at message level
+        />
+      )
+    }
+
+    // Fallback to regular message content
     return (
       <MessageContent
         markdown={role === 'assistant'}
@@ -72,6 +90,23 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
             <Copy className="w-3.5 h-3.5" />
           )}
         </Button>
+
+        {/* Toggle raw view for formatted content */}
+        {shouldFormat && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 backdrop-blur-sm rounded-full bg-black/30"
+            onClick={() => setShowRaw(!showRaw)}
+            title={showRaw ? "Show formatted" : "Show raw"}
+          >
+            {showRaw ? (
+              <Eye className="w-3.5 h-3.5" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5" />
+            )}
+          </Button>
+        )}
       </div>
     </div>
   )
