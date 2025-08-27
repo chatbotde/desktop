@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Copy, Check, Code, FileText, Terminal, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Markdown } from './prompt-kit/markdown'
 import { CodeEditor } from './animate-ui/code-editor'
@@ -12,7 +9,6 @@ interface FormattedOutputProps {
   language?: string
   title?: string
   className?: string
-  showCopy?: boolean
 }
 
 export function FormattedOutput({ 
@@ -20,50 +16,8 @@ export function FormattedOutput({
   type = 'markdown', 
   language, 
   title,
-  className,
-  showCopy = true 
+  className
 }: FormattedOutputProps) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy content:', err)
-    }
-  }
-
-  const getIcon = () => {
-    switch (type) {
-      case 'code':
-        return <Code className="w-4 h-4" />
-      case 'json':
-        return <Database className="w-4 h-4" />
-      case 'terminal':
-        return <Terminal className="w-4 h-4" />
-      default:
-        return <FileText className="w-4 h-4" />
-    }
-  }
-
-  const getTypeLabel = () => {
-    if (language) return language.toUpperCase()
-    switch (type) {
-      case 'code':
-        return 'CODE'
-      case 'json':
-        return 'JSON'
-      case 'terminal':
-        return 'TERMINAL'
-      case 'markdown':
-        return 'MARKDOWN'
-      default:
-        return 'TEXT'
-    }
-  }
-
   const renderContent = () => {
     switch (type) {
       case 'markdown':
@@ -86,7 +40,6 @@ export function FormattedOutput({
             {/* Terminal Header */}
             <div className="terminal-header">
               <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-gray-300" />
                 <span className="font-mono text-xs uppercase tracking-wide text-gray-300">
                   {title || 'TERMINAL'}
                 </span>

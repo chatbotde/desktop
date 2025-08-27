@@ -664,16 +664,17 @@
         .prompt-input:not(.expanded) {
             background: #333333;
             border-color: transparent;
-            max-width: 200px;
-            border-radius: 40px; /* <-- FIX: Reduced radius for a modern look */
+            max-width: 350px; /* Reduced from 200px for a more compact look */
+            border-radius: 30px; /* Reduced radius for a more compact look */
             padding: 0;
+            min-height: 36px; /* Set a minimum height for consistency */
         }
 
         /* Flexbox container: The key to horizontal alignment */
         .prompt-input:not(.expanded) .prompt-content {
             flex-direction: row;
             align-items: center;
-            padding: 2px; /* A little bit of outer padding */
+            padding: 0; /* Remove padding for a more compact look */
         }
 
         /* Text input area: Let it grow */
@@ -686,14 +687,15 @@
         .prompt-input:not(.expanded) #messageInput {
             /* <-- ALIGNMENT FIX: */
             min-height: initial; /* Remove the minimum height that caused extra space */
-            padding: 8px 10px 8px 12px; /* Balanced padding for vertical centering */
-            line-height: 1.4; /* Helps center the text cursor */
+            padding: 6px 8px 6px 10px; /* Reduced padding for a more compact look */
+            line-height: 1.2; /* Helps center the text cursor */
+            font-size: 14px; /* Slightly smaller font for compact view */
         }
 
         /* Button container: Remove extra spacing */
         .prompt-input:not(.expanded) .prompt-actions {
             margin-top: 0;
-            padding: 0;
+            padding: 0 4px 0 0; /* Minimal padding on the right for the send button */
         }
 
         /* Hide unwanted elements cleanly */
@@ -708,11 +710,18 @@
         }
 
         /* Style the send button to exactly match the target UI */
-        
+        .prompt-input:not(.expanded) .action-btn.primary {
+            width: 28px; /* Smaller button */
+            height: 28px; /* Smaller button */
+            min-width: 28px;
+            padding: 0;
+        }
 
         /* Style the send button's icon */
         .prompt-input:not(.expanded) .action-btn.primary svg {
             stroke: #333333;
+            width: 14px; /* Smaller icon */
+            height: 14px; /* Smaller icon */
         }
 
         /* Paper theme collapsed state */

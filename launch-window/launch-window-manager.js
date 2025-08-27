@@ -1,4 +1,4 @@
-const { BrowserWindow, globalShortcut, screen } = require('electron');
+const { BrowserWindow, globalShortcut, screen, powerMonitor, app } = require('electron');
 const path = require('path');
 
 class LaunchWindowManager {
@@ -8,14 +8,21 @@ class LaunchWindowManager {
     this.windowManager = null;
     this.shortcutManager = null;
     this.isMainWindowOpen = false;
-    this.contentProtectionEnabled = true; // Enable content protection by default with highest priority
+    this.contentProtectionEnabled = true; // Enable content protection by default
     
     // Memory optimization states
-    this.isInactive = false; // Start in active state for better user visibility
+    this.isInactive = false;
     this.inactiveTimer = null;
     this.hoverTimeout = null;
     this.memoryOptimizationEnabled = true;
     this.inactiveDelay = 3000; // 3 seconds delay before going inactive
+    
+    // Ultra-low memory mode
+    this.ultraLowMemoryMode = false;
+    
+    // Memory monitoring
+    this.memoryMonitoringInterval = null;
+    this.lastMemoryUsage = { rss: 0, heapUsed: 0 };
   }
 
   createLaunchWindow() {
@@ -55,24 +62,26 @@ class LaunchWindowManager {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
-      title: " ",
+      title: "",
       resizable: false,
       minimizable: false,
       maximizable: false,
       closable: false,
       focusable: false,
+      // Enable rounded corners
+      hasShadow: true,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
         enableRemoteModule: true,
-        webSecurity: false, // Disable web security for content protection
+        webSecurity: true, // Enable web security for normal operation
         allowRunningInsecureContent: false,
         experimentalFeatures: false,
-        preload: path.join(__dirname, 'launch-window-preload.js') // Add preload script for security
+        preload: path.join(__dirname, 'launch-window-preload.js')
       }
     });
 
-    // Enable content protection with highest priority immediately
+    // Apply content protection
     this.applyContentProtection();
 
     // Load the launch window HTML
@@ -107,22 +116,13 @@ class LaunchWindowManager {
         document.addEventListener('click', () => {
           require('electron').ipcRenderer.send('open-main-window');
         });
-        
-        // Setup hover events for memory optimization
-        document.addEventListener('mouseenter', () => {
-          require('electron').ipcRenderer.send('launch-window-hover-enter');
-        });
-        
-        document.addEventListener('mouseleave', () => {
-          require('electron').ipcRenderer.send('launch-window-hover-leave');
-        });
       `);
     });
 
-    // Keep window always on top and in position with higher priority than chat-input
+    // Keep window always on top and in position
     this.launchWindow.setAlwaysOnTop(true, 'screen-saver', 5);
     
-    // Platform-specific configurations for maximum always-on-top behavior
+    // Platform-specific configurations
     this.configurePlatformSpecificBehavior();
     
     // Setup event listeners for maintaining behavior
@@ -162,21 +162,21 @@ class LaunchWindowManager {
     if (!this.launchWindow) return;
 
     if (process.platform === "win32") {
-      // Windows: Stay above taskbar and system menus with maximum priority (higher than chat-input)
+      // Windows: Stay above taskbar and system menus
       this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
       this.launchWindow.setAlwaysOnTop(true, "floating", 5);
       
-      // Force the window to stay above all other windows including taskbar and chat-input
+      // Force the window to stay above all other windows
       setTimeout(() => {
         this.launchWindow.setAlwaysOnTop(false);
         this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
       }, 100);
     } else if (process.platform === "darwin") {
-      // macOS: Stay above dock and mission control with highest priority
+      // macOS: Stay above dock and mission control
       this.launchWindow.setAlwaysOnTop(true, "floating", 5);
       this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
     } else if (process.platform === "linux") {
-      // Linux: Stay above panels and system elements with highest priority
+      // Linux: Stay above panels and system elements
       this.launchWindow.setAlwaysOnTop(true, "pop-up-menu", 5);
       this.launchWindow.setAlwaysOnTop(true, "modal-panel", 5);
       this.launchWindow.setAlwaysOnTop(true, "floating", 5);
@@ -186,7 +186,7 @@ class LaunchWindowManager {
   setupEventListeners() {
     if (!this.launchWindow) return;
 
-    // Add event listener to maintain always-on-top behavior with highest priority
+    // Add event listener to maintain always-on-top behavior
     this.launchWindow.on('focus', () => {
       if (process.platform === "win32") {
         this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
@@ -206,14 +206,14 @@ class LaunchWindowManager {
       }, 50);
     });
 
-    // Setup periodic maintenance to ensure it stays above chat-input
+    // Setup periodic maintenance to ensure it stays above other windows
     this.setupPeriodicMaintenance();
   }
 
   setupPeriodicMaintenance() {
     if (!this.launchWindow) return;
 
-    // Periodic check to ensure window stays above all other windows including chat-input
+    // Periodic check to ensure window stays above all other windows
     const maintainAlwaysOnTop = () => {
       if (this.launchWindow && !this.launchWindow.isDestroyed() && this.launchWindow.isVisible()) {
         if (process.platform === "win32") {
@@ -224,7 +224,7 @@ class LaunchWindowManager {
       }
     };
 
-    // Check every 1.5 seconds to maintain position above all windows (more frequent than chat-input)
+    // Check every 1.5 seconds to maintain position
     const alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 1500);
     
     // Clean up interval when window is destroyed
@@ -318,7 +318,7 @@ class LaunchWindowManager {
 
   forceWindowAboveAll() {
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
-      // Force the launch window above all other windows including chat-input
+      // Force the launch window above all other windows
       this.launchWindow.setAlwaysOnTop(false);
       setTimeout(() => {
         if (process.platform === "win32") {
@@ -334,213 +334,38 @@ class LaunchWindowManager {
     }
   }
 
-  // Content Protection Methods (Highest Priority)
+  // Minimal content protection methods
   applyContentProtection() {
     if (!this.launchWindow || this.launchWindow.isDestroyed()) {
       return;
     }
 
     try {
-      // Primary protection: Prevent screen capture of window contents
+      // Basic protection: Prevent screen capture of window contents
       this.launchWindow.setContentProtection(this.contentProtectionEnabled);
       
-      // Enhanced protection: Make window visible on all workspaces/desktops
-      // This helps prevent desktop capture by making the window omnipresent
-      this.launchWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      // Remove window from all workspaces to prevent it from appearing in screen sharing
+      // This will make it only appear on the current workspace
+      this.launchWindow.setVisibleOnAllWorkspaces(false);
       
-      // Disable developer tools completely
-      this.launchWindow.webContents.closeDevTools();
-      this.launchWindow.webContents.on('devtools-opened', () => {
-        this.launchWindow.webContents.closeDevTools();
-      });
-
-      // Prevent right-click context menu
-      this.launchWindow.webContents.on('context-menu', (event) => {
-        event.preventDefault();
-      });
-
-      // Prevent keyboard shortcuts that could compromise security
-      this.launchWindow.webContents.on('before-input-event', (event, input) => {
-        // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+Shift+C
-        if (
-          input.key === 'F12' ||
-          (input.control && input.shift && (input.key === 'I' || input.key === 'J' || input.key === 'C')) ||
-          (input.control && input.key === 'U')
-        ) {
-          event.preventDefault();
-        }
-      });
-
-      // Block new window creation attempts
-      this.launchWindow.webContents.setWindowOpenHandler(() => {
-        return { action: 'deny' };
-      });
-
-      // Prevent navigation to external URLs
-      this.launchWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-        const allowedProtocols = ['file:', 'data:'];
-        const url = new URL(navigationUrl);
-        if (!allowedProtocols.includes(url.protocol)) {
-          event.preventDefault();
-        }
-      });
-
-      // Enhanced screen recording protection
-      this.applyEnhancedScreenRecordingProtection();
-
-      // Monitor and log content protection status
-      console.log(`Launch Window: Screen capture protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'} with HIGHEST PRIORITY and enhanced omnipresence`);
-      
+      console.log(`Launch Window: Content protection ${this.contentProtectionEnabled ? 'ENABLED' : 'DISABLED'}`);
     } catch (error) {
       console.error('Launch Window: Failed to apply content protection:', error);
-    }
-  }
-
-  // Enhanced protection against screen recording software and hardware
-  applyEnhancedScreenRecordingProtection() {
-    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
-
-    try {
-      // Disable hardware acceleration to prevent GPU-based capture
-      this.launchWindow.webContents.setBackgroundThrottling(false);
-      
-      // Set window to be invisible to screen recording software
-      this.launchWindow.setOpacity(0.999); // Nearly invisible but still functional
-      
-      // Apply additional security headers
-      this.launchWindow.webContents.session.webRequest.onBeforeSendHeaders(
-        { urls: ['<all_urls>'] },
-        (details, callback) => {
-          // Add headers that may help prevent capture
-          details.requestHeaders['X-Frame-Options'] = 'DENY';
-          details.requestHeaders['X-Content-Type-Options'] = 'nosniff';
-          callback({ requestHeaders: details.requestHeaders });
-        }
-      );
-
-      // Block clipboard access to prevent content copying
-      this.launchWindow.webContents.on('select-client-certificate', (event) => {
-        event.preventDefault();
-      });
-
-      // Prevent drag and drop operations
-      this.launchWindow.webContents.on('will-navigate', (event) => {
-        event.preventDefault();
-      });
-
-      // Block file access
-      this.launchWindow.webContents.on('will-navigate', (event) => {
-        event.preventDefault();
-      });
-
-      // Additional platform-specific protections
-      this.applyPlatformSpecificRecordingProtection();
-
-    } catch (error) {
-      console.error('Launch Window: Failed to apply enhanced screen recording protection:', error);
-    }
-  }
-
-  // Platform-specific screen recording protection
-  applyPlatformSpecificRecordingProtection() {
-    if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
-
-    try {
-      if (process.platform === "win32") {
-        // Windows-specific protections
-        // Set window to be invisible to screen capture tools
-        this.launchWindow.setOpacity(0.999);
-        
-        // Use layered window technique for additional protection
-        this.launchWindow.setAlwaysOnTop(true, "screen-saver", 5);
-        
-        // Block Windows-specific capture methods
-        this.launchWindow.webContents.on('dom-ready', () => {
-          this.launchWindow.webContents.executeJavaScript(`
-            // Disable selection and copying
-            document.addEventListener('selectstart', (e) => e.preventDefault());
-            document.addEventListener('copy', (e) => e.preventDefault());
-            document.addEventListener('cut', (e) => e.preventDefault());
-            document.addEventListener('paste', (e) => e.preventDefault());
-            
-            // Disable right-click
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-            
-            // Disable drag and drop
-            document.addEventListener('dragstart', (e) => e.preventDefault());
-            document.addEventListener('drop', (e) => e.preventDefault());
-            
-            // Make text unselectable
-            document.body.style.userSelect = 'none';
-            document.body.style.webkitUserSelect = 'none';
-            document.body.style.mozUserSelect = 'none';
-            document.body.style.msUserSelect = 'none';
-          `);
-        });
-
-      } else if (process.platform === "darwin") {
-        // macOS-specific protections
-        this.launchWindow.setOpacity(0.999);
-        
-        // Block macOS screen recording permissions
-        this.launchWindow.webContents.on('dom-ready', () => {
-          this.launchWindow.webContents.executeJavaScript(`
-            // Disable selection and copying
-            document.addEventListener('selectstart', (e) => e.preventDefault());
-            document.addEventListener('copy', (e) => e.preventDefault());
-            document.addEventListener('cut', (e) => e.preventDefault());
-            document.addEventListener('paste', (e) => e.preventDefault());
-            
-            // Disable right-click
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-            
-            // Make text unselectable
-            document.body.style.userSelect = 'none';
-            document.body.style.webkitUserSelect = 'none';
-          `);
-        });
-
-      } else if (process.platform === "linux") {
-        // Linux-specific protections
-        this.launchWindow.setOpacity(0.999);
-        
-        // Block Linux screen recording tools
-        this.launchWindow.webContents.on('dom-ready', () => {
-          this.launchWindow.webContents.executeJavaScript(`
-            // Disable selection and copying
-            document.addEventListener('selectstart', (e) => e.preventDefault());
-            document.addEventListener('copy', (e) => e.preventDefault());
-            document.addEventListener('cut', (e) => e.preventDefault());
-            document.addEventListener('paste', (e) => e.preventDefault());
-            
-            // Disable right-click
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-            
-            // Make text unselectable
-            document.body.style.userSelect = 'none';
-            document.body.style.webkitUserSelect = 'none';
-          `);
-        });
-      }
-
-    } catch (error) {
-      console.error('Launch Window: Failed to apply platform-specific recording protection:', error);
     }
   }
 
   enableContentProtection() {
     this.contentProtectionEnabled = true;
     this.applyContentProtection();
-    console.log('Launch Window: Screen capture protection ENABLED with highest priority and enhanced omnipresence');
+    console.log('Launch Window: Content protection ENABLED');
   }
 
   disableContentProtection() {
     this.contentProtectionEnabled = false;
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
       this.launchWindow.setContentProtection(false);
-      // Note: setVisibleOnAllWorkspaces remains active for consistency
     }
-    console.log('Launch Window: Screen capture protection DISABLED (omnipresence remains active)');
+    console.log('Launch Window: Content protection DISABLED');
   }
 
   isContentProtectionEnabled() {
@@ -556,39 +381,42 @@ class LaunchWindowManager {
     return this.contentProtectionEnabled;
   }
 
-  // Enhanced screen recording protection toggle
-  toggleEnhancedScreenRecordingProtection() {
-    if (this.contentProtectionEnabled) {
-      this.applyEnhancedScreenRecordingProtection();
-      console.log('Launch Window: Enhanced screen recording protection ENABLED');
-    } else {
-      console.log('Launch Window: Enhanced screen recording protection DISABLED (requires content protection to be enabled)');
-    }
-  }
-
-  // Force refresh all protection measures
-  refreshAllProtection() {
-    this.applyContentProtection();
-    if (this.contentProtectionEnabled) {
-      this.applyEnhancedScreenRecordingProtection();
-      console.log('Launch Window: All protection measures refreshed');
-    }
-  }
-
   // Memory Optimization Methods
   setupMemoryOptimization() {
     if (!this.memoryOptimizationEnabled || !this.launchWindow) return;
 
     console.log('Launch Window: Setting up memory optimization');
     
-    // Setup hover detection
-    this.launchWindow.on('mouse-enter', () => {
-      this.onHoverEnter();
+    // Monitor system power state changes
+    powerMonitor.on('suspend', () => {
+      console.log('Launch Window: System suspending - enabling ultra-low memory mode');
+      this.enableUltraLowMemoryMode();
     });
     
-    this.launchWindow.on('mouse-leave', () => {
-      this.onHoverLeave();
+    powerMonitor.on('resume', () => {
+      console.log('Launch Window: System resuming - disabling ultra-low memory mode');
+      this.disableUltraLowMemoryMode();
     });
+    
+    // Monitor system memory pressure (available in newer Electron versions)
+    try {
+      if (process.platform !== 'linux' && powerMonitor.on) {
+        powerMonitor.on('on-ac', () => {
+          console.log('Launch Window: System on AC power - disabling ultra-low memory mode');
+          this.disableUltraLowMemoryMode();
+        });
+        
+        powerMonitor.on('on-battery', () => {
+          console.log('Launch Window: System on battery - considering ultra-low memory mode');
+          // Could enable based on battery level if needed
+        });
+      }
+    } catch (error) {
+      console.log('Launch Window: Power monitoring not available on this platform');
+    }
+    
+    // Start memory monitoring
+    this.startMemoryMonitoring();
     
     // Start in active state for better user visibility
     setTimeout(() => {
@@ -601,42 +429,43 @@ class LaunchWindowManager {
     }, 1000);
   }
 
-  onHoverEnter() {
-    if (!this.memoryOptimizationEnabled) return;
-    
-    console.log('Launch Window: Hover detected - activating');
-    
-    // Clear any pending inactive timer
-    if (this.inactiveTimer) {
-      clearTimeout(this.inactiveTimer);
-      this.inactiveTimer = null;
+  startMemoryMonitoring() {
+    // Clear any existing interval
+    if (this.memoryMonitoringInterval) {
+      clearInterval(this.memoryMonitoringInterval);
     }
     
-    // Clear hover timeout
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-    }
-    
-    // Activate immediately on hover
-    this.setActiveState();
+    // Check memory usage every 30 seconds
+    this.memoryMonitoringInterval = setInterval(() => {
+      try {
+        const memoryUsage = process.memoryUsage();
+        const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
+        const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+        
+        // Log memory usage
+        console.log(`Launch Window Memory Usage: ${rssMB}MB RSS, ${heapUsedMB}MB Heap`);
+        
+        // Store for comparison
+        this.lastMemoryUsage = { rss: rssMB, heapUsed: heapUsedMB };
+        
+        // If memory usage is too high, enable more aggressive optimization
+        if (rssMB > 150 && !this.ultraLowMemoryMode) {
+          console.log('Launch Window: High memory usage detected - enabling ultra-low memory mode');
+          this.enableUltraLowMemoryMode();
+        } else if (rssMB < 100 && this.ultraLowMemoryMode) {
+          console.log('Launch Window: Memory usage reduced - disabling ultra-low memory mode');
+          this.disableUltraLowMemoryMode();
+        }
+      } catch (error) {
+        console.error('Launch Window: Error monitoring memory:', error);
+      }
+    }, 30000); // Check every 30 seconds
   }
 
-  onHoverLeave() {
-    if (!this.memoryOptimizationEnabled) return;
-    
-    try {
-      console.log('Launch Window: Hover ended - scheduling deactivation');
-      
-      // Set timer to go inactive after delay
-      this.hoverTimeout = setTimeout(() => {
-        try {
-          this.scheduleInactiveState();
-        } catch (error) {
-          console.error('Launch Window: Error in hover timeout callback:', error);
-        }
-      }, 500); // Short delay to prevent flickering
-    } catch (error) {
-      console.error('Launch Window: Error handling hover leave:', error);
+  stopMemoryMonitoring() {
+    if (this.memoryMonitoringInterval) {
+      clearInterval(this.memoryMonitoringInterval);
+      this.memoryMonitoringInterval = null;
     }
   }
 
@@ -663,6 +492,39 @@ class LaunchWindowManager {
     }
   }
 
+  setInactiveState() {
+    if (!this.launchWindow || this.launchWindow.isDestroyed() || this.isInactive) return;
+    
+    try {
+      console.log('Launch Window: Switching to INACTIVE state for memory optimization');
+      this.isInactive = true;
+    
+    // Position to show only 12px of the edge when inactive
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    const windowWidth = 80;
+    const windowHeight = 200;
+    const x = screenWidth - 12; // Show only 12px of the edge when inactive
+    const y = (screenHeight - windowHeight) / 4;
+    
+    this.launchWindow.setSize(windowWidth, windowHeight);
+    this.launchWindow.setPosition(x, y);
+    
+    // Apply visual inactive state
+    this.launchWindow.webContents.executeJavaScript(`
+      document.body.classList.add('inactive');
+      document.body.classList.remove('active');
+    `);
+    
+    // Reduce resource usage
+    this.optimizeForInactiveState();
+    
+    } catch (error) {
+      console.error('Launch Window: Error setting inactive state:', error);
+      this.isInactive = false; // Reset state on error
+    }
+  }
+
   setActiveState() {
     if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
     
@@ -670,12 +532,12 @@ class LaunchWindowManager {
       console.log('Launch Window: Switching to ACTIVE state');
       this.isInactive = false;
     
-    // Set window size for better visibility
+    // Position to show only 15px of the edge when active
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
     const windowWidth = 80;
     const windowHeight = 200;
-    const x = screenWidth - 15; // Show only 15px of the edge
+    const x = screenWidth - 15; // Show only 15px of the edge when active
     const y = (screenHeight - windowHeight) / 4;
     
     this.launchWindow.setSize(windowWidth, windowHeight);
@@ -701,53 +563,20 @@ class LaunchWindowManager {
     }
   }
 
-  setInactiveState() {
-    if (!this.launchWindow || this.launchWindow.isDestroyed() || this.isInactive) return;
-    
-    try {
-      console.log('Launch Window: Switching to INACTIVE state for memory optimization');
-      this.isInactive = true;
-    
-    // Reduce window size slightly but keep edge visible
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    const windowWidth = 60;
-    const windowHeight = 180;
-    const x = screenWidth - 12; // Show only 12px of the edge when inactive
-    const y = (screenHeight - windowHeight) / 4;
-    
-    this.launchWindow.setSize(windowWidth, windowHeight);
-    this.launchWindow.setPosition(x, y);
-    
-    // Apply visual inactive state
-    this.launchWindow.webContents.executeJavaScript(`
-      document.body.classList.add('inactive');
-      document.body.classList.remove('active');
-    `);
-    
-    // Reduce resource usage
-    this.optimizeForInactiveState();
-    
-    } catch (error) {
-      console.error('Launch Window: Error setting inactive state:', error);
-      this.isInactive = false; // Reset state on error
-    }
-  }
-
   optimizeForInactiveState() {
     if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
     
     try {
       // Reduce frame rate to save CPU
-      this.launchWindow.webContents.setFrameRate(1); // 1 FPS when inactive
+      this.launchWindow.webContents.setFrameRate(10); // 10 FPS when inactive (higher than before)
       
       // Throttle background processing
       this.launchWindow.webContents.setBackgroundThrottling(true);
       
       // Reduce opacity slightly to indicate inactive state
-      this.launchWindow.setOpacity(0.8);
+      this.launchWindow.setOpacity(0.9);
       
-      console.log('Launch Window: Optimized for inactive state - minimal resource usage');
+      console.log('Launch Window: Optimized for inactive state - reduced resource usage');
     } catch (error) {
       console.error('Launch Window: Failed to optimize for inactive state:', error);
     }
@@ -764,7 +593,7 @@ class LaunchWindowManager {
       this.launchWindow.webContents.setBackgroundThrottling(false);
       
       // Restore full opacity
-      this.launchWindow.setOpacity(0.999);
+      this.launchWindow.setOpacity(1.0);
       
       console.log('Launch Window: Optimized for active state - full responsiveness');
     } catch (error) {
@@ -851,13 +680,134 @@ class LaunchWindowManager {
     }
   }
 
+  enableUltraLowMemoryMode() {
+    if (this.ultraLowMemoryMode) return;
+    
+    this.ultraLowMemoryMode = true;
+    console.log('Launch Window: Enabling ultra-low memory mode');
+    
+    if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+      try {
+        // Hide the window completely
+        this.launchWindow.hide();
+        
+        // Reduce process priority
+        this.launchWindow.webContents.setAudioMuted(true);
+        
+        // Clear session caches
+        this.launchWindow.webContents.session.clearCache().then(() => {
+          console.log('Launch Window: Cache cleared in ultra-low memory mode');
+        });
+        
+        // Set minimal frame rate
+        this.launchWindow.webContents.setFrameRate(0);
+      } catch (error) {
+        console.error('Launch Window: Error enabling ultra-low memory mode:', error);
+      }
+    }
+  }
+
+  disableUltraLowMemoryMode() {
+    if (!this.ultraLowMemoryMode) return;
+    
+    this.ultraLowMemoryMode = false;
+    console.log('Launch Window: Disabling ultra-low memory mode');
+    
+    if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+      try {
+        // Show the window again
+        this.launchWindow.show();
+        
+        // Reload the content
+        this.launchWindow.loadFile(path.join(__dirname, 'launch-window.html'));
+        
+        // Restore normal operation
+        this.setActiveState();
+      } catch (error) {
+        console.error('Launch Window: Error disabling ultra-low memory mode:', error);
+        
+        // Fallback: recreate the window
+        try {
+          this.launchWindow.destroy();
+          this.launchWindow = null;
+          this.createLaunchWindow();
+        } catch (recreateError) {
+          console.error('Launch Window: Error recreating window:', recreateError);
+        }
+      }
+    }
+  }
+
+  // Enhanced method to get detailed memory status
   getMemoryOptimizationStatus() {
+    const memoryUsage = process.memoryUsage();
+    const rssMB = Math.round(memoryUsage.rss / 1024 / 1024);
+    const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    
     return {
       enabled: this.memoryOptimizationEnabled,
       isInactive: this.isInactive,
       hasInactiveTimer: !!this.inactiveTimer,
-      hasHoverTimeout: !!this.hoverTimeout
+      hasHoverTimeout: !!this.hoverTimeout,
+      ultraLowMemoryMode: this.ultraLowMemoryMode,
+      currentMemoryUsage: {
+        rss: rssMB,
+        heapUsed: heapUsedMB,
+        external: Math.round(memoryUsage.external / 1024 / 1024)
+      },
+      lastMemoryUsage: this.lastMemoryUsage
     };
+  }
+
+  // NEW: Manual memory cleanup method
+  async performMemoryCleanup() {
+    try {
+      console.log('Launch Window: Performing manual memory cleanup');
+      
+      // Clear session caches
+      if (this.launchWindow && !this.launchWindow.isDestroyed()) {
+        await this.launchWindow.webContents.session.clearCache();
+        await this.launchWindow.webContents.session.clearStorageData();
+      }
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        console.log('Launch Window: Forcing garbage collection');
+        global.gc();
+      }
+      
+      // Get memory status after cleanup
+      const status = this.getMemoryOptimizationStatus();
+      console.log('Launch Window: Memory after cleanup:', status.currentMemoryUsage);
+      
+      return status.currentMemoryUsage;
+    } catch (error) {
+      console.error('Launch Window: Error during memory cleanup:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Adjust optimization based on current memory usage
+  adjustOptimizationLevel() {
+    try {
+      const status = this.getMemoryOptimizationStatus();
+      const currentRSS = status.currentMemoryUsage.rss;
+      
+      console.log(`Launch Window: Adjusting optimization based on ${currentRSS}MB usage`);
+      
+      if (currentRSS > 150 && !this.ultraLowMemoryMode) {
+        console.log('Launch Window: Enabling ultra-low memory mode due to high usage');
+        this.enableUltraLowMemoryMode();
+      } else if (currentRSS > 100 && currentRSS <= 150 && !this.isInactive) {
+        console.log('Launch Window: Enabling inactive mode due to moderate usage');
+        this.setInactiveState();
+      } else if (currentRSS <= 100 && this.ultraLowMemoryMode) {
+        console.log('Launch Window: Disabling ultra-low memory mode due to low usage');
+        this.disableUltraLowMemoryMode();
+      }
+    } catch (error) {
+      console.error('Launch Window: Error adjusting optimization level:', error);
+    }
   }
 }
 

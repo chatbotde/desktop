@@ -127,7 +127,7 @@
                         element.remove();
                         updateAttachmentsVisibility();
                         adjustWindowHeight();
-                    }, 200);
+                    }, 150);
                 } else {
                     updateAttachmentsVisibility();
                     adjustWindowHeight();

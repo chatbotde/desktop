@@ -67,7 +67,7 @@ class WindowManager {
       transparent: theme === "transparent",
       hasShadow: false,
       alwaysOnTop: true,
-      title: ' ',
+      title: '',
       skipTaskbar: true,
       hiddenInMissionControl: true,
       roundedCorners: true,

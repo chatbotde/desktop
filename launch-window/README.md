@@ -6,19 +6,20 @@ The launch window is a persistent launcher for the Buddy application that provid
 
 ### Visual Design
 - **Tablet Shape**: Small, vertical window with rounded corners
-- **Adaptive Sizing**: 15x150px (inactive) to 20x200px (active) for memory optimization
+- **Adaptive Sizing**: 12x200px (inactive) to 15x200px (active) for memory optimization
 - **Positioning**: Half outside the screen on the right edge for easy access
-- **Styling**: Gradient background with hover effects and glow
+- **Styling**: Gradient background with minimal effects
 - **Always on Top**: Stays visible above other applications
 - **State-Based Appearance**: Visual feedback for inactive/active states
 
 ### Functionality
 - **Click to Launch**: Click anywhere on the launch window to open the main application
 - **Persistent**: Remains open even when the main window is closed
-- **Hover Effects**: Interactive visual feedback when hovering
 - **Global Shortcut**: `Ctrl+Alt+Y` to close the entire application
 - **Auto-Startup**: Automatically starts with your system on boot/login
 - **Memory Optimization**: Intelligent resource management with inactive/active states
+- **Ultra-Low Memory Mode**: Automatic switching to minimal resource usage under memory pressure
+- **Memory Monitoring**: Continuous monitoring and automatic optimization based on system resources
 
 ### New Features (v2.0)
 
@@ -29,11 +30,15 @@ The launch window is a persistent launcher for the Buddy application that provid
 - **User Control**: Can be enabled/disabled through system settings
 
 #### Memory Optimization
-- **Inactive State**: Minimal resource usage when not being used
-- **Active State**: Full responsiveness when user interacts
-- **Smart Transitions**: Automatic state changes based on hover detection
-- **Resource Savings**: Up to 98% CPU reduction in inactive state
+- **Inactive State**: Minimal resource usage when not being used (12px visible)
+- **Active State**: Full responsiveness when user interacts (15px visible)
+- **Resource Savings**: Reduced CPU and memory usage in inactive state
 - **Battery Friendly**: Reduced power consumption on mobile devices
+- **Ultra-Low Memory Mode**: Automatic switching to minimal resource usage when system memory is low
+- **Memory Monitoring**: Continuous monitoring with automatic optimization adjustments
+- **Manual Cleanup**: API for manual memory cleanup when needed
+- **No Animations**: Simplified implementation without hover effects or animations
+- **Rounded Corners**: Left corners are rounded for a polished appearance
 
 ### Behavior
 - **Independent Shortcuts**: Main window shortcuts are managed separately from launch window shortcuts
@@ -69,6 +74,7 @@ The launch window is a persistent launcher for the Buddy application that provid
 - Closable: No (via normal controls)
 - Memory Optimized: Yes (inactive/active states)
 - Auto-Startup: Yes (system integration)
+- Rounded Corners: Yes (left corners rounded)
 
 ## API Reference
 
@@ -106,6 +112,16 @@ const status = launchWindowManager.getMemoryOptimizationStatus();
 // Manual state control (usually automatic)
 launchWindowManager.setActiveState();
 launchWindowManager.setInactiveState();
+
+// NEW: Ultra-low memory mode
+launchWindowManager.enableUltraLowMemoryMode();
+launchWindowManager.disableUltraLowMemoryMode();
+
+// NEW: Manual memory cleanup
+await launchWindowManager.performMemoryCleanup();
+
+// NEW: Adjust optimization based on current usage
+launchWindowManager.adjustOptimizationLevel();
 ```
 
 ### IPC API (from renderer process)
@@ -118,17 +134,42 @@ window.launchWindowAPI.getContentProtection();
 window.launchWindowAPI.toggleMemoryOptimization();
 window.launchWindowAPI.getMemoryStatus();
 
+// NEW: Enhanced memory management
+window.launchWindowAPI.performMemoryCleanup();
+window.launchWindowAPI.adjustOptimizationLevel();
+
 // Window control
 window.launchWindowAPI.openMainWindow();
+```
+
+### Memory Status Object
+```javascript
+{
+  enabled: boolean,              // Memory optimization enabled
+  isInactive: boolean,           // Currently in inactive state
+  hasInactiveTimer: boolean,     // Timer set to go inactive
+  hasHoverTimeout: boolean,      // Hover delay timer active (always false now)
+  ultraLowMemoryMode: boolean,   // Ultra-low memory mode active
+  currentMemoryUsage: {          // Current memory usage in MB
+    rss: number,                 // Resident Set Size
+    heapUsed: number,            // Heap memory used
+    external: number             // External memory
+  },
+  lastMemoryUsage: {             // Previous memory usage measurement
+    rss: number,
+    heapUsed: number
+  }
+}
 ```
 
 ## Configuration
 
 ### Memory Optimization Settings
-- **Inactive Delay**: 3000ms (time before going inactive after hover ends)
-- **Hover Delay**: 500ms (prevents flickering on quick mouse movements)
-- **Frame Rate**: 1 FPS (inactive) vs 60 FPS (active)
-- **Window Size**: 15x150px (inactive) vs 20x200px (active)
+- **Inactive Position**: 12px visible on right edge
+- **Active Position**: 15px visible on right edge
+- **Window Size**: 80x200px
+- **Memory Monitoring**: Every 30 seconds
+- **Ultra-Low Memory Threshold**: 150MB RSS
 
 ### Auto-Startup Behavior
 - **Startup Flag**: `--startup` added to command line when launched by system

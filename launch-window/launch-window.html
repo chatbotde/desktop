@@ -16,108 +16,56 @@
             width: 100%;
             height: 100vh;
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            /* Minimal backdrop filter */
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: flex-end; /* Align content to the right edge */
+            justify-content: flex-end;
             position: absolute;
             left: 0;
             overflow: hidden;
+            /* Adding rounded corners */
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 15px 0 0 15px; /* Round only left corners */
-            transition: all 0.3s ease;
             color: white;
             font-family: system-ui, -apple-system, sans-serif;
-            padding-right: 5px; /* Small padding from right edge */
+            padding-right: 5px;
         }
 
+        /* Simplified hover - no animations */
         body:hover {
             background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transform: translateX(-40px); /* Expand leftward on hover */
-            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+            /* No expansion or complex effects */
         }
 
-        /* Inactive state - still visible but slightly smaller */
+        /* Inactive state - minimal resource usage */
         body.inactive {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            opacity: 0.9;
-            transform: scale(0.98); /* Very subtle scale reduction */
-            transition: all 0.5s ease;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(1px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.7;
+            /* No scaling or transitions */
         }
 
-        /* Active state - full visibility */
+        /* Active state */
         body.active {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             opacity: 1;
-            transform: scale(1);
-            transition: all 0.3s ease;
+            /* No scaling or transitions */
         }
 
-        /* Active state hover */
-        body.active:hover {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transform: translateX(-40px); /* Expand leftward on hover */
-            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
-        }
+        
 
-        /* Inactive state hover - activation preview */
-        body.inactive:hover {
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            opacity: 1;
-            transform: translateX(-35px); /* Expand leftward slightly less when inactive */
-        }
-
-        .launch-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 10px;
-        }
-
-        .rocket-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-            animation: pulse 2s infinite;
-        }
-
-        .launch-text {
-            font-size: 10px;
-            font-weight: 500;
-            opacity: 0.9;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }        
+        
     </style>
 </head>
 
-<body class="active">
-    <div class="launch-content">
-        <div class="rocket-icon">🚀</div>
-        <div class="launch-text">Buddy</div>
-    </div>
+<body>
 </body>
-
 </html>

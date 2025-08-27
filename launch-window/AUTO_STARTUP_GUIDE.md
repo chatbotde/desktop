@@ -83,13 +83,16 @@ The launch window now uses intelligent memory optimization to minimize resource 
 #### States
 - **Inactive State**: Minimal resource usage, smaller visual footprint, reduced CPU usage
 - **Active State**: Full responsiveness, normal size, full functionality
-- **Transition**: Smooth animations between states based on user interaction
+- **Ultra-Low Memory Mode**: Minimal resource usage when system memory is under pressure
+- **Transition**: Immediate state changes based on user interaction (no hover effects)
 
 #### Behavior
 - **Default**: Starts in inactive state to save memory
-- **Hover Activation**: Automatically activates when user hovers over the window
+- **Click Activation**: Automatically activates when user clicks the window
 - **Delayed Deactivation**: Returns to inactive state 3 seconds after user stops interacting
-- **Smart Timing**: Prevents flickering with intelligent delay management
+- **Automatic Adjustment**: Adjusts optimization level based on current memory usage
+- **System Integration**: Responds to system power state changes (suspend/resume)
+- **No Animations**: Simplified implementation without hover effects or animations
 
 ### Technical Implementation
 
@@ -100,6 +103,17 @@ The launch window now uses intelligent memory optimization to minimize resource 
 - Background throttling: Enabled
 - Window opacity: 0.8 (vs 0.999 active)
 - Window size: 15x150px (vs 20x200px active)
+- JavaScript execution: Paused
+- Cache size: 0MB (vs 100MB active)
+- GPU acceleration: Disabled when inactive
+
+// Ultra-Low Memory Mode Optimizations
+- Window visibility: Hidden
+- Web contents: Minimal
+- Process priority: Reduced
+- Cache: Cleared
+- Frame rate: 0 FPS
+- GPU acceleration: Disabled
 ```
 
 #### Visual States
@@ -118,6 +132,11 @@ The launch window now uses intelligent memory optimization to minimize resource 
   opacity: 1;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
+}
+
+/* Ultra-Low Memory Mode */
+.hidden {
+  display: none;
 }
 ```
 
@@ -140,15 +159,26 @@ console.log({
   enabled: status.enabled,           // Feature is enabled
   isInactive: status.isInactive,     // Currently in inactive state
   hasInactiveTimer: status.hasInactiveTimer, // Timer set to go inactive
-  hasHoverTimeout: status.hasHoverTimeout    // Hover delay timer active
+  hasHoverTimeout: status.hasHoverTimeout,   // Hover delay timer active (always false now)
+  ultraLowMemoryMode: status.ultraLowMemoryMode // Ultra-low memory mode active
 });
+
+// NEW: Manual memory cleanup
+await launchWindowManager.performMemoryCleanup();
+
+// NEW: Adjust optimization based on current usage
+launchWindowManager.adjustOptimizationLevel();
+
+// NEW: Ultra-low memory mode control
+launchWindowManager.enableUltraLowMemoryMode();
+launchWindowManager.disableUltraLowMemoryMode();
 ```
 
 #### Event Handling
 ```javascript
 // Manual state control (usually automatic)
-launchWindowManager.onHoverEnter();  // Activate immediately
-launchWindowManager.onHoverLeave();  // Schedule deactivation
+launchWindowManager.setActiveState();  // Activate immediately
+launchWindowManager.setInactiveState();  // Schedule deactivation
 ```
 
 ### Benefits
@@ -158,18 +188,21 @@ launchWindowManager.onHoverLeave();  // Schedule deactivation
 - **Lower CPU**: 1 FPS vs 60 FPS reduces CPU usage by ~98%
 - **Background Throttling**: Minimizes background processing when not needed
 - **Smart Activation**: Instant response when user needs the window
+- **Automatic Scaling**: Adjusts resource usage based on system conditions
 
 #### User Experience
 - **Always Available**: Window remains visible and accessible
-- **Instant Response**: Activates immediately on hover
-- **Smooth Transitions**: Elegant animations between states
+- **Instant Response**: Activates immediately on click
 - **Visual Feedback**: Clear indication of active/inactive states
+- **System Integration**: Responds appropriately to system events
+- **Simplified Interface**: No distracting animations or hover effects
 
 #### System Performance
 - **Minimal Impact**: Negligible resource usage when inactive
 - **Battery Friendly**: Reduced power consumption on laptops
 - **System Stability**: Lower overall system resource pressure
 - **Scalable**: Works well with multiple applications
+- **Adaptive**: Automatically adjusts to system conditions
 
 ### Configuration
 
@@ -178,33 +211,48 @@ launchWindowManager.onHoverLeave();  // Schedule deactivation
 // Customize deactivation delay (default: 3000ms)
 launchWindowManager.inactiveDelay = 5000; // 5 seconds
 
-// Hover delay to prevent flickering (default: 500ms)
-// This is handled automatically in onHoverLeave()
+// Memory monitoring interval (default: 30000ms)
+// This is handled automatically in startMemoryMonitoring()
+```
+
+#### Memory Thresholds
+```javascript
+// Ultra-low memory mode threshold (default: 150MB)
+// Automatic ultra-low memory mode when RSS > 150MB
+
+// Normal mode threshold (default: 100MB)
+// Return to normal mode when RSS < 100MB
 ```
 
 #### Visual Customization
 Modify `launch-window.html` CSS classes:
 - `.inactive`: Customize inactive state appearance
 - `.active`: Customize active state appearance
-- Transitions: Adjust animation timing and effects
+- `.hidden`: Customize ultra-low memory mode appearance
+- No hover or transition effects
 
 ### Troubleshooting
 
 #### Common Issues
-1. **Window doesn't activate on hover**
+1. **Window doesn't activate on click**
    - Check if memory optimization is enabled
-   - Verify hover event handlers are registered
+   - Verify click event handlers are registered
    - Check console for JavaScript errors
 
 2. **Window stays inactive**
    - Ensure `memoryOptimizationEnabled` is true
-   - Check if hover events are being triggered
+   - Check if click events are being triggered
    - Verify IPC handlers are registered
 
 3. **Performance issues**
    - Memory optimization should improve performance
    - If issues persist, disable optimization temporarily
    - Check system resource usage in Task Manager
+
+4. **High memory usage persists**
+   - Check if ultra-low memory mode is activating properly
+   - Verify memory monitoring is working
+   - Check for memory leaks in other parts of the application
 
 #### Debug Information
 ```javascript
@@ -215,21 +263,30 @@ console.log('Memory Optimization Debug:', status);
 // Check auto-startup status
 const autoStartup = new AutoStartupManager();
 console.log('Auto-Startup Debug:', autoStartup.getStartupInfo());
+
+// Manual memory cleanup
+await launchWindowManager.performMemoryCleanup();
+
+// Force optimization level adjustment
+launchWindowManager.adjustOptimizationLevel();
 ```
 
 ## Best Practices
 
 ### For Users
 - **Let it run**: Keep the launch window running for best experience
-- **Hover to activate**: Simply hover over the window when you need it
+- **Click to activate**: Click the window when you need it (no hover needed)
 - **System startup**: Allow the application to start with your system
 - **Resource monitoring**: Check system resources if you notice any issues
+- **Manual cleanup**: Use memory cleanup feature if memory usage seems high
 
 ### For Developers
 - **Test across platforms**: Verify auto-startup works on target platforms
 - **Monitor resource usage**: Check memory and CPU usage in both states
 - **Handle edge cases**: Account for system sleep, hibernate, and user switching
 - **Graceful degradation**: Ensure functionality works even if optimization fails
+- **Memory leak prevention**: Regularly test for memory leaks
+- **Performance profiling**: Profile performance in all optimization states
 
 ### Performance Monitoring
 ```javascript
@@ -243,6 +300,9 @@ console.log('Memory Usage:', {
 
 // Monitor CPU usage (requires additional monitoring)
 // Implement process.cpuUsage() tracking for detailed analysis
+
+// Continuous monitoring
+launchWindowManager.startMemoryMonitoring(); // Every 30 seconds
 ```
 
 ## Security Considerations
@@ -255,8 +315,9 @@ console.log('Memory Usage:', {
 
 ### Memory Optimization Security
 - **No Data Exposure**: Inactive state doesn't expose sensitive information
-- **Content Protection**: Maintains content protection in both states
-- **Event Validation**: Hover events are validated and sanitized
+- **Content Protection**: Maintains content protection in all states
+- **Event Validation**: Click events are validated and sanitized
 - **Resource Limits**: Prevents resource exhaustion attacks
+- **Process Isolation**: Maintains Electron's process isolation model
 
 This implementation provides a robust, user-friendly experience while maintaining system performance and security standards.

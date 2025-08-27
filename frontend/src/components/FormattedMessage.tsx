@@ -39,7 +39,6 @@ export function FormattedMessage({ content, role, className, onCopy }: Formatted
           content={content}
           type={contentType}
           language={language}
-          showCopy={false} // We handle copy at message level
         />
       )
     }

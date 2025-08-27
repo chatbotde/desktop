@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld("launchWindowAPI", {
   // Memory Optimization API
   toggleMemoryOptimization: () => ipcRenderer.invoke('launch-window-toggle-memory-optimization'),
   getMemoryStatus: () => ipcRenderer.invoke('launch-window-get-memory-status'),
+  performMemoryCleanup: () => ipcRenderer.invoke('launch-window-perform-memory-cleanup'),
+  adjustOptimizationLevel: () => ipcRenderer.invoke('launch-window-adjust-optimization-level'),
   
   // Security logging
   logSecurityEvent: (event, details) => {
@@ -57,4 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.launchWindowAPI.getContentProtection().then(enabled => {
     window.launchWindowAPI.logSecurityEvent('CONTENT_PROTECTION_STATUS', { enabled, priority: 'HIGHEST' });
   });
+  
+  // Periodically check and adjust optimization level
+  setInterval(() => {
+    window.launchWindowAPI.adjustOptimizationLevel().catch(err => {
+      console.error('Launch Window: Error adjusting optimization level:', err);
+    });
+  }, 60000); // Check every minute
 });

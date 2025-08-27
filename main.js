@@ -141,17 +141,6 @@ function createLaunchWindow() {
     });
 
     // Memory optimization handlers
-    ipcMain.on('launch-window-hover-enter', () => {
-      if (launchWindowManager) {
-        launchWindowManager.onHoverEnter();
-      }
-    });
-
-    ipcMain.on('launch-window-hover-leave', () => {
-      if (launchWindowManager) {
-        launchWindowManager.onHoverLeave();
-      }
-    });
 
     ipcMain.handle('launch-window-toggle-memory-optimization', () => {
       if (launchWindowManager) {
@@ -167,6 +156,35 @@ function createLaunchWindow() {
         return launchWindowManager.getMemoryOptimizationStatus();
       }
       return { enabled: false, isInactive: false, hasInactiveTimer: false, hasHoverTimeout: false };
+    });
+
+    // NEW: Add handlers for the new memory management functions
+    ipcMain.handle('launch-window-perform-memory-cleanup', async () => {
+      if (launchWindowManager) {
+        try {
+          const result = await launchWindowManager.performMemoryCleanup();
+          console.log('Main: Launch window memory cleanup completed');
+          return result;
+        } catch (error) {
+          console.error('Main: Launch window memory cleanup failed:', error);
+          return { error: error.message };
+        }
+      }
+      return { error: 'Launch window manager not available' };
+    });
+
+    ipcMain.handle('launch-window-adjust-optimization-level', () => {
+      if (launchWindowManager) {
+        try {
+          launchWindowManager.adjustOptimizationLevel();
+          console.log('Main: Launch window optimization level adjusted');
+          return { success: true };
+        } catch (error) {
+          console.error('Main: Launch window optimization adjustment failed:', error);
+          return { error: error.message, success: false };
+        }
+      }
+      return { error: 'Launch window manager not available', success: false };
     });
 
     ipcHandlersRegistered = true;
