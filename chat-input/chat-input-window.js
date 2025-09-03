@@ -8,7 +8,7 @@ class ChatInputWindow {
     this.chatInputWindow = null;
     this.mainWindow = null;
     this.alwaysOnTopInterval = null;
-    this.contentProtectionEnabled = true;
+    this.contentProtectionEnabled = false;
     this.captureAPI = new CaptureAPI();
   }
 

@@ -18,21 +18,20 @@ function applyStyling(win, opacity, theme) {
     }
     
     html {
-      background: ${isBlackTheme ? "#000000" : "rgba(0, 0, 0, 0.1)"};
+      background: none;
       border-radius: 15px;
       overflow: auto;
     }
     
     body {
-      border: 2px solid ${isBlackTheme ? "#333333" : "#00a8ff"};
+border: 2px dashed white;
       border-radius: 15px;
-      box-shadow: 
-        0 0 20px ${isBlackTheme ? "rgba(51, 51, 51, 0.4)" : "rgba(0, 168, 255, 0.4)"},
-        0 0 40px ${isBlackTheme ? "rgba(51, 51, 51, 0.2)" : "rgba(0, 168, 255, 0.2)"};
+      box-shadow: none;
+        
       overflow: auto;
       margin: 0;
       padding: 0;
-      background: ${isBlackTheme ? "#000000" : "rgba(255, 255, 255, 0.05)"};
+      background: none;
       ${!isBlackTheme ? "backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);" : ""}
       width: 100vw;
       height: 100vh;
@@ -55,22 +54,22 @@ function applyStyling(win, opacity, theme) {
     }
     
     .main-content-scroll::-webkit-scrollbar-track {
-      background: transparent;
+      background: none;
       border-radius: 4px;
     }
     
     .main-content-scroll::-webkit-scrollbar-thumb {
-      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.4)"};
+      background: none;
       border-radius: 4px;
       transition: background 0.2s ease;
     }
     
     .main-content-scroll::-webkit-scrollbar-thumb:hover {
-      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.6)"};
+      background: none;
     }
     
     .main-content-scroll::-webkit-scrollbar-corner {
-      background: transparent;
+      background: none;
     }
     
     /* Chat messages scroll styling */
@@ -78,7 +77,7 @@ function applyStyling(win, opacity, theme) {
       overflow-y: auto !important;
       overflow-x: hidden !important;
       scrollbar-width: thin;
-      scrollbar-color: ${isBlackTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"} transparent;
+      scrollbar-color: transparent;
       scroll-behavior: smooth;
       height: 100%;
       max-height: 100%;
@@ -89,18 +88,18 @@ function applyStyling(win, opacity, theme) {
     }
     
     .chat-messages-scroll::-webkit-scrollbar-track {
-      background: transparent;
+      background: none;
       border-radius: 3px;
     }
     
     .chat-messages-scroll::-webkit-scrollbar-thumb {
-      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.3)"};
+      background: none;
       border-radius: 3px;
       transition: background 0.2s ease;
     }
     
     .chat-messages-scroll::-webkit-scrollbar-thumb:hover {
-      background: ${isBlackTheme ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.5)"};
+      background: none;
     }
     
     /* Fixed header styling */

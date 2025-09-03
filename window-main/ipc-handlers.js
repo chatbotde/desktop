@@ -98,6 +98,27 @@ function registerWindowPropertyHandlers(windowManager) {
     return false;
   });
 
+  ipcMain.handle("window-update-click-through", (event, enabled, options = {}) => {
+    const currentWindow = windowManager.getCurrentWindow();
+    if (currentWindow) {
+      if (enabled) {
+        // Enable click-through with forwarding
+        currentWindow.setIgnoreMouseEvents(true, { forward: true });
+      } else {
+        // Disable click-through
+        currentWindow.setIgnoreMouseEvents(false);
+      }
+      windowManager.setClickThroughEnabled(enabled);
+      return true;
+    }
+    return false;
+  });
+
+  ipcMain.handle("window-update-interactive-regions", (event, regions) => {
+    windowManager.updateInteractiveRegions(regions);
+    return true;
+  });
+
   ipcMain.handle("window-toggle-content-protection", () => {
     const currentWindow = windowManager.getCurrentWindow();
     if (currentWindow) {

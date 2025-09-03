@@ -124,7 +124,7 @@ function App() {
       />
 
       {/* Scrollable Content Area - Below Fixed Header */}
-      <div className="relative overflow-hidden" style={{ marginTop: '32px' }}>
+      <div className="relative overflow-hidden" style={{ marginTop: '1px' }}>
         {/* Background - Conditional based on theme */}
         <AppBackground currentTheme={windowManager.currentTheme} />
 

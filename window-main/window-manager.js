@@ -17,8 +17,8 @@ class WindowManager {
     this.contentProtectionEnabled = true;
     this.ipcHandlersRegistered = false;
     this.windowBounds = null; // Store window bounds to maintain size
-    this.minWindowSize = { width: 400, height: 200 }; // Minimum window size
-    this.maxWindowSize = { width: 1000, height: 700 }; // Base maximum window size (can expand based on screen)
+    this.minWindowSize = { width: 400, height: 100 }; // Minimum window size
+    this.maxWindowSize = { width: 1370, height: 750 }; // Base maximum window size (can expand based on screen)
   }
 
   createWindow(theme = "transparent") {

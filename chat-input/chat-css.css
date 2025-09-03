@@ -105,7 +105,7 @@
         :root[data-theme="paper"] .dropdown-item[aria-selected="true"],
         :root[data-theme="paper"] .dropdown-item-compact:hover,
         :root[data-theme="paper"] .dropdown-item-compact[aria-selected="true"] {
-            background: rgba(37, 99, 235, 0.08);
+            background: none;
         }
 
         :root[data-theme="paper"] .attachments-section {
@@ -143,7 +143,7 @@
 
         /* Paper theme focus states */
         :root[data-theme="paper"] #messageInput:focus {
-            background: rgba(37, 99, 235, 0.02);
+            background: none;
         }
 
         /* Paper theme placeholder styling */
@@ -184,7 +184,7 @@
         }
 
         body {
-            background: transparent;
+            background: none;
             overflow: hidden;
             color: var(--text);
             -webkit-app-region: no-drag;
@@ -203,7 +203,7 @@
         }
 
         .drag-handle:hover {
-            background: rgba(255, 255, 255, 0.05);
+            background: none;
         }
 
         .chat-input-container {
@@ -247,7 +247,7 @@
 
         #messageInput {
             width: 100%;
-            background: transparent;
+            background: none;
             border: none;
             resize: none;
             outline: none;
@@ -260,6 +260,9 @@
             font-family: inherit;
             scrollbar-width: none;
             -ms-overflow-style: none;
+            overflow: hidden; /* Prevent scrollbar in collapsed state */
+            white-space: pre-wrap; /* Allow wrapping */
+            word-wrap: break-word; /* Break long words */
         }
 
         #messageInput::-webkit-scrollbar {
@@ -415,7 +418,7 @@
 
         /* Transparency/Lighting Effect Button */
         .action-btn.lighting {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            background: none;
             border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
             position: relative;
@@ -441,7 +444,7 @@
         }
 
         .action-btn.lighting.active {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.1));
+            background: none;
             border-color: rgba(59, 130, 246, 0.4);
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
@@ -452,13 +455,13 @@
 
         /* Transparency states for the whole window */
         .prompt-input.transparent {
-            background: rgba(42, 42, 43, 0.3);
+            background: none;
             backdrop-filter: blur(20px);
             border-color: rgba(255, 255, 255, 0.1);
         }
 
         .prompt-input.transparent:focus-within {
-            background: rgba(42, 42, 43, 0.5);
+            background: none;
             border-color: rgba(255, 255, 255, 0.2);
         }
 
@@ -632,7 +635,7 @@
         .dropdown-item[aria-selected="true"],
         .dropdown-item-compact:hover,
         .dropdown-item-compact[aria-selected="true"] {
-            background: rgba(59, 130, 246, 0.15);
+            background: none;
         }
 
         .dropdown-item[disabled],
@@ -664,38 +667,62 @@
         .prompt-input:not(.expanded) {
             background: #333333;
             border-color: transparent;
-            max-width: 350px; /* Reduced from 200px for a more compact look */
+            max-width: 600px; /* Increased width for better text input */
             border-radius: 30px; /* Reduced radius for a more compact look */
             padding: 0;
-            min-height: 36px; /* Set a minimum height for consistency */
+            min-height: 44px; /* Set a minimum height for consistency */
         }
 
         /* Flexbox container: The key to horizontal alignment */
         .prompt-input:not(.expanded) .prompt-content {
             flex-direction: row;
             align-items: center;
-            padding: 0; /* Remove padding for a more compact look */
+            padding: 0 4px; /* Reduced padding for better space utilization */
+            gap: 4px; /* Add gap between elements for consistent spacing */
         }
 
-        /* Text input area: Let it grow */
+        /* Text input area: Let it grow and take all available space */
         .prompt-input:not(.expanded) .input-area {
             flex-grow: 1;
             padding: 0;
+            margin-right: 4px; /* Reduced space between input and button */
+            min-width: 0; /* Allow the input area to shrink */
+            width: calc(100% - 4px); /* Calculate width precisely, leaving just enough space for the button */
         }
 
         /* Textarea: Remove conflicting styles and balance padding */
         .prompt-input:not(.expanded) #messageInput {
             /* <-- ALIGNMENT FIX: */
-            min-height: initial; /* Remove the minimum height that caused extra space */
-            padding: 6px 8px 6px 10px; /* Reduced padding for a more compact look */
-            line-height: 1.2; /* Helps center the text cursor */
-            font-size: 14px; /* Slightly smaller font for compact view */
+            min-height: 44px; /* Ensure minimum height for single line */
+            max-height: 44px; /* Ensure maximum height for single line */
+            padding: 12px 0; /* Vertical padding for better text alignment */
+            line-height: 1.3; /* Helps center the text cursor */
+            font-size: 15px; /* Slightly larger font for better readability */
+            overflow: hidden; /* Prevent scrolling in collapsed state */
+            text-overflow: ellipsis; /* Show ellipsis for overflow text */
+            white-space: nowrap; /* Keep text in single line, no wrapping in collapsed state */
+            resize: none; /* Prevent manual resizing */
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffffff;
+            width: 100%; /* Full width of container */
+            box-sizing: border-box; /* Include padding in width calculation */
+            font-family: inherit; /* Use inherited font family */
+            caret-color: #ffffff; /* White cursor caret */
+        }
+
+        /* Paper theme text input */
+        :root[data-theme="paper"] .prompt-input:not(.expanded) #messageInput {
+            color: var(--text);
+            caret-color: var(--text);
         }
 
         /* Button container: Remove extra spacing */
         .prompt-input:not(.expanded) .prompt-actions {
             margin-top: 0;
-            padding: 0 4px 0 0; /* Minimal padding on the right for the send button */
+            padding: 0;
+            min-width: 36px; /* Space for expand button */
         }
 
         /* Hide unwanted elements cleanly */
@@ -709,19 +736,21 @@
             pointer-events: none;
         }
 
-        /* Style the send button to exactly match the target UI */
-        .prompt-input:not(.expanded) .action-btn.primary {
-            width: 28px; /* Smaller button */
-            height: 28px; /* Smaller button */
-            min-width: 28px;
+        /* Style the expand button to exactly match the target UI */
+        .prompt-input:not(.expanded) #expandButton {
+            display: flex !important; /* Always show expand button in collapsed state */
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
             padding: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
         }
 
-        /* Style the send button's icon */
-        .prompt-input:not(.expanded) .action-btn.primary svg {
-            stroke: #333333;
-            width: 14px; /* Smaller icon */
-            height: 14px; /* Smaller icon */
+        /* Hide send button in collapsed state */
+        .prompt-input:not(.expanded) #sendButton {
+            display: none !important;
         }
 
         /* Paper theme collapsed state */
@@ -731,8 +760,14 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
-        :root[data-theme="paper"] .prompt-input:not(.expanded) .action-btn.primary svg {
-            stroke: #ffffff;
+        :root[data-theme="paper"] .prompt-input:not(.expanded) #messageInput {
+            color: var(--text);
+        }
+
+        :root[data-theme="paper"] .prompt-input:not(.expanded) #expandButton {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            color: var(--text);
         }
 
 
@@ -752,7 +787,7 @@
         }
         /* This class is in your chat-css.css file */
         .prompt-input.transparent {
-            background: rgba(42, 42, 43, 0.3); /* Semi-transparent background */
+            background: none; /* Semi-transparent background */
             backdrop-filter: blur(20px);      /* This creates the frosted glass/blur effect */
             border-color: rgba(255, 255, 255, 0.1);
         }
@@ -844,7 +879,7 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            background: rgba(0, 0, 0, 0.7);
+            background: none;
             border: none;
             border-radius: 50%;
             color: #fff;
@@ -894,14 +929,14 @@
         /* File drop zone styles */
         .prompt-input.drag-over {
             border-color: var(--accent);
-            background: rgba(59, 130, 246, 0.05);
+            background: none;
         }
 
         .prompt-input.drag-over::after {
             content: 'Drop media files here';
             position: absolute;
             inset: 0;
-            background: rgba(59, 130, 246, 0.1);
+            background: none;
             border: 2px dashed var(--accent);
             border-radius: var(--radius);
             display: flex;
@@ -947,14 +982,14 @@
         .recording-timer {
             font-family: 'Courier New', monospace;
             font-weight: 700;
-            background: rgba(255, 255, 255, 0.2);
+            background: none;
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 11px;
         }
         
         .recording-stop {
-            background: rgba(255, 255, 255, 0.2);
+            background: none;
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 6px;
             color: #fff;
@@ -967,7 +1002,7 @@
         }
         
         .recording-stop:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: none;
             border-color: rgba(255, 255, 255, 0.5);
             transform: scale(1.05);
         }
@@ -1076,7 +1111,7 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            background: rgba(0, 0, 0, 0.7);
+            background: none;
             border: none;
             border-radius: 50%;
             color: #fff;

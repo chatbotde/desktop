@@ -905,6 +905,9 @@
                 updateAttachmentsVisibility();
             }
             
+            // Auto-resize the textarea when expanding
+            autoResize();
+
             requestAnimationFrame(() => {
                 adjustWindowHeight();
             });
@@ -914,8 +917,13 @@
             const promptInputContainer = document.querySelector('.prompt-input');
             promptInputContainer.classList.remove('expanded');
             
-            // Clear the input content
-            messageInput.value = '';
+            // Clear the input content only if there's no text or attachments
+            const hasText = messageInput.value.trim().length > 0;
+            const hasAttachments = imageAttachments.length > 0 || mediaAttachments.length > 0;
+            
+            if (!hasText && !hasAttachments) {
+                messageInput.value = '';
+            }
             
             // Hide attachments section in compact mode
             if (attachmentsSection.style.display !== 'none') {
@@ -928,7 +936,7 @@
             
             // Reset textarea height to single line
             messageInput.style.height = 'auto';
-            const singleLineHeight = messageInput.scrollHeight;
+            const singleLineHeight = 44;
             messageInput.style.height = singleLineHeight + 'px';
             
             // Update send button state since input is now empty
@@ -952,58 +960,85 @@
             expandUI();
         });
         
-        
+        // Add Enter key handling for sending message in collapsed state
+        messageInput.addEventListener('keydown', (e) => {
+            // In collapsed state, Enter sends the message
+            const promptInputContainer = document.querySelector('.prompt-input');
+            const isCollapsed = !promptInputContainer.classList.contains('expanded');
+            
+            if (isCollapsed && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            
+            // In expanded state, Shift+Enter sends the message
+            if (!isCollapsed && e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
         // --- FINAL & CORRECTED CODE FOR "EXPAND ON NEW LINE" --- //
 
         const promptInputContainer = document.querySelector('.prompt-input');
 
         // This single event listener handles everything now.
         messageInput.addEventListener('input', () => {
-            // 1. Get the height of the textarea *before* we ask it to resize.
-            const oldHeight = messageInput.clientHeight;
-
-            // 2. Run the existing auto-resize function. This is crucial as it will
-            //    calculate if a new line is needed and adjust the element's height property.
+            // Run the existing auto-resize function
             autoResize();
 
-            // 3. Get the height *after* the resize has been calculated.
-            const newHeight = messageInput.clientHeight;
-
-            // 4. Check if the UI is currently in its compact state.
+            // Check if the UI is currently in its compact state.
             const isCollapsed = !promptInputContainer.classList.contains('expanded');
 
-            // 5. Update send/expand button visibility
+            // Update send button state
             updateSendButton();
 
             // --- Expansion Logic ---
-            // If the height grew AND the UI is currently collapsed, then expand.
-            if (newHeight > oldHeight && isCollapsed) {
-                promptInputContainer.classList.add('expanded');
-                // Show attachments section if there are attachments
-                if ((imageAttachments.length > 0 || mediaAttachments.length > 0) && attachmentsSection.style.display === 'none') {
-                    updateAttachmentsVisibility();
-                }
-                requestAnimationFrame(() => {
-                    adjustWindowHeight();
-                });
-            }
+            // Only expand if we're in collapsed state and user explicitly requests expansion
+            // (e.g., by pressing Enter or clicking expand button)
+            // Do NOT auto-expand on text input in collapsed state
 
             // --- Collapse Logic ---
-            // If the height shrank AND the UI is currently expanded, then collapse.
-            // This happens when the user deletes text, going from two lines back to one.
-            
+            // If the UI is currently expanded and text is cleared, we might want to collapse
+            // But only if there are no attachments
+            if (!isCollapsed && messageInput.value.trim() === '' && 
+                imageAttachments.length === 0 && mediaAttachments.length === 0) {
+                // Optionally collapse when text is cleared and no attachments
+                // This is commented out to maintain current behavior
+                // collapseUI();
+            }
         });   
         
             
         // Auto-resize textarea with smooth expansion
         function autoResize() {
-            messageInput.style.height = 'auto';
-            const maxHeight = 200;
-            const newHeight = Math.min(messageInput.scrollHeight, maxHeight);
-            messageInput.style.height = newHeight + 'px';
+            const promptInputContainer = document.querySelector('.prompt-input');
+            const isCollapsed = !promptInputContainer.classList.contains('expanded');
+            
+            // In collapsed state, keep textarea as single line
+            if (isCollapsed) {
+                // Reset height to single line
+                messageInput.style.height = 'auto';
+                // Set a fixed height for single line display
+                const singleLineHeight = 44; // Match the min-height from CSS
+                messageInput.style.height = singleLineHeight + 'px';
+                // Ensure full width
+                messageInput.style.width = '100%';
+            } else {
+                // In expanded state, allow multi-line growth
+                messageInput.style.height = 'auto';
+                const maxHeight = 200;
+                const newHeight = Math.min(messageInput.scrollHeight, maxHeight);
+                messageInput.style.height = newHeight + 'px';
+                // Ensure full width
+                messageInput.style.width = '100%';
+            }
 
             // Adjust window height dynamically
             adjustWindowHeight();
+            
+            // Update button visibility
+            updateSendButton();
         }
 
         // Debounced window height adjustment to prevent shaking
@@ -1048,13 +1083,21 @@
             const promptInputContainer = document.querySelector('.prompt-input');
             const isExpanded = promptInputContainer.classList.contains('expanded');
             
-            // Show expand button when in compact mode and no text
-            if (!isExpanded && !hasText && !hasAttachments && !isSending) {
-                expandButton.style.display = 'block';
-                sendButton.style.display = 'none';
+            // In collapsed state, show expand button only when there's no text or attachments
+            if (!isExpanded) {
+                if (!hasText && !hasAttachments && !isSending) {
+                    expandButton.style.display = 'flex';
+                    sendButton.style.display = 'none';
+                } else {
+                    // Show send button when there's text or attachments
+                    expandButton.style.display = 'none';
+                    sendButton.style.display = 'flex';
+                    sendButton.disabled = (!hasText && !hasAttachments) || isSending;
+                }
             } else {
+                // In expanded state, always show send button
                 expandButton.style.display = 'none';
-                sendButton.style.display = 'block';
+                sendButton.style.display = 'flex';
                 sendButton.disabled = (!hasText && !hasAttachments) || isSending;
             }
 
@@ -1473,7 +1516,15 @@
         function appendToInput(content) {
             const hadText = messageInput.value.length > 0;
             messageInput.value += (hadText ? '\n' : '') + content;
-            autoResize();
+            
+            // Only auto-resize if not in collapsed state
+            const promptInputContainer = document.querySelector('.prompt-input');
+            const isCollapsed = !promptInputContainer.classList.contains('expanded');
+            
+            if (!isCollapsed) {
+                autoResize();
+            }
+            
             updateSendButton();
         }
 
@@ -1508,27 +1559,6 @@
             }
         }
         */
-
-        // Event listeners
-        messageInput.addEventListener('input', () => {
-            autoResize();
-            updateSendButton();
-        });
-
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            } else if (e.key === 'Escape') {
-                messageInput.blur();
-            } else if (e.key === 'h' && e.ctrlKey) {
-                e.preventDefault();
-                toggleWindowVisibility();
-            } else if (e.key === 'm' && e.ctrlKey) {
-                e.preventDefault();
-                toggleMainWindow();
-            }
-        });
 
         // Button event listeners
         sendButton.addEventListener('click', sendMessage);
@@ -1611,7 +1641,14 @@
         if (window.chatInputAPI) {
             window.chatInputAPI.onClearInput(() => {
                 messageInput.value = '';
-                autoResize();
+                
+                // Only auto-resize if not in collapsed state
+                const promptInputContainer = document.querySelector('.prompt-input');
+                const isCollapsed = !promptInputContainer.classList.contains('expanded');
+                
+                if (!isCollapsed) {
+                    autoResize();
+                }
                 resetSendingState();
                 messageInput.focus();
             });
@@ -1637,8 +1674,13 @@
                 themeToggleButton.title = 'Switch to Dark Theme';
             }
             
+            // Ensure initial state is collapsed
+            const promptInputContainer = document.querySelector('.prompt-input');
+            promptInputContainer.classList.remove('expanded');
+            
             messageInput.focus();
-            autoResize();
+            
+            // Set initial button states
             updateSendButton();
         });
 
@@ -1682,7 +1724,13 @@
         // Handle paste events
         messageInput.addEventListener('paste', (e) => {
             setTimeout(() => {
-                autoResize();
+                // Only auto-resize if not in collapsed state
+                const promptInputContainer = document.querySelector('.prompt-input');
+                const isCollapsed = !promptInputContainer.classList.contains('expanded');
+                
+                if (!isCollapsed) {
+                    autoResize();
+                }
                 updateSendButton();
             }, 0);
         });
@@ -1700,7 +1748,13 @@
         messageInput.addEventListener('paste', (e) => {
             // Let the global handler take care of it
             setTimeout(() => {
-                autoResize();
+                // Only auto-resize if not in collapsed state
+                const promptInputContainer = document.querySelector('.prompt-input');
+                const isCollapsed = !promptInputContainer.classList.contains('expanded');
+                
+                if (!isCollapsed) {
+                    autoResize();
+                }
                 updateSendButton();
             }, 0);
         });
