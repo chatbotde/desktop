@@ -1,8 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
+// Debug environment variables
+console.log('🔍 Gemini Service Debug:');
+console.log('VITE_GOOGLE_API_KEY available:', !!import.meta.env.VITE_GOOGLE_API_KEY);
+console.log('VITE_GEMINI_API_KEY available:', !!import.meta.env.VITE_GEMINI_API_KEY);
+if (!import.meta.env.VITE_GOOGLE_API_KEY && !import.meta.env.VITE_GEMINI_API_KEY) {
+  console.error('❌ No Gemini API key found in environment variables!');
+  console.error('Available env vars:', Object.keys(import.meta.env));
+}
+
 // Initialize the Gemini AI client
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '';
+console.log('Using API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NONE');
+
 const ai = new GoogleGenAI({
-  apiKey: import.meta.env.VITE_GOOGLE_API_KEY || '',
+  apiKey: apiKey,
 });
 
 export interface MediaAttachment {

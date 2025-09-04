@@ -15,4 +15,6 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  // Load environment variables from both current directory and parent directory
+  envDir: path.resolve(__dirname, '..'),
 })
