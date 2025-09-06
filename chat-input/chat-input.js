@@ -930,27 +930,62 @@
             }
         }
 
-        // Expand/Collapse UI functions
+        // ==================== ENHANCED EXPANSION/COLLAPSE SYSTEM ====================
+        
+        // State management for smooth UI transitions
+        let isTransitioning = false;
+        let expansionState = 'collapsed'; // 'collapsed', 'expanding', 'expanded', 'collapsing'
+        let pendingHeightAdjustments = [];
+        
+        // Enhanced expand function with smooth transitions
         function expandUI() {
+            if (isTransitioning || expansionState === 'expanded' || expansionState === 'expanding') {
+                return;
+            }
+            
+            isTransitioning = true;
+            expansionState = 'expanding';
+            
             const promptInputContainer = document.querySelector('.prompt-input');
+            const attachmentsSection = document.getElementById('attachmentsSection');
+            
+            // Add expanded class with transition
             promptInputContainer.classList.add('expanded');
             
-            // Show attachments section if there are attachments
-            if ((imageAttachments.length > 0 || mediaAttachments.length > 0) && attachmentsSection.style.display === 'none') {
-                updateAttachmentsVisibility();
+            // Show attachments section smoothly if there are attachments
+            if ((imageAttachments.length > 0 || mediaAttachments.length > 0)) {
+                showAttachmentsSmoothly();
             }
             
             // Auto-resize the textarea when expanding
             autoResize();
 
+            // Smooth window height adjustment with proper timing
             requestAnimationFrame(() => {
-                adjustWindowHeight();
+                adjustWindowHeightSmooth('expand');
             });
+            
+            // Update button states
+            updateSendButton();
+            
+            // Mark transition complete after CSS transition duration
+            setTimeout(() => {
+                isTransitioning = false;
+                expansionState = 'expanded';
+            }, 300); // Match CSS transition duration
         }
 
+        // Enhanced collapse function with smooth transitions
         function collapseUI() {
+            if (isTransitioning || expansionState === 'collapsed' || expansionState === 'collapsing') {
+                return;
+            }
+            
+            isTransitioning = true;
+            expansionState = 'collapsing';
+            
             const promptInputContainer = document.querySelector('.prompt-input');
-            promptInputContainer.classList.remove('expanded');
+            const attachmentsSection = document.getElementById('attachmentsSection');
             
             // Clear the input content only if there's no text or attachments
             const hasText = messageInput.value.trim().length > 0;
@@ -960,26 +995,182 @@
                 messageInput.value = '';
             }
             
-            // Hide attachments section in compact mode
-            if (attachmentsSection.style.display !== 'none') {
-                attachmentsSection.style.opacity = '0';
-                attachmentsSection.style.maxHeight = '0px';
-                setTimeout(() => {
-                    attachmentsSection.style.display = 'none';
-                }, 300);
-            }
+            // Hide attachments section smoothly
+            hideAttachmentsSmoothly();
             
-            // Reset textarea height to single line
+            // Reset textarea height to single line with smooth transition
             messageInput.style.height = 'auto';
             const singleLineHeight = 44;
             messageInput.style.height = singleLineHeight + 'px';
             
-            // Update send button state since input is now empty
+            // Remove expanded class with transition
+            promptInputContainer.classList.remove('expanded');
+            
+            // Smooth window height adjustment
+            requestAnimationFrame(() => {
+                adjustWindowHeightSmooth('collapse');
+            });
+            
+            // Update button states
             updateSendButton();
             
-            requestAnimationFrame(() => {
-                adjustWindowHeight();
+            // Mark transition complete after CSS transition duration
+            setTimeout(() => {
+                isTransitioning = false;
+                expansionState = 'collapsed';
+            }, 300); // Match CSS transition duration
+        }
+        
+        // Smooth attachments show/hide functions
+        function showAttachmentsSmoothly() {
+            const attachmentsSection = document.getElementById('attachmentsSection');
+            if (!attachmentsSection) return;
+            
+            attachmentsSection.style.display = 'block';
+                attachmentsSection.style.opacity = '0';
+                attachmentsSection.style.maxHeight = '0px';
+            attachmentsSection.style.overflow = 'hidden';
+            
+            // Force reflow
+            attachmentsSection.offsetHeight;
+            
+            // Animate in
+            attachmentsSection.style.transition = 'opacity 0.3s ease, max-height 0.3s ease';
+            attachmentsSection.style.opacity = '1';
+            attachmentsSection.style.maxHeight = '200px'; // Adjust based on content
+            
+            // Clean up after animation
+            setTimeout(() => {
+                attachmentsSection.style.transition = '';
+                attachmentsSection.style.overflow = '';
+                attachmentsSection.style.maxHeight = '';
+            }, 300);
+        }
+        
+        function hideAttachmentsSmoothly() {
+            const attachmentsSection = document.getElementById('attachmentsSection');
+            if (!attachmentsSection || attachmentsSection.style.display === 'none') return;
+            
+            attachmentsSection.style.transition = 'opacity 0.3s ease, max-height 0.3s ease';
+            attachmentsSection.style.opacity = '0';
+            attachmentsSection.style.maxHeight = '0px';
+            attachmentsSection.style.overflow = 'hidden';
+            
+                setTimeout(() => {
+                    attachmentsSection.style.display = 'none';
+                attachmentsSection.style.transition = '';
+                attachmentsSection.style.overflow = '';
+                attachmentsSection.style.maxHeight = '';
+                }, 300);
+            }
+            
+        // ==================== DROPDOWN OVERLAY POSITIONING ====================
+        
+        // Enhanced dropdown positioning for small window - COMPLETELY INDEPENDENT
+        function positionDropdownAsOverlay(dropdown, triggerButton) {
+            if (!dropdown || !triggerButton) return;
+            
+            // Force dropdown to be visible first to get accurate measurements
+            dropdown.style.visibility = 'hidden';
+            dropdown.style.display = 'block';
+            
+            const buttonRect = triggerButton.getBoundingClientRect();
+            const dropdownRect = dropdown.getBoundingClientRect();
+            
+            // Get screen dimensions
+            const screenWidth = window.screen.width;
+            const screenHeight = window.screen.height;
+            const windowTop = window.screenY;
+            const windowLeft = window.screenX;
+            
+            // Calculate position relative to screen, not window
+            let top = windowTop + buttonRect.bottom + 8;
+            let left = windowLeft + buttonRect.left;
+            
+            // Adjust if dropdown would go off screen
+            if (top + dropdownRect.height > screenHeight - 20) {
+                // Position above the button
+                top = windowTop + buttonRect.top - dropdownRect.height - 8;
+            }
+            
+            if (left + dropdownRect.width > screenWidth - 20) {
+                // Align to right edge
+                left = screenWidth - dropdownRect.width - 20;
+            }
+            
+            if (left < 20) {
+                left = 20;
+            }
+            
+            // Apply positioning - use screen coordinates
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${top - windowTop}px`;
+            dropdown.style.left = `${left - windowLeft}px`;
+            dropdown.style.zIndex = '9999';
+            dropdown.style.pointerEvents = 'auto';
+            dropdown.style.visibility = 'visible';
+            
+            // Ensure dropdown doesn't affect window height
+            dropdown.style.position = 'fixed';
+            dropdown.style.transform = 'translateZ(0)'; // Hardware acceleration
+        }
+        
+        // Enhanced dropdown show function - NO WINDOW HEIGHT CHANGES
+        function showDropdown(dropdownId, triggerButton) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            
+            // Hide other dropdowns first
+            hideAllDropdowns();
+            
+            // Show the dropdown
+            dropdown.style.display = 'block';
+            dropdown.setAttribute('aria-hidden', 'false');
+            
+            // Position as overlay - this will NOT affect window height
+            positionDropdownAsOverlay(dropdown, triggerButton);
+            
+            // Add click outside listener
+            setTimeout(() => {
+                document.addEventListener('click', handleClickOutside);
+            }, 10);
+            
+            // DO NOT call any window height adjustment functions
+            // Dropdowns are completely independent overlays
+        }
+        
+        // Enhanced dropdown hide function
+        function hideDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+            
+            dropdown.style.display = 'none';
+            dropdown.setAttribute('aria-hidden', 'true');
+        }
+        
+        // Hide all dropdowns
+        function hideAllDropdowns() {
+            const dropdowns = document.querySelectorAll('.dropdown-menu');
+            dropdowns.forEach(dropdown => {
+                hideDropdown(dropdown.id);
             });
+        }
+        
+        // Click outside handler
+        function handleClickOutside(event) {
+            const dropdowns = document.querySelectorAll('.dropdown-menu:not([aria-hidden="true"])');
+            let clickedInsideDropdown = false;
+            
+            dropdowns.forEach(dropdown => {
+                if (dropdown.contains(event.target)) {
+                    clickedInsideDropdown = true;
+                }
+            });
+            
+            if (!clickedInsideDropdown) {
+                hideAllDropdowns();
+                document.removeEventListener('click', handleClickOutside);
+            }
         }
 
         // Event listeners for expand/collapse
@@ -991,8 +1182,24 @@
             collapseUI();
         });
         
+        // Enhanced button event listeners with overlay dropdowns
         expandButton.addEventListener('click', () => {
             expandUI();
+        });
+        
+        uploadButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showUploadDropdownAdvanced(uploadButton);
+        });
+        
+        captureButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showCaptureDropdownAdvanced(captureButton);
+        });
+        
+        modelSelectButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showModelSelectorAdvanced(modelSelectButton);
         });
         
         // Add Enter key handling for sending message in collapsed state
@@ -1017,9 +1224,9 @@
 
         const promptInputContainer = document.querySelector('.prompt-input');
 
-        // This single event listener handles everything now.
+        // This single event listener handles everything now - NO WINDOW HEIGHT CHANGES
         messageInput.addEventListener('input', () => {
-            // Run the existing auto-resize function
+            // Run the existing auto-resize function - but it won't adjust window height
             autoResize();
 
             // Check if the UI is currently in its compact state.
@@ -1042,10 +1249,551 @@
                 // This is commented out to maintain current behavior
                 // collapseUI();
             }
+            
+            // DO NOT call adjustWindowHeight or any height adjustment functions here
+            // This prevents shaking when typing
         });   
         
             
-        // Auto-resize textarea with smooth expansion
+        // ==================== ENHANCED GEOMETRY CONTROL SYSTEM ====================
+        
+        // Advanced geometry control for dropdowns and UI elements
+        class GeometryController {
+            constructor() {
+                this.screenInfo = null;
+                this.windowGeometry = null;
+                this.animationQueue = [];
+                this.isAnimating = false;
+                this.init();
+            }
+            
+            async init() {
+                // Get initial screen and window information
+                await this.updateScreenInfo();
+                await this.updateWindowGeometry();
+                
+                // Listen for screen changes
+                window.addEventListener('resize', () => this.updateWindowGeometry());
+                screen.addEventListener('change', () => this.updateScreenInfo());
+            }
+            
+            async updateScreenInfo() {
+                try {
+                    this.screenInfo = await window.chatInputAPI.getScreenInfo();
+                } catch (error) {
+                    console.error('Failed to get screen info:', error);
+                }
+            }
+            
+            async updateWindowGeometry() {
+                try {
+                    this.windowGeometry = await window.chatInputAPI.getWindowGeometry();
+                } catch (error) {
+                    console.error('Failed to get window geometry:', error);
+                }
+            }
+            
+            // Advanced dropdown positioning with multi-monitor support
+            positionDropdownAdvanced(dropdown, triggerButton, options = {}) {
+                if (!dropdown || !triggerButton || !this.screenInfo) return;
+                
+                const {
+                    preferredPosition = 'below',
+                    offset = 8,
+                    margin = 20,
+                    constrainToScreen = true,
+                    preferAbove = false
+                } = options;
+                
+                // Force visibility for measurements
+                dropdown.style.visibility = 'hidden';
+                dropdown.style.display = 'block';
+                
+                const buttonRect = triggerButton.getBoundingClientRect();
+                const dropdownRect = dropdown.getBoundingClientRect();
+                
+                // Get current display info
+                const currentDisplay = this.getCurrentDisplay();
+                if (!currentDisplay) return;
+                
+                // Calculate screen-relative positions
+                const windowTop = window.screenY;
+                const windowLeft = window.screenX;
+                
+                let top, left;
+                
+                // Calculate preferred position
+                if (preferredPosition === 'below' || (preferredPosition === 'auto' && !preferAbove)) {
+                    top = windowTop + buttonRect.bottom + offset;
+                    left = windowLeft + buttonRect.left;
+                } else {
+                    top = windowTop + buttonRect.top - dropdownRect.height - offset;
+                    left = windowLeft + buttonRect.left;
+                }
+                
+                // Constrain to screen bounds if requested
+                if (constrainToScreen) {
+                    const screenBounds = currentDisplay.workArea;
+                    const screenWidth = screenBounds.width;
+                    const screenHeight = screenBounds.height;
+                    
+                    // Adjust horizontal position
+                    if (left + dropdownRect.width > screenWidth - margin) {
+                        left = screenWidth - dropdownRect.width - margin;
+                    }
+                    if (left < margin) {
+                        left = margin;
+                    }
+                    
+                    // Adjust vertical position
+                    if (top + dropdownRect.height > screenHeight - margin) {
+                        if (preferredPosition === 'below' || preferredPosition === 'auto') {
+                            // Try above the button
+                            top = windowTop + buttonRect.top - dropdownRect.height - offset;
+                        }
+                    }
+                    if (top < margin) {
+                        top = margin;
+                    }
+                }
+                
+                // Apply positioning
+                dropdown.style.position = 'fixed';
+                dropdown.style.top = `${top - windowTop}px`;
+                dropdown.style.left = `${left - windowLeft}px`;
+                dropdown.style.zIndex = '9999';
+                dropdown.style.pointerEvents = 'auto';
+                dropdown.style.visibility = 'visible';
+                dropdown.style.transform = 'translateZ(0)';
+                
+                // Store positioning info for future reference
+                dropdown._geometryInfo = {
+                    position: { top, left },
+                    size: { width: dropdownRect.width, height: dropdownRect.height },
+                    triggerButton: triggerButton,
+                    timestamp: Date.now()
+                };
+            }
+            
+            // Get current display information
+            getCurrentDisplay() {
+                if (!this.screenInfo) return null;
+                
+                const windowCenterX = window.screenX + window.innerWidth / 2;
+                const windowCenterY = window.screenY + window.innerHeight / 2;
+                
+                // Find the display that contains the window center
+                for (const display of this.screenInfo.all) {
+                    const { x, y, width, height } = display.bounds;
+                    if (windowCenterX >= x && windowCenterX <= x + width &&
+                        windowCenterY >= y && windowCenterY <= y + height) {
+                        return display;
+                    }
+                }
+                
+                // Fallback to primary display
+                return this.screenInfo.primary;
+            }
+            
+            // Smart window adjustment for UI elements
+            async adjustWindowForElement(elementId, options = {}) {
+                const {
+                    expandDirection = 'down',
+                    minHeight = 80,
+                    maxHeight = 600,
+                    padding = 20,
+                    animate = true,
+                    duration = 300
+                } = options;
+                
+                try {
+                    // Request element information from renderer
+                    const elementInfo = await this.getElementInfo(elementId);
+                    if (!elementInfo) return;
+                    
+                    const { height: elementHeight, width: elementWidth } = elementInfo;
+                    const currentGeometry = await window.chatInputAPI.getWindowGeometry();
+                    
+                    if (!currentGeometry) return;
+                    
+                    // Calculate new window dimensions
+                    let newHeight = currentGeometry.size.height;
+                    let newWidth = currentGeometry.size.width;
+                    
+                    if (expandDirection === 'down') {
+                        newHeight = Math.max(minHeight, Math.min(maxHeight, 
+                            currentGeometry.size.height + elementHeight + padding));
+                    } else if (expandDirection === 'right') {
+                        newWidth = Math.max(200, Math.min(1400, 
+                            currentGeometry.size.width + elementWidth + padding));
+                    }
+                    
+                    // Apply changes
+                    if (animate) {
+                        const targetBounds = {
+                            x: currentGeometry.bounds.x,
+                            y: currentGeometry.bounds.y,
+                            width: newWidth,
+                            height: newHeight
+                        };
+                        
+                        await window.chatInputAPI.animateWindowGeometry(targetBounds, duration);
+                    } else {
+                        await window.chatInputAPI.setWindowBounds({
+                            x: currentGeometry.bounds.x,
+                            y: currentGeometry.bounds.y,
+                            width: newWidth,
+                            height: newHeight
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('Failed to adjust window for element:', error);
+                }
+            }
+            
+            // Get element information (placeholder - would need renderer communication)
+            async getElementInfo(elementId) {
+                return new Promise((resolve) => {
+                    const element = document.getElementById(elementId);
+                    if (!element) {
+                        resolve(null);
+                        return;
+                    }
+                    
+                    const rect = element.getBoundingClientRect();
+                    resolve({
+                        height: rect.height,
+                        width: rect.width,
+                        top: rect.top,
+                        left: rect.left,
+                        bottom: rect.bottom,
+                        right: rect.right
+                    });
+                });
+            }
+            
+            // Animate window geometry changes
+            async animateWindowGeometry(targetBounds, duration = 300) {
+                if (this.isAnimating) {
+                    this.animationQueue.push({ targetBounds, duration });
+                    return;
+                }
+                
+                this.isAnimating = true;
+                
+                try {
+                    await window.chatInputAPI.animateWindowGeometry(targetBounds, duration);
+                } catch (error) {
+                    console.error('Animation failed:', error);
+                } finally {
+                    this.isAnimating = false;
+                    this.processAnimationQueue();
+                }
+            }
+            
+            processAnimationQueue() {
+                if (this.animationQueue.length > 0) {
+                    const next = this.animationQueue.shift();
+                    this.animateWindowGeometry(next.targetBounds, next.duration);
+                }
+            }
+            
+            // Smart positioning for future UI elements
+            positionElementSmart(element, referenceElement, options = {}) {
+                const {
+                    position = 'below',
+                    offset = 8,
+                    align = 'left',
+                    constrainToViewport = true
+                } = options;
+                
+                if (!element || !referenceElement) return;
+                
+                const refRect = referenceElement.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+                
+                let top, left;
+                
+                // Calculate position
+                switch (position) {
+                    case 'below':
+                        top = refRect.bottom + offset;
+                        break;
+                    case 'above':
+                        top = refRect.top - elementRect.height - offset;
+                        break;
+                    case 'right':
+                        top = refRect.top;
+                        left = refRect.right + offset;
+                        break;
+                    case 'left':
+                        top = refRect.top;
+                        left = refRect.left - elementRect.width - offset;
+                        break;
+                }
+                
+                // Calculate horizontal alignment
+                if (position === 'below' || position === 'above') {
+                    switch (align) {
+                        case 'left':
+                            left = refRect.left;
+                            break;
+                        case 'right':
+                            left = refRect.right - elementRect.width;
+                            break;
+                        case 'center':
+                            left = refRect.left + (refRect.width - elementRect.width) / 2;
+                            break;
+                    }
+                }
+                
+                // Apply positioning
+                element.style.position = 'fixed';
+                element.style.top = `${top}px`;
+                element.style.left = `${left}px`;
+                element.style.zIndex = '9999';
+                element.style.pointerEvents = 'auto';
+            }
+        }
+        
+        // Initialize geometry controller
+        const geometryController = new GeometryController();
+        
+        // Listen for element info requests from main process
+        if (window.chatInputAPI) {
+            // This would be handled by the preload script
+            // For now, we'll add a placeholder
+            console.log('Geometry controller initialized with advanced positioning capabilities');
+        }
+        
+        // ==================== CLICK-THROUGH CONTROL SYSTEM ====================
+        
+        // Click-through state management
+        let isClickThroughEnabled = false;
+        let clickThroughTimeout = null;
+        
+        // Enable click-through mode
+        function enableClickThrough() {
+            if (window.chatInputAPI?.enableClickThrough) {
+                window.chatInputAPI.enableClickThrough();
+                isClickThroughEnabled = true;
+                console.log('Click-through enabled');
+            }
+        }
+        
+        // Disable click-through mode
+        function disableClickThrough() {
+            if (window.chatInputAPI?.disableClickThrough) {
+                window.chatInputAPI.disableClickThrough();
+                isClickThroughEnabled = false;
+                console.log('Click-through disabled');
+            }
+        }
+        
+        // Toggle click-through mode
+        function toggleClickThrough() {
+            if (isClickThroughEnabled) {
+                disableClickThrough();
+            } else {
+                enableClickThrough();
+            }
+        }
+        
+        // Smart click-through detection
+        function handleSmartClickThrough(event) {
+            // Clear any existing timeout
+            if (clickThroughTimeout) {
+                clearTimeout(clickThroughTimeout);
+            }
+            
+            // Check if the click is on a UI element
+            const target = event.target;
+            const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input');
+            
+            if (isUIElement) {
+                // Click is on UI element - disable click-through temporarily
+                disableClickThrough();
+                
+                // Re-enable click-through after a short delay
+                clickThroughTimeout = setTimeout(() => {
+                    enableClickThrough();
+                }, 1000); // 1 second delay
+            } else {
+                // Click is on empty area - enable click-through
+                enableClickThrough();
+            }
+        }
+        
+        // Initialize click-through on window load
+        function initializeClickThrough() {
+            // Start with click-through enabled
+            enableClickThrough();
+            
+            // Add click listener for smart detection
+            document.addEventListener('click', handleSmartClickThrough);
+            
+            // Add mouse move listener for hover detection
+            document.addEventListener('mousemove', (event) => {
+                const target = event.target;
+                const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input');
+                
+                if (isUIElement && isClickThroughEnabled) {
+                    // Mouse is over UI element - disable click-through
+                    disableClickThrough();
+                } else if (!isUIElement && !isClickThroughEnabled) {
+                    // Mouse is over empty area - enable click-through
+                    enableClickThrough();
+                }
+            });
+            
+            console.log('Click-through system initialized');
+        }
+        
+        // Initialize click-through when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeClickThrough);
+        } else {
+            initializeClickThrough();
+        }
+        
+        // Add click-through button event listener
+        const clickThroughButton = document.getElementById('clickThroughButton');
+        if (clickThroughButton) {
+            clickThroughButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleClickThrough();
+                updateClickThroughButton();
+            });
+        }
+        
+        // Update click-through button appearance
+        function updateClickThroughButton() {
+            if (clickThroughButton) {
+                if (isClickThroughEnabled) {
+                    clickThroughButton.classList.add('active');
+                    clickThroughButton.title = 'Click-through enabled - Click to disable';
+                } else {
+                    clickThroughButton.classList.remove('active');
+                    clickThroughButton.title = 'Click-through disabled - Click to enable';
+                }
+            }
+        }
+        
+        // Keyboard shortcut for click-through (Ctrl+T)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 't') {
+                e.preventDefault();
+                toggleClickThrough();
+                updateClickThroughButton();
+            }
+        });
+        
+        // Enhanced dropdown positioning using geometry controller
+        function positionDropdownAsOverlay(dropdown, triggerButton) {
+            geometryController.positionDropdownAdvanced(dropdown, triggerButton, {
+                preferredPosition: 'below',
+                offset: 8,
+                margin: 20,
+                constrainToScreen: true
+            });
+        }
+        
+        // ==================== UTILITY FUNCTIONS FOR FUTURE UI ELEMENTS ====================
+        
+        // Smart positioning for any UI element
+        function positionElementSmart(element, referenceElement, options = {}) {
+            return geometryController.positionElementSmart(element, referenceElement, options);
+        }
+        
+        // Adjust window for new UI element
+        function adjustWindowForElement(elementId, options = {}) {
+            return geometryController.adjustWindowForElement(elementId, options);
+        }
+        
+        // Get current screen information
+        function getScreenInfo() {
+            return geometryController.screenInfo;
+        }
+        
+        // Get current window geometry
+        function getWindowGeometry() {
+            return geometryController.windowGeometry;
+        }
+        
+        // Animate window to new geometry
+        function animateWindowGeometry(targetBounds, duration = 300) {
+            return geometryController.animateWindowGeometry(targetBounds, duration);
+        }
+        
+        // Smart dropdown positioning with advanced options
+        function positionDropdownAdvanced(dropdown, triggerButton, options = {}) {
+            return geometryController.positionDropdownAdvanced(dropdown, triggerButton, options);
+        }
+        
+        // ==================== ENHANCED DROPDOWN MANAGEMENT ====================
+        
+        // Enhanced dropdown show function with geometry control
+        function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown || !triggerButton) return;
+            
+            // Hide other dropdowns first
+            hideAllDropdowns();
+            
+            // Show the dropdown
+            dropdown.style.display = 'block';
+            dropdown.setAttribute('aria-hidden', 'false');
+            
+            // Position using advanced geometry control
+            positionDropdownAdvanced(dropdown, triggerButton, {
+                preferredPosition: options.position || 'below',
+                offset: options.offset || 8,
+                margin: options.margin || 20,
+                constrainToScreen: options.constrainToScreen !== false,
+                preferAbove: options.preferAbove || false
+            });
+            
+            // Add click outside handler
+            setTimeout(() => {
+                document.addEventListener('click', handleClickOutside);
+            }, 10);
+        }
+        
+        // Enhanced model selector with smart positioning
+        function showModelSelectorAdvanced(triggerButton) {
+            showDropdownAdvanced('modelDropdown', triggerButton, {
+                position: 'below',
+                offset: 8,
+                margin: 20,
+                constrainToScreen: true,
+                preferAbove: false
+            });
+        }
+        
+        // Enhanced upload dropdown with smart positioning
+        function showUploadDropdownAdvanced(triggerButton) {
+            showDropdownAdvanced('uploadDropdown', triggerButton, {
+                position: 'below',
+                offset: 8,
+                margin: 20,
+                constrainToScreen: true,
+                preferAbove: false
+            });
+        }
+        
+        // Enhanced capture dropdown with smart positioning
+        function showCaptureDropdownAdvanced(triggerButton) {
+            showDropdownAdvanced('captureDropdown', triggerButton, {
+                position: 'below',
+                offset: 8,
+                margin: 20,
+                constrainToScreen: true,
+                preferAbove: false
+            });
+        }
+        
+        // Enhanced auto-resize textarea with smooth expansion
         function autoResize() {
             const promptInputContainer = document.querySelector('.prompt-input');
             const isCollapsed = !promptInputContainer.classList.contains('expanded');
@@ -1069,18 +1817,40 @@
                 messageInput.style.width = '100%';
             }
 
-            // Adjust window height dynamically
-            adjustWindowHeight();
+            // ONLY adjust window height for expand/collapse, NOT for text input
+            // This prevents shaking when typing or interacting with dropdowns
+            if (expansionState === 'expanding' || expansionState === 'collapsing') {
+                adjustWindowHeightSmooth(expansionState === 'expanding' ? 'expand' : 'collapse');
+            }
             
             // Update button visibility
             updateSendButton();
         }
 
+        // ==================== ENHANCED WINDOW HEIGHT MANAGEMENT ====================
+
         // Debounced window height adjustment to prevent shaking
         let adjustHeightTimeout = null;
         let lastTargetHeight = 0;
+        let isHeightAdjusting = false;
+        let heightAdjustmentQueue = [];
         
-        function adjustWindowHeight() {
+        // Enhanced smooth window height adjustment - ONLY for expand/collapse
+        function adjustWindowHeightSmooth(action = 'auto') {
+            // ONLY adjust window height for explicit expand/collapse actions
+            // NOT for 'auto' or other triggers to prevent unwanted window changes
+            if (action !== 'expand' && action !== 'collapse') {
+                return;
+            }
+            
+            if (isHeightAdjusting) {
+                // Queue the adjustment if one is in progress
+                heightAdjustmentQueue.push(action);
+                return;
+            }
+            
+            isHeightAdjusting = true;
+            
             // Clear any pending adjustments
             if (adjustHeightTimeout) {
                 clearTimeout(adjustHeightTimeout);
@@ -1089,26 +1859,72 @@
             adjustHeightTimeout = setTimeout(() => {
                 const container = document.querySelector('.chat-input-container');
                 const promptInput = document.querySelector('.prompt-input');
-                const currentHeight = promptInput.offsetHeight;
-                const dropdown = document.getElementById('attachmentDropdown');
-                let targetHeight = currentHeight + 40; // base height with padding
+                const attachmentsSection = document.getElementById('attachmentsSection');
                 
-                if (dropdown && dropdown.classList.contains('open')) {
-                    // Ensure dropdown bottom is visible inside the window
-                    const menuRect = dropdown.getBoundingClientRect();
-                    targetHeight = Math.max(targetHeight, Math.ceil(menuRect.bottom + 16));
+                if (!promptInput) {
+                    isHeightAdjusting = false;
+                    processHeightQueue();
+                    return;
                 }
                 
+                // Calculate base height - ONLY from main content, NOT dropdowns
+                let targetHeight = promptInput.offsetHeight + 20; // base height with padding
+                
+                // Add attachments section height if visible
+                if (attachmentsSection && attachmentsSection.style.display !== 'none' && 
+                    attachmentsSection.offsetHeight > 0) {
+                    targetHeight += attachmentsSection.offsetHeight + 10;
+                }
+                
+                // NO DROPDOWN HEIGHT CALCULATION - dropdowns are overlays
+                // Dropdowns should NEVER affect window height
+                
+                // Apply minimum and maximum height constraints
+                const minHeight = 80;
+                const maxHeight = 600; // Reasonable max for small window
+                targetHeight = Math.max(minHeight, Math.min(maxHeight, targetHeight));
+                
                 // Only update if height actually changed significantly (avoid micro-adjustments)
-                if (Math.abs(targetHeight - lastTargetHeight) > 5) {
+                if (Math.abs(targetHeight - lastTargetHeight) > 3) {
                     lastTargetHeight = targetHeight;
                     
-                    // Notify main process about height change for window resizing
+                    // Smooth height transition
+                    if (action === 'expand' || action === 'collapse') {
+                        // For expand/collapse, use smooth transition
+                        requestAnimationFrame(() => {
                     if (window.chatInputAPI?.updateWindowHeight) {
                         window.chatInputAPI.updateWindowHeight(targetHeight);
                     }
+                        });
+                    } else {
+                        // For other adjustments, use immediate update
+                        if (window.chatInputAPI?.updateWindowHeight) {
+                            window.chatInputAPI.updateWindowHeight(targetHeight);
+                        }
+                    }
                 }
-            }, 50); // 50ms debounce to prevent rapid adjustments
+                
+                isHeightAdjusting = false;
+                processHeightQueue();
+                
+            }, action === 'expand' || action === 'collapse' ? 100 : 50); // Longer delay for smooth transitions
+        }
+        
+        // Process queued height adjustments
+        function processHeightQueue() {
+            if (heightAdjustmentQueue.length > 0) {
+                const nextAction = heightAdjustmentQueue.shift();
+                setTimeout(() => adjustWindowHeightSmooth(nextAction), 50);
+            }
+        }
+        
+        // Legacy function for backward compatibility
+        // This function now does nothing to prevent unwanted window changes
+        // Only explicit expand/collapse actions should change window height
+        function adjustWindowHeight() {
+            // Do nothing - window height should only change for expand/collapse
+            // This prevents unwanted window changes from dropdowns, attachments, etc.
+            return;
         }
 
         // Update send button state
@@ -1552,12 +2368,10 @@
         }
 
         function ensureDropdownVisibleByExpandingWindow(dropdown) {
-            if (!dropdown || !dropdown.classList.contains('open')) return;
-            const menuRect = dropdown.getBoundingClientRect();
-            const overflow = Math.ceil(menuRect.bottom + 12 - window.innerHeight); // Reduced padding for compact dropdowns
-            if (overflow > 0 && window.chatInputAPI?.updateWindowHeight) {
-                window.chatInputAPI.updateWindowHeight(window.innerHeight + overflow);
-            }
+            // This function now does nothing to prevent unwanted window height changes
+            // Dropdowns should be positioned independently using the geometry controller
+            // and should not affect the window size
+            return;
         }
 
         // Item actions

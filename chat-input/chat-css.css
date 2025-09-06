@@ -550,10 +550,10 @@
             border: 0;
         }
 
-        /* Dropdown menu (attach) */
+        /* Dropdown menu (attach) - COMPLETELY INDEPENDENT */
         .dropdown-menu {
-            position: fixed;
-            z-index: 1000;
+            position: fixed !important;
+            z-index: 9999 !important;
             background: var(--bg-popover);
             color: var(--text);
             border: 1px solid var(--border);
@@ -561,6 +561,155 @@
             box-shadow: var(--shadow-sm);
             padding: 4px;
             display: none;
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateZ(0); /* Hardware acceleration */
+            will-change: transform, opacity; /* Optimize for animations */
+            /* Ensure dropdowns don't affect layout */
+            margin: 0 !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
+            bottom: auto !important;
+        }
+        
+        /* ==================== ENHANCED GEOMETRY CONTROL CSS ==================== */
+        
+        /* Advanced dropdown positioning with smooth animations */
+        .dropdown-menu.geometry-controlled {
+            opacity: 0;
+            transform: translateZ(0) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .dropdown-menu.geometry-controlled.show {
+            opacity: 1;
+            transform: translateZ(0) scale(1);
+        }
+        
+        /* Smooth window geometry animations */
+        .prompt-input.geometry-transitioning {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Enhanced positioning for future UI elements */
+        .geometry-positioned {
+            position: fixed !important;
+            z-index: 9998 !important;
+            transform: translateZ(0);
+            will-change: transform, opacity;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Multi-monitor support indicators */
+        .geometry-display-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        
+        /* Smooth element transitions for future UI */
+        .ui-element-transitioning {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity, width, height;
+        }
+        
+        /* Enhanced backdrop blur for overlays */
+        .geometry-overlay {
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            background: rgba(42, 42, 43, 0.8);
+        }
+        
+        /* Paper theme geometry enhancements */
+        :root[data-theme="paper"] .geometry-overlay {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* Smooth scaling for window adjustments */
+        .window-scaling {
+            transform-origin: center bottom;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Enhanced focus states for geometry control */
+        .geometry-focused {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        
+        /* Smooth opacity transitions for show/hide */
+        .geometry-fade-in {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .geometry-fade-in.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Performance optimizations for geometry changes */
+        .geometry-optimized {
+            contain: layout style paint;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+        }
+        
+        /* ==================== CLICK-THROUGH BUTTON STYLES ==================== */
+        
+        /* Click-through button active state */
+        .action-btn#clickThroughButton.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: var(--accent);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+        
+        .action-btn#clickThroughButton.active:hover {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Paper theme click-through button */
+        :root[data-theme="paper"] .action-btn#clickThroughButton.active {
+            background: rgba(37, 99, 235, 0.15);
+            border-color: rgba(37, 99, 235, 0.3);
+            color: #2563eb;
+            box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
+        }
+        
+        :root[data-theme="paper"] .action-btn#clickThroughButton.active:hover {
+            background: rgba(37, 99, 235, 0.25);
+            border-color: rgba(37, 99, 235, 0.4);
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        /* Click-through indicator animation */
+        .action-btn#clickThroughButton.active svg {
+            animation: clickThroughPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes clickThroughPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
         }
 
         .dropdown-menu:not(.compact) {
@@ -825,6 +974,9 @@
             border-radius: 30px; /* Reduced radius for a more compact look */
             padding: 0;
             min-height: 44px; /* Set a minimum height for consistency */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1);
+            opacity: 1;
         }
 
         /* Flexbox container: The key to horizontal alignment */
@@ -862,6 +1014,7 @@
             color: #ffffff;
             width: 100%; /* Full width of container */
             box-sizing: border-box; /* Include padding in width calculation */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: inherit; /* Use inherited font family */
             caret-color: #ffffff; /* White cursor caret */
         }
@@ -887,6 +1040,7 @@
             padding: 0;
             margin: 0;
             overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
         }
 
@@ -932,12 +1086,33 @@
             border-color: var(--border);
             max-width: 768px;
             border-radius: var(--radius); /* Revert to the original large radius */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1);
+            opacity: 1;
+            padding: 8px;
+            min-height: auto;
         }
 
         .prompt-input.expanded .left-actions {
             max-width: 2000px;
             opacity: 1;
             pointer-events: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .prompt-input.expanded .draggable-area {
+            max-width: 2000px;
+            opacity: 1;
+            pointer-events: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .prompt-input.expanded #messageInput {
+            min-height: 44px;
+            max-height: 200px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         /* This class is in your chat-css.css file */
         .prompt-input.transparent {

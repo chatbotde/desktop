@@ -407,6 +407,277 @@ class ChatInputWindow {
       }
     });
 
+    // ==================== ADVANCED GEOMETRY CONTROL HANDLERS ====================
+
+    // Handle advanced window bounds setting
+    ipcMain.on("chat-input-set-bounds", (event, bounds) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const { x, y, width, height } = bounds;
+        
+        // Validate bounds
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        
+        const constrainedX = Math.max(0, Math.min(screenWidth - width, x));
+        const constrainedY = Math.max(0, Math.min(screenHeight - height, y));
+        const constrainedWidth = Math.max(100, Math.min(1400, width));
+        const constrainedHeight = Math.max(80, Math.min(800, height));
+        
+        chatInputWindow.setBounds({
+          x: constrainedX,
+          y: constrainedY,
+          width: constrainedWidth,
+          height: constrainedHeight
+        });
+      }
+    });
+
+    // Handle getting current window geometry
+    ipcMain.handle("chat-input-get-geometry", async (event) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const [x, y] = chatInputWindow.getPosition();
+        const [width, height] = chatInputWindow.getSize();
+        const bounds = chatInputWindow.getBounds();
+        
+        return {
+          position: { x, y },
+          size: { width, height },
+          bounds: bounds,
+          isVisible: chatInputWindow.isVisible(),
+          isFocused: chatInputWindow.isFocused()
+        };
+      }
+      
+      return null;
+    });
+
+    // Handle setting window size with optional centering
+    ipcMain.on("chat-input-set-size", (event, { width, height, center = false }) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const constrainedWidth = Math.max(100, Math.min(1400, width));
+        const constrainedHeight = Math.max(80, Math.min(800, height));
+        
+        if (center) {
+          const primaryDisplay = screen.getPrimaryDisplay();
+          const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+          const x = (screenWidth - constrainedWidth) / 2;
+          const y = (screenHeight - constrainedHeight) / 2;
+          chatInputWindow.setBounds({ x, y, width: constrainedWidth, height: constrainedHeight });
+        } else {
+          chatInputWindow.setSize(constrainedWidth, constrainedHeight);
+        }
+      }
+    });
+
+    // Handle animated window geometry changes
+    ipcMain.on("chat-input-animate-geometry", (event, { targetBounds, duration = 300 }) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const currentBounds = chatInputWindow.getBounds();
+        const startTime = Date.now();
+        
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // Use easeOutCubic for smooth animation
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          
+          const newBounds = {
+            x: currentBounds.x + (targetBounds.x - currentBounds.x) * easeProgress,
+            y: currentBounds.y + (targetBounds.y - currentBounds.y) * easeProgress,
+            width: currentBounds.width + (targetBounds.width - currentBounds.width) * easeProgress,
+            height: currentBounds.height + (targetBounds.height - currentBounds.height) * easeProgress
+          };
+          
+          chatInputWindow.setBounds(newBounds);
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+        
+        requestAnimationFrame(animate);
+      }
+    });
+
+    // Handle smart window adjustment for UI elements
+    ipcMain.on("chat-input-adjust-for-element", (event, { elementId, options = {} }) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        // Send element info request to renderer
+        chatInputWindow.webContents.send('get-element-info', { elementId, options });
+      }
+    });
+
+    // Handle getting screen information
+    ipcMain.handle("chat-input-get-screen-info", async (event) => {
+      const displays = screen.getAllDisplays();
+      const primaryDisplay = screen.getPrimaryDisplay();
+      
+      return {
+        primary: {
+          id: primaryDisplay.id,
+          bounds: primaryDisplay.bounds,
+          workArea: primaryDisplay.workArea,
+          workAreaSize: primaryDisplay.workAreaSize,
+          scaleFactor: primaryDisplay.scaleFactor
+        },
+        all: displays.map(display => ({
+          id: display.id,
+          bounds: display.bounds,
+          workArea: display.workArea,
+          workAreaSize: display.workAreaSize,
+          scaleFactor: display.scaleFactor,
+          isPrimary: display.id === primaryDisplay.id
+        }))
+      };
+    });
+
+    // Handle setting window position relative to screen coordinates
+    ipcMain.on("chat-input-set-screen-position", (event, { x, y, width, height }) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        
+        const constrainedX = Math.max(0, Math.min(screenWidth - width, x));
+        const constrainedY = Math.max(0, Math.min(screenHeight - height, y));
+        const constrainedWidth = Math.max(100, Math.min(1400, width));
+        const constrainedHeight = Math.max(80, Math.min(800, height));
+        
+        chatInputWindow.setBounds({
+          x: constrainedX,
+          y: constrainedY,
+          width: constrainedWidth,
+          height: constrainedHeight
+        });
+      }
+    });
+
+    // ==================== CLICK-THROUGH CONTROL ====================
+
+    // Handle enabling click-through mode
+    ipcMain.on("chat-input-enable-click-through", (event) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        // Enable click-through for the entire window
+        // forward: true allows mouse events to pass through to windows behind
+        chatInputWindow.setIgnoreMouseEvents(true, { forward: true });
+        console.log('Chat input: Click-through enabled');
+      }
+    });
+
+    // Handle disabling click-through mode
+    ipcMain.on("chat-input-disable-click-through", (event) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        // Disable click-through - window will capture mouse events normally
+        chatInputWindow.setIgnoreMouseEvents(false);
+        console.log('Chat input: Click-through disabled');
+      }
+    });
+
+    // Handle toggling click-through mode
+    ipcMain.on("chat-input-toggle-click-through", (event) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        // Toggle click-through state
+        const isCurrentlyIgnoring = chatInputWindow.isIgnoreMouseEvents();
+        if (isCurrentlyIgnoring) {
+          chatInputWindow.setIgnoreMouseEvents(false);
+          console.log('Chat input: Click-through disabled');
+        } else {
+          chatInputWindow.setIgnoreMouseEvents(true, { forward: true });
+          console.log('Chat input: Click-through enabled');
+        }
+      }
+    });
+
     // Handle main window toggle (hide/show)
     ipcMain.on("toggle-main-window", (event) => {
       const allWindows = BrowserWindow.getAllWindows();

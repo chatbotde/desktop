@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('send-chat-message', messageData);
   },
   
+  // ==================== ADVANCED GEOMETRY CONTROL ====================
+  
   // Update window height dynamically
   updateWindowHeight: (height) => {
     ipcRenderer.send('chat-input-resize-height', height);
@@ -16,6 +18,58 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
   // Window drag functionality
   setWindowPosition: (deltaX, deltaY) => {
     ipcRenderer.send('chat-input-set-position', { deltaX, deltaY });
+  },
+  
+  // Advanced window geometry control
+  setWindowBounds: (bounds) => {
+    ipcRenderer.send('chat-input-set-bounds', bounds);
+  },
+  
+  // Get current window geometry
+  getWindowGeometry: () => {
+    return ipcRenderer.invoke('chat-input-get-geometry');
+  },
+  
+  // Set window size with optional position
+  setWindowSize: (width, height, center = false) => {
+    ipcRenderer.send('chat-input-set-size', { width, height, center });
+  },
+  
+  // Animate window geometry changes
+  animateWindowGeometry: (targetBounds, duration = 300) => {
+    ipcRenderer.send('chat-input-animate-geometry', { targetBounds, duration });
+  },
+  
+  // Smart window adjustment for UI elements
+  adjustWindowForElement: (elementId, options = {}) => {
+    ipcRenderer.send('chat-input-adjust-for-element', { elementId, options });
+  },
+  
+  // Get screen information for positioning
+  getScreenInfo: () => {
+    return ipcRenderer.invoke('chat-input-get-screen-info');
+  },
+  
+  // Position window relative to screen coordinates
+  setWindowScreenPosition: (x, y, width, height) => {
+    ipcRenderer.send('chat-input-set-screen-position', { x, y, width, height });
+  },
+  
+  // ==================== CLICK-THROUGH CONTROL ====================
+  
+  // Enable click-through mode (mouse events pass through window)
+  enableClickThrough: () => {
+    ipcRenderer.send('chat-input-enable-click-through');
+  },
+  
+  // Disable click-through mode (normal mouse interaction)
+  disableClickThrough: () => {
+    ipcRenderer.send('chat-input-disable-click-through');
+  },
+  
+  // Toggle click-through mode
+  toggleClickThrough: () => {
+    ipcRenderer.send('chat-input-toggle-click-through');
   },
   
   // Window visibility controls
