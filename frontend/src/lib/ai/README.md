@@ -1,3 +1,45 @@
+# Multi-Model AI Support
+
+This system provides support for multiple AI models with easy switching and configuration management.
+
+## Features
+
+- **Multiple AI Providers**: Google Gemini, OpenAI (planned), Anthropic (planned)
+- **Dynamic Model Switching**: Change models on-the-fly without restarting
+- **Capability Detection**: Models advertise their supported features (images, audio, video)
+- **Persistent Selection**: User's model choice is saved to localStorage
+- **UI Integration**: Ready-to-use components for model selection
+
+## Quick Start
+
+```tsx
+import { ModelSelector } from '@/components/ModelSelector';
+import { handleModelChange } from '@/lib/ai/unified-ai-service';
+import { getSelectedModel } from '@/lib/ai/model-config';
+
+function MyComponent() {
+  const currentModel = getSelectedModel();
+  
+  return (
+    <div>
+      <p>Current: {currentModel?.displayName}</p>
+      <ModelSelector onModelChange={handleModelChange} />
+    </div>
+  );
+}
+```
+
+## Available Models
+
+- **Gemini 2.0 Flash (Experimental)**: Latest with improved performance
+- **Gemini 2.5 Flash**: Advanced with enhanced capabilities  
+- **Gemini 1.5 Flash**: Fast and efficient multimodal
+- **Gemini 1.5 Pro**: Most capable for complex reasoning
+
+## Testing
+
+Use the demo component: `<ModelSelectionDemo />`
+
 # Gemini AI Integration
 
 This document explains how to set up and use the Google Gemini AI integration in your Buddy application.

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { getSelectedModel } from './model-config';
 
 // Debug environment variables
 console.log('🔍 Gemini Service Debug:');
@@ -51,8 +52,13 @@ export class GeminiChatService {
 
   private initializeChat() {
     try {
+      const selectedModel = getSelectedModel();
+      const modelName = selectedModel?.name || 'gemini-2.5-flash';
+      
+      console.log(`Initializing Gemini chat with model: ${modelName}`);
+      
       this.chat = ai.chats.create({
-        model: "gemini-2.5-flash",
+        model: modelName,
         history: this.chatHistory,
       });
     } catch (error) {
@@ -240,6 +246,18 @@ export class GeminiChatService {
     
     // Reinitialize chat with updated history
     this.initializeChat();
+  }
+
+  // Reinitialize chat with current selected model
+  reinitializeWithCurrentModel() {
+    console.log('Reinitializing Gemini chat with current selected model...');
+    this.initializeChat();
+  }
+
+  // Get current model name being used
+  getCurrentModelName(): string {
+    const selectedModel = getSelectedModel();
+    return selectedModel?.name || 'gemini-2.5-flash';
   }
 }
 

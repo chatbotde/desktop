@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import type { ChatMessage, MediaAttachment } from '@/components/Messages'
 import { windowResizeManager } from '@/lib/window-resize'
 import { sendMediaToGemini } from '@/lib/ai/gemini'
+import { handleModelChange as unifiedHandleModelChange } from '@/lib/ai/unified-ai-service'
 
 export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -147,12 +148,19 @@ export function useChatManager() {
     messageCounterRef.current = 0
   }
 
+  const handleModelChange = () => {
+    // Use unified AI service to handle model changes
+    unifiedHandleModelChange()
+    console.log('Chat manager: AI model changed, services reinitialized')
+  }
+
   return {
     messages,
     showChat,
     isTyping,
     handleChatMessage,
     copyToClipboard,
-    clearChat
+    clearChat,
+    handleModelChange
   }
 }

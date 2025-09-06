@@ -21,6 +21,8 @@
         const draggableArea = document.querySelector('.draggable-area');
         const uploadDropdown = document.getElementById('uploadDropdown');
         const captureDropdown = document.getElementById('captureDropdown');
+        const modelSelectButton = document.getElementById('modelSelectButton');
+        const modelSelectDropdown = document.getElementById('modelSelectDropdown');
         
         // Image attachment elements
         const attachmentsSection = document.getElementById('attachmentsSection');
@@ -52,6 +54,39 @@
         // Media attachments state (enhanced)
         let mediaAttachments = [];
         let recordingStartTime = 0;
+        
+        // Model selection state
+        let selectedModel = 'gemini-2.5-flash'; // Default model
+        let availableModels = {
+            'gemini-2.0-flash-exp': {
+                name: 'Gemini 2.0 Flash (Experimental)',
+                description: 'Latest experimental model with improved performance',
+                provider: 'Google',
+                cost: '$0.075/1K tokens',
+                features: ['📷 Images', '🎵 Audio', '🎬 Video']
+            },
+            'gemini-2.5-flash': {
+                name: 'Gemini 2.5 Flash',
+                description: 'Advanced flash model with enhanced capabilities',
+                provider: 'Google',
+                cost: '$0.075/1K tokens',
+                features: ['📷 Images', '🎵 Audio', '🎬 Video']
+            },
+            'gemini-1.5-flash': {
+                name: 'Gemini 1.5 Flash',
+                description: 'Fast and efficient multimodal model',
+                provider: 'Google',
+                cost: '$0.075/1K tokens',
+                features: ['📷 Images', '🎵 Audio', '🎬 Video']
+            },
+            'gemini-1.5-pro': {
+                name: 'Gemini 1.5 Pro',
+                description: 'Most capable multimodal model for complex reasoning',
+                provider: 'Google',
+                cost: '$3.50/1K tokens',
+                features: ['📷 Images', '🎵 Audio', '🎬 Video']
+            }
+        };
 
         // === THEME MANAGEMENT ===
         
@@ -1372,10 +1407,117 @@
             }
         }
 
+        // Model selection dropdown helpers
+        function openModelSelectMenu() {
+            closeAllDropdowns(); // Close any open dropdown first
+            if (!modelSelectDropdown) return;
+            positionDropdownMenu(modelSelectDropdown, modelSelectButton);
+            modelSelectDropdown.classList.add('open');
+            modelSelectDropdown.setAttribute('aria-hidden', 'false');
+            modelSelectButton.setAttribute('aria-expanded', 'true');
+            modelSelectButton.classList.add('active');
+            
+            // Update selected state in dropdown
+            updateModelDropdownSelection();
+            
+            // Single delayed window adjustment to prevent shaking
+            setTimeout(() => {
+                ensureDropdownVisibleByExpandingWindow(modelSelectDropdown);
+            }, 100);
+            
+            // Focus first enabled item for accessibility
+            const firstItem = modelSelectDropdown.querySelector('.dropdown-item:not([disabled])');
+            if (firstItem) firstItem.focus({ preventScroll: true });
+        }
+
+        function closeModelSelectMenu() {
+            if (!modelSelectDropdown) return;
+            modelSelectDropdown.classList.remove('open');
+            modelSelectDropdown.setAttribute('aria-hidden', 'true');
+            modelSelectButton.setAttribute('aria-expanded', 'false');
+            modelSelectButton.classList.remove('active');
+            
+            // Delay window adjustment to allow smooth menu close animation
+            setTimeout(() => {
+                adjustWindowHeight();
+            }, 150);
+        }
+
+        function toggleModelSelectMenu() {
+            if (modelSelectDropdown.classList.contains('open')) {
+                closeModelSelectMenu();
+            } else {
+                openModelSelectMenu();
+            }
+        }
+
+        // Update model dropdown selection visual state
+        function updateModelDropdownSelection() {
+            const items = modelSelectDropdown.querySelectorAll('.dropdown-item');
+            items.forEach(item => {
+                const modelId = item.getAttribute('data-model');
+                if (modelId === selectedModel) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        // Handle model selection
+        function selectModel(modelId) {
+            if (!availableModels[modelId]) {
+                console.warn('Unknown model:', modelId);
+                return;
+            }
+            
+            selectedModel = modelId;
+            
+            // Save to localStorage
+            localStorage.setItem('selectedAIModel', selectedModel);
+            
+            // Update UI
+            updateModelDropdownSelection();
+            updateModelButtonState();
+            
+            // Close dropdown
+            closeModelSelectMenu();
+            
+            // Notify main window about model change
+            if (window.chatInputAPI?.notifyModelChange) {
+                window.chatInputAPI.notifyModelChange(selectedModel, availableModels[selectedModel]);
+            }
+            
+            console.log('Model changed to:', availableModels[selectedModel].name);
+        }
+
+        // Update model button visual state
+        function updateModelButtonState() {
+            const currentModel = availableModels[selectedModel];
+            if (currentModel) {
+                // Update button title to show current model
+                modelSelectButton.title = `Current: ${currentModel.name}`;
+                
+                // Add visual indicator that a model is selected
+                modelSelectButton.classList.add('has-selection');
+            }
+        }
+
+        // Initialize model selection from localStorage
+        function initializeModelSelection() {
+            const saved = localStorage.getItem('selectedAIModel');
+            if (saved && availableModels[saved]) {
+                selectedModel = saved;
+            }
+            updateModelButtonState();
+            console.log('Initialized with model:', availableModels[selectedModel].name);
+        }
+
         // Close all dropdowns
         function closeAllDropdowns() {
             closeUploadMenu();
             closeCaptureMenu();
+            closeModelSelectMenu();
         }
 
         function positionDropdownMenu(dropdown, button) {
@@ -1564,6 +1706,7 @@
         sendButton.addEventListener('click', sendMessage);
         uploadButton.addEventListener('click', handleUpload);
         captureButton.addEventListener('click', handleCapture);
+        modelSelectButton.addEventListener('click', toggleModelSelectMenu);
         lightingButton.addEventListener('click', toggleLighting);
         themeToggleButton.addEventListener('click', toggleTheme);
         hideShowButton.addEventListener('click', toggleWindowVisibility);
@@ -1589,6 +1732,16 @@
             }
         });
 
+        // Model selection dropdown interactions
+        modelSelectDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('.dropdown-item');
+            if (!button || button.disabled) return;
+            const modelId = button.getAttribute('data-model');
+            if (modelId && availableModels[modelId]) {
+                selectModel(modelId);
+            }
+        });
+
         // Reposition on resize to stay anchored near the button
         window.addEventListener('resize', () => {
             if (uploadDropdown.classList.contains('open')) {
@@ -1598,6 +1751,10 @@
             if (captureDropdown.classList.contains('open')) {
                 positionDropdownMenu(captureDropdown, captureButton);
                 ensureDropdownVisibleByExpandingWindow(captureDropdown);
+            }
+            if (modelSelectDropdown.classList.contains('open')) {
+                positionDropdownMenu(modelSelectDropdown, modelSelectButton);
+                ensureDropdownVisibleByExpandingWindow(modelSelectDropdown);
             }
         });
 
@@ -1618,6 +1775,14 @@
                     closeCaptureMenu();
                 }
             }
+            
+            // Check model selection dropdown
+            if (modelSelectDropdown.classList.contains('open')) {
+                if (e.target === modelSelectButton || modelSelectButton.contains(e.target)) return;
+                if (!modelSelectDropdown.contains(e.target)) {
+                    closeModelSelectMenu();
+                }
+            }
         });
 
         document.addEventListener('keydown', (e) => {
@@ -1628,6 +1793,9 @@
                 } else if (captureDropdown.classList.contains('open')) {
                     closeCaptureMenu();
                     captureButton.focus();
+                } else if (modelSelectDropdown.classList.contains('open')) {
+                    closeModelSelectMenu();
+                    modelSelectButton.focus();
                 }
             }
         });
@@ -1682,6 +1850,9 @@
             
             // Set initial button states
             updateSendButton();
+            
+            // Initialize model selection
+            initializeModelSelection();
         });
 
         // Handle window focus

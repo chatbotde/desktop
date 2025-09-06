@@ -648,6 +648,160 @@
             font-weight: 500;
             white-space: nowrap;
         }
+
+        /* Model Selection Dropdown Styles */
+        #modelSelectDropdown {
+            min-width: 320px;
+            max-width: 380px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #modelSelectDropdown .dropdown-item {
+            align-items: flex-start;
+            padding: 12px 10px;
+            gap: 10px;
+        }
+
+        #modelSelectDropdown .dropdown-item > div {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .model-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 2px;
+            line-height: 1.2;
+        }
+
+        .model-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .model-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .feature-badge {
+            font-size: 9px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .feature-badge.disabled {
+            background: rgba(100, 116, 139, 0.1);
+            color: #64748b;
+            border-color: rgba(100, 116, 139, 0.2);
+        }
+
+        .cost-badge {
+            font-size: 9px;
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        #modelSelectDropdown .dropdown-item:hover .model-name {
+            color: var(--accent);
+        }
+
+        #modelSelectDropdown .dropdown-item[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #modelSelectDropdown .dropdown-item[disabled]:hover {
+            background: transparent;
+        }
+
+        #modelSelectDropdown .dropdown-item[disabled] .model-name {
+            color: var(--text-dim);
+        }
+
+        #modelSelectDropdown .dropdown-item.selected {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 6px;
+        }
+
+        #modelSelectDropdown .dropdown-item.selected .model-name {
+            color: var(--accent);
+        }
+
+        /* Model selection button with active state */
+        #modelSelectButton.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--accent);
+        }
+
+        /* Model selection button when a model is selected */
+        #modelSelectButton.has-selection {
+            border-color: rgba(59, 130, 246, 0.2);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        #modelSelectButton.has-selection:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Paper theme model dropdown */
+        :root[data-theme="paper"] #modelSelectDropdown {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        :root[data-theme="paper"] .feature-badge {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        :root[data-theme="paper"] .cost-badge {
+            background: rgba(22, 163, 74, 0.1);
+            color: #16a34a;
+            border-color: rgba(22, 163, 74, 0.2);
+        }
+
+        :root[data-theme="paper"] #modelSelectDropdown .dropdown-item.selected {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        :root[data-theme="paper"] #modelSelectButton.active {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: rgba(37, 99, 235, 0.3);
+            color: #2563eb;
+        }
+
+        :root[data-theme="paper"] #modelSelectButton.has-selection {
+            border-color: rgba(37, 99, 235, 0.2);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        :root[data-theme="paper"] #modelSelectButton.has-selection:hover {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: rgba(37, 99, 235, 0.3);
+        }
         /* --- FINAL & POLISHED CODE FOR PERFECT INITIAL UI --- */
 
         /* 1. Define smooth transitions on ALL properties that will change */

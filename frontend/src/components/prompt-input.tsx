@@ -8,11 +8,33 @@ import {
 } from "@/components/prompt-kit/prompt-input"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, Globe, Mic, MoreHorizontal, Plus } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { ModelSelector } from "@/components/ModelSelector"
+import { getSelectedModel, type AIModel } from "@/lib/ai/model-config"
 
-function PromptInputWithActions() {
+interface PromptInputWithActionsProps {
+  onModelChange?: () => void
+}
+
+function PromptInputWithActions({ onModelChange }: PromptInputWithActionsProps = {}) {
   const [prompt, setPrompt] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<AIModel | null>(null)
+
+  // Initialize selected model on component mount
+  useEffect(() => {
+    const currentModel = getSelectedModel()
+    setSelectedModel(currentModel)
+  }, [])
+
+  const handleModelChange = (model: AIModel) => {
+    setSelectedModel(model)
+    console.log('Model changed to:', model.displayName)
+    // Notify parent component about model change
+    if (onModelChange) {
+      onModelChange()
+    }
+  }
 
   const handleSubmit = () => {
     if (!prompt.trim()) return
@@ -44,6 +66,14 @@ function PromptInputWithActions() {
 
           <PromptInputActions className="mt-5 flex w-full items-center justify-between gap-2 px-3 pb-3">
             <div className="flex items-center gap-2">
+              <PromptInputAction tooltip="Choose AI Model">
+                <ModelSelector 
+                  variant="compact" 
+                  className="h-9"
+                  onModelChange={handleModelChange}
+                  showModelInfo={false}
+                />
+              </PromptInputAction>
               <PromptInputAction tooltip="Add a new action">
                 <Button
                   variant="outline"

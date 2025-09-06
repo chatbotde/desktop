@@ -1,6 +1,7 @@
 import { geminiService } from './gemini';
 import type { MediaAttachment } from './gemini';
 import { assemblyAIService } from '../audio/assemblyai';
+import { getSelectedModel } from './model-config';
 
 export type AIProvider = 'gemini' | 'assemblyai';
 
@@ -213,6 +214,17 @@ export class UnifiedAIService {
     
     return providers;
   }
+
+  /**
+   * Handle model change - reinitialize services
+   */
+  handleModelChange() {
+    const selectedModel = getSelectedModel();
+    console.log('UnifiedAI: Model changed to:', selectedModel?.displayName);
+    
+    // Reinitialize Gemini service with new model
+    geminiService.reinitializeWithCurrentModel();
+  }
 }
 
 // Create and export a singleton instance
@@ -229,3 +241,6 @@ export const setAIProvider = (provider: AIProvider) =>
 
 export const getCurrentAIProvider = () => 
   unifiedAIService.getCurrentProvider();
+
+export const handleModelChange = () => 
+  unifiedAIService.handleModelChange();

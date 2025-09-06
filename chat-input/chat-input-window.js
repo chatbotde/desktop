@@ -61,9 +61,9 @@ class ChatInputWindow {
       minimizable: false,
       maximizable: false,
       minWidth: 100,
-      maxWidth: 800,
+      maxWidth: 1400,
       minHeight: 80,
-      maxHeight: 400,
+      maxHeight: 800,
       closable: true,
       focusable: true,
       show: false, // Don't show immediately
