@@ -989,11 +989,10 @@
 
         /* Text input area: Let it grow and take all available space */
         .prompt-input:not(.expanded) .input-area {
-            flex-grow: 1;
+            flex: 1; /* Take all available space */
             padding: 0;
-            margin-right: 4px; /* Reduced space between input and button */
-            min-width: 0; /* Allow the input area to shrink */
-            width: calc(100% - 4px); /* Calculate width precisely, leaving just enough space for the button */
+            margin-right: 0;
+            min-width: 0;
         }
 
         /* Textarea: Remove conflicting styles and balance padding */
@@ -1029,12 +1028,14 @@
         .prompt-input:not(.expanded) .prompt-actions {
             margin-top: 0;
             padding: 0;
-            min-width: 36px; /* Space for expand button */
+            flex-shrink: 0; /* Don't shrink the button container */
+            width: auto; /* Only take space needed for button */
         }
 
         /* Hide unwanted elements cleanly */
         .prompt-input:not(.expanded) .left-actions,
         .prompt-input:not(.expanded) .draggable-area {
+            display: none !important; /* Completely remove from layout flow */
             max-width: 0;
             opacity: 0;
             padding: 0;
@@ -1101,6 +1102,7 @@
         }
         
         .prompt-input.expanded .draggable-area {
+            display: block !important; /* Show draggable area in expanded state */
             max-width: 2000px;
             opacity: 1;
             pointer-events: auto;
