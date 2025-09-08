@@ -1000,10 +1000,12 @@
             expansionState = 'expanding';
             
             const promptInputContainer = document.querySelector('.prompt-input');
+            const chatInputContainer = document.querySelector('.chat-input-container');
             const attachmentsSection = document.getElementById('attachmentsSection');
             
             // Add expanded class with transition
             promptInputContainer.classList.add('expanded');
+            chatInputContainer.classList.add('expanded');
             
             // Show attachments section smoothly if there are attachments
             if ((imageAttachments.length > 0 || mediaAttachments.length > 0)) {
@@ -1038,6 +1040,7 @@
             expansionState = 'collapsing';
             
             const promptInputContainer = document.querySelector('.prompt-input');
+            const chatInputContainer = document.querySelector('.chat-input-container');
             const attachmentsSection = document.getElementById('attachmentsSection');
             
             // Clear the input content only if there's no text or attachments
@@ -1058,6 +1061,7 @@
             
             // Remove expanded class with transition
             promptInputContainer.classList.remove('expanded');
+            chatInputContainer.classList.remove('expanded');
             
             // Smooth window height adjustment
             requestAnimationFrame(() => {
@@ -2005,15 +2009,25 @@
                 
                 // Only update if height actually changed significantly (avoid micro-adjustments)
                 if (Math.abs(targetHeight - lastTargetHeight) > 3) {
+                    const previousHeight = lastTargetHeight;
                     lastTargetHeight = targetHeight;
                     
                     // Smooth height transition
                     if (action === 'expand' || action === 'collapse') {
                         // For expand/collapse, use smooth transition
                         requestAnimationFrame(() => {
-                    if (window.chatInputAPI?.updateWindowHeight) {
-                        window.chatInputAPI.updateWindowHeight(targetHeight);
-                    }
+                            if (window.chatInputAPI?.updateWindowHeight) {
+                                window.chatInputAPI.updateWindowHeight(targetHeight);
+                            }
+                            
+                            // For upward expansion, also adjust window position
+                            if (action === 'expand' && window.chatInputAPI?.updateWindowPosition) {
+                                // Move window up by the height difference to maintain bottom alignment
+                                const heightDifference = targetHeight - previousHeight;
+                                const currentY = window.screenY;
+                                const newY = Math.max(0, currentY - heightDifference);
+                                window.chatInputAPI.updateWindowPosition(window.screenX, newY);
+                            }
                         });
                     } else {
                         // For other adjustments, use immediate update
@@ -2952,6 +2966,21 @@
         function initContainerDragHandling() {
             if (!chatInputContainer) return;
             
+            // Initialize container position to bottom center
+            function initializePosition() {
+                // Reset to CSS-based positioning (bottom: 20px, left: 50%, transform: translateX(-50%))
+                chatInputContainer.style.left = '50%';
+                chatInputContainer.style.top = 'auto';
+                chatInputContainer.style.bottom = '20px';
+                chatInputContainer.style.transform = 'translateX(-50%)';
+            }
+            
+            // Initialize position on load
+            initializePosition();
+            
+            // Re-initialize position on window resize
+            window.addEventListener('resize', initializePosition);
+            
             // Make the entire container draggable
             chatInputContainer.addEventListener('mousedown', (e) => {
                 // Don't start drag if clicking on interactive elements
@@ -2964,6 +2993,8 @@
                 containerDragOffset.x = e.clientX - rect.left;
                 containerDragOffset.y = e.clientY - rect.top;
                 
+                // Add dragging class and ensure proper positioning
+                chatInputContainer.classList.add('dragging');
                 chatInputContainer.style.cursor = 'grabbing';
                 document.body.style.userSelect = 'none';
                 
@@ -2976,20 +3007,34 @@
                 const newX = e.clientX - containerDragOffset.x;
                 const newY = e.clientY - containerDragOffset.y;
                 
-                // Constrain to window bounds
-                const maxX = window.innerWidth - chatInputContainer.offsetWidth;
-                const maxY = window.innerHeight - chatInputContainer.offsetHeight;
+                // Get container dimensions
+                const containerWidth = chatInputContainer.offsetWidth;
+                const containerHeight = chatInputContainer.offsetHeight;
                 
-                const constrainedX = Math.max(0, Math.min(newX, maxX));
-                const constrainedY = Math.max(0, Math.min(newY, maxY));
+                // Constrain to window bounds with proper margins
+                const margin = 10; // Small margin from screen edges
+                const minX = margin;
+                const maxX = window.innerWidth - containerWidth - margin;
+                const minY = margin;
+                const maxY = window.innerHeight - containerHeight - margin;
                 
+                const constrainedX = Math.max(minX, Math.min(newX, maxX));
+                const constrainedY = Math.max(minY, Math.min(newY, maxY));
+                
+                // Apply position - maintain bottom alignment when not dragging
                 chatInputContainer.style.left = constrainedX + 'px';
                 chatInputContainer.style.top = constrainedY + 'px';
+                chatInputContainer.style.bottom = 'auto';
+                chatInputContainer.style.transform = 'none';
+                
+                // Update dropdown positions when container is dragged
+                updateDropdownPositions();
             });
             
             document.addEventListener('mouseup', () => {
                 if (isContainerDragging) {
                     isContainerDragging = false;
+                    chatInputContainer.classList.remove('dragging');
                     chatInputContainer.style.cursor = 'move';
                     document.body.style.userSelect = '';
                 }
@@ -2999,10 +3044,73 @@
             document.addEventListener('mouseleave', () => {
                 if (isContainerDragging) {
                     isContainerDragging = false;
+                    chatInputContainer.classList.remove('dragging');
                     chatInputContainer.style.cursor = 'move';
                     document.body.style.userSelect = '';
                 }
             });
+        }
+        
+        // Update dropdown positions when container is moved
+        function updateDropdownPositions() {
+            // Update upload dropdown position if it's open
+            if (uploadDropdown && uploadDropdown.classList.contains('open')) {
+                positionDropdownMenu(uploadDropdown, uploadButton);
+            }
+            
+            // Update capture dropdown position if it's open
+            if (captureDropdown && captureDropdown.classList.contains('open')) {
+                positionDropdownMenu(captureDropdown, captureButton);
+            }
+            
+            // Update plus actions dropdown position if it's open
+            if (plusActionsDropdown && plusActionsDropdown.classList.contains('open')) {
+                positionDropdownMenu(plusActionsDropdown, expandedPlusButton);
+            }
+            
+            // Update model select dropdown position if it's open
+            if (modelSelectDropdown && modelSelectDropdown.classList.contains('open')) {
+                positionDropdownMenu(modelSelectDropdown, modelSelectButton);
+            }
+        }
+        
+        // Initialize close button functionality
+        function initCloseButtons() {
+            // Upload dropdown close button
+            const closeUploadBtn = document.getElementById('closeUploadDropdown');
+            if (closeUploadBtn) {
+                closeUploadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeUploadMenu();
+                });
+            }
+            
+            // Capture dropdown close button
+            const closeCaptureBtn = document.getElementById('closeCaptureDropdown');
+            if (closeCaptureBtn) {
+                closeCaptureBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeCaptureMenu();
+                });
+            }
+            
+            // Plus actions dropdown close button
+            const closePlusActionsBtn = document.getElementById('closePlusActionsDropdown');
+            if (closePlusActionsBtn) {
+                closePlusActionsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closePlusActionsMenu();
+                });
+            }
+            
+            // Model select dropdown close button
+            const closeModelSelectBtn = document.getElementById('closeModelSelectDropdown');
+            if (closeModelSelectBtn) {
+                closeModelSelectBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeModelSelectMenu();
+                });
+            }
         }
 
         // Initialize drag handling
@@ -3010,6 +3118,9 @@
         
         // Initialize container drag functionality
         initContainerDragHandling();
+        
+        // Initialize close button functionality
+        initCloseButtons();
         
         // Initialize renderer capture API
         if (window.RendererCaptureAPI) {

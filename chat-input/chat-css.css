@@ -209,9 +209,7 @@
         }
 
         .chat-input-container {
-            position: absolute;
-            top: 50px;
-            left: 50px;
+            position: fixed;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -221,8 +219,26 @@
             margin: 0;
             cursor: move;
             z-index: 1000;
-            transition: all 0.2s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth upward movement */
             user-select: none;
+            bottom: 20px; /* Position at bottom of screen */
+            left: 50%;
+            transform: translateX(-50%); /* Center horizontally */
+        }
+        
+        /* When dragging, ensure smooth movement */
+        .chat-input-container.dragging {
+            transition: none;
+        }
+        
+        /* Move container upward when expanded to accommodate upward growth */
+        .chat-input-container.expanded {
+            transform: translateX(-50%) translateY(-20px);
+        }
+        
+        /* When dragging, override the expanded transform */
+        .chat-input-container.dragging.expanded {
+            transform: none;
         }
         
         .chat-input-container:active {
@@ -266,7 +282,7 @@
         }
 
         .input-area {
-            padding: 12px 16px 0;
+            padding: 4px 8px 0;
         }
 
         #messageInput {
@@ -304,7 +320,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 4px;
-            padding: 0 12px 12px;
+            padding: 0 8px 8px;
             cursor: move;
             position: relative;
             transform: translate(0, 0);
@@ -379,8 +395,8 @@
         }
 
         .action-btn.icon-only {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
         }
 
         .action-btn.with-text {
@@ -561,13 +577,13 @@
             }
 
             .prompt-actions {
-                gap: 6px;
-                padding: 0 8px 8px;
+                gap: 4px;
+                padding: 0 6px 6px;
             }
 
             .left-actions,
             .right-actions {
-                gap: 6px;
+                gap: 4px;
             }
 
             #messageInput {
@@ -811,6 +827,45 @@
             animation: slideUp 0.18s ease;
         }
 
+        .dropdown-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+
+        .dropdown-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropdown-close-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            width: 20px;
+            height: 20px;
+        }
+
+        .dropdown-close-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: #fff;
+            transform: scale(1.1);
+        }
+
         .dropdown-content {
             max-height: none;
             overflow: visible;
@@ -1033,6 +1088,27 @@
             background: rgba(37, 99, 235, 0.1);
             border-color: rgba(37, 99, 235, 0.3);
         }
+
+        /* Paper theme dropdown header styles */
+        :root[data-theme="paper"] .dropdown-header {
+            border-bottom: 1px solid var(--border);
+        }
+
+        :root[data-theme="paper"] .dropdown-title {
+            color: var(--text);
+        }
+
+        :root[data-theme="paper"] .dropdown-close-btn {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        :root[data-theme="paper"] .dropdown-close-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: #fff;
+        }
         /* --- FINAL & POLISHED CODE FOR PERFECT INITIAL UI --- */
 
         /* 1. Define smooth transitions on ALL properties that will change */
@@ -1086,7 +1162,7 @@
             /* <-- ALIGNMENT FIX: */
             min-height: 44px; /* Ensure minimum height for single line */
             max-height: 44px; /* Ensure maximum height for single line */
-            padding: 12px 0; /* Vertical padding for better text alignment */
+            padding: 8px 0; /* Vertical padding for better text alignment */
             line-height: 1.3; /* Helps center the text cursor */
             font-size: 15px; /* Slightly larger font for better readability */
             overflow: hidden; /* Prevent scrolling in collapsed state */
@@ -1135,9 +1211,9 @@
         /* Style the expand button to exactly match the target UI */
         .prompt-input:not(.expanded) #expandButton {
             display: flex !important; /* Always show expand button in collapsed state */
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
             padding: 0;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1176,9 +1252,9 @@
         /* Expanded plus button styles */
         .prompt-input.expanded .expanded-plus-button {
             display: flex !important;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
             padding: 0;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1253,8 +1329,22 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform: scale(1);
             opacity: 1;
-            padding: 8px;
+            padding: 4px;
             min-height: auto;
+        }
+        
+        /* Ensure expanded state uses column layout for upward expansion */
+        .prompt-input.expanded .prompt-content {
+            flex-direction: column;
+            align-items: flex-end; /* Align content to bottom for upward expansion */
+        }
+        
+        /* Ensure input area in expanded state also aligns properly */
+        .prompt-input.expanded .input-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Align textarea to bottom for upward growth */
+            width: 100%;
         }
 
         .prompt-input.expanded .left-actions {
@@ -1278,6 +1368,7 @@
             white-space: pre-wrap;
             overflow-y: auto;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            align-self: flex-end; /* Maintain bottom alignment for upward expansion */
         }
         /* This class is in your chat-css.css file */
         .prompt-input.transparent {
