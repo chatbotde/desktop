@@ -23,6 +23,11 @@
         const captureDropdown = document.getElementById('captureDropdown');
         const modelSelectButton = document.getElementById('modelSelectButton');
         const modelSelectDropdown = document.getElementById('modelSelectDropdown');
+        const chatInputContainer = document.querySelector('.chat-input-container');
+        const contentProtectionButton = document.getElementById('contentProtectionButton');
+        const plusButton = document.getElementById('plusButton');
+        const expandedPlusButton = document.getElementById('expandedPlusButton');
+        const plusActionsDropdown = document.getElementById('plusActionsDropdown');
         
         // Image attachment elements
         const attachmentsSection = document.getElementById('attachmentsSection');
@@ -41,11 +46,16 @@
         let isRecording = false;
         let currentRecordingType = null;
         let currentTheme = 'dark'; // 'dark' or 'paper'
+        let contentProtectionEnabled = true; // Content protection state
         // let recording = false; // Future voice recording state
         
         // Drag state
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
+        
+        // Container drag state
+        let isContainerDragging = false;
+        let containerDragOffset = { x: 0, y: 0 };
         
         // Image attachments state
         let imageAttachments = [];
@@ -87,6 +97,49 @@
                 features: ['📷 Images', '🎵 Audio', '🎬 Video']
             }
         };
+
+        // === CONTENT PROTECTION MANAGEMENT ===
+        
+        function initializeContentProtection() {
+            // Load initial content protection state
+            if (window.chatInputAPI?.getContentProtection) {
+                window.chatInputAPI.getContentProtection().then(enabled => {
+                    contentProtectionEnabled = enabled;
+                    updateContentProtectionButton();
+                });
+            }
+            
+            // Content protection button
+            if (contentProtectionButton) {
+                contentProtectionButton.addEventListener('click', () => {
+                    toggleContentProtection();
+                });
+            }
+        }
+        
+        function toggleContentProtection() {
+            if (window.chatInputAPI?.toggleContentProtection) {
+                window.chatInputAPI.toggleContentProtection().then(enabled => {
+                    contentProtectionEnabled = enabled;
+                    updateContentProtectionButton();
+                    console.log(`Content protection ${enabled ? 'enabled' : 'disabled'}`);
+                }).catch(error => {
+                    console.error('Failed to toggle content protection:', error);
+                });
+            }
+        }
+        
+        function updateContentProtectionButton() {
+            if (contentProtectionButton) {
+                if (contentProtectionEnabled) {
+                    contentProtectionButton.classList.add('active');
+                    contentProtectionButton.title = 'Content protection enabled - click to disable';
+                } else {
+                    contentProtectionButton.classList.remove('active');
+                    contentProtectionButton.title = 'Content protection disabled - click to enable';
+                }
+            }
+        }
 
         // === THEME MANAGEMENT ===
         
@@ -1202,6 +1255,61 @@
             showModelSelectorAdvanced(modelSelectButton);
         });
         
+        // Plus button functionality - expand the UI
+        plusButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            expandUI();
+        });
+        
+        // Expanded plus button functionality - show dropdown
+        expandedPlusButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPlusActionsDropdown(expandedPlusButton);
+        });
+
+        // Plus actions dropdown item clicks
+        plusActionsDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button) return;
+            
+            e.stopPropagation();
+            const action = button.getAttribute('data-action');
+            
+            // Hide dropdown first
+            hideDropdown('plusActionsDropdown');
+            
+            // Execute the corresponding action
+            switch (action) {
+                case 'upload':
+                    handleUpload();
+                    break;
+                case 'capture':
+                    handleCapture();
+                    break;
+                case 'theme':
+                    toggleTheme();
+                    break;
+                case 'lighting':
+                    toggleLighting();
+                    break;
+                case 'hide':
+                    toggleWindowVisibility();
+                    break;
+                case 'click-through':
+                    toggleClickThrough();
+                    break;
+                case 'toggle-main':
+                    toggleMainWindow();
+                    break;
+                case 'protection':
+                    toggleContentProtection();
+                    break;
+                case 'collapse':
+                    collapseUI();
+                    break;
+            }
+        });
+        
         // Add Enter key handling for sending message in collapsed state
         messageInput.addEventListener('keydown', (e) => {
             // In collapsed state, Enter sends the message
@@ -1763,6 +1871,17 @@
         // Enhanced model selector with smart positioning
         function showModelSelectorAdvanced(triggerButton) {
             showDropdownAdvanced('modelDropdown', triggerButton, {
+                position: 'below',
+                offset: 8,
+                margin: 20,
+                constrainToScreen: true,
+                preferAbove: false
+            });
+        }
+
+        // Show plus actions dropdown
+        function showPlusActionsDropdown(triggerButton) {
+            showDropdownAdvanced('plusActionsDropdown', triggerButton, {
                 position: 'below',
                 offset: 8,
                 margin: 20,
@@ -2642,6 +2761,14 @@
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            // Add fullscreen class to container for fullscreen mode
+            if (chatInputContainer) {
+                chatInputContainer.classList.add('fullscreen');
+            }
+            
+            // Initialize content protection
+            initializeContentProtection();
+            
             // Initialize theme
             const savedTheme = localStorage.getItem('chatInputTheme');
             if (savedTheme === 'paper') {
@@ -2821,8 +2948,68 @@
             });
         }
 
+        // Container drag functionality
+        function initContainerDragHandling() {
+            if (!chatInputContainer) return;
+            
+            // Make the entire container draggable
+            chatInputContainer.addEventListener('mousedown', (e) => {
+                // Don't start drag if clicking on interactive elements
+                if (e.target.closest('button') || e.target.closest('textarea') || e.target.closest('input')) {
+                    return;
+                }
+                
+                isContainerDragging = true;
+                const rect = chatInputContainer.getBoundingClientRect();
+                containerDragOffset.x = e.clientX - rect.left;
+                containerDragOffset.y = e.clientY - rect.top;
+                
+                chatInputContainer.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isContainerDragging) return;
+                
+                const newX = e.clientX - containerDragOffset.x;
+                const newY = e.clientY - containerDragOffset.y;
+                
+                // Constrain to window bounds
+                const maxX = window.innerWidth - chatInputContainer.offsetWidth;
+                const maxY = window.innerHeight - chatInputContainer.offsetHeight;
+                
+                const constrainedX = Math.max(0, Math.min(newX, maxX));
+                const constrainedY = Math.max(0, Math.min(newY, maxY));
+                
+                chatInputContainer.style.left = constrainedX + 'px';
+                chatInputContainer.style.top = constrainedY + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isContainerDragging) {
+                    isContainerDragging = false;
+                    chatInputContainer.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                }
+            });
+            
+            // Handle drag leaving window
+            document.addEventListener('mouseleave', () => {
+                if (isContainerDragging) {
+                    isContainerDragging = false;
+                    chatInputContainer.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
         // Initialize drag handling
         initDragHandling();
+        
+        // Initialize container drag functionality
+        initContainerDragHandling();
         
         // Initialize renderer capture API
         if (window.RendererCaptureAPI) {

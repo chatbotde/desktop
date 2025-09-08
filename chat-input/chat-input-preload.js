@@ -71,6 +71,26 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
   toggleClickThrough: () => {
     ipcRenderer.send('chat-input-toggle-click-through');
   },
+
+  // ==================== CONTENT PROTECTION CONTROL ====================
+  
+  // Toggle content protection (prevent screen capture)
+  toggleContentProtection: () => {
+    console.log('Preload: Toggling content protection');
+    return ipcRenderer.invoke('chat-input-toggle-content-protection');
+  },
+  
+  // Get content protection status
+  getContentProtection: () => {
+    console.log('Preload: Getting content protection status');
+    return ipcRenderer.invoke('chat-input-get-content-protection');
+  },
+  
+  // Set content protection state
+  setContentProtection: (enabled) => {
+    console.log('Preload: Setting content protection to', enabled);
+    return ipcRenderer.invoke('chat-input-set-content-protection', enabled);
+  },
   
   // Window visibility controls
   hideWindow: () => {

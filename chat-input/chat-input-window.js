@@ -8,7 +8,7 @@ class ChatInputWindow {
     this.chatInputWindow = null;
     this.mainWindow = null;
     this.alwaysOnTopInterval = null;
-    this.contentProtectionEnabled = false;
+    this.contentProtectionEnabled = true; // Enable content protection by default
     this.captureAPI = new CaptureAPI();
   }
 
@@ -27,13 +27,13 @@ class ChatInputWindow {
     const { width: screenWidth, height: screenHeight } =
       primaryDisplay.workAreaSize;
 
-    // Chat input window dimensions - increased for new UI
-    const windowWidth = 600;
-    const windowHeight = 120; // Increased base height for new design
+    // Fullscreen dimensions for chat input
+    const windowWidth = screenWidth;
+    const windowHeight = screenHeight;
 
-    // Position at bottom center of screen
-    const x = (screenWidth - windowWidth) / 2;
-    const y = screenHeight - windowHeight - 50; // 50px from bottom
+    // Position at top-left corner for fullscreen
+    const x = 0;
+    const y = 0;
 
     // Get the appropriate icon path based on platform
     const getIconPath = () => {
@@ -57,13 +57,13 @@ class ChatInputWindow {
       alwaysOnTop: true,
       skipTaskbar: true,
       title: "Buddy Chat",
-      resizable: true,
+      resizable: false, // Disable resizing for fullscreen
       minimizable: false,
-      maximizable: false,
-      minWidth: 100,
-      maxWidth: 1400,
-      minHeight: 80,
-      maxHeight: 800,
+      maximizable: false, // Disable maximizing since we're already fullscreen
+      minWidth: windowWidth, // Fixed width - no resizing
+      maxWidth: windowWidth, // Fixed width - no resizing
+      minHeight: windowHeight, // Fixed height - no resizing
+      maxHeight: windowHeight, // Fixed height - no resizing
       closable: true,
       focusable: true,
       show: false, // Don't show immediately
@@ -281,53 +281,10 @@ class ChatInputWindow {
     let lastResizeHeight = 0;
     
     ipcMain.on("chat-input-resize-height", (event, newHeight) => {
-      // Clear any pending resize operations
-      if (resizeTimeout) {
-        clearTimeout(resizeTimeout);
-      }
-      
-      // Only proceed if height change is significant
-      if (Math.abs(newHeight - lastResizeHeight) < 5) {
-        return;
-      }
-      
-      resizeTimeout = setTimeout(() => {
-        const allWindows = BrowserWindow.getAllWindows();
-        const chatInputWindow = allWindows.find((win) => {
-          if (win.isDestroyed()) return false;
-          try {
-            return win.webContents.getURL().includes("chat-input.html");
-          } catch {
-            return false;
-          }
-        });
-
-        if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-          const [currentWidth, currentHeight] = chatInputWindow.getSize();
-          const [currentX, currentY] = chatInputWindow.getPosition();
-          const primaryDisplay = screen.getPrimaryDisplay();
-          const { height: screenHeight } = primaryDisplay.workAreaSize;
-          
-          const clampedHeight = Math.max(80, Math.min(400, newHeight));
-          
-          // Only resize if there's a meaningful difference
-          if (Math.abs(currentHeight - clampedHeight) > 3) {
-            // Calculate new Y position to keep window anchored at bottom
-            const heightDifference = clampedHeight - currentHeight;
-            const newY = Math.max(0, currentY - heightDifference);
-            
-            // Perform smooth resize with animation
-            chatInputWindow.setSize(currentWidth, clampedHeight, true);
-            
-            // Only adjust position if necessary
-            if (newY !== currentY) {
-              chatInputWindow.setPosition(currentX, newY, true);
-            }
-            
-            lastResizeHeight = clampedHeight;
-          }
-        }
-      }, 100); // 100ms debounce
+      // In fullscreen mode, we don't resize the window - it stays fullscreen
+      // The UI will handle content layout within the fullscreen space
+      console.log(`Fullscreen chat-input mode: Content height ${newHeight} - window remains fullscreen`);
+      return;
     });
 
     // Handle chat input window controls
@@ -411,35 +368,9 @@ class ChatInputWindow {
 
     // Handle advanced window bounds setting
     ipcMain.on("chat-input-set-bounds", (event, bounds) => {
-      const allWindows = BrowserWindow.getAllWindows();
-      const chatInputWindow = allWindows.find((win) => {
-        if (win.isDestroyed()) return false;
-        try {
-          return win.webContents.getURL().includes("chat-input.html");
-        } catch {
-          return false;
-        }
-      });
-
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        const { x, y, width, height } = bounds;
-        
-        // Validate bounds
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-        
-        const constrainedX = Math.max(0, Math.min(screenWidth - width, x));
-        const constrainedY = Math.max(0, Math.min(screenHeight - height, y));
-        const constrainedWidth = Math.max(100, Math.min(1400, width));
-        const constrainedHeight = Math.max(80, Math.min(800, height));
-        
-        chatInputWindow.setBounds({
-          x: constrainedX,
-          y: constrainedY,
-          width: constrainedWidth,
-          height: constrainedHeight
-        });
-      }
+      // In fullscreen mode, we don't change window bounds - it stays fullscreen
+      console.log('Fullscreen chat-input mode: Bounds setting disabled - window remains fullscreen');
+      return;
     });
 
     // Handle getting current window geometry
@@ -473,71 +404,16 @@ class ChatInputWindow {
 
     // Handle setting window size with optional centering
     ipcMain.on("chat-input-set-size", (event, { width, height, center = false }) => {
-      const allWindows = BrowserWindow.getAllWindows();
-      const chatInputWindow = allWindows.find((win) => {
-        if (win.isDestroyed()) return false;
-        try {
-          return win.webContents.getURL().includes("chat-input.html");
-        } catch {
-          return false;
-        }
-      });
-
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        const constrainedWidth = Math.max(100, Math.min(1400, width));
-        const constrainedHeight = Math.max(80, Math.min(800, height));
-        
-        if (center) {
-          const primaryDisplay = screen.getPrimaryDisplay();
-          const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-          const x = (screenWidth - constrainedWidth) / 2;
-          const y = (screenHeight - constrainedHeight) / 2;
-          chatInputWindow.setBounds({ x, y, width: constrainedWidth, height: constrainedHeight });
-        } else {
-          chatInputWindow.setSize(constrainedWidth, constrainedHeight);
-        }
-      }
+      // In fullscreen mode, we don't change window size - it stays fullscreen
+      console.log(`Fullscreen chat-input mode: Size setting disabled - window remains fullscreen (${width}x${height})`);
+      return;
     });
 
     // Handle animated window geometry changes
     ipcMain.on("chat-input-animate-geometry", (event, { targetBounds, duration = 300 }) => {
-      const allWindows = BrowserWindow.getAllWindows();
-      const chatInputWindow = allWindows.find((win) => {
-        if (win.isDestroyed()) return false;
-        try {
-          return win.webContents.getURL().includes("chat-input.html");
-        } catch {
-          return false;
-        }
-      });
-
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        const currentBounds = chatInputWindow.getBounds();
-        const startTime = Date.now();
-        
-        const animate = () => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          
-          // Use easeOutCubic for smooth animation
-          const easeProgress = 1 - Math.pow(1 - progress, 3);
-          
-          const newBounds = {
-            x: currentBounds.x + (targetBounds.x - currentBounds.x) * easeProgress,
-            y: currentBounds.y + (targetBounds.y - currentBounds.y) * easeProgress,
-            width: currentBounds.width + (targetBounds.width - currentBounds.width) * easeProgress,
-            height: currentBounds.height + (targetBounds.height - currentBounds.height) * easeProgress
-          };
-          
-          chatInputWindow.setBounds(newBounds);
-          
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          }
-        };
-        
-        requestAnimationFrame(animate);
-      }
+      // In fullscreen mode, we don't animate geometry changes - window stays fullscreen
+      console.log('Fullscreen chat-input mode: Geometry animation disabled - window remains fullscreen');
+      return;
     });
 
     // Handle smart window adjustment for UI elements
@@ -610,6 +486,76 @@ class ChatInputWindow {
           height: constrainedHeight
         });
       }
+    });
+
+    // ==================== CONTENT PROTECTION HANDLERS ====================
+
+    // Handle content protection toggle
+    ipcMain.handle("chat-input-toggle-content-protection", async () => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const instance = getChatInputInstance();
+        if (instance) {
+          const newState = !instance.contentProtectionEnabled;
+          instance.setContentProtectionEnabled(newState);
+          console.log(`Chat Input: Content protection ${newState ? 'ENABLED' : 'DISABLED'}`);
+          return newState;
+        }
+      }
+      return false;
+    });
+
+    // Handle getting content protection status
+    ipcMain.handle("chat-input-get-content-protection", async () => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const instance = getChatInputInstance();
+        if (instance) {
+          return instance.isContentProtectionEnabled();
+        }
+      }
+      return false;
+    });
+
+    // Handle setting content protection state
+    ipcMain.handle("chat-input-set-content-protection", async (event, enabled) => {
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          return win.webContents.getURL().includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        const instance = getChatInputInstance();
+        if (instance) {
+          instance.setContentProtectionEnabled(enabled);
+          console.log(`Chat Input: Content protection ${enabled ? 'ENABLED' : 'DISABLED'}`);
+          return true;
+        }
+      }
+      return false;
     });
 
     // ==================== CLICK-THROUGH CONTROL ====================
