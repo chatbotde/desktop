@@ -1,0 +1,396 @@
+/* ==================== CHAT INPUT COMPONENT STYLES ==================== */
+
+.drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    -webkit-app-region: no-drag;
+    cursor: move;
+    z-index: 20;
+    background: transparent;
+    transform: translate(0, 0);
+    transition: transform 0.2s ease;
+}
+
+.drag-handle:hover {
+    background: none;
+}
+
+.chat-input-container {
+    position: fixed;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 12px 16px;
+    width: 500px;
+    max-width: 800px;
+    margin: 0;
+    cursor: move;
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth upward movement */
+    user-select: none;
+    bottom: 20px; /* Position at bottom of screen */
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally */
+}
+
+/* When dragging, ensure smooth movement */
+.chat-input-container.dragging {
+    transition: none;
+}
+
+/* Move container upward when expanded to accommodate upward growth */
+.chat-input-container.expanded {
+    transform: translateX(-50%) translateY(-20px);
+}
+
+/* When dragging, override the expanded transform */
+.chat-input-container.dragging.expanded {
+    transform: none;
+}
+
+.chat-input-container:active {
+    cursor: grabbing;
+}
+
+/* Fullscreen mode adjustments */
+.chat-input-container.fullscreen {
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.chat-input-container.fullscreen .prompt-input {
+    max-width: 1000px;
+    width: 100%;
+}
+
+.prompt-input {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    background: var(--bg-popover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-xs);
+    transition: all 0.18s ease;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: slideUp 0.28s ease forwards;
+}
+
+.prompt-input:focus-within {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 1px var(--border-hover), var(--shadow-sm);
+}
+
+.prompt-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-area {
+    padding: 4px 8px 0;
+}
+
+#messageInput {
+    width: 100%;
+    background: none;
+    border: none;
+    resize: none;
+    outline: none;
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.3;
+    min-height: 44px;
+    max-height: 200px;
+    padding: 12px 0;
+    font-family: inherit;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overflow: hidden; /* Prevent scrollbar in collapsed state */
+    white-space: pre-wrap; /* Allow wrapping */
+    word-wrap: break-word; /* Break long words */
+}
+
+#messageInput::-webkit-scrollbar {
+    display: none;
+}
+
+#messageInput::placeholder {
+    color: var(--text-dim);
+}
+
+.prompt-actions {
+    margin-top: 0px;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 0 8px 8px;
+    cursor: move;
+    position: relative;
+    transform: translate(0, 0);
+    transition: transform 0.2s ease;
+}
+
+.left-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: move;
+    position: relative;
+    transform: translate(0, 0);
+    transition: transform 0.2s ease;
+}
+
+.right-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: move;
+    position: relative;
+    transform: translate(0, 0);
+    transition: transform 0.2s ease;
+}
+
+.draggable-area {
+    cursor: move;
+    flex: 1;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    transform: translate(0, 0);
+    transition: transform 0.2s ease;
+}
+
+/* ==================== COLLAPSED STATE STYLES ==================== */
+
+/* 1. Define smooth transitions on ALL properties that will change */
+.prompt-input,
+.prompt-content,
+.prompt-actions,
+#messageInput,
+.action-btn.primary,
+.action-btn.primary svg {
+    /* A refined cubic-bezier for a professional feel */
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 2. Style the INITIAL collapsed state (:not(.expanded)) with precision */
+
+/* Main container: Tweak the radius and remove padding */
+.prompt-input:not(.expanded) {
+    background: #333333;
+    border-color: transparent;
+    border-radius: 30px; /* Reduced radius for a more compact look */
+    padding: 0;
+    min-height: 44px; /* Set a minimum height for consistency */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(1);
+    opacity: 1;
+    cursor: move; /* Make entire collapsed UI draggable */
+    position: relative;
+}
+
+/* Flexbox container: The key to horizontal alignment */
+.prompt-input:not(.expanded) .prompt-content {
+    flex-direction: row;
+    align-items: center;
+    padding: 0 4px; /* Reduced padding for better space utilization */
+    gap: 4px; /* Add gap between elements for consistent spacing */
+}
+
+/* Text input area: Let it grow and take all available space */
+.prompt-input:not(.expanded) .input-area {
+    flex: 1; /* Take all available space */
+    padding: 0;
+    margin-right: 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Textarea: Remove conflicting styles and balance padding */
+.prompt-input:not(.expanded) #messageInput {
+    /* <-- ALIGNMENT FIX: */
+    min-height: 44px; /* Ensure minimum height for single line */
+    max-height: 44px; /* Ensure maximum height for single line */
+    padding: 8px 0; /* Vertical padding for better text alignment */
+    line-height: 1.3; /* Helps center the text cursor */
+    font-size: 15px; /* Slightly larger font for better readability */
+    overflow: hidden; /* Prevent scrolling in collapsed state */
+    text-overflow: ellipsis; /* Show ellipsis for overflow text */
+    white-space: nowrap; /* Keep text in single line, no wrapping in collapsed state */
+    resize: none; /* Prevent manual resizing */
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    width: 100%; /* Full width of container */
+    box-sizing: border-box; /* Include padding in width calculation */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit; /* Use inherited font family */
+    caret-color: #ffffff; /* White cursor caret */
+    pointer-events: auto; /* Allow input interaction */
+}
+
+/* Button container: Remove extra spacing */
+.prompt-input:not(.expanded) .prompt-actions {
+    margin-top: 0;
+    padding: 0;
+    flex-shrink: 0; /* Don't shrink the button container */
+    width: auto; /* Only take space needed for button */
+}
+
+/* Hide unwanted elements cleanly */
+.prompt-input:not(.expanded) .left-actions,
+.prompt-input:not(.expanded) .draggable-area {
+    display: none !important; /* Completely remove from layout flow */
+    max-width: 0;
+    opacity: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+/* Style the expand button to exactly match the target UI */
+.prompt-input:not(.expanded) #expandButton {
+    display: flex !important; /* Always show expand button in collapsed state */
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    pointer-events: auto; /* Allow button interaction */
+}
+
+/* Hide send button in collapsed state */
+.prompt-input:not(.expanded) #sendButton {
+    display: none !important;
+}
+
+/* Plus button styles for non-expanded state */
+.prompt-input:not(.expanded) .plus-button {
+    display: flex !important;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.prompt-input:not(.expanded) .plus-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide plus button in expanded state */
+.prompt-input.expanded .plus-button {
+    display: none !important;
+}
+
+/* Expanded plus button styles */
+.prompt-input.expanded .expanded-plus-button {
+    display: flex !important;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.prompt-input.expanded .expanded-plus-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide expanded plus button in collapsed state */
+.prompt-input:not(.expanded) .expanded-plus-button {
+    display: none !important;
+}
+
+/* Hide all buttons in expanded state except model and expanded plus */
+.prompt-input.expanded .hidden-buttons {
+    display: none !important;
+}
+
+/* 3. Style for the EXPANDED state (reverting to original theme) */
+/* This section remains the same */
+.prompt-input.expanded {
+    background: var(--bg-popover);
+    border-color: var(--border);
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius); /* Revert to the original large radius */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(1);
+    opacity: 1;
+    padding: 4px;
+    min-height: auto;
+}
+
+/* Ensure expanded state uses column layout for upward expansion */
+.prompt-input.expanded .prompt-content {
+    flex-direction: column;
+    align-items: flex-end; /* Align content to bottom for upward expansion */
+}
+
+/* Ensure input area in expanded state also aligns properly */
+.prompt-input.expanded .input-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Align textarea to bottom for upward growth */
+    width: 100%;
+}
+
+.prompt-input.expanded .left-actions {
+    max-width: 2000px;
+    opacity: 1;
+    pointer-events: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.prompt-input.expanded .draggable-area {
+    display: block !important; /* Show draggable area in expanded state */
+    max-width: 2000px;
+    opacity: 1;
+    pointer-events: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.prompt-input.expanded #messageInput {
+    min-height: 44px;
+    max-height: 200px;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    align-self: flex-end; /* Maintain bottom alignment for upward expansion */
+}
+
+/* Transparency/Lighting Effect Button */
+.prompt-input.transparent {
+    background: none; /* Semi-transparent background */
+    backdrop-filter: blur(20px);      /* This creates the frosted glass/blur effect */
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.prompt-input.transparent:focus-within {
+    background: none;
+    border-color: rgba(255, 255, 255, 0.2);
+}

@@ -139,130 +139,22 @@ class WindowManager {
       }
     });
 
-    // Add content-based resizing functionality
-    this.setupContentBasedResizing(win);
+    // Content-based resizing disabled - manual control only
   }
 
   setupContentBasedResizing(win) {
-    // Listen for content size changes from renderer
-    win.webContents.on('ipc-message', (event, channel, ...args) => {
-      if (channel === 'content-size-changed') {
-        const [width, height] = args;
-        this.resizeWindowToContent(win, width, height);
-      }
-    });
-
-    // Alternative: Listen for DOM content loaded and check content size
-    win.webContents.on('did-finish-load', () => {
-      // Wait a bit for content to render, then check size
-      setTimeout(() => {
-        this.checkContentSizeAndResize(win);
-      }, 500);
-    });
+    // Auto resize functionality disabled - manual control only
+    console.log('Content-based resizing disabled - manual control only');
   }
 
   resizeWindowToContent(win, contentWidth, contentHeight) {
-    if (!win || win.isDestroyed()) return;
-
-    const currentBounds = win.getBounds();
-    
-    // FIXED WIDTH - Keep the current width, don't change it
-    const newWidth = currentBounds.width;
-    
-    // DYNAMIC HEIGHT - Only adjust height based on content
-    let newHeight = Math.max(contentHeight, this.minWindowSize.height);
-    
-    // Ensure height doesn't exceed screen bounds
-    const screen = require('electron').screen;
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { height: screenHeight } = primaryDisplay.workAreaSize;
-    
-    // Dynamic max height based on screen size (85% of screen height)
-    const dynamicMaxHeight = Math.floor(screenHeight * 0.85);
-    newHeight = Math.min(newHeight, dynamicMaxHeight);
-    
-    // Only resize if height difference is meaningful
-    const heightDiff = Math.abs(newHeight - currentBounds.height);
-    
-    if (heightDiff > 10) {
-      console.log(`Vertical resize: ${currentBounds.height} -> ${newHeight} (width fixed at ${newWidth})`);
-      
-      // Smooth vertical resize animation
-      const steps = 6;
-      const heightStep = (newHeight - currentBounds.height) / steps;
-      
-      let currentStep = 0;
-      const animateResize = () => {
-        if (currentStep >= steps || win.isDestroyed()) return;
-        
-        currentStep++;
-        const intermediateHeight = Math.round(currentBounds.height + (heightStep * currentStep));
-        
-        // Only change height, keep width fixed
-        win.setSize(newWidth, intermediateHeight, false);
-        
-        if (currentStep < steps) {
-          setTimeout(animateResize, 20); // Slightly slower for smoother vertical animation
-        }
-      };
-      
-      // Start smooth vertical animation
-      animateResize();
-      
-      // Adjust vertical position if window goes off screen
-      setTimeout(() => {
-        const newBounds = win.getBounds();
-        let y = newBounds.y;
-        
-        // Only adjust Y position if window goes off screen
-        if (y + newHeight > screenHeight) {
-          y = screenHeight - newHeight - 20;
-        }
-        if (y < 0) y = 20;
-        
-        // Only move vertically if necessary
-        if (y !== newBounds.y) {
-          win.setPosition(newBounds.x, y);
-        }
-      }, steps * 20 + 50);
-    }
+    // Auto resize functionality disabled - manual control only
+    console.log('Manual resize called - auto resize disabled');
   }
 
   checkContentSizeAndResize(win) {
-    if (!win || win.isDestroyed()) return;
-
-    // Execute script to get content dimensions
-    win.webContents.executeJavaScript(`
-      (() => {
-        const body = document.body;
-        const html = document.documentElement;
-        
-        // Get the actual content size
-        const contentWidth = Math.max(
-          body.scrollWidth,
-          body.offsetWidth,
-          html.clientWidth,
-          html.scrollWidth,
-          html.offsetWidth
-        );
-        
-        const contentHeight = Math.max(
-          body.scrollHeight,
-          body.offsetHeight,
-          html.clientHeight,
-          html.scrollHeight,
-          html.offsetHeight
-        );
-        
-        return [contentWidth, contentHeight];
-      })();
-    `).then(([width, height]) => {
-      if (width && height) {
-        this.resizeWindowToContent(win, width, height);
-      }
-    }).catch(err => {
-      console.log('Error checking content size:', err);
-    });
+    // Auto resize functionality disabled - manual control only
+    console.log('Content size check disabled - auto resize disabled');
   }
 
   loadContent(win) {

@@ -32,88 +32,32 @@ class WindowResizeManager {
   };
 
   constructor() {
-    this.init();
+    // Auto resize is disabled - only manual control available
+    console.log('Window resize manager initialized (auto resize disabled)');
   }
 
   private init() {
-    // Check if we're in an Electron environment
-    if (typeof window !== 'undefined' && window.api) {
-      this.setupResizeObserver();
-      this.setupMutationObserver();
-      this.setupScrollListener();
-      this.setupInitialSizeCheck();
-    }
+    // Auto resize functionality removed - use manual methods instead
   }
 
   private setupResizeObserver() {
-    if (!window.ResizeObserver) return;
-
-    this.resizeObserver = new ResizeObserver((entries) => {
-      if (!this.isEnabled) return;
-      
-      entries.forEach(() => {
-        this.debouncedNotifySizeChange();
-      });
-    });
-
-    // Observe body and main content areas
-    this.resizeObserver.observe(document.body);
-    
-    // Observe main content container if it exists
-    const mainContent = document.querySelector('main') || document.querySelector('#root') || document.querySelector('.app');
-    if (mainContent) {
-      this.resizeObserver.observe(mainContent);
-    }
+    // Auto resize observer disabled
+    console.log('ResizeObserver setup skipped (auto resize disabled)');
   }
 
   private setupMutationObserver() {
-    if (!window.MutationObserver) return;
-
-    this.mutationObserver = new MutationObserver((mutations) => {
-      if (!this.isEnabled) return;
-
-      // Check if any mutations affect content size
-      const hasSizeChange = mutations.some(mutation => {
-        return mutation.type === 'childList' || 
-               mutation.type === 'characterData' ||
-               (mutation.type === 'attributes' && 
-                ['style', 'class', 'hidden'].includes(mutation.attributeName || ''));
-      });
-
-      if (hasSizeChange) {
-        this.debouncedNotifySizeChange();
-      }
-    });
-
-    this.mutationObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['style', 'class', 'hidden']
-    });
+    // Auto resize mutation observer disabled
+    console.log('MutationObserver setup skipped (auto resize disabled)');
   }
 
   private setupScrollListener() {
-    // Listen for scroll events that might indicate content size changes
-    window.addEventListener('scroll', () => {
-      if (!this.isEnabled) return;
-      this.debouncedNotifySizeChange();
-    }, { passive: true });
+    // Auto resize scroll listener disabled
+    console.log('Scroll listener setup skipped (auto resize disabled)');
   }
 
   private setupInitialSizeCheck() {
-    // Check initial size after a delay to ensure content is rendered
-    setTimeout(() => {
-      this.notifySizeChange();
-    }, 1000);
-
-    // Also check when window loads
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        this.notifySizeChange();
-      }, 500);
-    });
+    // Auto resize initial size check disabled
+    console.log('Initial size check setup skipped (auto resize disabled)');
   }
 
   private debouncedNotifySizeChange() {

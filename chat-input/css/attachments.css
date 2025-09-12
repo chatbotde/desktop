@@ -1,0 +1,270 @@
+/* ==================== ATTACHMENT COMPONENT STYLES ==================== */
+
+/* Attachments section styles */
+.attachments-section {
+    padding: 6px 12px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-alt);
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    overflow: hidden;
+}
+
+.attachments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.attachments-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.clear-all-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.clear-all-btn:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+.attachments-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding-bottom: 4px;
+}
+
+.attachment-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.attachment-preview {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    display: block;
+}
+
+.attachment-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: #fff;
+    font-size: 8px;
+    padding: 2px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attachment-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s ease;
+    font-size: 12px;
+}
+
+.attachment-item:hover .attachment-remove {
+    opacity: 1;
+}
+
+.attachment-remove:hover {
+    background: var(--danger);
+    transform: scale(1.1);
+}
+
+.attachment-loading {
+    width: 50px;
+    height: 50px;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.attachment-loading::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* File drop zone styles */
+.prompt-input.drag-over {
+    border-color: var(--accent);
+    background: none;
+}
+
+.prompt-input.drag-over::after {
+    content: 'Drop media files here';
+    position: absolute;
+    inset: 0;
+    background: none;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    color: var(--accent);
+    z-index: 10;
+}
+
+/* === MEDIA ATTACHMENT STYLES === */
+
+/* Enhanced attachment item for media */
+.attachment-item.media-attachment {
+    width: auto;
+    min-width: 200px;
+    max-width: 300px;
+    height: auto;
+    padding: 8px;
+    background: var(--bg-alt);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.audio-preview,
+.video-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+
+.media-icon {
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.audio-preview audio {
+    width: 100%;
+    height: 32px;
+    border-radius: 6px;
+}
+
+.video-preview video {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+    min-height: 120px;
+    object-fit: contain;
+    /* Force visibility and override any potential hiding */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    /* Debugging borders - these will change based on video state */
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+/* Video states for debugging */
+.video-preview video[data-loaded="true"] {
+    border-color: #4caf50 !important;
+}
+
+.video-preview video[data-error="true"] {
+    border-color: #f44336 !important;
+    background: #333 !important;
+}
+
+.attachment-item.media-attachment .attachment-info {
+    position: static;
+    background: transparent;
+    color: var(--text);
+    font-size: 11px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.attachment-name {
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attachment-meta {
+    color: var(--text-dim);
+    font-size: 10px;
+}
+
+.attachment-item.media-attachment .attachment-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s ease;
+}
+
+.attachment-item.media-attachment:hover .attachment-remove {
+    opacity: 1;
+}
+
+.attachment-item.media-attachment .attachment-remove:hover {
+    background: var(--danger);
+    transform: scale(1.1);
+}

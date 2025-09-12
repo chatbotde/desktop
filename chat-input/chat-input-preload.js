@@ -587,6 +587,30 @@ contextBridge.exposeInMainWorld('MediaUtils', {
       source,
       timestamp: Date.now()
     };
+  },
+
+  // ==================== DISPLAY CARD FUNCTIONALITY ====================
+  
+  // Send content to display card
+  sendDisplayContent: (cardNumber, content) => {
+    ipcRenderer.send('chat-input-display-content', { cardNumber, content });
+  },
+
+  // Listen for display content requests
+  onDisplayContent: (callback) => {
+    ipcRenderer.on('chat-input-display-content', (event, { cardNumber, content }) => {
+      callback(cardNumber, content);
+    });
+  },
+
+  // Request display content refresh
+  requestDisplayContent: (cardNumber) => {
+    ipcRenderer.send('chat-input-request-display-content', cardNumber);
+  },
+
+  // Toggle display card visibility
+  toggleDisplayCard: (cardNumber) => {
+    ipcRenderer.send('chat-input-toggle-display-card', cardNumber);
   }
 });
 

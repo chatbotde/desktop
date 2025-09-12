@@ -1748,13 +1748,16 @@
             // Add mouse move listener for hover detection
             document.addEventListener('mousemove', (event) => {
                 const target = event.target;
-                const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input');
+                const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, .floating-card, #floatingCard1, #floatingCard2, #floatingCard3, #floatingCard4');
                 
-                if (isUIElement && isClickThroughEnabled) {
-                    // Mouse is over UI element - disable click-through
+                // Also check if any floating card is currently interacting
+                const interactingCard = document.querySelector('.floating-card.interacting');
+                
+                if ((isUIElement || interactingCard) && isClickThroughEnabled) {
+                    // Mouse is over UI element or floating card is interacting - disable click-through
                     disableClickThrough();
-                } else if (!isUIElement && !isClickThroughEnabled) {
-                    // Mouse is over empty area - enable click-through
+                } else if (!isUIElement && !interactingCard && !isClickThroughEnabled) {
+                    // Mouse is over empty area and no floating cards are interacting - enable click-through
                     enableClickThrough();
                 }
             });
@@ -2808,6 +2811,9 @@
             
             // Initialize model selection
             initializeModelSelection();
+            
+            // Initialize floating card
+            initializeFloatingCard();
         });
 
         // Handle window focus
@@ -3231,5 +3237,533 @@
                 }
             }
         }
+
+        // ==================== OUTPUT DISPLAY CARDS FUNCTIONALITY ====================
+        
+        // Floating cards state
+        let floatingCardsVisible = {
+            1: false,
+            2: false,
+            3: false,
+            4: false
+        };
+        
+        // Initialize all floating cards functionality
+        function initializeFloatingCards() {
+            // Initialize each card (1-4)
+            for (let i = 1; i <= 4; i++) {
+                initializeFloatingCard(i);
+            }
+            
+            // Listen for content from frontend via IPC
+            if (window.require) {
+                const { ipcRenderer } = window.require('electron');
+                
+                // Listen for display content (with card number)
+                ipcRenderer.on('display-content', (event, { cardNumber, content }) => {
+                    displayContent(cardNumber, content);
+                });
+                
+                // Listen for display content refresh request
+                ipcRenderer.on('request-display-content', (event, cardNumber) => {
+                    refreshDisplay(cardNumber);
+                });
+                
+                // Listen for display card toggle
+                ipcRenderer.on('toggle-display-card', (event, cardNumber) => {
+                    toggleFloatingCard(cardNumber);
+                });
+            }
+            
+            console.log('All output display cards initialized');
+        }
+        
+        // Initialize individual floating card
+        function initializeFloatingCard(cardNumber) {
+            const floatingCard = document.getElementById(`floatingCard${cardNumber}`);
+            const toggleButton = document.getElementById(`floatingCardToggleButton${cardNumber}`);
+            const closeButton = document.getElementById(`closeFloatingCard${cardNumber}`);
+            const clearButton = document.getElementById(`clearDisplayBtn${cardNumber}`);
+            const refreshButton = document.getElementById(`refreshDisplayBtn${cardNumber}`);
+            const dragHandle = floatingCard?.querySelector('.floating-card-drag-handle');
+            
+            if (!floatingCard || !toggleButton || !closeButton) {
+                console.warn(`Floating card ${cardNumber} elements not found`);
+                return;
+            }
+            
+            // Toggle button event listener
+            toggleButton.addEventListener('click', () => toggleFloatingCard(cardNumber));
+            
+            // Close button event listener
+            closeButton.addEventListener('click', () => hideFloatingCard(cardNumber));
+            
+            // Control button event listeners
+            if (clearButton) {
+                clearButton.addEventListener('click', () => clearDisplay(cardNumber));
+            }
+            
+            if (refreshButton) {
+                refreshButton.addEventListener('click', () => refreshDisplay(cardNumber));
+            }
+            
+            // Smart click-through logic
+            setupSmartClickThrough(floatingCard);
+            
+            // Draggable functionality
+            if (dragHandle) {
+                setupDraggableCard(floatingCard, dragHandle);
+            }
+            
+            // Keyboard shortcuts (Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4)
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === cardNumber.toString()) {
+                    e.preventDefault();
+                    toggleFloatingCard(cardNumber);
+                }
+            });
+        }
+        
+        // Toggle floating card visibility
+        function toggleFloatingCard(cardNumber) {
+            if (floatingCardsVisible[cardNumber]) {
+                hideFloatingCard(cardNumber);
+            } else {
+                showFloatingCard(cardNumber);
+            }
+        }
+        
+        // Show floating card
+        function showFloatingCard(cardNumber) {
+            const floatingCard = document.getElementById(`floatingCard${cardNumber}`);
+            if (floatingCard) {
+                floatingCard.style.display = 'flex';
+                floatingCardsVisible[cardNumber] = true;
+                updateFloatingCardStatus(cardNumber, 'Ready');
+                console.log(`Floating card ${cardNumber} shown`);
+            }
+        }
+        
+        // Hide floating card
+        function hideFloatingCard(cardNumber) {
+            const floatingCard = document.getElementById(`floatingCard${cardNumber}`);
+            if (floatingCard) {
+                floatingCard.style.display = 'none';
+                floatingCardsVisible[cardNumber] = false;
+                console.log(`Floating card ${cardNumber} hidden`);
+            }
+        }
+        
+        // Display content in the floating card
+        function displayContent(cardNumber, content) {
+            const displayArea = document.getElementById(`floatingCardDisplay${cardNumber}`);
+            if (!displayArea) return;
+            
+            // Clear placeholder
+            const placeholder = displayArea.querySelector('.display-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Create content wrapper
+            let contentWrapper = displayArea.querySelector('.floating-card-content-display');
+            if (!contentWrapper) {
+                contentWrapper = document.createElement('div');
+                contentWrapper.className = 'floating-card-content-display';
+                displayArea.appendChild(contentWrapper);
+            }
+            
+            // Handle different content types
+            if (typeof content === 'string') {
+                // Simple text content
+                contentWrapper.innerHTML = content;
+            } else if (typeof content === 'object') {
+                // Structured content
+                if (content.type === 'html') {
+                    contentWrapper.innerHTML = content.data;
+                } else if (content.type === 'text') {
+                    contentWrapper.innerHTML = `<p>${content.data}</p>`;
+                } else if (content.type === 'json') {
+                    contentWrapper.innerHTML = `<pre><code>${JSON.stringify(content.data, null, 2)}</code></pre>`;
+                } else if (content.type === 'markdown') {
+                    // Simple markdown rendering (you can enhance this)
+                    contentWrapper.innerHTML = content.data.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                                          .replace(/`(.*?)`/g, '<code>$1</code>')
+                                                          .replace(/\n/g, '<br>');
+                } else {
+                    // Default object display
+                    contentWrapper.innerHTML = `<pre><code>${JSON.stringify(content, null, 2)}</code></pre>`;
+                }
+            }
+            
+            // Update status
+            updateFloatingCardStatus(cardNumber, 'Content displayed');
+            
+            // Auto-hide status after 2 seconds
+            setTimeout(() => updateFloatingCardStatus(cardNumber, 'Ready'), 2000);
+            
+            console.log(`Content displayed in floating card ${cardNumber}:`, content);
+        }
+        
+        // Clear display content
+        function clearDisplay(cardNumber) {
+            const displayArea = document.getElementById(`floatingCardDisplay${cardNumber}`);
+            if (!displayArea) return;
+            
+            // Hide content wrapper
+            const contentWrapper = displayArea.querySelector('.floating-card-content-display');
+            if (contentWrapper) {
+                contentWrapper.style.display = 'none';
+            }
+            
+            // Show placeholder
+            const placeholder = displayArea.querySelector('.display-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+            }
+            
+            updateFloatingCardStatus(cardNumber, 'Display cleared');
+            setTimeout(() => updateFloatingCardStatus(cardNumber, 'Ready'), 1000);
+            
+            console.log(`Display cleared for card ${cardNumber}`);
+        }
+        
+        // Refresh display content
+        function refreshDisplay(cardNumber) {
+            updateFloatingCardStatus(cardNumber, 'Refreshing...');
+            
+            // Request fresh content from frontend
+            if (window.chatInputAPI && window.chatInputAPI.requestDisplayContent) {
+                window.chatInputAPI.requestDisplayContent(cardNumber);
+            } else {
+                // Fallback: show sample content
+                displayContent(cardNumber, {
+                    type: 'text',
+                    data: `Refresh requested for card ${cardNumber} - no content source available`
+                });
+            }
+            
+            setTimeout(() => updateFloatingCardStatus(cardNumber, 'Ready'), 1000);
+        }
+        
+        // Update floating card status
+        function updateFloatingCardStatus(cardNumber, status) {
+            const statusElement = document.getElementById(`floatingCardStatus${cardNumber}`);
+            if (statusElement) {
+                statusElement.textContent = status;
+            }
+        }
+        
+        // ==================== SMART CLICK-THROUGH FUNCTIONALITY ====================
+        
+        // Setup smart click-through logic for a card
+        function setupSmartClickThrough(card) {
+            let interactionTimeout;
+            let isInteracting = false;
+            const dragHandle = card.querySelector('.floating-card-drag-handle');
+            
+            // Enable interaction on mouse enter (use drag handle since it has pointer-events: auto)
+            const handleMouseEnter = () => {
+                clearTimeout(interactionTimeout);
+                card.classList.add('interacting');
+                isInteracting = true;
+            };
+            
+            // Disable interaction after mouse leave with delay
+            const handleMouseLeave = () => {
+                interactionTimeout = setTimeout(() => {
+                    if (!isInteracting) {
+                        card.classList.remove('interacting');
+                    }
+                }, 1000); // 1 second delay
+            };
+            
+            // Attach events to drag handle if it exists, otherwise to card
+            const targetElement = dragHandle || card;
+            targetElement.addEventListener('mouseenter', handleMouseEnter);
+            targetElement.addEventListener('mouseleave', handleMouseLeave);
+            
+            // Keep interaction active when clicking or focusing
+            card.addEventListener('mousedown', () => {
+                card.classList.add('interacting');
+                isInteracting = true;
+            });
+            
+            card.addEventListener('focusin', () => {
+                card.classList.add('interacting');
+                isInteracting = true;
+            });
+            
+            // Disable interaction after losing focus
+            card.addEventListener('focusout', () => {
+                setTimeout(() => {
+                    if (!card.matches(':hover')) {
+                        card.classList.remove('interacting');
+                        isInteracting = false;
+                    }
+                }, 100);
+            });
+            
+            // Disable interaction when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!card.contains(e.target) && !card.matches(':hover')) {
+                    card.classList.remove('interacting');
+                    isInteracting = false;
+                }
+            });
+        }
+        
+        // ==================== DRAGGABLE AND RESIZABLE FUNCTIONALITY ====================
+        
+        // Setup draggable and resizable functionality for a card
+        function setupDraggableCard(card, dragHandle) {
+            let isDragging = false;
+            let isResizing = false;
+            let resizeDirection = '';
+            let startX, startY, initialX, initialY, initialWidth, initialHeight;
+            
+            // ==================== DRAGGING FUNCTIONALITY ====================
+            
+            // Mouse events for dragging
+            dragHandle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                card.classList.add('dragging');
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                const rect = card.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            // ==================== RESIZING FUNCTIONALITY ====================
+            
+            // Setup resize handles
+            const resizeHandles = card.querySelectorAll('.resize-handle');
+            resizeHandles.forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    resizeDirection = handle.className.split(' ')[1]; // Get resize direction
+                    card.classList.add('resizing');
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    const rect = card.getBoundingClientRect();
+                    initialX = rect.left;
+                    initialY = rect.top;
+                    initialWidth = rect.width;
+                    initialHeight = rect.height;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            // ==================== MOUSE MOVE HANDLER ====================
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    handleDrag(e);
+                } else if (isResizing) {
+                    handleResize(e);
+                }
+            });
+            
+            // ==================== MOUSE UP HANDLER ====================
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    card.classList.remove('dragging');
+                }
+                if (isResizing) {
+                    isResizing = false;
+                    resizeDirection = '';
+                    card.classList.remove('resizing');
+                }
+            });
+            
+            // ==================== DRAG HANDLER ====================
+            
+            function handleDrag(e) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newX = initialX + deltaX;
+                const newY = initialY + deltaY;
+                
+                // Keep card within viewport bounds
+                const maxX = window.innerWidth - card.offsetWidth;
+                const maxY = window.innerHeight - card.offsetHeight;
+                
+                const constrainedX = Math.max(0, Math.min(newX, maxX));
+                const constrainedY = Math.max(0, Math.min(newY, maxY));
+                
+                card.style.left = constrainedX + 'px';
+                card.style.top = constrainedY + 'px';
+                card.style.right = 'auto';
+                card.style.bottom = 'auto';
+            }
+            
+            // ==================== RESIZE HANDLER ====================
+            
+            function handleResize(e) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                let newX = initialX;
+                let newY = initialY;
+                let newWidth = initialWidth;
+                let newHeight = initialHeight;
+                
+                // Apply resize based on direction
+                switch (resizeDirection) {
+                    case 'resize-nw':
+                        newX = initialX + deltaX;
+                        newY = initialY + deltaY;
+                        newWidth = initialWidth - deltaX;
+                        newHeight = initialHeight - deltaY;
+                        break;
+                    case 'resize-n':
+                        newY = initialY + deltaY;
+                        newHeight = initialHeight - deltaY;
+                        break;
+                    case 'resize-ne':
+                        newY = initialY + deltaY;
+                        newWidth = initialWidth + deltaX;
+                        newHeight = initialHeight - deltaY;
+                        break;
+                    case 'resize-e':
+                        newWidth = initialWidth + deltaX;
+                        break;
+                    case 'resize-se':
+                        newWidth = initialWidth + deltaX;
+                        newHeight = initialHeight + deltaY;
+                        break;
+                    case 'resize-s':
+                        newHeight = initialHeight + deltaY;
+                        break;
+                    case 'resize-sw':
+                        newX = initialX + deltaX;
+                        newWidth = initialWidth - deltaX;
+                        newHeight = initialHeight + deltaY;
+                        break;
+                    case 'resize-w':
+                        newX = initialX + deltaX;
+                        newWidth = initialWidth - deltaX;
+                        break;
+                }
+                
+                // Apply constraints
+                const minWidth = 200;
+                const minHeight = 150;
+                const maxWidth = window.innerWidth * 0.8;
+                const maxHeight = window.innerHeight * 0.8;
+                
+                newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+                newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+                
+                // Adjust position for width/height changes
+                if (resizeDirection.includes('w')) {
+                    newX = initialX + (initialWidth - newWidth);
+                }
+                if (resizeDirection.includes('n')) {
+                    newY = initialY + (initialHeight - newHeight);
+                }
+                
+                // Keep within viewport bounds
+                const maxX = window.innerWidth - newWidth;
+                const maxY = window.innerHeight - newHeight;
+                
+                newX = Math.max(0, Math.min(newX, maxX));
+                newY = Math.max(0, Math.min(newY, maxY));
+                
+                // Apply the new dimensions and position
+                card.style.left = newX + 'px';
+                card.style.top = newY + 'px';
+                card.style.width = newWidth + 'px';
+                card.style.height = newHeight + 'px';
+                card.style.right = 'auto';
+                card.style.bottom = 'auto';
+            }
+            
+            // ==================== TOUCH EVENTS ====================
+            
+            // Touch events for mobile dragging
+            dragHandle.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                card.classList.add('dragging');
+                
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+                
+                const rect = card.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                
+                e.preventDefault();
+            });
+            
+            // Touch events for mobile resizing
+            resizeHandles.forEach(handle => {
+                handle.addEventListener('touchstart', (e) => {
+                    isResizing = true;
+                    resizeDirection = handle.className.split(' ')[1];
+                    card.classList.add('resizing');
+                    
+                    const touch = e.touches[0];
+                    startX = touch.clientX;
+                    startY = touch.clientY;
+                    
+                    const rect = card.getBoundingClientRect();
+                    initialX = rect.left;
+                    initialY = rect.top;
+                    initialWidth = rect.width;
+                    initialHeight = rect.height;
+                    
+                    e.preventDefault();
+                });
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging || isResizing) {
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    
+                    if (isDragging) {
+                        handleDrag(mouseEvent);
+                    } else if (isResizing) {
+                        handleResize(mouseEvent);
+                    }
+                    
+                    e.preventDefault();
+                }
+            });
+            
+            document.addEventListener('touchend', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    card.classList.remove('dragging');
+                }
+                if (isResizing) {
+                    isResizing = false;
+                    resizeDirection = '';
+                    card.classList.remove('resizing');
+                }
+            });
+        }
+        
+        // Initialize all floating cards
+        initializeFloatingCards();
     
     

@@ -1,0 +1,393 @@
+/* ==================== THEME STYLES ==================== */
+
+/* Paper Bright White Theme */
+:root[data-theme="paper"] {
+    --bg: #ffffff;
+    --bg-alt: #f8f9fa;
+    --bg-popover: #ffffff;
+    --border: #e1e5e9;
+    --border-hover: #cbd5e1;
+    --text: #1e293b;
+    --text-dim: #64748b;
+    --accent: #2563eb;
+    --danger: #dc2626;
+    --focus-ring: 0 0 0 2px #1e40af, 0 0 0 4px rgba(37, 99, 235, 0.2);
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Paper theme specific enhancements */
+:root[data-theme="paper"] .prompt-input {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border);
+}
+
+:root[data-theme="paper"] .prompt-input:focus-within {
+    box-shadow: 0 4px 25px rgba(37, 99, 235, 0.15), 0 2px 12px rgba(37, 99, 235, 0.08);
+    border-color: var(--accent);
+}
+
+:root[data-theme="paper"] .action-btn {
+    background: #f8f9fa;
+    border-color: var(--border);
+    color: var(--text-dim);
+}
+
+:root[data-theme="paper"] .action-btn:hover {
+    background: #e9ecef;
+    border-color: var(--border-hover);
+    color: var(--text);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .action-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+:root[data-theme="paper"] .action-btn.primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+}
+
+:root[data-theme="paper"] .action-btn.lighting {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .action-btn.lighting:hover {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-color: var(--border-hover);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .action-btn.lighting.active {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(37, 99, 235, 0.05));
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+}
+
+:root[data-theme="paper"] .dropdown-menu {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .dropdown-item:hover,
+:root[data-theme="paper"] .dropdown-item[aria-selected="true"],
+:root[data-theme="paper"] .dropdown-item-compact:hover,
+:root[data-theme="paper"] .dropdown-item-compact[aria-selected="true"] {
+    background: none;
+}
+
+:root[data-theme="paper"] .attachments-section {
+    background: var(--bg-alt);
+    border-bottom: 1px solid var(--border);
+}
+
+:root[data-theme="paper"] .attachment-item {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .attachment-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Enhanced paper theme transitions and effects */
+:root[data-theme="paper"] .prompt-input,
+:root[data-theme="paper"] .action-btn,
+:root[data-theme="paper"] .dropdown-menu,
+:root[data-theme="paper"] .attachment-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root[data-theme="paper"] .prompt-input:hover {
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12), 0 3px 10px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme="paper"] .action-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Paper theme focus states */
+:root[data-theme="paper"] #messageInput:focus {
+    background: none;
+}
+
+/* Paper theme placeholder styling */
+:root[data-theme="paper"] #messageInput::placeholder {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Paper theme enhanced shadows and depth */
+:root[data-theme="paper"] .chat-input-container {
+    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.08));
+}
+
+:root[data-theme="paper"] .prompt-input {
+    position: relative;
+}
+
+:root[data-theme="paper"] .prompt-input::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+    border-radius: var(--radius);
+    z-index: -1;
+    opacity: 0.5;
+}
+
+/* Paper theme button hover effects */
+:root[data-theme="paper"] .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Paper theme input focus enhancement */
+:root[data-theme="paper"] .prompt-input:focus-within::before {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    opacity: 0.8;
+}
+
+/* Paper theme collapsed state */
+:root[data-theme="paper"] .prompt-input:not(.expanded) {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="paper"] .prompt-input:not(.expanded) #messageInput {
+    color: var(--text);
+}
+
+:root[data-theme="paper"] .prompt-input:not(.expanded) #expandButton {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+:root[data-theme="paper"] .prompt-input:not(.expanded) .plus-button {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+:root[data-theme="paper"] .prompt-input:not(.expanded) .plus-button:hover {
+    background: var(--border-hover);
+    border-color: var(--border-hover);
+}
+
+/* Paper theme expanded plus button */
+:root[data-theme="paper"] .prompt-input.expanded .expanded-plus-button {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+:root[data-theme="paper"] .prompt-input.expanded .expanded-plus-button:hover {
+    background: var(--border-hover);
+    border-color: var(--border-hover);
+}
+
+/* Paper theme text input */
+:root[data-theme="paper"] .prompt-input:not(.expanded) #messageInput {
+    color: var(--text);
+    caret-color: var(--text);
+}
+
+/* Paper theme model dropdown */
+:root[data-theme="paper"] #modelSelectDropdown {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .feature-badge {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.2);
+}
+
+:root[data-theme="paper"] .cost-badge {
+    background: rgba(22, 163, 74, 0.1);
+    color: #16a34a;
+    border-color: rgba(22, 163, 74, 0.2);
+}
+
+:root[data-theme="paper"] #modelSelectDropdown .dropdown-item.selected {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.2);
+}
+
+:root[data-theme="paper"] #modelSelectButton.active {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #2563eb;
+}
+
+:root[data-theme="paper"] #modelSelectButton.has-selection {
+    border-color: rgba(37, 99, 235, 0.2);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+:root[data-theme="paper"] #modelSelectButton.has-selection:hover {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+/* Paper theme dropdown header styles */
+:root[data-theme="paper"] .dropdown-header {
+    border-bottom: 1px solid var(--border);
+}
+
+:root[data-theme="paper"] .dropdown-title {
+    color: var(--text);
+}
+
+:root[data-theme="paper"] .dropdown-close-btn {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+}
+
+:root[data-theme="paper"] .dropdown-close-btn:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+/* Paper theme click-through button */
+:root[data-theme="paper"] .action-btn#clickThroughButton.active {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #2563eb;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.2);
+}
+
+:root[data-theme="paper"] .action-btn#clickThroughButton.active:hover {
+    background: rgba(37, 99, 235, 0.25);
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Paper theme content protection button */
+:root[data-theme="paper"] .action-btn#contentProtectionButton.active {
+    background: rgba(22, 163, 74, 0.15);
+    border-color: rgba(22, 163, 74, 0.3);
+    color: #16a34a;
+    box-shadow: 0 0 8px rgba(22, 163, 74, 0.2);
+}
+
+:root[data-theme="paper"] .action-btn#contentProtectionButton.active:hover {
+    background: rgba(22, 163, 74, 0.25);
+    border-color: rgba(22, 163, 74, 0.4);
+    box-shadow: 0 0 12px rgba(22, 163, 74, 0.3);
+}
+
+/* Paper theme geometry enhancements */
+:root[data-theme="paper"] .geometry-overlay {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* Paper theme styles for floating card */
+:root[data-theme="paper"] .floating-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="paper"] .floating-card-header {
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .floating-card-title {
+    color: #1a1a1a;
+}
+
+:root[data-theme="paper"] .floating-card-close {
+    color: #1a1a1a;
+}
+
+:root[data-theme="paper"] .floating-card-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .floating-card-display {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="paper"] .display-placeholder {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="paper"] .floating-card-content-display {
+    color: #1a1a1a;
+}
+
+:root[data-theme="paper"] .floating-card-content-display h1,
+:root[data-theme="paper"] .floating-card-content-display h2,
+:root[data-theme="paper"] .floating-card-content-display h3 {
+    color: #1a1a1a;
+}
+
+:root[data-theme="paper"] .floating-card-content-display code {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .floating-card-content-display pre {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .floating-control-btn {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+}
+
+:root[data-theme="paper"] .floating-control-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="paper"] .floating-card-drag-handle {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+:root[data-theme="paper"] .floating-card-drag-handle::before {
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), 0 8px 0 rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="paper"] .floating-card.dragging .floating-card-drag-handle {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme="paper"] .resize-handle {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .floating-card.resizing .resize-handle {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="paper"] .floating-card-info {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:root[data-theme="paper"] .floating-card-status {
+    color: #1a1a1a;
+}
