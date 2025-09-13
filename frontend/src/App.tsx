@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { Messages } from '@/components/Messages'
-import { windowResizeManager } from '@/lib/window-resize'
 import { 
-  AppHeader, 
   AppBackground, 
   WelcomeScreen, 
   ScreenCaptureModal, 
@@ -13,7 +11,6 @@ import {
   useWindowManager, 
   useScrollManager 
 } from '@/hooks'
-import { useIntelligentResize } from '@/hooks/useIntelligentResize'
 
 // Note: Window API interface is now declared in types/electron.d.ts
 
@@ -24,25 +21,8 @@ function App() {
   const chatManager = useChatManager()
   const windowManager = useWindowManager()
   const scrollManager = useScrollManager()
-  
-  // Use intelligent resizing with fixed width, ultra-minimal height
-  const { forceResize } = useIntelligentResize({
-    enabled: true,
-    smoothResize: true,
-    minWidth: 480, // Fixed width
-    minHeight: 80, // Ultra-minimal height
-    maxWidth: 480, // Same as minWidth for fixed width
-    maxHeight: 500,
-    paddingX: 5,  // Ultra-minimal horizontal padding
-    paddingY: 5   // Ultra-minimal vertical padding
-  })
 
   useEffect(() => {
-    // Initialize window resize manager for dynamic sizing
-    if (windowResizeManager) {
-      console.log('App: Window resize manager initialized');
-    }
-
     // Load screen info on mount
     if (window.api?.getScreenInfo) {
       window.api.getScreenInfo().then(info => {
@@ -68,8 +48,6 @@ function App() {
     if (window.api?.onThemeChanged) {
       window.api.onThemeChanged((theme: string) => {
         windowManager.setCurrentTheme(theme as 'transparent' | 'black')
-        // Force resize when theme changes as it affects sizing requirements
-        setTimeout(() => forceResize(), 300)
       })
     }
 
@@ -78,20 +56,13 @@ function App() {
       console.log('Main Window: Setting up chat message listener');
       window.api.onChatMessage((messageData: any) => {
         chatManager.handleChatMessage(messageData);
-        // Force resize when new messages arrive to accommodate content
-        setTimeout(() => forceResize(), 100);
       });
     } else {
       console.error('Main Window: window.api.onChatMessage not available');
     }
 
-    // Return cleanup function for window resize manager and chat message listener
+    // Return cleanup function for chat message listener
     return () => {
-      if (windowResizeManager) {
-        windowResizeManager.destroy();
-        console.log('App: Window resize manager cleaned up');
-      }
-      
       // Clean up chat message listener if possible
       if (window.api?.removeAllListeners) {
         try {
@@ -106,33 +77,16 @@ function App() {
 
   return (
     <div className={`h-screen w-full flex flex-col ${windowManager.currentTheme === 'black' ? 'bg-black' : 'bg-transparent'}`}>
-      {/* Fixed Header - Always on top */}
-      <AppHeader
-        currentTheme={windowManager.currentTheme}
-        opacity={windowManager.opacity}
-        onOpacityChange={windowManager.handleOpacityChange}
-        contentProtection={windowManager.contentProtection}
-        onContentProtectionToggle={windowManager.handleContentProtectionToggle}
-        onChatInputToggle={windowManager.handleChatInputToggle}
-        onClearChat={chatManager.clearChat}
-        mouseIgnore={windowManager.mouseIgnore}
-        onMouseIgnoreToggle={windowManager.handleMouseIgnoreToggle}
-        onGetDesktopSources={windowManager.handleGetDesktopSources}
-        onMinimize={windowManager.handleMinimize}
-        onMaximize={windowManager.handleMaximize}
-        onClose={windowManager.handleClose}
-      />
-
-      {/* Scrollable Content Area - Below Fixed Header */}
-      <div className="relative overflow-hidden" style={{ marginTop: '1px' }}>
+      {/* Full Height Content Area */}
+      <div className="relative flex-1 overflow-hidden">
         {/* Background - Conditional based on theme */}
         <AppBackground currentTheme={windowManager.currentTheme} />
 
-        {/* Scrollable Content Container */}
-        <div className="relative z-10 scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
+        {/* Full Height Content Container */}
+        <div className="relative z-10 h-full scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
           {/* Chat Messages Area */}
           {chatManager.showChat && (
-            <div className="flex flex-col">
+            <div className="flex flex-col h-full">
               <Messages
                 messages={chatManager.messages}
                 isTyping={chatManager.isTyping}

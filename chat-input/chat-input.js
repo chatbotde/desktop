@@ -3763,7 +3763,124 @@
             });
         }
         
+        // ==================== ENHANCED FLOATING CARD FUNCTIONALITY ====================
+        
+        // Smooth drag functionality
+        function setupSmoothDragging(card) {
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+            
+            const dragHandle = card.querySelector('.floating-card-drag-handle');
+            const title = card.querySelector('.floating-card-title');
+            
+            function startDrag(e) {
+                // Only start drag if clicking on draggable elements
+                if (!e.target.closest('.floating-card-title') && !e.target.closest('.floating-card-drag-handle')) {
+                    return;
+                }
+                
+                isDragging = true;
+                card.classList.add('dragging');
+                
+                const rect = card.getBoundingClientRect();
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = rect.left;
+                startTop = rect.top;
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+                e.preventDefault();
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = startLeft + deltaX;
+                const newTop = startTop + deltaY;
+                
+                // Keep card within screen bounds
+                const maxLeft = window.innerWidth - card.offsetWidth;
+                const maxTop = window.innerHeight - card.offsetHeight;
+                
+                card.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
+                card.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+                card.style.right = 'auto';
+                card.style.bottom = 'auto';
+            }
+            
+            function stopDrag() {
+                isDragging = false;
+                card.classList.remove('dragging');
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+            
+            // Add drag listeners only to draggable elements
+            if (dragHandle) {
+                dragHandle.addEventListener('mousedown', startDrag);
+            }
+            if (title) {
+                title.addEventListener('mousedown', startDrag);
+            }
+        }
+        
+        // Smooth expand/collapse functionality
+        function setupExpandCollapse(card) {
+            const expandBtn = card.querySelector('.floating-card-expand-btn');
+            if (!expandBtn) return;
+            
+            let isExpanded = false;
+            
+            expandBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                if (isExpanded) {
+                    card.classList.remove('expanded');
+                    card.classList.add('collapsed');
+                    expandBtn.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                        </svg>
+                    `;
+                } else {
+                    card.classList.remove('collapsed');
+                    card.classList.add('expanded');
+                    expandBtn.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 9h6v6H9z"/>
+                            <path d="M21 3l-7 7M3 21l7-7"/>
+                        </svg>
+                    `;
+                }
+                
+                isExpanded = !isExpanded;
+            });
+        }
+        
+        // Enhanced floating card initialization
+        function initializeEnhancedFloatingCard(cardNumber) {
+            const floatingCard = document.getElementById(`floatingCard${cardNumber}`);
+            if (!floatingCard) return;
+            
+            // Setup smooth dragging
+            setupSmoothDragging(floatingCard);
+            
+            // Setup expand/collapse
+            setupExpandCollapse(floatingCard);
+            
+            console.log(`Enhanced floating card ${cardNumber} initialized`);
+        }
+        
         // Initialize all floating cards
         initializeFloatingCards();
+        
+        // Initialize enhanced functionality for all cards
+        for (let i = 1; i <= 4; i++) {
+            initializeEnhancedFloatingCard(i);
+        }
     
     
