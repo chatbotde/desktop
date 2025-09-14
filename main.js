@@ -1,7 +1,6 @@
 const { app, ipcMain, globalShortcut } = require("electron");
 const path = require("path");
 const { LaunchWindowManager } = require("./launch-window");
-const { registerIpcHandlers } = require("./window-main");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
 
@@ -36,39 +35,18 @@ function createLaunchWindow() {
     console.log('Main: Setting up IPC handlers');
     
     ipcMain.on('open-main-window', () => {
-      console.log('Main: Opening main window');
-      const mainWindow = launchWindowManager.openMainWindow();
-      
-      // Create and show chat input window automatically
+      // Main window disabled – open or focus chat input instead
+      console.log('Main: Opening chat input (main window disabled)');
       if (!chatInputWindow) {
-        console.log('Main: Creating chat input window');
         chatInputWindow = new ChatInputWindow();
         chatInputWindow.createChatInputWindow();
-        chatInputWindow.setMainWindow(mainWindow);
-        
-        // Show chat input window after a short delay to ensure main window is ready
-        setTimeout(() => {
-          chatInputWindow.show();
-          
-          // Ensure launch window stays above chat input
-          setTimeout(() => {
-            if (launchWindowManager) {
-              launchWindowManager.forceWindowAboveAll();
-            }
-          }, 200);
-        }, 1000);
-      } else {
-        console.log('Main: Reusing existing chat input window');
-        chatInputWindow.setMainWindow(mainWindow);
-        chatInputWindow.show();
-        
-        // Ensure launch window stays above chat input
-        setTimeout(() => {
-          if (launchWindowManager) {
-            launchWindowManager.forceWindowAboveAll();
-          }
-        }, 200);
       }
+      chatInputWindow.show();
+      setTimeout(() => {
+        if (launchWindowManager) {
+          launchWindowManager.forceWindowAboveAll();
+        }
+      }, 200);
     });
 
     // Handle chat input window toggle

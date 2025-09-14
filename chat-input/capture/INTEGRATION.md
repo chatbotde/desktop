@@ -78,7 +78,7 @@ if (startResult.success) {
 
 ### Updating Handler Functions
 
-Update your existing capture handler functions in `chat-input.js`:
+Update your existing capture handler functions in the modular files under `modules/`:
 
 ```javascript
 // Updated desktop capture function

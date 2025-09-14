@@ -8,7 +8,7 @@ The click-through and geometry control system is built on three main layers:
 ┌─────────────────────────────────────┐
 │           Renderer Process          │
 │  ┌─────────────────────────────────┐│
-│  │        chat-input.js            ││
+│  │        modules/                 ││
 │  │  - GeometryController Class    ││
 │  │  - Click-through Detection     ││
 │  │  - Smart Positioning           ││

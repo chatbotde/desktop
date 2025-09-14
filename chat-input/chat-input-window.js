@@ -1087,37 +1087,8 @@ class ChatInputWindow {
       return null;
     }
 
-    // ==================== DISPLAY CARD IPC HANDLERS ====================
-    
-    // Handle display content from frontend
-    ipcMain.on("chat-input-display-content", (event, { cardNumber, content }) => {
-      const chatInputWindow = getChatInputInstance();
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        chatInputWindow.webContents.send('display-content', { cardNumber, content });
-        console.log(`Display content sent to chat input window card ${cardNumber}:`, content);
-      }
-    });
-
-    // Handle display content refresh request
-    ipcMain.on("chat-input-request-display-content", (event, cardNumber) => {
-      const chatInputWindow = getChatInputInstance();
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        chatInputWindow.webContents.send('request-display-content', cardNumber);
-        console.log(`Display content refresh requested for card ${cardNumber}`);
-      }
-    });
-
-    // Handle display card toggle
-    ipcMain.on("chat-input-toggle-display-card", (event, cardNumber) => {
-      const chatInputWindow = getChatInputInstance();
-      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
-        chatInputWindow.webContents.send('toggle-display-card', cardNumber);
-        console.log(`Display card ${cardNumber} toggle requested`);
-      }
-    });
-
     ChatInputWindow.ipcHandlersRegistered = true;
-    console.log("IPC: Chat input handlers registered (including new capture API and display card)");
+    console.log("IPC: Chat input handlers registered (including new capture API)");
   }
 
   setMainWindow(mainWindow) {

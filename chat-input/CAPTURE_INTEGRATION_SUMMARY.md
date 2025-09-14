@@ -12,7 +12,7 @@ I have successfully integrated the comprehensive capture API functionality into 
 - ✅ Set up IPC communication for all capture methods
 - ✅ Added event listeners for recording progress and volume
 
-### 2. **Updated Chat Input JavaScript** (`chat-input.js`)
+### 2. **Updated Chat Input JavaScript** (modular files in `modules/`)
 - ✅ Replaced placeholder capture handlers with real API calls
 - ✅ Integrated renderer-side capture utilities for better compatibility
 - ✅ Added proper error handling and user feedback

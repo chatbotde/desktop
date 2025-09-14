@@ -75,6 +75,18 @@ function App() {
     };
   }, [chatManager.handleChatMessage, windowManager])
 
+  // Listen for forwarded messages from Chat Input (floating Display 1 iframe)
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data: any = event.data
+      if (data && data.type === 'chat-input-message' && data.payload) {
+        chatManager.handleChatMessage(data.payload)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [chatManager.handleChatMessage])
+
   return (
     <div className={`h-screen w-full flex flex-col ${windowManager.currentTheme === 'black' ? 'bg-black' : 'bg-transparent'}`}>
       {/* Full Height Content Area */}

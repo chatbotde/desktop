@@ -242,34 +242,8 @@ class LaunchWindowManager {
     }
 
     // Import WindowManager and ShortcutManager from the main window module
-    const { WindowManager, ShortcutManager } = require('../window-main');
-    
-    if (!this.windowManager) {
-      this.windowManager = new WindowManager();
-    }
-
-    this.mainWindow = this.windowManager.createWindow();
-    this.isMainWindowOpen = true;
-
-    // Setup shortcuts for the main window only if not already registered
-    if (!this.shortcutManager) {
-      this.shortcutManager = new ShortcutManager(this.windowManager);
-      // Only register shortcuts that don't conflict with launch window
-      this.registerMainWindowShortcuts();
-    }
-
-    // Handle main window close - don't quit app, just hide main window
-    this.mainWindow.on('closed', () => {
-      this.isMainWindowOpen = false;
-      this.mainWindow = null;
-      // Unregister only main window shortcuts when closed, keep launch window shortcuts
-      if (this.shortcutManager) {
-        this.shortcutManager.unregisterMainWindowShortcuts();
-        this.shortcutManager = null;
-      }
-    });
-
-    return this.mainWindow;
+    // Main window disabled; instead, focus chat input via main.js
+    return null;
   }
 
   closeLaunchWindow() {

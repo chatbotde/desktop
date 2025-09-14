@@ -36,39 +36,11 @@ class WindowResizeManager {
     console.log('Window resize manager initialized (auto resize disabled)');
   }
 
-  private init() {
-    // Auto resize functionality removed - use manual methods instead
-  }
 
-  private setupResizeObserver() {
-    // Auto resize observer disabled
-    console.log('ResizeObserver setup skipped (auto resize disabled)');
-  }
 
-  private setupMutationObserver() {
-    // Auto resize mutation observer disabled
-    console.log('MutationObserver setup skipped (auto resize disabled)');
-  }
 
-  private setupScrollListener() {
-    // Auto resize scroll listener disabled
-    console.log('Scroll listener setup skipped (auto resize disabled)');
-  }
 
-  private setupInitialSizeCheck() {
-    // Auto resize initial size check disabled
-    console.log('Initial size check setup skipped (auto resize disabled)');
-  }
 
-  private debouncedNotifySizeChange() {
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
-    }
-
-    this.resizeTimeout = setTimeout(() => {
-      this.notifySizeChange();
-    }, 100);
-  }
 
   private notifySizeChange() {
     if (!this.isEnabled || !window.api?.notifyContentSizeChanged) return;
