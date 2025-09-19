@@ -38,7 +38,7 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
   }
 
   return (
-    <div className={cn("group relative", className)}>
+    <div className={cn("group relative mx-2 my-1", className)}>
       <div className={`
         backdrop-blur-lg text-white transition-all duration-300 hover:shadow-lg
         ${role === 'assistant' 

@@ -98,12 +98,14 @@ function App() {
         <div className="relative z-10 h-full scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
           {/* Chat Messages Area */}
           {chatManager.showChat && (
-            <div className="flex flex-col h-full">
-              <Messages
-                messages={chatManager.messages}
-                isTyping={chatManager.isTyping}
-                onCopyMessage={chatManager.copyToClipboard}
-              />
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                <Messages
+                  messages={chatManager.messages}
+                  isTyping={chatManager.isTyping}
+                  onCopyMessage={chatManager.copyToClipboard}
+                />
+              </div>
             </div>
           )}
 

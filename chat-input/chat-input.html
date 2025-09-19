@@ -28,8 +28,14 @@
         <div class="resize-handle resize-w" title="Resize"></div>
         
         <div class="floating-card-header">
-            <span class="floating-card-title">Display 1</span>
+            <span class="floating-card-title"></span>
             <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="floating-card-iframe-toggle-btn" id="iframeToggleFloatingCard1" aria-label="Toggle iframe visibility" title="Show/Hide iframe">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
                 <button class="floating-card-expand-btn" id="expandFloatingCard1" aria-label="Expand/Collapse card" title="Expand/Collapse">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -72,19 +78,38 @@
         <div class="resize-handle resize-w" title="Resize"></div>
         
         <div class="floating-card-header">
-            <span class="floating-card-title">Display 2</span>
-            <button class="floating-card-close" id="closeFloatingCard2" aria-label="Close card" title="Close">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6 6 18"/>
-                    <path d="M6 6l12 12"/>
-                </svg>
-            </button>
+            <span class="floating-card-title"></span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="floating-card-iframe-toggle-btn" id="iframeToggleFloatingCard2" aria-label="Toggle iframe visibility" title="Show/Hide iframe">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button class="floating-card-expand-btn" id="expandFloatingCard2" aria-label="Expand/Collapse card" title="Expand/Collapse">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+                <button class="floating-card-close" id="closeFloatingCard2" aria-label="Close card" title="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-       
-                
-                   
-           
         
+        <!-- Direct iframe for localhost:5173 -->
+        <iframe 
+            src="http://localhost:5173" 
+            width="100%" 
+            height="100%" 
+            frameborder="0"
+            style="border: none; flex: 1;"
+            title="React App Display">
+        </iframe>
+    
     </div>
 
     <!-- Card 3 - Bottom Left -->
@@ -103,18 +128,38 @@
         <div class="resize-handle resize-w" title="Resize"></div>
         
         <div class="floating-card-header">
-            <span class="floating-card-title">Display 3</span>
-            <button class="floating-card-close" id="closeFloatingCard3" aria-label="Close card" title="Close">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6 6 18"/>
-                    <path d="M6 6l12 12"/>
-                </svg>
-            </button>
+            <span class="floating-card-title"></span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="floating-card-iframe-toggle-btn" id="iframeToggleFloatingCard3" aria-label="Toggle iframe visibility" title="Show/Hide iframe">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button class="floating-card-expand-btn" id="expandFloatingCard3" aria-label="Expand/Collapse card" title="Expand/Collapse">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+                <button class="floating-card-close" id="closeFloatingCard3" aria-label="Close card" title="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
         
-           
-               
-        
+        <!-- Direct iframe for localhost:5173 -->
+        <iframe 
+            src="http://localhost:5173" 
+            width="100%" 
+            height="100%" 
+            frameborder="0"
+            style="border: none; flex: 1;"
+            title="React App Display">
+        </iframe>
+    
     </div>
 
     <!-- Card 4 - Bottom Right -->
@@ -133,15 +178,38 @@
         <div class="resize-handle resize-w" title="Resize"></div>
         
         <div class="floating-card-header">
-            <span class="floating-card-title">Display 4</span>
-            <button class="floating-card-close" id="closeFloatingCard4" aria-label="Close card" title="Close">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 6 6 18"/>
-                    <path d="M6 6l12 12"/>
-                </svg>
-            </button>
+            <span class="floating-card-title"></span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="floating-card-iframe-toggle-btn" id="iframeToggleFloatingCard4" aria-label="Toggle iframe visibility" title="Show/Hide iframe">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+                <button class="floating-card-expand-btn" id="expandFloatingCard4" aria-label="Expand/Collapse card" title="Expand/Collapse">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                </button>
+                <button class="floating-card-close" id="closeFloatingCard4" aria-label="Close card" title="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-       
+        
+        <!-- Direct iframe for localhost:5173 -->
+        <iframe 
+            src="http://localhost:5173" 
+            width="100%" 
+            height="100%" 
+            frameborder="0"
+            style="border: none; flex: 1;"
+            title="React App Display">
+        </iframe>
+    
     </div>
 
     <div class="chat-input-container">

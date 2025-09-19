@@ -124,13 +124,13 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
   }
 
   return (
-    <div className="flex flex-col relative">
-      <div className="px-4 py-2 space-y-3">
+    <div className="flex flex-col relative h-full">
+      <div className="px-6 py-4 space-y-4 min-h-full">
         {messages.map((message) => (
           <div key={message.id} className={`message-appear flex ${
             message.role === 'user' 
-              ? 'justify-end pl-16' 
-              : 'justify-start pr-16'
+              ? 'justify-end pl-20' 
+              : 'justify-start pr-20'
           }`}>
             <div className="max-w-full">
               {/* Media attachments */}
@@ -165,7 +165,7 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start pr-16 message-appear">
+          <div className="flex justify-start pr-20 message-appear">
             <div className="max-w-full">
               <div className="bg-gray-800/60 backdrop-blur-lg text-white rounded-2xl p-4 border border-gray-600/20 shadow-md">
                 <div className="flex items-center space-x-2">

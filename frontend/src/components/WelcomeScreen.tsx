@@ -1,4 +1,4 @@
-import { Rocket, MessageSquare, AlertCircle } from 'lucide-react'
+import { Rocket, AlertCircle } from 'lucide-react'
 import { isGeminiConfigured, getGeminiConfigStatus } from '@/lib/ai/gemini-utils'
 
 interface WelcomeScreenProps {
@@ -16,9 +16,7 @@ export function WelcomeScreen({ currentTheme }: WelcomeScreenProps) {
           <h1 className={`text-2xl font-bold ${currentTheme === 'black' ? 'text-white/90' : 'text-white/90'}`}>
             Welcome to Buddy
           </h1>
-          <p className={`text-lg ${currentTheme === 'black' ? 'text-gray-400' : 'text-white/70'}`}>
-            Your AI desktop companion
-          </p>
+          
           
           {/* Gemini Configuration Status */}
           <div className={`p-3 rounded-lg border ${
@@ -52,18 +50,9 @@ export function WelcomeScreen({ currentTheme }: WelcomeScreenProps) {
             )}
           </div>
           
-          <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-500' : 'text-white/50'} space-y-2`}>
-            <p>Click the <MessageSquare className="w-4 h-4 inline mx-1" /> button to open the floating chat input</p>
-            <p>Start typing to begin your conversation with Gemini AI</p>
-          </div>
+         
           
-          {/* Test content to demonstrate scrolling */}
-          <div className="space-y-4 mt-8">
-            <div className={`text-sm ${currentTheme === 'black' ? 'text-gray-600' : 'text-white/40'} space-y-2`}>
-              <p>Scroll down to see more content...</p>
-              <p>This demonstrates the main window scrolling functionality</p>
-            </div>
-          </div>
+         
         </div>
       </div>
     </div>
