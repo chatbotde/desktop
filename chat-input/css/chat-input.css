@@ -59,7 +59,7 @@
 .chat-input-container.fullscreen {
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: -20px;
 }
 
 .chat-input-container.fullscreen .prompt-input {
@@ -79,6 +79,35 @@
     opacity: 0;
     transform: translateY(10px);
     animation: slideUp 0.28s ease forwards;
+}
+
+/* Gemini-style gradient border line */
+.prompt-input::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px; /* thickness of the colorful line */
+    background: linear-gradient(120deg, #7c4dff, #00e5ff, #00c853, #ffd600, #ff4081, #7c4dff);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0.35; /* subtle by default */
+    pointer-events: none;
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Animate the gradient gently */
+@keyframes gradientShift {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+.prompt-input:focus-within::after,
+.prompt-input.expanded::after {
+    opacity: 0.85;
+    animation: gradientShift 8s linear infinite;
 }
 
 .prompt-input:focus-within {
@@ -166,6 +195,114 @@
     position: relative;
     transform: translate(0, 0);
     transition: transform 0.2s ease;
+}
+
+/* Collapsed speed-dial (right end) */
+.speed-dial {
+    position: absolute;
+    bottom: 54px; /* just above the bar */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 20;
+}
+
+.speed-dial.right { right: 8px; }
+.speed-dial.left { left: 8px; }
+.speed-dial.expanded-ui { right: 8px; bottom: 60px; }
+
+.speed-dial .speed-item {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transform: scale(0.8) translateY(6px);
+    opacity: 0;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease;
+    pointer-events: auto;
+}
+
+.speed-dial .speed-item:hover {
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.30);
+}
+
+/* visible state */
+.speed-dial.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.speed-dial.open .speed-item {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Stagger animation */
+.speed-dial.open .speed-item:nth-child(1) { transition-delay: 0ms; }
+.speed-dial.open .speed-item:nth-child(2) { transition-delay: 40ms; }
+.speed-dial.open .speed-item:nth-child(3) { transition-delay: 80ms; }
+.speed-dial.open .speed-item:nth-child(4) { transition-delay: 120ms; }
+
+/* Only show speed-dial when not expanded */
+/* Hide collapsed dials when expanded, but allow the expanded-ui dial */
+.prompt-input.expanded .speed-dial:not(.expanded-ui) { display: none !important; }
+/* Show the inline expanded speed dial; align close to input like collapsed state */
+.speed-dial.expanded-ui {
+    display: flex !important;
+    left: 8px; /* align with expanded plus button area */
+    bottom: 54px; /* match collapsed dial vertical offset */
+}
+
+/* Horizontal submenus for Upload/Capture */
+.speed-dial .submenu {
+    position: absolute;
+    top: 0; /* anchor vertically via JS to the clicked item */
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.speed-dial.right .submenu { right: 44px; flex-direction: row-reverse; }
+.speed-dial.left .submenu { left: 44px; }
+.speed-dial.expanded-ui .submenu { left: 44px; }
+
+.speed-dial .submenu.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.submenu .submenu-item {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: transform 180ms ease, filter 180ms ease;
+}
+
+.submenu .submenu-item:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.30);
 }
 
 /* ==================== COLLAPSED STATE STYLES ==================== */

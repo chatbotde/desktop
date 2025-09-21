@@ -56,7 +56,109 @@ export async function boot() {
     dom.messageInput.addEventListener('dblclick', () => expandUI());
     dom.collapseButton.addEventListener('click', () => collapseUI());
     dom.expandButton.addEventListener('click', () => expandUI());
-    dom.plusButton.addEventListener('click', (e) => { e.stopPropagation(); expandUI(); });
+    // Collapsed plus button toggles speed-dial first; holds expand shortcut on long-press
+    {
+    const speedDial = document.getElementById('collapsedSpeedDial');
+    const speedDialLeft = document.getElementById('collapsedSpeedDialLeft');
+        let pressTimer;
+        const openDial = (dial) => { if (!dom.promptInput.classList.contains('expanded')) { dial?.classList.add('open'); dial?.setAttribute('aria-hidden', 'false'); } };
+        const closeDial = (dial) => { dial?.classList.remove('open'); dial?.setAttribute('aria-hidden', 'true'); closeSubmenus(dial); };
+        const toggleDial = (dial) => { if (!dial) return; if (dial.classList.contains('open')) closeDial(dial); else openDial(dial); };
+    const closeAllDials = () => { closeDial(speedDial); closeDial(speedDialLeft); };
+        const closeSubmenus = (dial) => {
+            dial?.querySelector('.upload-submenu')?.classList.remove('open');
+            dial?.querySelector('.capture-submenu')?.classList.remove('open');
+        };
+
+        // Right plus toggles right dial
+        dom.plusButton.addEventListener('click', (e) => { e.stopPropagation(); toggleDial(speedDial); closeDial(speedDialLeft); });
+        dom.plusButton.addEventListener('mousedown', () => { pressTimer = setTimeout(() => { expandUI(); }, 500); });
+        dom.plusButton.addEventListener('mouseup', () => { if (pressTimer) clearTimeout(pressTimer); });
+        dom.plusButton.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
+
+        // Left-side trigger: model button opens the left dial quickly (can choose another trigger if needed)
+        dom.modelSelectButton?.addEventListener('click', (e) => { e.stopPropagation(); toggleDial(speedDialLeft); closeDial(speedDial); });
+
+    document.addEventListener('click', (e) => {
+            const insideAny = (el) => el && (el.contains(e.target));
+            if (!insideAny(speedDial) && e.target !== dom.plusButton) closeDial(speedDial);
+            if (!insideAny(speedDialLeft) && e.target !== dom.modelSelectButton) closeDial(speedDialLeft);
+        });
+
+        // Close dial when expanding
+        const closeOnExpand = () => closeAllDials();
+        dom.expandButton.addEventListener('click', closeOnExpand);
+
+        // Handle speed-dial actions
+        function handleDialClicks(dial, triggerButton) {
+            dial?.addEventListener('click', (e) => {
+            const item = e.target.closest('.speed-item');
+            if (!item) return;
+            e.stopPropagation();
+            const action = item.getAttribute('data-action');
+            // small ripple/feedback
+            item.style.transform = 'scale(0.94)';
+            setTimeout(() => { item.style.transform = ''; }, 120);
+            switch (action) {
+                case 'upload':
+                        // Toggle submenu and align to clicked item height
+                        const u = dial.querySelector('.upload-submenu');
+                        const c = dial.querySelector('.capture-submenu');
+                        c?.classList.remove('open');
+                        if (u) {
+                            const top = item.offsetTop + (item.offsetHeight/2) - (u.offsetHeight/2);
+                            u.style.top = `${Math.max(0, top)}px`;
+                            u.classList.toggle('open');
+                        }
+                    break;
+                case 'capture':
+                        // Toggle submenu and align to clicked item height
+                        const u2 = dial.querySelector('.upload-submenu');
+                        const c2 = dial.querySelector('.capture-submenu');
+                        u2?.classList.remove('open');
+                        if (c2) {
+                            const top2 = item.offsetTop + (item.offsetHeight/2) - (c2.offsetHeight/2);
+                            c2.style.top = `${Math.max(0, top2)}px`;
+                            c2.classList.toggle('open');
+                        }
+                    break;
+                case 'theme':
+                        toggleTheme();
+                    break;
+                case 'expand':
+                        expandUI();
+                    break;
+                    case 'collapse':
+                        collapseUI();
+                    break;
+            }
+                // keep dial open for submenus, close for others
+                if (action !== 'upload' && action !== 'capture') closeDial(dial);
+            });
+
+            // Submenu item clicks
+            dial?.addEventListener('click', (e) => {
+                const sub = e.target.closest('.submenu-item');
+                if (!sub) return;
+                e.stopPropagation();
+                const subaction = sub.getAttribute('data-subaction');
+                switch (subaction) {
+                    case 'upload-image': handleImageUpload(); break;
+                    case 'upload-video': handleVideoUpload(); break;
+                    case 'upload-audio': handleAudioUpload(); break;
+                    case 'desktop-capture': handleDesktopCapture(); break;
+                    case 'audio-capture': handleAudioCapture(); break;
+                    case 'capture-video': handleVideoCapture(); break;
+                }
+                closeSubmenus(dial);
+                closeDial(dial);
+                dom.messageInput.focus();
+            });
+        }
+
+    handleDialClicks(speedDial, dom.plusButton);
+    handleDialClicks(speedDialLeft, dom.modelSelectButton);
+    }
 
     dom.uploadDropdown.addEventListener('click', (e) => {
         const button = e.target.closest('.dropdown-item-compact');

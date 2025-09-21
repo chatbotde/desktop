@@ -28,6 +28,7 @@ export const dom = {
     get plusButton() { return document.getElementById('plusButton'); },
     get expandedPlusButton() { return document.getElementById('expandedPlusButton'); },
     get plusActionsDropdown() { return document.getElementById('plusActionsDropdown'); },
+    get attachmentsContainer() { return document.getElementById('attachmentsContainer'); },
     get attachmentsSection() { return document.getElementById('attachmentsSection'); },
     get attachmentsGrid() { return document.getElementById('attachmentsGrid'); },
     get clearAllButton() { return document.getElementById('clearAllAttachments'); },

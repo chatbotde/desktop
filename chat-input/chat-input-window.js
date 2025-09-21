@@ -56,7 +56,8 @@ class ChatInputWindow {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
-      title: "Buddy Chat",
+      forceWindowAboveTaskbar: true,
+      title: "",
       resizable: false, // Disable resizing for fullscreen
       minimizable: false,
       maximizable: false, // Disable maximizing since we're already fullscreen

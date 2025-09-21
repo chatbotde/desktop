@@ -107,8 +107,15 @@ export function hideAttachmentLoading() {
 export function updateAttachmentsVisibility() {
     const hasAttachments = state.imageAttachments.length > 0 || state.mediaAttachments.length > 0 || document.getElementById('attachment-loading');
     const container = dom.promptInput;
+    const attachmentsContainer = dom.attachmentsContainer;
     const isExpanded = container.classList.contains('expanded');
+    
     if (hasAttachments && isExpanded) {
+        // Show attachments container
+        attachmentsContainer.style.display = 'block';
+        attachmentsContainer.classList.add('visible', 'has-attachments');
+        
+        // Show attachments section
         if (dom.attachmentsSection.style.display === 'none') {
             dom.attachmentsSection.style.display = 'block';
             dom.attachmentsSection.style.opacity = '0';
@@ -119,11 +126,17 @@ export function updateAttachmentsVisibility() {
             });
         }
     } else {
+        // Hide attachments container
+        attachmentsContainer.classList.remove('visible', 'has-attachments');
+        
+        // Hide attachments section
         dom.attachmentsSection.style.opacity = '0';
         dom.attachmentsSection.style.maxHeight = '0px';
+        
         setTimeout(() => {
             if (state.imageAttachments.length === 0 && state.mediaAttachments.length === 0 && !document.getElementById('attachment-loading')) {
                 dom.attachmentsSection.style.display = 'none';
+                attachmentsContainer.style.display = 'none';
             }
         }, 300);
     }

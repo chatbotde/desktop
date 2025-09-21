@@ -331,3 +331,78 @@
 #modelSelectDropdown .dropdown-item.selected .model-name {
     color: var(--accent);
 }
+
+/* ==================== PLUS ACTIONS: ICON COLUMN ==================== */
+/* Render Actions dropdown items as a compact vertical column of icon-only round buttons,
+   visually consistent with collapsed speed-dial buttons. Scoped to #plusActionsDropdown. */
+
+#plusActionsDropdown.dropdown-menu.compact {
+    min-width: 52px; /* narrow panel, fits round buttons */
+    max-width: 52px;
+    padding: 6px; /* slight inner padding around the column */
+    transform-origin: bottom right; /* animate from input edge */
+}
+
+#plusActionsDropdown .dropdown-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto; /* allow scrolling if many actions */
+    padding-right: 2px; /* room for scrollbar */
+}
+
+#plusActionsDropdown .dropdown-header {
+    display: none; /* match speed-dial look (icon column only) */
+}
+
+#plusActionsDropdown .dropdown-item-compact {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 999px;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transform: translateY(6px) scale(0.96);
+    opacity: 0;
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+#plusActionsDropdown .dropdown-item-compact:hover,
+#plusActionsDropdown .dropdown-item-compact[aria-selected="true"] {
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.30);
+}
+
+#plusActionsDropdown .dropdown-item-compact span {
+    display: none; /* icon-only */
+}
+
+#plusActionsDropdown .dropdown-item-compact svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Open state: reveal with stagger similar to speed-dial */
+#plusActionsDropdown.open .dropdown-item-compact {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* Staggered appearance */
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(1) { transition-delay: 0ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(2) { transition-delay: 40ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(3) { transition-delay: 80ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(4) { transition-delay: 120ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(5) { transition-delay: 160ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(6) { transition-delay: 200ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(7) { transition-delay: 240ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(8) { transition-delay: 280ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(9) { transition-delay: 320ms; }
+#plusActionsDropdown.open .dropdown-item-compact:nth-child(10) { transition-delay: 360ms; }

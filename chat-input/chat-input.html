@@ -212,25 +212,28 @@
     
     </div>
 
+    <!-- Attachments Container - separate from chat input -->
+    <div class="attachments-container" id="attachmentsContainer" style="display: none;">
+        <div class="attachments-section" id="attachmentsSection">
+            <div class="attachments-header">
+                <span class="attachments-title">Attachments</span>
+                <button class="clear-all-btn" id="clearAllAttachments" title="Clear all attachments">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"/>
+                        <path d="M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="attachments-grid" id="attachmentsGrid">
+                <!-- Image previews will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
     <div class="chat-input-container">
         <div class="prompt-input" role="form" aria-label="Chat input">
             <div class="drag-handle" title="Drag to move window"></div>
             <div class="prompt-content">
-                <!-- Image attachments display section -->
-                <div class="attachments-section" id="attachmentsSection" style="display: none;">
-                    <div class="attachments-header">
-                        <span class="attachments-title">Attachments</span>
-                        <button class="clear-all-btn" id="clearAllAttachments" title="Clear all attachments">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 6 6 18"/>
-                                <path d="M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="attachments-grid" id="attachmentsGrid">
-                        <!-- Image previews will be added here dynamically -->
-                    </div>
-                </div>
 
                 <div class="input-area">
                     <button class="action-btn icon-only plus-button" id="plusButton" aria-label="Add content" title="Add content">
@@ -443,6 +446,129 @@
                         </button>
                     </div>
                 </div>
+                <!-- Collapsed Speed Dial (Right end) -->
+                <div id="collapsedSpeedDial" class="speed-dial right" aria-hidden="true">
+                    <button class="speed-item" data-action="upload" title="Upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="capture" title="Capture">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="theme" title="Theme">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="expand" title="Expand">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                        </svg>
+                    </button>
+                    <!-- Horizontal submenus -->
+                    <div class="submenu upload-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="upload-image" title="Image">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="upload-video" title="Video">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/><path d="m22 7-6 4 6 4z"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="upload-audio" title="Audio">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="submenu capture-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="desktop-capture" title="Screenshot">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="audio-capture" title="Audio">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v6"/><path d="M8 23h8"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="capture-video" title="Video">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-5 3v4l5 3V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsed Speed Dial (Left end) -->
+                <div id="collapsedSpeedDialLeft" class="speed-dial left" aria-hidden="true">
+                    <button class="speed-item" data-action="upload" title="Upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="capture" title="Capture">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="theme" title="Theme">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                    </button>
+                    <button class="speed-item" data-action="expand" title="Expand">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                        </svg>
+                    </button>
+                    <!-- Horizontal submenus -->
+                    <div class="submenu upload-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="upload-image" title="Image">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="upload-video" title="Video">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/><path d="m22 7-6 4 6 4z"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="upload-audio" title="Audio">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div class="submenu capture-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="desktop-capture" title="Screenshot">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="audio-capture" title="Audio">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v6"/><path d="M8 23h8"/></svg>
+                        </button>
+                        <button class="submenu-item" data-subaction="capture-video" title="Video">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-5 3v4l5 3V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expanded state Speed Dial (triggered by expanded plus) -->
+                <div id="expandedSpeedDial" class="speed-dial expanded-ui" aria-hidden="true">
+                    <button class="speed-item" data-action="upload" title="Upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                    <button class="speed-item" data-action="capture" title="Capture">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </button>
+                    <button class="speed-item" data-action="theme" title="Theme">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    </button>
+                    <button class="speed-item" data-action="collapse" title="Collapse">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                    </button>
+                    <div class="submenu upload-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="upload-image" title="Image"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button>
+                        <button class="submenu-item" data-subaction="upload-video" title="Video"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/><path d="m22 7-6 4 6 4z"/></svg></button>
+                        <button class="submenu-item" data-subaction="upload-audio" title="Audio"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
+                    </div>
+                    <div class="submenu capture-submenu" aria-hidden="true">
+                        <button class="submenu-item" data-subaction="desktop-capture" title="Screenshot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+                        <button class="submenu-item" data-subaction="audio-capture" title="Audio"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v6"/><path d="M8 23h8"/></svg></button>
+                        <button class="submenu-item" data-subaction="capture-video" title="Video"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-5 3v4l5 3V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>
+                    </div>
+                </div>
             </div>
 
             <div class="typing-indicator" id="typingIndicator" aria-live="polite">
@@ -521,33 +647,33 @@
             </button>
         </div>
         <div class="dropdown-content" role="none">
-            <button class="dropdown-item-compact" data-action="upload" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="upload" role="menuitem" tabindex="-1" title="Upload">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
                 <span>Upload</span>
             </button>
-            <button class="dropdown-item-compact" data-action="capture" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="capture" role="menuitem" tabindex="-1" title="Capture">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                 </svg>
                 <span>Capture</span>
             </button>
-            <button class="dropdown-item-compact" data-action="theme" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="theme" role="menuitem" tabindex="-1" title="Theme">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"/>
                     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                 </svg>
                 <span>Theme</span>
             </button>
-            <button class="dropdown-item-compact" data-action="lighting" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="lighting" role="menuitem" tabindex="-1" title="Lighting">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
                 </svg>
                 <span>Lighting</span>
             </button>
-            <button class="dropdown-item-compact" data-action="hide" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="hide" role="menuitem" tabindex="-1" title="Hide">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18l-2-2H5l-2 2z"/>
                     <path d="M21 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6"/>
@@ -555,7 +681,7 @@
                 </svg>
                 <span>Hide</span>
             </button>
-            <button class="dropdown-item-compact" data-action="click-through" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="click-through" role="menuitem" tabindex="-1" title="Click-through">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2v20"/>
                     <path d="M5 9l7-7 7 7"/>
@@ -563,7 +689,7 @@
                 </svg>
                 <span>Click-through</span>
             </button>
-            <button class="dropdown-item-compact" data-action="toggle-main" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="toggle-main" role="menuitem" tabindex="-1" title="Toggle Main">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <path d="M9 9h.01"/>
@@ -573,7 +699,7 @@
                 </svg>
                 <span>Toggle Main</span>
             </button>
-            <button class="dropdown-item-compact" data-action="protection" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="protection" role="menuitem" tabindex="-1" title="Protection">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                     <circle cx="12" cy="16" r="1"/>
@@ -581,7 +707,7 @@
                 </svg>
                 <span>Protection</span>
             </button>
-            <button class="dropdown-item-compact" data-action="collapse" role="menuitem" tabindex="-1">
+            <button class="dropdown-item-compact" data-action="collapse" role="menuitem" tabindex="-1" title="Collapse">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m18 15-6-6-6 6"/>
                 </svg>

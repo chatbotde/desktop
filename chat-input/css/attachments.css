@@ -1,11 +1,51 @@
 /* ==================== ATTACHMENT COMPONENT STYLES ==================== */
 
+/* Attachments container - separate from chat input */
+.attachments-container {
+    position: fixed;
+    bottom: 100px; /* Position above chat input */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999; /* Below chat input but above other content */
+    width: 500px;
+    max-width: 800px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+    pointer-events: none;
+}
+
+.attachments-container.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+/* Expand container when attachments are present */
+.attachments-container.has-attachments {
+    width: 600px;
+    max-width: min(900px, 90vw);
+}
+
+/* Responsive behavior for smaller screens */
+@media (max-width: 768px) {
+    .attachments-container {
+        width: 95vw;
+        max-width: 95vw;
+    }
+    
+    .attachments-container.has-attachments {
+        width: 95vw;
+        max-width: 95vw;
+    }
+}
+
 /* Attachments section styles */
 .attachments-section {
-    padding: 6px 12px 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-alt);
-    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 0;
     transition: max-height 0.3s ease, opacity 0.2s ease;
     overflow: hidden;
 }
@@ -47,18 +87,21 @@
 .attachments-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
     max-height: 120px;
     overflow-y: auto;
     padding-bottom: 4px;
+    justify-content: flex-start;
+    align-items: flex-start;
 }
 
 .attachment-item {
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--border);
-    background: var(--bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -114,14 +157,15 @@
 .attachment-loading {
     width: 50px;
     height: 50px;
-    background: var(--bg-alt);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     transition: opacity 0.2s ease, transform 0.2s ease;
+    backdrop-filter: blur(10px);
 }
 
 .attachment-loading::after {
@@ -164,11 +208,13 @@
     max-width: 300px;
     height: auto;
     padding: 8px;
-    background: var(--bg-alt);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    backdrop-filter: blur(10px);
 }
 
 .audio-preview,
