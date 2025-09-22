@@ -34,7 +34,7 @@ export function initializeContainerDrag() {
 
         const containerWidth = dom.chatInputContainer.offsetWidth;
         const containerHeight = dom.chatInputContainer.offsetHeight;
-        const margin = 10;
+        const margin = 0;
         const minX = margin;
         const maxX = window.innerWidth - containerWidth - margin;
         const minY = margin;
@@ -71,7 +71,7 @@ function resetToDefaultPosition() {
 
 function clampWithinViewport() {
     const rect = dom.chatInputContainer.getBoundingClientRect();
-    const margin = 10;
+    const margin = 0;
     let left = rect.left;
     let top = rect.top;
     const width = rect.width;

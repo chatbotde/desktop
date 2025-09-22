@@ -35,7 +35,7 @@ export class GeometryController {
 
     positionDropdownAdvanced(dropdown, triggerButton, options = {}) {
         if (!dropdown || !triggerButton || !this.screenInfo) return;
-        const { preferredPosition = 'below', offset = 8, margin = 20, constrainToScreen = true, preferAbove = false } = options;
+        const { preferredPosition = 'below', offset = 8, margin = 0, constrainToScreen = true, preferAbove = false } = options;
         dropdown.style.visibility = 'hidden';
         dropdown.style.display = 'block';
         const buttonRect = triggerButton.getBoundingClientRect();

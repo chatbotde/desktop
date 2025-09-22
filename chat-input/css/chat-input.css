@@ -7,7 +7,6 @@
     right: 0;
     height: 20px;
     -webkit-app-region: no-drag;
-    cursor: move;
     z-index: 20;
     background: transparent;
     transform: translate(0, 0);
@@ -27,11 +26,10 @@
     width: 500px;
     max-width: 800px;
     margin: 0;
-    cursor: move;
     z-index: 1000;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth upward movement */
     user-select: none;
-    bottom: 20px; /* Position at bottom of screen */
+    bottom: 0px; /* Position at bottom of screen */
     left: 50%;
     transform: translateX(-50%); /* Center horizontally */
 }
@@ -43,12 +41,15 @@
 
 /* Move container upward when expanded to accommodate upward growth */
 .chat-input-container.expanded {
-    transform: translateX(-50%) translateY(-20px);
+    /* Keep horizontal centering; vertical reposition handled in JS */
+    transform: translateX(-50%);
+    transform-origin: bottom center;
 }
 
 /* When dragging, override the expanded transform */
 .chat-input-container.dragging.expanded {
-    transform: none;
+    /* Preserve horizontal centering while dragging */
+    transform: translateX(-50%);
 }
 
 .chat-input-container:active {
@@ -59,7 +60,8 @@
 .chat-input-container.fullscreen {
     align-items: center;
     justify-content: center;
-    padding: -20px;
+    /* Negative padding is invalid; remove extra padding in fullscreen */
+    padding: 0;
 }
 
 .chat-input-container.fullscreen .prompt-input {
@@ -160,17 +162,20 @@
     justify-content: space-between;
     gap: 4px;
     padding: 0 8px 8px;
-    cursor: move;
     position: relative;
     transform: translate(0, 0);
     transition: transform 0.2s ease;
+}
+
+/* Keep actions bar anchored; avoid order changes that cause jumping */
+.prompt-input.expanded .prompt-actions {
+    order: 0;
 }
 
 .left-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: move;
     position: relative;
     transform: translate(0, 0);
     transition: transform 0.2s ease;
@@ -180,14 +185,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: move;
     position: relative;
     transform: translate(0, 0);
     transition: transform 0.2s ease;
 }
 
 .draggable-area {
-    cursor: move;
     flex: 1;
     min-height: 36px;
     display: flex;
@@ -309,13 +312,11 @@
 
 /* 1. Define smooth transitions on ALL properties that will change */
 .prompt-input,
-.prompt-content,
-.prompt-actions,
 #messageInput,
 .action-btn.primary,
 .action-btn.primary svg {
-    /* A refined cubic-bezier for a professional feel */
-    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Avoid overbroad transitions that cause layout jumps */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 2. Style the INITIAL collapsed state (:not(.expanded)) with precision */
@@ -330,7 +331,6 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(1);
     opacity: 1;
-    cursor: move; /* Make entire collapsed UI draggable */
     position: relative;
 }
 
@@ -413,7 +413,8 @@
 
 /* Hide send button in collapsed state */
 .prompt-input:not(.expanded) #sendButton {
-    display: none !important;
+    /* Default hidden in collapsed; JS may override when needed */
+    display: none;
 }
 
 /* Plus button styles for non-expanded state */
@@ -482,19 +483,18 @@
     min-height: auto;
 }
 
-/* Ensure expanded state uses column layout for upward expansion */
+/* Ensure expanded state layout without reflowing actions to top first */
 .prompt-input.expanded .prompt-content {
-    flex-direction: column;
-    align-items: flex-end; /* Align content to bottom for upward expansion */
+    display: grid;
+    grid-template-areas:
+        "input"
+        "actions";
+    grid-auto-rows: max-content;
 }
 
 /* Ensure input area in expanded state also aligns properly */
-.prompt-input.expanded .input-area {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Align textarea to bottom for upward growth */
-    width: 100%;
-}
+.prompt-input.expanded .input-area { grid-area: input; width: 100%; }
+.prompt-input.expanded .prompt-actions { grid-area: actions; }
 
 .prompt-input.expanded .left-actions {
     max-width: 2000px;
@@ -517,7 +517,7 @@
     white-space: pre-wrap;
     overflow-y: auto;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    align-self: flex-end; /* Maintain bottom alignment for upward expansion */
+    resize: none; /* Prevent manual cursor-based resizing */
 }
 
 /* Transparency/Lighting Effect Button */

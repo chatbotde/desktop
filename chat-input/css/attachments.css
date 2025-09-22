@@ -3,15 +3,15 @@
 /* Attachments container - separate from chat input */
 .attachments-container {
     position: fixed;
-    bottom: 100px; /* Position above chat input */
+    /* Top/left are set dynamically by JS to avoid overlap */
+    top: auto;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(6px);
     z-index: 999; /* Below chat input but above other content */
-    width: 500px;
-    max-width: 800px;
+    width: auto; /* grow with content until constrained */
+    max-width: 90vw; /* safety cap for small screens */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
     pointer-events: none;
 }
 
@@ -86,14 +86,26 @@
 
 .attachments-grid {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* single row */
     gap: 6px;
-    max-height: 120px;
-    overflow-y: auto;
-    padding-bottom: 4px;
+    max-height: 68px; /* thumbnail height + gaps */
+    overflow-x: hidden; /* no scroll until 8+ */
+    overflow-y: hidden;
+    padding: 4px 6px 4px 6px;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: center;
+    scrollbar-width: thin;
+    cursor: grab;
+    -webkit-overflow-scrolling: touch;
+    
 }
+.attachments-grid.scrollable::-webkit-scrollbar-track {
+    background: none; /* Darker grey for the track background */
+    border-radius: 10px; /* Optional: rounded corners for the track */
+}
+
+.attachments-grid.scrollable { overflow-x: auto; }
+.attachments-grid.dragging { cursor: grabbing; }
 
 .attachment-item {
     position: relative;
@@ -103,11 +115,12 @@
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     transition: opacity 0.2s ease, transform 0.2s ease;
+    flex: 0 0 auto; /* do not squeeze items */
 }
 
 .attachment-preview {
-    width: 50px;
-    height: 50px;
+    width: 44px; /* smaller thumbnails */
+    height: 44px;
     object-fit: cover;
     display: block;
 }
@@ -155,8 +168,8 @@
 }
 
 .attachment-loading {
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
@@ -166,6 +179,7 @@
     position: relative;
     transition: opacity 0.2s ease, transform 0.2s ease;
     backdrop-filter: blur(10px);
+    flex: 0 0 auto; /* do not squeeze loading item */
 }
 
 .attachment-loading::after {
@@ -204,8 +218,8 @@
 /* Enhanced attachment item for media */
 .attachment-item.media-attachment {
     width: auto;
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 160px;
+    max-width: 220px;
     height: auto;
     padding: 8px;
     background: rgba(255, 255, 255, 0.05);

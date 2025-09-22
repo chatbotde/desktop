@@ -1,4 +1,4 @@
-const { BrowserWindow, ipcMain, screen, dialog, desktopCapturer } = require("electron");
+﻿const { BrowserWindow, ipcMain, screen, dialog, desktopCapturer } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const CaptureAPI = require("./capture");
@@ -56,7 +56,7 @@ class ChatInputWindow {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
-      forceWindowAboveTaskbar: true,
+      fullscreen: true,
       title: "",
       resizable: false, // Disable resizing for fullscreen
       minimizable: false,

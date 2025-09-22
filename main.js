@@ -3,6 +3,7 @@ const path = require("path");
 const { LaunchWindowManager } = require("./launch-window");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
+const { clipboardMonitor } = require("./clipboard-monitor");
 
 // Set app icon
 if (process.platform === 'win32') {
@@ -184,11 +185,15 @@ app.whenReady().then(async () => {
     
     // Register global shortcuts
     registerGlobalShortcuts();
+
+    // Start clipboard monitoring for auto-paste
+    setupClipboardMonitoring();
   } catch (error) {
     console.error('Main: Error during app initialization:', error);
     // Continue with basic functionality even if auto-startup fails
     createLaunchWindow();
     registerGlobalShortcuts();
+    setupClipboardMonitoring();
   }
 });
 
@@ -225,6 +230,52 @@ function registerGlobalShortcuts() {
   } else {
     console.log('Main: Global shortcut Ctrl+H registered successfully');
   }
+}
+
+function setupClipboardMonitoring() {
+  console.log('Main: Setting up clipboard monitoring for auto-paste');
+
+  // Start clipboard monitoring
+  clipboardMonitor.startMonitoring();
+
+  // Handle clipboard changes
+  clipboardMonitor.onChange((clipboardContent) => {
+    console.log('Main: Clipboard content changed, type:', clipboardContent?.type);
+
+    // Only auto-paste if we have a chat input window and it's visible
+    if (chatInputWindow && chatInputWindow.getChatInputWindow() &&
+        !chatInputWindow.getChatInputWindow().isDestroyed() &&
+        chatInputWindow.getChatInputWindow().isVisible()) {
+
+      console.log('Main: Auto-pasting clipboard content to chat input');
+
+      // Send clipboard content to chat input window
+      chatInputWindow.getChatInputWindow().webContents.send('clipboard-changed', clipboardContent);
+    }
+  });
+
+  // IPC handlers for clipboard monitoring control
+  ipcMain.handle('start-clipboard-monitoring', () => {
+    clipboardMonitor.startMonitoring();
+    console.log('Main: Clipboard monitoring started');
+    return true;
+  });
+
+  ipcMain.handle('stop-clipboard-monitoring', () => {
+    clipboardMonitor.stopMonitoring();
+    console.log('Main: Clipboard monitoring stopped');
+    return true;
+  });
+
+  ipcMain.handle('get-clipboard-monitoring-status', () => {
+    return clipboardMonitor.isActive();
+  });
+
+  ipcMain.handle('set-clipboard-check-interval', (event, intervalMs) => {
+    clipboardMonitor.setCheckInterval(intervalMs);
+    console.log('Main: Clipboard check interval set to', intervalMs, 'ms');
+    return true;
+  });
 }
 
 app.on("window-all-closed", () => {
