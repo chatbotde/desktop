@@ -177,7 +177,7 @@
     position: relative;
     user-select: none;
     flex-shrink: 0;
-    height: 25px; /* Optionally enforce a smaller minimum height */
+    height: 30px; /* Optionally enforce a smaller minimum height */
     z-index: 10; /* Higher z-index to ensure buttons are clickable */
     cursor: move; /* Make entire header draggable like window title bar */
     transition: background-color 0.2s ease;

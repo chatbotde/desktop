@@ -278,7 +278,18 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
   onRecordingError: (callback) => ipcRenderer.on('recording-error', callback),
   
   // Remove listeners
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
+  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+
+  // Clipboard change subscription (from main -> renderer)
+  onClipboardChanged: (callback) => {
+    try {
+      ipcRenderer.on('clipboard-changed', (event, data) => {
+        if (typeof callback === 'function') callback(data);
+      });
+    } catch (e) {
+      console.error('Preload: Failed to register clipboard-changed listener', e);
+    }
+  }
 });
 
 // Expose the comprehensive CaptureAPI to the renderer

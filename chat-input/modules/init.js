@@ -15,6 +15,7 @@ import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopC
 import { geometryController } from './geometry.js';
 import { stopCurrentRecording, updateVolumeIndicator } from './recording.js';
 import { initializeContainerDrag } from './container-drag.js';
+import { initializeClipboardInjection } from './clipboard-injector.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {
@@ -43,6 +44,7 @@ export async function boot() {
     initializeClickThrough();
     initializeFloatingCards();
     initializeContainerDrag();
+    initializeClipboardInjection();
 
     // legacy no-op to keep older calls safe
     window.adjustWindowHeight = () => {};
