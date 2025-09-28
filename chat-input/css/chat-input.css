@@ -1,5 +1,13 @@
 /* ==================== CHAT INPUT COMPONENT STYLES ==================== */
 
+/* 
+ * DRAG FUNCTIONALITY:
+ * - Double-click anywhere on the chat input container to enable drag mode
+ * - No cursor changes to avoid visual annoyance
+ * - Subtle blue glow indicates when drag mode is active
+ * - Single click works normally for all interactions
+ */
+
 .drag-handle {
     position: absolute;
     top: 0;
@@ -10,11 +18,14 @@
     z-index: 20;
     background: transparent;
     transform: translate(0, 0);
-    transition: transform 0.2s ease;
+    transition: none;
+    cursor: default;
+    pointer-events: auto;
 }
 
 .drag-handle:hover {
     background: none;
+    cursor: default;
 }
 
 .chat-input-container {
@@ -32,11 +43,13 @@
     bottom: 0px; /* Position at bottom of screen */
     left: 50%;
     transform: translateX(-50%); /* Center horizontally */
+    cursor: default;
 }
 
 /* When dragging, ensure smooth movement */
 .chat-input-container.dragging {
     transition: none;
+    cursor: default;
 }
 
 /* Move container upward when expanded to accommodate upward growth */
@@ -50,10 +63,33 @@
 .chat-input-container.dragging.expanded {
     /* Preserve horizontal centering while dragging */
     transform: translateX(-50%);
+    cursor: default;
 }
 
-.chat-input-container:active {
-    cursor: grabbing;
+/* Double-click to drag functionality - no cursor changes */
+.chat-input-container.drag-enabled {
+    cursor: default;
+}
+
+.chat-input-container.drag-enabled:active {
+    cursor: default;
+}
+
+/* Visual feedback for double-click activation */
+.chat-input-container.drag-enabled {
+    /* Subtle border to indicate drag mode is active */
+    box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.3);
+    transition: box-shadow 0.2s ease;
+}
+
+/* Add gentle pulse animation when in drag mode */
+@keyframes dragPulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255, 192, 203, 0.3); }
+    50% { box-shadow: 0 0 0 2px rgba(255, 192, 203, 0.5); }
+}
+
+.chat-input-container.drag-enabled {
+    animation: dragPulse 2s ease-in-out infinite;
 }
 
 /* Fullscreen mode adjustments */
@@ -198,6 +234,8 @@
     position: relative;
     transform: translate(0, 0);
     transition: transform 0.2s ease;
+    cursor: default;
+    user-select: none;
 }
 
 /* Collapsed speed-dial (right end) */

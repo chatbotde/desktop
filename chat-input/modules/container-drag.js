@@ -12,19 +12,46 @@ export function initializeContainerDrag() {
         clampWithinViewport();
     });
 
+    // Double-click detection variables
+    let lastClickTime = 0;
+    let clickTimer = null;
+    const doubleClickThreshold = 300; // 300ms for double-click detection
+
     dom.chatInputContainer.addEventListener('mousedown', (e) => {
         // Don't start drag if clicking on interactive elements
         if (e.target.closest('button') || e.target.closest('textarea') || e.target.closest('input') || e.target.closest('.dropdown-menu')) {
             return;
         }
-        state.isContainerDragging = true;
-        const rect = dom.chatInputContainer.getBoundingClientRect();
-        state.containerDragOffset.x = e.clientX - rect.left;
-        state.containerDragOffset.y = e.clientY - rect.top;
-        dom.chatInputContainer.classList.add('dragging');
-        dom.chatInputContainer.style.cursor = 'grabbing';
-        document.body.style.userSelect = 'none';
-        e.preventDefault();
+
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastClickTime;
+
+        // Clear any existing timer
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+        }
+
+        // Check if this is a double-click
+        if (timeDiff < doubleClickThreshold) {
+            // Double-click detected - enable dragging
+            state.isContainerDragging = true;
+            const rect = dom.chatInputContainer.getBoundingClientRect();
+            state.containerDragOffset.x = e.clientX - rect.left;
+            state.containerDragOffset.y = e.clientY - rect.top;
+            dom.chatInputContainer.classList.add('dragging');
+            dom.chatInputContainer.classList.add('drag-enabled');
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        } else {
+            // Single click - set timer for potential double-click
+            clickTimer = setTimeout(() => {
+                // This was just a single click, do nothing special
+                clickTimer = null;
+            }, doubleClickThreshold);
+        }
+
+        lastClickTime = currentTime;
     });
 
     document.addEventListener('mousemove', (e) => {
@@ -53,7 +80,7 @@ export function initializeContainerDrag() {
         if (state.isContainerDragging) {
             state.isContainerDragging = false;
             dom.chatInputContainer.classList.remove('dragging');
-            dom.chatInputContainer.style.cursor = 'move';
+            dom.chatInputContainer.classList.remove('drag-enabled');
             document.body.style.userSelect = '';
         }
     }
