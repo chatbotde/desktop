@@ -1,4 +1,5 @@
 import { dom } from './dom.js';
+import { isAutoClipboardEnabled } from './auto-clipboard-state.js';
 
 function stripHtml(html) {
   const tmp = document.createElement('div');
@@ -22,7 +23,7 @@ function rtfToText(rtf) {
   }
 }
 
-function appendToInput(content) {
+export function appendToInput(content) {
   const input = dom.messageInput;
   if (!input) return;
   const hadText = input.value.length > 0;
@@ -53,6 +54,21 @@ function appendToInput(content) {
   });
 }
 
+export function getClipboardText(payload) {
+  if (!payload || !payload.type) return '';
+  switch (payload.type) {
+    case 'text':
+    case 'bookmark':
+      return String(payload.content || '').trim();
+    case 'html':
+      return stripHtml(payload.content);
+    case 'rtf':
+      return rtfToText(payload.content);
+    default:
+      return '';
+  }
+}
+
 export function initializeClipboardInjection(options = {}) {
   const { autoFocus = true } = options;
   if (!window.chatInputAPI || !window.chatInputAPI.onClipboardChanged) return;
@@ -69,37 +85,23 @@ export function initializeClipboardInjection(options = {}) {
     });
     if (signature === lastSignature) return;
 
-    switch (payload.type) {
-      case 'text':
-      case 'bookmark': {
-        if (payload.content) {
-          appendToInput(String(payload.content));
-          lastSignature = signature;
-          if (autoFocus) dom.messageInput?.focus();
-        }
-        break;
+    const enabled = isAutoClipboardEnabled();
+    
+    // Always surface an event for UI to show the bar (so user can toggle auto-paste)
+    try {
+      document.dispatchEvent(new CustomEvent('clipboard:detected', {
+        detail: { payload, signature }
+      }));
+      lastSignature = signature; // still guard duplicates while showing UI
+    } catch {}
+
+    // If auto paste is ON, also inject text-like payloads directly
+    if (enabled) {
+      const txt = getClipboardText(payload);
+      if (txt) {
+        appendToInput(txt);
+        if (autoFocus) dom.messageInput?.focus();
       }
-      case 'html': {
-        const txt = stripHtml(payload.content);
-        if (txt) {
-          appendToInput(txt);
-          lastSignature = signature;
-          if (autoFocus) dom.messageInput?.focus();
-        }
-        break;
-      }
-      case 'rtf': {
-        const txt = rtfToText(payload.content);
-        if (txt) {
-          appendToInput(txt);
-          lastSignature = signature;
-          if (autoFocus) dom.messageInput?.focus();
-        }
-        break;
-      }
-      default:
-        // Ignore non-textual payloads for now (images, etc.)
-        break;
     }
   });
 }

@@ -59,8 +59,8 @@ export function FormattedMessage({ content, role, className, onCopy }: Formatted
       <div className={`
         backdrop-blur-lg text-white transition-all duration-300 hover:shadow-lg
         ${role === 'assistant' 
-          ? 'bg-gray-800/60 hover:bg-gray-800/70 border border-gray-600/20' 
-          : 'bg-blue-600/80 hover:bg-blue-600/90 border border-blue-400/30 rounded-br-sm'
+          ? 'bg-green-600/60 hover:bg-green-600/70 border border-green-400/20' 
+          : 'bg-sky-500/60 hover:bg-sky-500/70 border border-sky-300/30 rounded-br-sm'
         } 
         rounded-2xl shadow-md px-4 py-3 leading-relaxed
       `}>

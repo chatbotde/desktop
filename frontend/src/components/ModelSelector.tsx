@@ -280,13 +280,13 @@ function ModelSelectorContent({
                     {/* Capability indicators */}
                     <div className="flex items-center gap-1">
                       {model.supportsImages && (
-                        <Image className="h-3 w-3 text-gray-400" title="Supports images" />
+                        <Image className="h-3 w-3 text-gray-400" />
                       )}
                       {model.supportsVideo && (
-                        <Video className="h-3 w-3 text-gray-400" title="Supports video" />
+                        <Video className="h-3 w-3 text-gray-400" />
                       )}
                       {model.supportsAudio && (
-                        <Mic className="h-3 w-3 text-gray-400" title="Supports audio" />
+                        <Mic className="h-3 w-3 text-gray-400" />
                       )}
                     </div>
 

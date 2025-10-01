@@ -1,9 +1,22 @@
 // Minimal extraction to keep original behavior
+let zCounter = 3000; // keep cards below chat UI (chat-input is 50000)
+const cardRegistry = new Map(); // number -> element
+let nextCardNumber = 5; // dynamic cards numbering starts after 4
 export function initializeFloatingCards() {
     for (let i = 1; i <= 4; i++) {
         initializeFloatingCard(i);
         initializeEnhancedFloatingCard(i);
+        const el = document.getElementById(`floatingCard${i}`);
+        if (el) registerCardNumber(el, i);
     }
+    // Wire "new card" buttons on the 4 base cards
+    for (let i = 1; i <= 4; i++) {
+        document.getElementById(`newFloatingCard${i}`)?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            createNewFloatingCard();
+        });
+    }
+
     if (window.require) {
         const { ipcRenderer } = window.require('electron');
         ipcRenderer.on('display-content', (event, { cardNumber, content }) => displayContent(cardNumber, content));
@@ -31,6 +44,9 @@ export function initializeFloatingCard(cardNumber) {
     
     toggleButton.addEventListener('click', () => toggleFloatingCard(cardNumber));
     closeButton.addEventListener('click', () => hideFloatingCard(cardNumber));
+
+    // Focus stacking: clicking/focusing brings card to front
+    addFocusStacking(floatingCard);
     
     // Add iframe visibility toggle functionality
     if (iframeToggleButton) {
@@ -116,6 +132,7 @@ function setupDraggableCard(card) {
             
             isDragging = true;
             card.classList.add('dragging');
+            bringToFront(card);
             startX = e.clientX; 
             startY = e.clientY;
             const rect = card.getBoundingClientRect();
@@ -142,6 +159,7 @@ function setupDraggableCard(card) {
             isResizing = true;
             resizeDirection = handle.className.split(' ')[1];
             card.classList.add('resizing');
+            bringToFront(card);
             
             startX = e.clientX; 
             startY = e.clientY;
@@ -297,6 +315,7 @@ function setupDraggableCard(card) {
             
             isDragging = true;
             card.classList.add('dragging');
+            bringToFront(card);
             const touch = e.touches[0];
             startX = touch.clientX;
             startY = touch.clientY;
@@ -355,6 +374,139 @@ function initializeEnhancedFloatingCard(cardNumber) {
     if (!floatingCard) return;
     setupDraggableCard(floatingCard);
     setupExpandCollapse(floatingCard);
+    addFocusStacking(floatingCard);
+}
+
+// ==================== FOCUS STACKING ====================
+function bringToFront(card) {
+    zCounter += 1;
+    card.style.zIndex = String(zCounter);
+}
+
+function addFocusStacking(card) {
+    ['mousedown','touchstart','focusin'].forEach(evt => {
+        card.addEventListener(evt, () => bringToFront(card));
+    });
+}
+
+// ==================== DYNAMIC CARD CREATION ====================
+export function createNewFloatingCard(options = {}) {
+    const template = document.getElementById('floatingCardTemplate');
+    if (!template) return null;
+    const content = template.content.firstElementChild.cloneNode(true);
+    const container = document.body;
+
+    // Assign a unique id and position offset to avoid overlap
+    const id = `floatingCardDynamic_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+    content.id = id;
+
+    // Assign a card number and register
+    const assignedNumber = nextCardNumber++;
+    registerCardNumber(content, assignedNumber);
+
+    // Optional: set title/content based on current input
+    const titleEl = content.querySelector('.floating-card-title');
+    const currentInput = document.getElementById('messageInput')?.value?.trim();
+    if (options.title) {
+        titleEl.textContent = options.title;
+    } else if (currentInput) {
+        titleEl.textContent = currentInput.slice(0, 48);
+    } else {
+        titleEl.textContent = 'New Card';
+    }
+
+    // Wire close
+    content.querySelector('.floating-card-close')?.addEventListener('click', () => {
+        content.remove();
+    });
+
+    // Wire new (spawn from dynamic card as well)
+    content.querySelector('.floating-card-new-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        createNewFloatingCard();
+    });
+
+    // Wire iframe toggle state (default visible)
+    const iframe = content.querySelector('iframe');
+    const iframeToggle = content.querySelector('.floating-card-iframe-toggle-btn');
+    if (iframe && iframeToggle) {
+        iframe.classList.add('visible');
+        iframe.classList.remove('hidden');
+        iframeToggle.addEventListener('click', () => {
+            if (iframe.classList.contains('visible')) {
+                iframe.classList.remove('visible');
+                iframe.classList.add('hidden');
+                iframeToggle.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                `;
+            } else {
+                iframe.classList.add('visible');
+                iframe.classList.remove('hidden');
+                iframeToggle.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                `;
+            }
+        });
+    }
+
+    // Install behaviors
+    setupDraggableCard(content);
+    setupExpandCollapse(content);
+    addFocusStacking(content);
+    bringToFront(content);
+
+    container.appendChild(content);
+    return content;
+}
+
+// ==================== CARD REGISTRY AND BADGE ====================
+function registerCardNumber(card, number) {
+    card.dataset.cardNumber = String(number);
+    cardRegistry.set(number, card);
+    addOrUpdateNumberBadge(card, number);
+}
+
+function addOrUpdateNumberBadge(card, number) {
+    const header = card.querySelector('.floating-card-header');
+    if (!header) return;
+    let badge = header.querySelector('.floating-card-number-badge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'floating-card-number-badge';
+        header.insertBefore(badge, header.firstChild);
+    }
+    badge.textContent = String(number);
+}
+
+export function getCardByNumber(number) {
+    return cardRegistry.get(Number(number)) || null;
+}
+
+// Post message to a card's iframe
+function postMessageToCard(card, messageData) {
+    if (!card) return false;
+    const iframe = card.querySelector('iframe');
+    if (!iframe || !iframe.contentWindow) return false;
+    try {
+        const origin = iframe.src && iframe.src.startsWith('http') ? new URL(iframe.src).origin : '*';
+        iframe.contentWindow.postMessage({ type: 'chat-input-message', payload: messageData }, origin);
+        return true;
+    } catch (e) {
+        try { iframe.contentWindow.postMessage({ type: 'chat-input-message', payload: messageData }, '*'); return true; } catch { return false; }
+    }
+}
+
+export function routeMessageToCard(messageData, number) {
+    const card = getCardByNumber(number);
+    if (!card) return false;
+    bringToFront(card);
+    return postMessageToCard(card, messageData);
 }
 
 

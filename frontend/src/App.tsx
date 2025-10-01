@@ -3,14 +3,14 @@ import { Messages } from '@/components/Messages'
 import { 
   AppBackground, 
   WelcomeScreen, 
-  ScreenCaptureModal, 
-  ScrollToTopButton 
+  ScreenCaptureModal
 } from '@/components'
 import { 
   useChatManager, 
   useWindowManager, 
   useScrollManager 
 } from '@/hooks'
+
 
 // Note: Window API interface is now declared in types/electron.d.ts
 
@@ -21,6 +21,8 @@ function App() {
   const chatManager = useChatManager()
   const windowManager = useWindowManager()
   const scrollManager = useScrollManager()
+  
+ 
 
   useEffect(() => {
     // Load screen info on mount
@@ -87,25 +89,36 @@ function App() {
     return () => window.removeEventListener('message', onMessage)
   }, [chatManager.handleChatMessage])
 
+  // Show test page if enabled
+  
+
   return (
     <div className={`h-screen w-full flex flex-col ${windowManager.currentTheme === 'black' ? 'bg-black' : 'bg-transparent'}`}>
+      {/* Test Button - Floating */}
+      
+
       {/* Full Height Content Area */}
       <div className="relative flex-1 overflow-hidden">
         {/* Background - Conditional based on theme */}
         <AppBackground currentTheme={windowManager.currentTheme} />
 
         {/* Full Height Content Container */}
-        <div className="relative z-10 h-full scrollable-content" ref={scrollManager.mainContentRef} onScroll={scrollManager.handleScroll}>
+        <div className="relative z-10 h-full">
           {/* Chat Messages Area */}
           {chatManager.showChat && (
             <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                <Messages
-                  messages={chatManager.messages}
-                  isTyping={chatManager.isTyping}
-                  onCopyMessage={chatManager.copyToClipboard}
-                />
-              </div>
+              <Messages
+                messages={chatManager.messages}
+                isTyping={chatManager.isTyping}
+                onCopyMessage={chatManager.copyToClipboard}
+                messagesContainerRef={scrollManager.messagesContainerRef}
+                messagesEndRef={scrollManager.messagesEndRef}
+                onScroll={scrollManager.handleScroll}
+                scrollToBottom={scrollManager.scrollToBottom}
+                scrollToTop={scrollManager.scrollToTop}
+                showScrollToTop={scrollManager.showScrollToTop}
+                isNearBottom={scrollManager.isNearBottom}
+              />
             </div>
           )}
 
@@ -125,12 +138,6 @@ function App() {
           onSourceSelect={windowManager.handleSourceSelect}
           onRefreshSources={windowManager.handleGetDesktopSources}
           screenInfo={windowManager.screenInfo}
-        />
-
-        {/* Scroll to Top Button */}
-        <ScrollToTopButton 
-          isVisible={scrollManager.showScrollToTop}
-          onClick={scrollManager.scrollToTop}
         />
       </div>
     </div>

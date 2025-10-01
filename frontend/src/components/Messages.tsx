@@ -1,4 +1,3 @@
-import { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowUp } from 'lucide-react'
 import { SmartMessage } from './SmartMessage'
@@ -27,19 +26,28 @@ interface MessagesProps {
   messages: ChatMessage[]
   isTyping: boolean
   onCopyMessage: (text: string) => void
+  messagesContainerRef: React.RefObject<HTMLDivElement | null>
+  messagesEndRef: React.RefObject<HTMLDivElement | null>
+  onScroll: () => void
+  scrollToBottom: () => void
+  scrollToTop: () => void
+  showScrollToTop: boolean
+  isNearBottom: boolean
 }
 
-export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  // Auto-scroll to bottom when new messages are added
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, isTyping])
+export function Messages({ 
+  messages, 
+  isTyping, 
+  onCopyMessage,
+  messagesContainerRef,
+  messagesEndRef,
+  onScroll,
+  scrollToBottom,
+  scrollToTop,
+  showScrollToTop,
+  isNearBottom
+}: MessagesProps) {
+  // No auto-scroll - users can manually scroll using scroll buttons
 
   // Format file size
   const formatFileSize = (bytes: number) => {
@@ -125,13 +133,21 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
 
   return (
     <div className="flex flex-col relative h-full">
-      <div className="px-6 py-4 space-y-4 min-h-full">
+      <div 
+        ref={messagesContainerRef}
+        onScroll={onScroll}
+        className="px-6 py-4 space-y-4 min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+      >
         {messages.map((message) => (
-          <div key={message.id} className={`message-appear flex ${
-            message.role === 'user' 
-              ? 'justify-end pl-20' 
-              : 'justify-start pr-20'
-          }`}>
+          <div 
+            key={message.id} 
+            data-message-type={message.role}
+            className={`message-appear flex ${
+              message.role === 'user' 
+                ? 'justify-end pl-20' 
+                : 'justify-start pr-20'
+            }`}
+          >
             <div className="max-w-full">
               {/* Media attachments */}
               {message.attachments && message.attachments.length > 0 && (
@@ -183,20 +199,34 @@ export function Messages({ messages, isTyping, onCopyMessage }: MessagesProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Scroll to bottom indicator */}
-      {messages.length > 0 && (
-        <div className="absolute bottom-4 right-4">
+      {/* Scroll controls - positioned fixed */}
+      <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
+        {/* Scroll to top button */}
+        {showScrollToTop && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 bg-blue-500/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-blue-500/30 transition-all duration-200"
+            className="h-10 w-10 bg-blue-500/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-blue-500/30 transition-all duration-200"
+            onClick={scrollToTop}
+            title="Scroll to top"
+          >
+            <ArrowUp className="w-5 h-5" />
+          </Button>
+        )}
+        
+        {/* Scroll to bottom button - only show when not near bottom */}
+        {!isNearBottom && messages.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 bg-green-500/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-green-500/30 transition-all duration-200"
             onClick={scrollToBottom}
             title="Scroll to bottom"
           >
-            <ArrowUp className="w-4 h-4 rotate-180" />
+            <ArrowUp className="w-5 h-5 rotate-180" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

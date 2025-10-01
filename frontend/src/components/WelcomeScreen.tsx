@@ -13,9 +13,7 @@ export function WelcomeScreen({ currentTheme }: WelcomeScreenProps) {
           <div className={`text-6xl ${currentTheme === 'black' ? 'text-white/20' : 'text-white/30'}`}>
             <Rocket className="w-16 h-16 mx-auto mb-4" />
           </div>
-          <h1 className={`text-2xl font-bold ${currentTheme === 'black' ? 'text-white/90' : 'text-white/90'}`}>
-            Welcome to Buddy
-          </h1>
+          
           
           
           {/* Gemini Configuration Status */}

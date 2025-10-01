@@ -16,6 +16,8 @@ import { geometryController } from './geometry.js';
 import { stopCurrentRecording, updateVolumeIndicator } from './recording.js';
 import { initializeContainerDrag } from './container-drag.js';
 import { initializeClipboardInjection } from './clipboard-injector.js';
+import { initClipboardUI } from './clipboard-ui.js';
+import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {
@@ -45,6 +47,7 @@ export async function boot() {
     initializeFloatingCards();
     initializeContainerDrag();
     initializeClipboardInjection();
+    initClipboardUI();
 
     // legacy no-op to keep older calls safe
     window.adjustWindowHeight = () => {};
@@ -239,6 +242,16 @@ export async function boot() {
     dom.themeToggleButton.addEventListener('click', () => toggleTheme());
     dom.hideShowButton.addEventListener('click', () => window.chatInputAPI?.hideWindow?.());
     dom.toggleMainWindowButton.addEventListener('click', () => window.chatInputAPI?.toggleMainWindow?.());
+
+    // Auto-paste toggle button
+    if (dom.autoPasteToggleButton) {
+        const reflect = () => {
+            dom.autoPasteToggleButton.classList.toggle('active', isAutoClipboardEnabled());
+            dom.autoPasteToggleButton.title = `Auto-paste is ${isAutoClipboardEnabled() ? 'ON' : 'OFF'} (click to toggle)`;
+        };
+        reflect();
+        dom.autoPasteToggleButton.addEventListener('click', () => { toggleAutoClipboardEnabled(); reflect(); });
+    }
 
     dom.messageInput.addEventListener('keydown', (e) => {
         const isCollapsed = !dom.promptInput.classList.contains('expanded');

@@ -1,15 +1,40 @@
 /* ==================== FLOATING CARD COMPONENT STYLES ==================== */
 
+/* Design tokens (safe defaults if no theme wrapper exists) */
+:root {
+    --sp-card-bg: rgba(14, 18, 26, 0.45);
+    --sp-card-bg-gradient-top: rgba(255, 255, 255, 0.08);
+    --sp-card-bg-gradient-bottom: rgba(255, 255, 255, 0.03);
+    --sp-card-border: rgba(148, 163, 184, 0.35); /* slate-400/35 default */
+    --sp-card-border-active: #3b82f6; /* blue-500 */
+    --sp-accent: #60a5fa;        /* blue-400 default accent */
+    --sp-accent-strong: #3b82f6; /* blue-500 */
+    --sp-card-radius: 16px;
+    --sp-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --sp-card-shadow-active: 0 12px 40px rgba(0, 0, 0, 0.4);
+    --sp-header-height: 32px;
+    --sp-fg: #ffffff;
+    --sp-danger: #ef4444;
+    --sp-danger-active: #b91c1c;
+}
+
 .floating-card {
     position: fixed;
     width: 300px;
     height: 300px;
-    background: none;
-    backdrop-filter: blur(20px);
-    border: 1px dashed #60a5fa; /* light blue */
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    /* Accent-tinted glass background */
+    background:
+        radial-gradient(120% 120% at 100% 0%, color-mix(in oklab, var(--sp-accent) 14%, transparent) 0%, transparent 55%),
+        linear-gradient(to bottom, var(--sp-card-bg-gradient-top), var(--sp-card-bg-gradient-bottom)),
+        var(--sp-card-bg);
+    backdrop-filter: saturate(120%) blur(16px);
+    -webkit-backdrop-filter: saturate(120%) blur(16px);
+    border: 1px solid var(--sp-card-border);
+    border-radius: var(--sp-card-radius);
+    box-shadow:
+        0 1px 0 color-mix(in oklab, var(--sp-accent) 10%, transparent) inset,
+        var(--sp-card-shadow);
+    z-index: 2000; /* Base below chat-input (which is 50000) */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -17,7 +42,9 @@
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        border-color 0.2s;
+        border-color 0.2s,
+        border-style 0.2s,
+        background-color 0.2s;
     pointer-events: auto;
     user-select: text;
     min-width: 200px;
@@ -26,16 +53,25 @@
     max-height: 100vh;
     /* Remove CSS resize to use custom JavaScript implementation */
     resize: none;
-    
+    contain: layout paint style;
+    isolation: isolate; /* isolate blending */
 }
+
+    /* Backdrop fallback for environments without blur support */
+    @supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+        .floating-card {
+            background: rgba(17, 24, 39, 0.85); /* slate-900/85 */
+        }
+    }
 .floating-card:active {
     cursor: grabbing;
 }
 .floating-card:focus-within,
 .floating-card:active {
-    border-color: #3b82f6; /* darker blue on active/focus */
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-    transition: border-color 0.2s, box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-color: color-mix(in oklab, var(--sp-accent-strong) 60%, transparent); /* accent focus */
+        border-style: solid;
+    box-shadow: var(--sp-card-shadow-active), 0 0 0 1px color-mix(in oklab, var(--sp-accent-strong) 40%, transparent);
+        transition: border-color 0.2s, border-style 0.2s, box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -52,7 +88,8 @@
 
 .floating-card.dragging {
     transition: none;
-    z-index: 1001;
+    z-index: 3000; /* Slightly above other cards but below chat-input */
+    will-change: transform;
 }
 
 /* Drag handle for easy positioning */
@@ -61,9 +98,9 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 25px; /* Reduced height to avoid overlap */
+    height: var(--sp-header-height); /* Reduced height to avoid overlap */
     background: none;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--sp-card-radius) var(--sp-card-radius) 0 0;
     cursor: move;
     z-index: 1; /* Lower z-index to not block buttons */
     display: flex;
@@ -75,6 +112,14 @@
 }
 
 
+.floating-card-drag-handle::after {
+    content: "";
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.15));
+}
+
 
 .floating-card:hover .floating-card-drag-handle,
 .floating-card.dragging .floating-card-drag-handle {
@@ -83,12 +128,54 @@
 }
 
 
+/* Liquid glass overlays */
+.floating-card::before {
+    content: "";
+    position: absolute;
+    inset: -10%;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(120% 80% at 0% -20%, color-mix(in oklab, var(--sp-accent) 30%, transparent) 0%, transparent 50%),
+        radial-gradient(100% 70% at 100% 0%, rgba(255,255,255,0.14) 0%, transparent 55%),
+        conic-gradient(from 180deg at 50% 50%, color-mix(in oklab, var(--sp-accent) 12%, transparent) 0 25%, transparent 25% 50%, color-mix(in oklab, var(--sp-accent) 10%, transparent) 50% 75%, transparent 75% 100%);
+    filter: blur(22px) saturate(140%);
+    opacity: 0.5;
+    mix-blend-mode: screen;
+    animation: spLiquidDrift 22s ease-in-out infinite alternate;
+}
+
+.floating-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(120px 60px at 20% 0%, rgba(255,255,255,0.10), transparent 60%),
+        radial-gradient(100px 50px at 80% 0%, rgba(255,255,255,0.08), transparent 60%);
+    opacity: 0.5;
+}
+
+@keyframes spLiquidDrift {
+    0%   { transform: translate3d(-4%, -3%, 0) scale(1.02) rotate(-0.2deg); }
+    50%  { transform: translate3d(3%,  2%,  0) scale(1.035) rotate(0.15deg); }
+    100% { transform: translate3d(-2%,  3%,  0) scale(1.015) rotate(-0.1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .floating-card::before { animation: none; opacity: 0.35; }
+}
+
 
 /* Expand/collapse button */
-.floating-card-expand-btn {
+.floating-card-expand-btn,
+.floating-card-new-btn {
     background: none;
     border: none;
-    color: #ffffff;
+    color: var(--sp-fg);
     cursor: pointer;
     padding: 6px;
     border-radius: 50%;
@@ -96,22 +183,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     position: relative;
     z-index: 20;
     pointer-events: auto;
 }
 
-.floating-card-expand-btn:hover {
-    background: #3b82f6;
+.floating-card-expand-btn:hover,
+.floating-card-new-btn:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
 }
 
 /* Iframe toggle button */
 .floating-card-iframe-toggle-btn {
     background: none;
     border: none;
-    color: #ffffff;
+    color: var(--sp-fg);
     cursor: pointer;
     padding: 6px;
     border-radius: 50%;
@@ -119,30 +207,42 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     position: relative;
     z-index: 20;
     pointer-events: auto;
 }
 
 .floating-card-iframe-toggle-btn:hover {
-    background: #3b82f6;
+    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
 }
 
 .floating-card-expand-btn *,
+.floating-card-new-btn *,
 .floating-card-iframe-toggle-btn * {
     cursor: pointer !important;
 }
 
 .floating-card-expand-btn:hover,
+.floating-card-new-btn:hover,
 .floating-card-iframe-toggle-btn:hover {
-    background: #3b82f6;
+    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
 }
 
 .floating-card-expand-btn:active,
+.floating-card-new-btn:active,
 .floating-card-iframe-toggle-btn:active {
-    background: #3b82f6;
+    background: color-mix(in oklab, var(--sp-accent-strong) 28%, transparent);
+}
+
+/* Keyboard focus ring for controls */
+.floating-card-expand-btn:focus-visible,
+.floating-card-new-btn:focus-visible,
+.floating-card-iframe-toggle-btn:focus-visible,
+.floating-card-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
 }
 
 /* Card positioning */
@@ -171,44 +271,64 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 6px; /* Reduced vertical and horizontal padding */
+    padding: 4px 6px; /* Reduced vertical and horizontal padding */
     border-bottom: none;
-    background: rgba(0, 128, 0, 0.137);
+    background:
+        linear-gradient(to bottom, color-mix(in oklab, var(--sp-accent) 10%, transparent), transparent),
+        linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
     position: relative;
     user-select: none;
     flex-shrink: 0;
-    height: 30px; /* Optionally enforce a smaller minimum height */
+    height: var(--sp-header-height); /* Enforce a compact title bar */
     z-index: 10; /* Higher z-index to ensure buttons are clickable */
-    cursor: move; /* Make entire header draggable like window title bar */
+    cursor: grab; /* Make entire header draggable like window title bar */
     transition: background-color 0.2s ease;
 }
 
 .floating-card-header:hover {
-    background: none;
-    
+    background:
+        linear-gradient(to bottom, color-mix(in oklab, var(--sp-accent) 14%, transparent), transparent),
+        linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
 
 
 /* Title area - inherits drag from header */
 .floating-card-title {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--sp-fg);
     margin: 0;
     flex: 1;
-    padding: 4px 8px;
-    border-radius: 50%;
+    padding: 2px 8px;
+    border-radius: 8px;
     transition: background-color 0.2s ease;
     position: relative;
-    height: 25px;
+    height: calc(var(--sp-header-height) - 6px);
     z-index: 5;
+}
+
+/* Number badge for quick reference */
+.floating-card-number-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    margin-right: 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--sp-fg);
+    background: color-mix(in oklab, var(--sp-accent) 30%, transparent);
+    border: 1px solid color-mix(in oklab, var(--sp-accent) 35%, var(--sp-card-border));
 }
 
 .floating-card-close {
     background: none;
-    border: 1px dashed #ffffff;
-    color: #ffffff;
+    border: 1px dashed rgba(255,255,255,0.8);
+    color: var(--sp-fg);
     cursor: pointer;
     padding: 6px;
     border-radius: 50%;
@@ -216,19 +336,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     position: relative;
     z-index: 20;
     pointer-events: auto;
 }
 
 .floating-card-close:hover {
-    background: #ef4444;
+    background: color-mix(in oklab, var(--sp-danger) 30%, transparent);
 }
 
 .floating-card-close:active {
-    background: #b91c1c;
+    background: color-mix(in oklab, var(--sp-danger-active) 40%, transparent);
 }
 
 
@@ -251,94 +371,96 @@
     pointer-events: auto;
 }
 
+/* Slight in-card padding around iframe content without breaking layout */
+.floating-card iframe { 
+    border: 0;
+}
+
 /* ==================== RESIZE HANDLES ==================== */
 
 .resize-handle {
     position: absolute;
     background: transparent;
     z-index: 1001;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.1s ease;
 }
 
 .resize-handle:hover {
-    background: rgba(59, 130, 246, 0.5);
-    border: 1px solid rgba(59, 130, 246, 0.8);
+    background: rgba(59, 130, 246, 0.2);
 }
 
-/* Corner handles */
-.resize-nw {
-    top: -3px;
-    left: -3px;
+.resize-handle:active {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+/* Corner handles - like Windows */
+.resize-nw, .resize-ne, .resize-sw, .resize-se {
     width: 10px;
     height: 10px;
+}
+
+.resize-nw {
+    top: 0;
+    left: 0;
     cursor: nw-resize;
-    border-radius: 50% 0 0 0;
 }
 
 .resize-ne {
-    top: -3px;
-    right: -3px;
-    width: 10px;
-    height: 10px;
+    top: 0;
+    right: 0;
     cursor: ne-resize;
-    border-radius: 0 50% 0 0;
 }
 
 .resize-sw {
-    bottom: -3px;
-    left: -3px;
-    width: 10px;
-    height: 10px;
+    bottom: 0;
+    left: 0;
     cursor: sw-resize;
-    border-radius: 0 0 0 50%;
 }
 
 .resize-se {
-    bottom: -3px;
-    right: -3px;
-    width: 10px;
-    height: 10px;
+    bottom: 0;
+    right: 0;
     cursor: se-resize;
-    border-radius: 0 0 50% 0;
 }
 
-/* Edge handles */
-.resize-n {
-    top: -3px;
-    left: 10px;
-    right: 10px;
+/* Edge handles - like Windows */
+.resize-n, .resize-s {
+    left: 8px;
+    right: 8px;
     height: 6px;
+}
+
+.resize-w, .resize-e {
+    top: 8px;
+    bottom: 8px;
+    width: 6px;
+}
+
+.resize-n {
+    top: 0;
     cursor: n-resize;
 }
 
 .resize-s {
-    bottom: -3px;
-    left: 10px;
-    right: 10px;
-    height: 6px;
+    bottom: 0;
     cursor: s-resize;
 }
 
 .resize-w {
-    left: -3px;
-    top: 10px;
-    bottom: 10px;
-    width: 6px;
+    left: 0;
     cursor: w-resize;
 }
 
 .resize-e {
-    right: -3px;
-    top: 10px;
-    bottom: 10px;
-    width: 6px;
+    right: 0;
     cursor: e-resize;
 }
 
 /* Resizing state */
 .floating-card.resizing {
-    transition: none;
+    transition: none !important;
     user-select: none;
+    will-change: width, height;
 }
 
 .floating-card.resizing * {
@@ -347,4 +469,38 @@
 
 .floating-card.resizing .resize-handle {
     pointer-events: auto;
+}
+
+/* Show handles on hover */
+.floating-card:hover .resize-handle {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Per-card accent tints for the first four cards (set via JS data-card-number) */
+.floating-card[data-card-number="1"] { --sp-accent: #60a5fa; --sp-accent-strong: #3b82f6; /* blue */ }
+.floating-card[data-card-number="2"] { --sp-accent: #a78bfa; --sp-accent-strong: #8b5cf6; /* violet */ }
+.floating-card[data-card-number="3"] { --sp-accent: #34d399; --sp-accent-strong: #10b981; /* emerald */ }
+.floating-card[data-card-number="4"] { --sp-accent: #f59e0b; --sp-accent-strong: #d97706; /* amber */ }
+
+/* Dynamic cards default accent if not numbered yet */
+.floating-card:not([data-card-number]) { --sp-accent: #818cf8; --sp-accent-strong: #6366f1; }
+
+/* Responsive sizing for collapsed/expanded presets */
+@media (max-width: 1280px) {
+    .floating-card.collapsed { width: min(90vw, 800px); }
+    .floating-card.expanded { width: min(92vw, 900px); height: min(70vh, 520px); }
+}
+
+@media (max-width: 640px) {
+    .floating-card { width: min(96vw, 480px); height: 60vh; }
+    .floating-card.collapsed { width: 96vw; height: 45vh; }
+    .floating-card.expanded { width: 96vw; height: 70vh; }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .floating-card, .floating-card * {
+        transition: none !important;
+        animation: none !important;
+    }
 }

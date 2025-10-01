@@ -2,32 +2,53 @@ import { useState, useRef } from 'react'
 
 export function useScrollManager() {
   const [showScrollToTop, setShowScrollToTop] = useState(false)
-  const mainContentRef = useRef<HTMLDivElement>(null)
+  const [isNearBottom, setIsNearBottom] = useState(true)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const handleScroll = () => {
-    if (mainContentRef.current) {
-      const scrollTop = mainContentRef.current.scrollTop;
-      const scrollHeight = mainContentRef.current.scrollHeight;
-      const clientHeight = mainContentRef.current.clientHeight;
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
       
-      console.log('Scroll event:', { scrollTop, scrollHeight, clientHeight, canScroll: scrollHeight > clientHeight });
-      setShowScrollToTop(scrollTop > 100);
+      // Show scroll to top button when scrolled up more than 200px from top
+      setShowScrollToTop(scrollTop > 200);
+      
+      // Consider "near bottom" if within 100px or 90% of the way down
+      const nearBottom = (scrollHeight - scrollTop - clientHeight) < 100 || scrollPercentage > 0.9;
+      setIsNearBottom(nearBottom);
+      
+      console.log('Scroll event:', { 
+        scrollTop, 
+        scrollHeight, 
+        clientHeight, 
+        scrollPercentage: scrollPercentage.toFixed(2),
+        nearBottom,
+        showScrollToTop: scrollTop > 200
+      });
     }
   };
 
   const scrollToTop = () => {
-    if (mainContentRef.current) {
-      mainContentRef.current.scrollTo({
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
     }
   };
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return {
     showScrollToTop,
-    mainContentRef,
+    isNearBottom,
+    messagesContainerRef,
+    messagesEndRef,
     handleScroll,
-    scrollToTop
+    scrollToTop,
+    scrollToBottom
   }
 }

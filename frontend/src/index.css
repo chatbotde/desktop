@@ -214,22 +214,7 @@ body {
   border: 1px solid rgba(68, 71, 90, 0.3);
 }
 
-/* Custom CSS for media attachments */
-.media-attachment {
-  @apply rounded-lg border border-gray-600/20 overflow-hidden;
-}
 
-.media-attachment.image-attachment img {
-  @apply w-full h-auto object-contain;
-}
-
-.media-attachment.video-attachment video {
-  @apply w-full h-auto object-contain bg-black;
-}
-
-.media-attachment.audio-attachment audio {
-  @apply w-full;
-}
 
 /* Message animation */
 .message-appear {

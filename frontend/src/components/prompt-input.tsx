@@ -41,8 +41,8 @@ function PromptInputWithActions({ onModelChange }: PromptInputWithActionsProps =
 
     setIsLoading(true)
 
-    // Simulate API call
-    console.log("Processing:", prompt)
+    // Simulate API call - using selected model for processing
+    console.log("Processing:", prompt, "with model:", selectedModel?.displayName)
     setTimeout(() => {
       setPrompt("")
       setIsLoading(false)

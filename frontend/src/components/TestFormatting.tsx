@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, Send } from 'lucide-react'
 import { Messages, type ChatMessage } from './Messages'
@@ -290,6 +290,22 @@ These commands show:
 export function TestFormatting() {
     const [messages, setMessages] = useState<ChatMessage[]>(sampleMessages)
     const [isTyping, setIsTyping] = useState(false)
+    
+    // Refs and handlers for Messages component
+    const messagesContainerRef = useRef<HTMLDivElement>(null)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    
+    const handleScroll = () => {
+        // Simple scroll handler
+    }
+    
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    
+    const scrollToTop = () => {
+        messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
 
     const addSampleMessage = () => {
         const newMessage: ChatMessage = {
@@ -366,6 +382,13 @@ Use \`console.log()\` for debugging and \`async/await\` for promises.`,
                     messages={messages}
                     isTyping={isTyping}
                     onCopyMessage={copyToClipboard}
+                    messagesContainerRef={messagesContainerRef}
+                    messagesEndRef={messagesEndRef}
+                    onScroll={handleScroll}
+                    scrollToBottom={scrollToBottom}
+                    scrollToTop={scrollToTop}
+                    showScrollToTop={false}
+                    isNearBottom={true}
                 />
             </div>
         </div>

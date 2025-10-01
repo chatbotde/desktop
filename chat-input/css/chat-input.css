@@ -34,10 +34,11 @@
     align-items: flex-end;
     justify-content: center;
     padding: 12px 16px;
-    width: 500px;
+    width: 600px;
+    
     max-width: 800px;
     margin: 0;
-    z-index: 1000;
+    z-index: 50000; /* Always above floating cards */
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth upward movement */
     user-select: none;
     bottom: 0px; /* Position at bottom of screen */
@@ -242,7 +243,7 @@
 .speed-dial {
     position: absolute;
     bottom: 54px; /* just above the bar */
-    display: flex;
+    display: none; /* Hidden by default instead of opacity 0 */
     flex-direction: column;
     gap: 8px;
     pointer-events: none;
@@ -263,8 +264,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.20);
+    background: rgba(255, 182, 193, 0.8); /* Light pink background */
+    border: 1px solid rgba(255, 182, 193, 0.9);
     color: #ffffff;
     backdrop-filter: blur(8px);
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
@@ -275,12 +276,13 @@
 }
 
 .speed-dial .speed-item:hover {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.30);
+    background: rgba(255, 182, 193, 1.0); /* Brighter pink on hover */
+    border-color: rgba(255, 182, 193, 1.0);
 }
 
 /* visible state */
 .speed-dial.open {
+    display: flex; /* Show the dial when open */
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
@@ -305,6 +307,14 @@
     display: flex !important;
     left: 8px; /* align with expanded plus button area */
     bottom: 54px; /* match collapsed dial vertical offset */
+}
+
+/* When expanded-ui dial is open, ensure it's properly visible */
+.speed-dial.expanded-ui.open {
+    display: flex !important;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 /* Horizontal submenus for Upload/Capture */
@@ -332,8 +342,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.20);
+    background: rgba(255, 182, 193, 0.8); /* Light pink background */
+    border: 1px solid rgba(255, 182, 193, 0.9);
     color: #ffffff;
     backdrop-filter: blur(8px);
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
@@ -342,8 +352,8 @@
 
 .submenu .submenu-item:hover {
     transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.30);
+    background: rgba(255, 182, 193, 1.0); /* Brighter pink on hover */
+    border-color: rgba(255, 182, 193, 1.0);
 }
 
 /* ==================== COLLAPSED STATE STYLES ==================== */

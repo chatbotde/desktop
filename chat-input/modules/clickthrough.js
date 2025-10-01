@@ -26,7 +26,7 @@ export function toggleClickThrough() {
 function handleSmartClickThrough(event) {
     if (clickThroughTimeout) clearTimeout(clickThroughTimeout);
     const target = event.target;
-    const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input');
+    const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar');
     if (isUIElement) {
         disableClickThrough();
         clickThroughTimeout = setTimeout(() => enableClickThrough(), 1000);
@@ -53,7 +53,7 @@ export function initializeClickThrough() {
     document.addEventListener('click', handleSmartClickThrough);
     document.addEventListener('mousemove', (event) => {
         const target = event.target;
-        const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, .floating-card, #floatingCard1, #floatingCard2, #floatingCard3, #floatingCard4');
+        const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar, .floating-card, #floatingCard1, #floatingCard2, #floatingCard3, #floatingCard4');
         const interactingCard = document.querySelector('.floating-card.interacting');
         if ((isUIElement || interactingCard) && isClickThroughEnabled) {
             disableClickThrough();
