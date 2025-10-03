@@ -1,33 +1,5 @@
 /* ==================== CHAT INPUT COMPONENT STYLES ==================== */
 
-/* 
- * DRAG FUNCTIONALITY:
- * - Double-click anywhere on the chat input container to enable drag mode
- * - No cursor changes to avoid visual annoyance
- * - Subtle blue glow indicates when drag mode is active
- * - Single click works normally for all interactions
- */
-
-.drag-handle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 20px;
-    -webkit-app-region: no-drag;
-    z-index: 20;
-    background: transparent;
-    transform: translate(0, 0);
-    transition: none;
-    cursor: default;
-    pointer-events: auto;
-}
-
-.drag-handle:hover {
-    background: none;
-    cursor: default;
-}
-
 .chat-input-container {
     position: fixed;
     display: flex;
@@ -39,65 +11,22 @@
     max-width: 800px;
     margin: 0;
     z-index: 50000; /* Always above floating cards */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth upward movement */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
-    bottom: 0px; /* Position at bottom of screen */
+    bottom: 0px;
     left: 50%;
-    transform: translateX(-50%); /* Center horizontally */
-    cursor: default;
+    transform: translateX(-50%);
 }
 
-/* When dragging, ensure smooth movement */
-.chat-input-container.dragging {
-    transition: none;
-    cursor: default;
-}
-
-/* Move container upward when expanded to accommodate upward growth */
 .chat-input-container.expanded {
-    /* Keep horizontal centering; vertical reposition handled in JS */
     transform: translateX(-50%);
     transform-origin: bottom center;
+    padding-bottom: 8px;
 }
 
-/* When dragging, override the expanded transform */
-.chat-input-container.dragging.expanded {
-    /* Preserve horizontal centering while dragging */
-    transform: translateX(-50%);
-    cursor: default;
-}
-
-/* Double-click to drag functionality - no cursor changes */
-.chat-input-container.drag-enabled {
-    cursor: default;
-}
-
-.chat-input-container.drag-enabled:active {
-    cursor: default;
-}
-
-/* Visual feedback for double-click activation */
-.chat-input-container.drag-enabled {
-    /* Subtle border to indicate drag mode is active */
-    box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.3);
-    transition: box-shadow 0.2s ease;
-}
-
-/* Add gentle pulse animation when in drag mode */
-@keyframes dragPulse {
-    0%, 100% { box-shadow: 0 0 0 2px rgba(255, 192, 203, 0.3); }
-    50% { box-shadow: 0 0 0 2px rgba(255, 192, 203, 0.5); }
-}
-
-.chat-input-container.drag-enabled {
-    animation: dragPulse 2s ease-in-out infinite;
-}
-
-/* Fullscreen mode adjustments */
 .chat-input-container.fullscreen {
     align-items: center;
     justify-content: center;
-    /* Negative padding is invalid; remove extra padding in fullscreen */
     padding: 0;
 }
 
@@ -114,39 +43,11 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-xs);
-    transition: all 0.18s ease;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: slideUp 0.28s ease forwards;
-}
-
-/* Gemini-style gradient border line */
-.prompt-input::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px; /* thickness of the colorful line */
-    background: linear-gradient(120deg, #7c4dff, #00e5ff, #00c853, #ffd600, #ff4081, #7c4dff);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    opacity: 0.35; /* subtle by default */
-    pointer-events: none;
-    transition: opacity 0.3s ease, filter 0.3s ease;
-}
-
-/* Animate the gradient gently */
-@keyframes gradientShift {
-    0% { filter: hue-rotate(0deg); }
-    100% { filter: hue-rotate(360deg); }
-}
-
-.prompt-input:focus-within::after,
-.prompt-input.expanded::after {
-    opacity: 0.85;
-    animation: gradientShift 8s linear infinite;
+    transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+    opacity: 1;
+    transform: none;
+    will-change: transform, opacity, box-shadow;
+    transform-origin: bottom center;
 }
 
 .prompt-input:focus-within {
@@ -173,7 +74,7 @@
     font-size: 16px;
     line-height: 1.3;
     min-height: 44px;
-    max-height: 200px;
+    max-height: 150px;
     padding: 12px 0;
     font-family: inherit;
     scrollbar-width: none;
@@ -192,54 +93,26 @@
 }
 
 .prompt-actions {
-    margin-top: 0px;
     display: flex;
     width: 100%;
     align-items: center;
     justify-content: space-between;
     gap: 4px;
     padding: 0 8px 8px;
-    position: relative;
-    transform: translate(0, 0);
-    transition: transform 0.2s ease;
-}
-
-/* Keep actions bar anchored; avoid order changes that cause jumping */
-.prompt-input.expanded .prompt-actions {
-    order: 0;
 }
 
 .left-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    position: relative;
-    transform: translate(0, 0);
-    transition: transform 0.2s ease;
 }
 
 .right-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    position: relative;
-    transform: translate(0, 0);
-    transition: transform 0.2s ease;
 }
 
-.draggable-area {
-    flex: 1;
-    min-height: 36px;
-    display: flex;
-    align-items: center;
-    position: relative;
-    transform: translate(0, 0);
-    transition: transform 0.2s ease;
-    cursor: default;
-    user-select: none;
-}
-
-/* Collapsed speed-dial (right end) */
 .speed-dial {
     position: absolute;
     bottom: 54px; /* just above the bar */
@@ -358,13 +231,16 @@
 
 /* ==================== COLLAPSED STATE STYLES ==================== */
 
-/* 1. Define smooth transitions on ALL properties that will change */
-.prompt-input,
+/* 1. Define smooth transitions on relevant properties only (avoid animating layout) */
 #messageInput,
 .action-btn.primary,
 .action-btn.primary svg {
-    /* Avoid overbroad transitions that cause layout jumps */
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 2. Style the INITIAL collapsed state (:not(.expanded)) with precision */
@@ -376,7 +252,9 @@
     border-radius: 30px; /* Reduced radius for a more compact look */
     padding: 0;
     min-height: 44px; /* Set a minimum height for consistency */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(1);
     opacity: 1;
     position: relative;
@@ -419,7 +297,10 @@
     color: #ffffff;
     width: 100%; /* Full width of container */
     box-sizing: border-box; /* Include padding in width calculation */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit; /* Use inherited font family */
     caret-color: #ffffff; /* White cursor caret */
     pointer-events: auto; /* Allow input interaction */
@@ -434,15 +315,9 @@
 }
 
 /* Hide unwanted elements cleanly */
-.prompt-input:not(.expanded) .left-actions,
-.prompt-input:not(.expanded) .draggable-area {
-    display: none !important; /* Completely remove from layout flow */
-    max-width: 0;
+.prompt-input:not(.expanded) .left-actions {
+    display: none !important;
     opacity: 0;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
 }
 
@@ -523,12 +398,15 @@
     border-color: var(--border);
     width: 100%;
     max-width: 100%;
-    border-radius: var(--radius); /* Revert to the original large radius */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px; /* Cleaner shape when expanded */
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(1);
     opacity: 1;
-    padding: 4px;
+    padding: 6px 6px 4px;
     min-height: auto;
+    box-shadow: var(--shadow-sm);
 }
 
 /* Ensure expanded state layout without reflowing actions to top first */
@@ -540,23 +418,18 @@
     grid-auto-rows: max-content;
 }
 
-/* Ensure input area in expanded state also aligns properly */
-.prompt-input.expanded .input-area { grid-area: input; width: 100%; }
-.prompt-input.expanded .prompt-actions { grid-area: actions; }
-
-.prompt-input.expanded .left-actions {
-    max-width: 2000px;
-    opacity: 1;
-    pointer-events: auto;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.prompt-input.expanded .input-area { 
+    grid-area: input; 
+    width: 100%; 
 }
 
-.prompt-input.expanded .draggable-area {
-    display: block !important; /* Show draggable area in expanded state */
-    max-width: 2000px;
+.prompt-input.expanded .prompt-actions { 
+    grid-area: actions; 
+}
+
+.prompt-input.expanded .left-actions {
     opacity: 1;
     pointer-events: auto;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .prompt-input.expanded #messageInput {
@@ -564,8 +437,17 @@
     max-height: 200px;
     white-space: pre-wrap;
     overflow-y: auto;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    resize: none; /* Prevent manual cursor-based resizing */
+    transition: max-height 0.25s ease;
+    resize: none;
+}
+
+/* Respect OS-level reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* Transparency/Lighting Effect Button */

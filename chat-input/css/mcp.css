@@ -1,0 +1,507 @@
+/**
+ * MCP Manager Styles
+ * Styling for MCP server configuration and management UI
+ */
+
+/* ===== MCP Modal ===== */
+.mcp-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+    animation: mcpModalFadeIn 0.2s ease;
+    
+    /* Ensure modal is interactive */
+    pointer-events: auto;
+}
+
+@keyframes mcpModalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.mcp-modal-content {
+    background: var(--bg-primary, #1e1e1e);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: mcpModalSlideIn 0.3s ease;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    
+    /* Ensure content is interactive */
+    pointer-events: auto;
+    user-select: text;
+}
+
+@keyframes mcpModalSlideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.mcp-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.mcp-modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin: 0;
+}
+
+.mcp-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #a0a0a0);
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.mcp-modal-close:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #ffffff);
+}
+
+.mcp-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ===== Sections ===== */
+.mcp-section {
+    margin-bottom: 32px;
+}
+
+.mcp-section:last-child {
+    margin-bottom: 0;
+}
+
+.mcp-section-header {
+    margin-bottom: 16px;
+}
+
+.mcp-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin: 0 0 4px 0;
+}
+
+.mcp-section-desc {
+    font-size: 13px;
+    color: var(--text-secondary, #a0a0a0);
+    margin: 0;
+}
+
+/* ===== JSON Input ===== */
+.mcp-json-input-container {
+    margin-bottom: 12px;
+}
+
+.mcp-json-textarea {
+    width: 100%;
+    background: var(--input-bg, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text-primary, #ffffff);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 120px;
+    transition: all 0.2s;
+    
+    /* Ensure paste/copy/select functionality */
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    pointer-events: auto;
+    cursor: text;
+    
+    /* Box sizing for proper width */
+    box-sizing: border-box;
+}
+
+.mcp-json-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color, #007bff);
+    background: var(--input-focus-bg, rgba(255, 255, 255, 0.08));
+}
+
+.mcp-json-textarea::placeholder {
+    color: var(--text-tertiary, #666);
+}
+
+.mcp-json-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* ===== Buttons ===== */
+.mcp-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.mcp-btn.primary {
+    background: var(--accent-color, #007bff);
+    color: #ffffff;
+}
+
+.mcp-btn.primary:hover {
+    background: var(--accent-hover, #0056b3);
+    transform: translateY(-1px);
+}
+
+.mcp-btn.primary:active {
+    transform: translateY(0);
+}
+
+.mcp-btn.secondary {
+    background: var(--button-secondary-bg, rgba(255, 255, 255, 0.1));
+    color: var(--text-primary, #ffffff);
+}
+
+.mcp-btn.secondary:hover {
+    background: var(--button-secondary-hover, rgba(255, 255, 255, 0.15));
+}
+
+/* ===== Messages ===== */
+.mcp-message {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mcp-message.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.mcp-message.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* ===== Server List ===== */
+.mcp-server-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mcp-empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-secondary, #a0a0a0);
+}
+
+.mcp-empty-state svg {
+    opacity: 0.3;
+    margin-bottom: 16px;
+}
+
+.mcp-empty-state p {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.mcp-empty-hint {
+    font-size: 12px !important;
+    opacity: 0.7;
+}
+
+/* ===== Server Item ===== */
+.mcp-server-item {
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.2s;
+}
+
+.mcp-server-item:hover {
+    border-color: var(--border-hover, rgba(255, 255, 255, 0.2));
+    background: var(--card-hover-bg, rgba(255, 255, 255, 0.08));
+}
+
+.mcp-server-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.mcp-server-info {
+    flex: 1;
+}
+
+.mcp-server-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 4px;
+}
+
+.mcp-server-id {
+    font-size: 12px;
+    color: var(--text-secondary, #a0a0a0);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.mcp-server-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mcp-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: mcpPulse 2s ease-in-out infinite;
+}
+
+@keyframes mcpPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.mcp-status-indicator.status-connected {
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.mcp-status-indicator.status-connecting {
+    background: #fbbf24;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.mcp-status-indicator.status-disconnected {
+    background: #6b7280;
+    animation: none;
+}
+
+.mcp-status-indicator.status-error {
+    background: #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+}
+
+.mcp-status-text {
+    font-size: 12px;
+    color: var(--text-secondary, #a0a0a0);
+    text-transform: capitalize;
+}
+
+.mcp-server-description {
+    font-size: 13px;
+    color: var(--text-secondary, #a0a0a0);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.mcp-server-details {
+    background: var(--details-bg, rgba(0, 0, 0, 0.2));
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.mcp-detail-item {
+    color: var(--text-secondary, #a0a0a0);
+    margin: 4px 0;
+}
+
+.mcp-detail-item strong {
+    color: var(--text-primary, #ffffff);
+    margin-right: 6px;
+}
+
+.mcp-server-error {
+    display: flex;
+    align-items: start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: #f87171;
+    font-size: 12px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.mcp-server-error svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.mcp-server-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mcp-action-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    background: var(--button-bg, rgba(255, 255, 255, 0.05));
+    color: var(--text-primary, #ffffff);
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.mcp-action-btn:hover:not(:disabled) {
+    background: var(--button-hover-bg, rgba(255, 255, 255, 0.1));
+    transform: translateY(-1px);
+}
+
+.mcp-action-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.mcp-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mcp-action-btn.primary {
+    background: var(--accent-color, #007bff);
+    border-color: var(--accent-color, #007bff);
+}
+
+.mcp-action-btn.primary:hover {
+    background: var(--accent-hover, #0056b3);
+    border-color: var(--accent-hover, #0056b3);
+}
+
+.mcp-action-btn.danger {
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.mcp-action-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* ===== Spinner Animation ===== */
+.mcp-spinner {
+    animation: mcpSpin 1s linear infinite;
+}
+
+@keyframes mcpSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .mcp-modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .mcp-modal-header,
+    .mcp-modal-body {
+        padding: 16px;
+    }
+
+    .mcp-section {
+        margin-bottom: 24px;
+    }
+
+    .mcp-server-actions {
+        flex-direction: column;
+    }
+
+    .mcp-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== Dark Theme Adjustments ===== */
+[data-theme="dark"] {
+    --bg-primary: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-tertiary: #666;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-hover-bg: rgba(255, 255, 255, 0.08);
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-focus-bg: rgba(255, 255, 255, 0.08);
+    --hover-bg: rgba(255, 255, 255, 0.1);
+    --button-bg: rgba(255, 255, 255, 0.05);
+    --button-hover-bg: rgba(255, 255, 255, 0.1);
+    --button-secondary-bg: rgba(255, 255, 255, 0.1);
+    --button-secondary-hover: rgba(255, 255, 255, 0.15);
+    --details-bg: rgba(0, 0, 0, 0.2);
+    --accent-color: #007bff;
+    --accent-hover: #0056b3;
+}
+

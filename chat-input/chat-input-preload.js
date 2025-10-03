@@ -292,6 +292,69 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
   }
 });
 
+// Expose MCP API separately for MCP server management
+contextBridge.exposeInMainWorld("electronAPI", {
+  // ==================== MCP METHODS ====================
+  
+  /**
+   * Send MCP connect request to main process
+   * @param {Object} serverConfig - MCP server configuration
+   * @returns {Promise<Object>} Connection result
+   */
+  sendMCPConnect: (serverConfig) => {
+    console.log('Preload: Sending MCP connect request', serverConfig);
+    return ipcRenderer.invoke('mcp-connect', serverConfig);
+  },
+
+  /**
+   * Send MCP disconnect request to main process
+   * @param {string} serverId - Server ID to disconnect
+   * @returns {Promise<Object>} Disconnection result
+   */
+  sendMCPDisconnect: (serverId) => {
+    console.log('Preload: Sending MCP disconnect request', serverId);
+    return ipcRenderer.invoke('mcp-disconnect', serverId);
+  },
+
+  /**
+   * Send message to MCP server
+   * @param {string} serverId - Server ID
+   * @param {Object} message - Message to send
+   * @returns {Promise<Object>} Message result
+   */
+  sendMCPMessage: (serverId, message) => {
+    return ipcRenderer.invoke('mcp-send-message', serverId, message);
+  },
+
+  /**
+   * Listen for MCP messages
+   * @param {Function} callback - Message callback
+   */
+  onMCPMessage: (callback) => {
+    ipcRenderer.on('mcp-message', (event, data) => {
+      callback(data);
+    });
+  },
+
+  /**
+   * Listen for MCP connection status changes
+   * @param {Function} callback - Status callback
+   */
+  onMCPStatus: (callback) => {
+    ipcRenderer.on('mcp-status', (event, data) => {
+      callback(data);
+    });
+  },
+
+  /**
+   * Remove MCP listeners
+   * @param {string} channel - Channel to remove
+   */
+  removeMCPListeners: (channel) => {
+    ipcRenderer.removeAllListeners(channel);
+  }
+});
+
 // Expose the comprehensive CaptureAPI to the renderer
 contextBridge.exposeInMainWorld("CaptureAPI", {
   // ==================== SCREENSHOT METHODS ====================

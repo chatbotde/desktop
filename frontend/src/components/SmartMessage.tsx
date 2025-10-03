@@ -16,12 +16,48 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(content)
-      onCopy?.(content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      // Use the fallback method which is more reliable in Electron
+      const textArea = document.createElement('textarea')
+      textArea.value = content
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      textArea.style.opacity = '0'
+      textArea.style.pointerEvents = 'none'
+      document.body.appendChild(textArea)
+      
+      // Select and copy
+      textArea.select()
+      textArea.setSelectionRange(0, 99999) // For mobile devices
+      
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      if (successful) {
+        onCopy?.(content)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        throw new Error('Copy command failed')
+      }
     } catch (err) {
       console.error('Failed to copy content:', err)
+      // Try modern clipboard API as fallback
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(content)
+          onCopy?.(content)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } else {
+          throw new Error('Clipboard API not available')
+        }
+      } catch (clipboardErr) {
+        console.error('Clipboard API also failed:', clipboardErr)
+        // Still show feedback even if copy failed
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
     }
   }
 
@@ -38,38 +74,37 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
   }
 
   return (
-    <div className={cn("group relative mx-2 my-1", className)}>
+    <div className={cn("group mx-2 my-1", className)}>
       <div className={`
-        backdrop-blur-lg text-white transition-all duration-300 hover:shadow-lg
+        text-white transition-all duration-300 hover:shadow-lg
         ${role === 'assistant' 
-          ? 'bg-gray-800/60 hover:bg-gray-800/70 border border-gray-600/20' 
-          : 'bg-blue-600/80 hover:bg-blue-600/90 border border-blue-400/30 rounded-br-sm'
+            ? 'bg-transparent' 
+            : 'bg-blue-600/80 text-center px-6 py-4'
         } 
-        rounded-2xl shadow-md px-4 py-3 leading-relaxed
+        ${role === 'assistant' ? 'px-2 py-1' : 'rounded-2xl shadow-md px-4 py-3'} leading-relaxed break-words overflow-hidden
       `}>
         {renderContent()}
       </div>
 
-      {/* Action buttons */}
-      <div className={`absolute top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1 ${
-        role === 'user' ? 'left-2' : 'right-2'
+      {/* Copy button below the message */}
+      <div className={`opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex justify-center mt-2 ${
+        role === 'user' ? 'justify-end' : 'justify-start'
       }`}>
-        {/* Copy button */}
         <Button
           variant="ghost"
           size="sm"
-          className={`h-7 w-7 p-0 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 backdrop-blur-sm rounded-full ${
+          className={`h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/20 transition-all duration-200 backdrop-blur-sm rounded-full ${
             copied 
               ? 'bg-green-500/40 text-green-300' 
               : 'bg-black/30'
           }`}
           onClick={handleCopy}
-          title="Copy message"
+          title={copied ? "Copied!" : "Copy message"}
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5" />
+            <Check className="w-4 h-4" />
           ) : (
-            <Copy className="w-3.5 h-3.5" />
+            <Copy className="w-4 h-4" />
           )}
         </Button>
       </div>

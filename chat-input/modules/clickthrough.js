@@ -26,7 +26,7 @@ export function toggleClickThrough() {
 function handleSmartClickThrough(event) {
     if (clickThroughTimeout) clearTimeout(clickThroughTimeout);
     const target = event.target;
-    const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar');
+    const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar, .floating-card, .floating-cards-manager, .cards-manager-section, .card-preview-item, .mcp-modal, .mcp-modal-content, .mcp-section, .mcp-json-textarea, .mcp-btn, .mcp-server-item');
     if (isUIElement) {
         disableClickThrough();
         clickThroughTimeout = setTimeout(() => enableClickThrough(), 1000);
@@ -53,8 +53,8 @@ export function initializeClickThrough() {
     document.addEventListener('click', handleSmartClickThrough);
     document.addEventListener('mousemove', (event) => {
         const target = event.target;
-        const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar, .floating-card, #floatingCard1, #floatingCard2, #floatingCard3, #floatingCard4');
-        const interactingCard = document.querySelector('.floating-card.interacting');
+        const isUIElement = target.closest('.action-btn, #messageInput, .dropdown-menu, .attachments-section, .prompt-input, #clipboardPromptBar, .floating-card, .floating-cards-manager, .cards-manager-section, .card-preview-item, .resize-handle, #floatingCard1, #floatingCard2, #floatingCard3, #floatingCard4, .mcp-modal, .mcp-modal-content, .mcp-section, .mcp-json-textarea, .mcp-btn, .mcp-server-item, .mcp-server-actions, .mcp-action-btn');
+        const interactingCard = document.querySelector('.floating-card.interacting, .floating-card.dragging, .floating-card.resizing');
         if ((isUIElement || interactingCard) && isClickThroughEnabled) {
             disableClickThrough();
         } else if (!isUIElement && !interactingCard && !isClickThroughEnabled) {

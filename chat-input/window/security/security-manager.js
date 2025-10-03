@@ -146,6 +146,59 @@ class SecurityManager {
     }
   }
 
+  getClipboardSafeContentProtectionScript() {
+    return `
+      (function() {
+        const allowSelectors = ['.mcp-json-textarea', '#mcpJsonInput'];
+        const isElement = (node) => node && node.nodeType === Node.ELEMENT_NODE;
+        const isAllowedTarget = (target) => {
+          if (!isElement(target)) return false;
+          return allowSelectors.some((selector) => target.closest(selector));
+        };
+
+        const preventIfProtected = (event) => {
+          if (isAllowedTarget(event.target)) {
+            return;
+          }
+          event.preventDefault();
+        };
+
+        ['selectstart', 'copy', 'cut', 'paste'].forEach((eventName) => {
+          document.addEventListener(eventName, preventIfProtected, { capture: true });
+        });
+
+        ['contextmenu', 'dragstart', 'drop'].forEach((eventName) => {
+          document.addEventListener(eventName, preventIfProtected, { capture: true });
+        });
+
+        const applyProtectionStyles = () => {
+          const body = document.body;
+          if (!body) return;
+
+          body.style.userSelect = 'none';
+          body.style.webkitUserSelect = 'none';
+          body.style.mozUserSelect = 'none';
+          body.style.msUserSelect = 'none';
+
+          allowSelectors.forEach((selector) => {
+            document.querySelectorAll(selector).forEach((elem) => {
+              elem.style.userSelect = 'text';
+              elem.style.webkitUserSelect = 'text';
+              elem.style.mozUserSelect = 'text';
+              elem.style.msUserSelect = 'text';
+              elem.style.pointerEvents = 'auto';
+            });
+          });
+        };
+
+        applyProtectionStyles();
+
+        const observer = new MutationObserver(applyProtectionStyles);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+      })();
+    `;
+  }
+
   /**
    * Apply Windows-specific protection
    */
@@ -159,35 +212,7 @@ class SecurityManager {
     
     // Block Windows-specific capture methods
     this.chatInputWindow.webContents.on('dom-ready', () => {
-      this.chatInputWindow.webContents.executeJavaScript(`
-        // Disable selection and copying
-        document.addEventListener('selectstart', (e) => e.preventDefault());
-        document.addEventListener('copy', (e) => e.preventDefault());
-        document.addEventListener('cut', (e) => e.preventDefault());
-        document.addEventListener('paste', (e) => e.preventDefault());
-        
-        // Disable right-click
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // Disable drag and drop
-        document.addEventListener('dragstart', (e) => e.preventDefault());
-        document.addEventListener('drop', (e) => e.preventDefault());
-        
-        // Make text unselectable
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        document.body.style.mozUserSelect = 'none';
-        document.body.style.msUserSelect = 'none';
-        
-        // Disable text selection on input fields while maintaining functionality
-        const inputs = document.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-          input.addEventListener('selectstart', (e) => e.preventDefault());
-          input.addEventListener('copy', (e) => e.preventDefault());
-          input.addEventListener('cut', (e) => e.preventDefault());
-          input.addEventListener('paste', (e) => e.preventDefault());
-        });
-      `);
+      this.chatInputWindow.webContents.executeJavaScript(this.getClipboardSafeContentProtectionScript());
     });
   }
 
@@ -200,29 +225,7 @@ class SecurityManager {
     
     // Block macOS screen recording permissions
     this.chatInputWindow.webContents.on('dom-ready', () => {
-      this.chatInputWindow.webContents.executeJavaScript(`
-        // Disable selection and copying
-        document.addEventListener('selectstart', (e) => e.preventDefault());
-        document.addEventListener('copy', (e) => e.preventDefault());
-        document.addEventListener('cut', (e) => e.preventDefault());
-        document.addEventListener('paste', (e) => e.preventDefault());
-        
-        // Disable right-click
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // Make text unselectable
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        
-        // Disable text selection on input fields while maintaining functionality
-        const inputs = document.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-          input.addEventListener('selectstart', (e) => e.preventDefault());
-          input.addEventListener('copy', (e) => e.preventDefault());
-          input.addEventListener('cut', (e) => e.preventDefault());
-          input.addEventListener('paste', (e) => e.preventDefault());
-        });
-      `);
+      this.chatInputWindow.webContents.executeJavaScript(this.getClipboardSafeContentProtectionScript());
     });
   }
 
@@ -235,29 +238,7 @@ class SecurityManager {
     
     // Block Linux screen recording tools
     this.chatInputWindow.webContents.on('dom-ready', () => {
-      this.chatInputWindow.webContents.executeJavaScript(`
-        // Disable selection and copying
-        document.addEventListener('selectstart', (e) => e.preventDefault());
-        document.addEventListener('copy', (e) => e.preventDefault());
-        document.addEventListener('cut', (e) => e.preventDefault());
-        document.addEventListener('paste', (e) => e.preventDefault());
-        
-        // Disable right-click
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // Make text unselectable
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        
-        // Disable text selection on input fields while maintaining functionality
-        const inputs = document.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-          input.addEventListener('selectstart', (e) => e.preventDefault());
-          input.addEventListener('copy', (e) => e.preventDefault());
-          input.addEventListener('cut', (e) => e.preventDefault());
-          input.addEventListener('paste', (e) => e.preventDefault());
-        });
-      `);
+      this.chatInputWindow.webContents.executeJavaScript(this.getClipboardSafeContentProtectionScript());
     });
   }
 

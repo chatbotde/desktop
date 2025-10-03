@@ -262,7 +262,15 @@ export async function boot() {
 
     // paste
     document.addEventListener('paste', (e) => {
-        if (document.activeElement === dom.messageInput || document.activeElement === document.body) {
+        // Don't intercept paste if user is pasting into MCP modal or other input fields
+        const isTypingInOtherInput = document.activeElement && (
+            (document.activeElement.tagName === 'TEXTAREA' && document.activeElement.id !== 'messageInput') ||
+            (document.activeElement.tagName === 'INPUT') ||
+            document.activeElement.isContentEditable ||
+            document.activeElement.closest('.mcp-modal, .dropdown-menu')
+        );
+        
+        if (!isTypingInOtherInput && (document.activeElement === dom.messageInput || document.activeElement === document.body)) {
             e.preventDefault();
             handlePasteContent();
         }
@@ -282,15 +290,48 @@ export async function boot() {
 
     // keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'h' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.hideWindow?.(); return; }
-        if (e.key === 'm' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.toggleMainWindow?.(); return; }
-        if (e.key === 't' && e.ctrlKey) { e.preventDefault(); toggleTheme(); return; }
-        if (document.activeElement !== dom.messageInput && !e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1 && /^[a-zA-Z0-9\s]$/.test(e.key)) {
+        // Check if user is typing in an input/textarea (like MCP modal)
+        const isTypingInInput = document.activeElement && (
+            document.activeElement.tagName === 'INPUT' || 
+            document.activeElement.tagName === 'TEXTAREA' ||
+            document.activeElement.isContentEditable ||
+            document.activeElement.closest('.mcp-modal, .dropdown-menu')
+        );
+        
+        // If in MCP modal or other input, allow all standard shortcuts (Ctrl+V, Ctrl+C, Ctrl+A, etc.)
+        if (isTypingInInput) {
+            // Allow standard editing shortcuts to work normally
+            if (e.ctrlKey && ['v', 'c', 'x', 'a', 'z', 'y'].includes(e.key.toLowerCase())) {
+                return; // Let the browser handle it
+            }
+        }
+        
+        // Global shortcuts (only when NOT in other inputs)
+        if (!isTypingInInput) {
+            if (e.key === 'h' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.hideWindow?.(); return; }
+            if (e.key === 'm' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.toggleMainWindow?.(); return; }
+            if (e.key === 't' && e.ctrlKey) { e.preventDefault(); toggleTheme(); return; }
+        }
+        
+        // Only auto-focus messageInput if not already typing in another input field
+        if (!isTypingInInput && document.activeElement !== dom.messageInput && !e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1 && /^[a-zA-Z0-9\s]$/.test(e.key)) {
             dom.messageInput.focus();
         }
     });
 
-    window.addEventListener('focus', () => dom.messageInput.focus());
+    // Auto-focus messageInput when window gains focus, but not if user is in MCP modal or other inputs
+    window.addEventListener('focus', () => {
+        const isInOtherInput = document.activeElement && (
+            document.activeElement.tagName === 'INPUT' || 
+            document.activeElement.tagName === 'TEXTAREA' ||
+            document.activeElement.isContentEditable ||
+            document.activeElement.closest('.mcp-modal, .dropdown-menu')
+        );
+        
+        if (!isInOtherInput) {
+            dom.messageInput.focus();
+        }
+    });
 }
 
 

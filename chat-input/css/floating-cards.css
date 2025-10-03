@@ -1,18 +1,18 @@
-/* ==================== FLOATING CARD COMPONENT STYLES ==================== */
+/* ==================== FLOATING CARD COMPONENT STYLES (REFINED) ==================== */
 
-/* Design tokens (safe defaults if no theme wrapper exists) */
+/* Design tokens */
 :root {
     --sp-card-bg: rgba(14, 18, 26, 0.45);
     --sp-card-bg-gradient-top: rgba(255, 255, 255, 0.08);
     --sp-card-bg-gradient-bottom: rgba(255, 255, 255, 0.03);
-    --sp-card-border: rgba(148, 163, 184, 0.35); /* slate-400/35 default */
-    --sp-card-border-active: #3b82f6; /* blue-500 */
-    --sp-accent: #60a5fa;        /* blue-400 default accent */
-    --sp-accent-strong: #3b82f6; /* blue-500 */
+    --sp-card-border: rgba(148, 163, 184, 0.35);
+    --sp-card-border-active: #3b82f6;
+    --sp-accent: #60a5fa;
+    --sp-accent-strong: #3b82f6;
     --sp-card-radius: 16px;
     --sp-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     --sp-card-shadow-active: 0 12px 40px rgba(0, 0, 0, 0.4);
-    --sp-header-height: 32px;
+    --sp-header-height: 40px;
     --sp-fg: #ffffff;
     --sp-danger: #ef4444;
     --sp-danger-active: #b91c1c;
@@ -20,9 +20,8 @@
 
 .floating-card {
     position: fixed;
-    width: 300px;
-    height: 300px;
-    /* Accent-tinted glass background */
+    width: 850px;
+    height: 500px;
     background:
         radial-gradient(120% 120% at 100% 0%, color-mix(in oklab, var(--sp-accent) 14%, transparent) 0%, transparent 55%),
         linear-gradient(to bottom, var(--sp-card-bg-gradient-top), var(--sp-card-bg-gradient-bottom)),
@@ -34,7 +33,7 @@
     box-shadow:
         0 1px 0 color-mix(in oklab, var(--sp-accent) 10%, transparent) inset,
         var(--sp-card-shadow);
-    z-index: 2000; /* Base below chat-input (which is 50000) */
+    z-index: 2000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -42,91 +41,39 @@
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        border-color 0.2s,
-        border-style 0.2s,
-        background-color 0.2s;
+        border-color 0.2s;
     pointer-events: auto;
     user-select: text;
-    min-width: 200px;
-    min-height: 150px;
+    min-width: 300px;
+    min-height: 200px;
     max-width: 100vw;
     max-height: 100vh;
-    /* Remove CSS resize to use custom JavaScript implementation */
-    resize: none;
     contain: layout paint style;
-    isolation: isolate; /* isolate blending */
+    isolation: isolate;
 }
 
-    /* Backdrop fallback for environments without blur support */
-    @supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
-        .floating-card {
-            background: rgba(17, 24, 39, 0.85); /* slate-900/85 */
-        }
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+    .floating-card {
+        background: rgba(17, 24, 39, 0.85);
     }
-.floating-card:active {
-    cursor: grabbing;
 }
-.floating-card:focus-within,
-.floating-card:active {
-    border-color: color-mix(in oklab, var(--sp-accent-strong) 60%, transparent); /* accent focus */
-        border-style: solid;
+
+.floating-card:focus-within {
+    border-color: color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
     box-shadow: var(--sp-card-shadow-active), 0 0 0 1px color-mix(in oklab, var(--sp-accent-strong) 40%, transparent);
-        transition: border-color 0.2s, border-style 0.2s, box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-
-/* Smooth expand/collapse states */
-.floating-card.collapsed {
-    height: 250px;
-    width: 850px;
-}
-
-.floating-card.expanded {
-    height: 500px;
-    width: 850px;
 }
 
 .floating-card.dragging {
     transition: none;
-    z-index: 3000; /* Slightly above other cards but below chat-input */
+    z-index: 3000;
     will-change: transform;
+    cursor: grabbing !important;
 }
 
-/* Drag handle for easy positioning */
-.floating-card-drag-handle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: var(--sp-header-height); /* Reduced height to avoid overlap */
-    background: none;
-    border-radius: var(--sp-card-radius) var(--sp-card-radius) 0 0;
-    cursor: move;
-    z-index: 1; /* Lower z-index to not block buttons */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none; /* Disable pointer events on the handle itself */
+.floating-card.expanded {
+    width: 1200px !important;
+    height: 700px !important;
 }
-
-
-.floating-card-drag-handle::after {
-    content: "";
-    width: 36px;
-    height: 4px;
-    border-radius: 999px;
-    background: linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.15));
-}
-
-
-.floating-card:hover .floating-card-drag-handle,
-.floating-card.dragging .floating-card-drag-handle {
-    opacity: 1;
-    pointer-events: auto;
-}
-
 
 /* Liquid glass overlays */
 .floating-card::before {
@@ -146,19 +93,6 @@
     animation: spLiquidDrift 22s ease-in-out infinite alternate;
 }
 
-.floating-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    background:
-        radial-gradient(120px 60px at 20% 0%, rgba(255,255,255,0.10), transparent 60%),
-        radial-gradient(100px 50px at 80% 0%, rgba(255,255,255,0.08), transparent 60%);
-    opacity: 0.5;
-}
-
 @keyframes spLiquidDrift {
     0%   { transform: translate3d(-4%, -3%, 0) scale(1.02) rotate(-0.2deg); }
     50%  { transform: translate3d(3%,  2%,  0) scale(1.035) rotate(0.15deg); }
@@ -167,121 +101,27 @@
 
 @media (prefers-reduced-motion: reduce) {
     .floating-card::before { animation: none; opacity: 0.35; }
+    .floating-card, .floating-card * {
+        transition: none !important;
+        animation: none !important;
+    }
 }
 
-
-/* Expand/collapse button */
-.floating-card-expand-btn,
-.floating-card-new-btn {
-    background: none;
-    border: none;
-    color: var(--sp-fg);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    position: relative;
-    z-index: 20;
-    pointer-events: auto;
-}
-
-.floating-card-expand-btn:hover,
-.floating-card-new-btn:hover {
-    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
-}
-
-/* Iframe toggle button */
-.floating-card-iframe-toggle-btn {
-    background: none;
-    border: none;
-    color: var(--sp-fg);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    position: relative;
-    z-index: 20;
-    pointer-events: auto;
-}
-
-.floating-card-iframe-toggle-btn:hover {
-    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
-}
-
-.floating-card-expand-btn *,
-.floating-card-new-btn *,
-.floating-card-iframe-toggle-btn * {
-    cursor: pointer !important;
-}
-
-.floating-card-expand-btn:hover,
-.floating-card-new-btn:hover,
-.floating-card-iframe-toggle-btn:hover {
-    background: color-mix(in oklab, var(--sp-accent-strong) 18%, transparent);
-}
-
-.floating-card-expand-btn:active,
-.floating-card-new-btn:active,
-.floating-card-iframe-toggle-btn:active {
-    background: color-mix(in oklab, var(--sp-accent-strong) 28%, transparent);
-}
-
-/* Keyboard focus ring for controls */
-.floating-card-expand-btn:focus-visible,
-.floating-card-new-btn:focus-visible,
-.floating-card-iframe-toggle-btn:focus-visible,
-.floating-card-close:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
-}
-
-/* Card positioning */
-.floating-card-1 {
-    top: 20px;
-    left: 20px;
-}
-
-.floating-card-2 {
-    top: 20px;
-    right: 20px;
-}
-
-.floating-card-3 {
-    bottom: 20px;
-    left: 20px;
-}
-
-.floating-card-4 {
-    bottom: 20px;
-    right: 20px;
-}
-
-/* Header */
+/* Header - improved draggable area */
 .floating-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 6px; /* Reduced vertical and horizontal padding */
-    border-bottom: none;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     background:
         linear-gradient(to bottom, color-mix(in oklab, var(--sp-accent) 10%, transparent), transparent),
         linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    position: relative;
     user-select: none;
     flex-shrink: 0;
-    height: var(--sp-header-height); /* Enforce a compact title bar */
-    z-index: 10; /* Higher z-index to ensure buttons are clickable */
-    cursor: grab; /* Make entire header draggable like window title bar */
+    height: var(--sp-header-height);
+    z-index: 10;
+    cursor: grab;
     transition: background-color 0.2s ease;
 }
 
@@ -291,169 +131,223 @@
         linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
+.floating-card-header:active {
+    cursor: grabbing;
+}
 
-
-/* Title area - inherits drag from header */
 .floating-card-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--sp-fg);
     margin: 0;
     flex: 1;
-    padding: 2px 8px;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
-    position: relative;
-    height: calc(var(--sp-header-height) - 6px);
-    z-index: 5;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-/* Number badge for quick reference */
+/* Number badge */
 .floating-card-number-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
-    height: 18px;
+    min-width: 22px;
+    height: 22px;
     padding: 0 6px;
-    margin-right: 6px;
     border-radius: 999px;
     font-size: 12px;
+    font-weight: 700;
     line-height: 1;
     color: var(--sp-fg);
-    background: color-mix(in oklab, var(--sp-accent) 30%, transparent);
-    border: 1px solid color-mix(in oklab, var(--sp-accent) 35%, var(--sp-card-border));
+    background: color-mix(in oklab, var(--sp-accent) 35%, transparent);
+    border: 1px solid color-mix(in oklab, var(--sp-accent) 40%, var(--sp-card-border));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Control buttons - refined styling */
+.floating-card-create-btn,
+.floating-card-iframe-toggle-btn,
+.floating-card-expand-btn,
+.floating-card-hide-btn,
 .floating-card-close {
     background: none;
-    border: 1px dashed rgba(255,255,255,0.8);
+    border: none;
     color: var(--sp-fg);
     cursor: pointer;
     padding: 6px;
-    border-radius: 50%;
+    border-radius: 6px;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     position: relative;
     z-index: 20;
     pointer-events: auto;
 }
 
+.floating-card-create-btn:hover,
+.floating-card-iframe-toggle-btn:hover,
+.floating-card-expand-btn:hover,
+.floating-card-hide-btn:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 20%, transparent);
+    transform: scale(1.05);
+}
+
+.floating-card-hide-btn {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.floating-card-hide-btn:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 25%, transparent);
+    border-color: var(--sp-accent-strong);
+}
+
+.floating-card-close {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .floating-card-close:hover {
     background: color-mix(in oklab, var(--sp-danger) 30%, transparent);
+    border-color: var(--sp-danger);
+    transform: scale(1.05);
 }
 
+.floating-card-create-btn:active,
+.floating-card-iframe-toggle-btn:active,
+.floating-card-expand-btn:active,
 .floating-card-close:active {
-    background: color-mix(in oklab, var(--sp-danger-active) 40%, transparent);
+    transform: scale(0.95);
 }
 
+/* Keyboard focus ring */
+.floating-card-create-btn:focus-visible,
+.floating-card-iframe-toggle-btn:focus-visible,
+.floating-card-expand-btn:focus-visible,
+.floating-card-hide-btn:focus-visible,
+.floating-card-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
+}
 
-/* Iframe visibility states */
+/* iframe content */
 .floating-card iframe {
     flex: 1;
-    transition: opacity 0.3s ease, height 0.3s ease;
+    border: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.3s ease;
 }
 
 .floating-card iframe.hidden {
     opacity: 0;
+    pointer-events: none;
     height: 0;
     overflow: hidden;
-    pointer-events: none;
 }
 
 .floating-card iframe.visible {
     opacity: 1;
-    height: auto;
     pointer-events: auto;
 }
 
-/* Slight in-card padding around iframe content without breaking layout */
-.floating-card iframe { 
-    border: 0;
-}
-
-/* ==================== RESIZE HANDLES ==================== */
+/* ==================== RESIZE HANDLES (IMPROVED VISIBILITY & FUNCTIONALITY) ==================== */
 
 .resize-handle {
     position: absolute;
     background: transparent;
     z-index: 1001;
-    transition: background-color 0.1s ease;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+    opacity: 0;
+    pointer-events: auto; /* CRITICAL: Ensure handles are always interactive */
+}
+
+.floating-card:hover .resize-handle {
+    opacity: 1;
 }
 
 .resize-handle:hover {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(59, 130, 246, 0.35) !important;
+    opacity: 1 !important;
 }
 
 .resize-handle:active {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.5) !important;
+    opacity: 1 !important;
 }
 
-/* Corner handles - like Windows */
+/* Corner handles - LARGER for easier grabbing */
 .resize-nw, .resize-ne, .resize-sw, .resize-se {
-    width: 10px;
-    height: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
 }
 
 .resize-nw {
     top: 0;
     left: 0;
     cursor: nw-resize;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
 
 .resize-ne {
     top: 0;
     right: 0;
     cursor: ne-resize;
+    background: linear-gradient(225deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
 
 .resize-sw {
     bottom: 0;
     left: 0;
     cursor: sw-resize;
+    background: linear-gradient(45deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
 
 .resize-se {
     bottom: 0;
     right: 0;
     cursor: se-resize;
+    background: linear-gradient(315deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
 }
 
-/* Edge handles - like Windows */
+/* Edge handles - WIDER for easier grabbing */
 .resize-n, .resize-s {
-    left: 8px;
-    right: 8px;
-    height: 6px;
+    left: 16px;
+    right: 16px;
+    height: 8px;
 }
 
 .resize-w, .resize-e {
-    top: 8px;
-    bottom: 8px;
-    width: 6px;
+    top: 16px;
+    bottom: 16px;
+    width: 8px;
 }
 
 .resize-n {
     top: 0;
     cursor: n-resize;
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.12), transparent);
 }
 
 .resize-s {
     bottom: 0;
     cursor: s-resize;
+    background: linear-gradient(to top, rgba(59, 130, 246, 0.12), transparent);
 }
 
 .resize-w {
     left: 0;
     cursor: w-resize;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.12), transparent);
 }
 
 .resize-e {
     right: 0;
     cursor: e-resize;
+    background: linear-gradient(to left, rgba(59, 130, 246, 0.12), transparent);
 }
 
 /* Resizing state */
@@ -469,38 +363,292 @@
 
 .floating-card.resizing .resize-handle {
     pointer-events: auto;
+    opacity: 1;
 }
 
-/* Show handles on hover */
-.floating-card:hover .resize-handle {
-    background: rgba(59, 130, 246, 0.1);
+/* Per-card accent colors */
+.floating-card[data-card-number="1"] { 
+    --sp-accent: #60a5fa; 
+    --sp-accent-strong: #3b82f6; 
+}
+.floating-card[data-card-number="2"] { 
+    --sp-accent: #a78bfa; 
+    --sp-accent-strong: #8b5cf6; 
+}
+.floating-card[data-card-number="3"] { 
+    --sp-accent: #34d399; 
+    --sp-accent-strong: #10b981; 
+}
+.floating-card[data-card-number="4"] { 
+    --sp-accent: #f59e0b; 
+    --sp-accent-strong: #d97706; 
 }
 
-/* Per-card accent tints for the first four cards (set via JS data-card-number) */
-.floating-card[data-card-number="1"] { --sp-accent: #60a5fa; --sp-accent-strong: #3b82f6; /* blue */ }
-.floating-card[data-card-number="2"] { --sp-accent: #a78bfa; --sp-accent-strong: #8b5cf6; /* violet */ }
-.floating-card[data-card-number="3"] { --sp-accent: #34d399; --sp-accent-strong: #10b981; /* emerald */ }
-.floating-card[data-card-number="4"] { --sp-accent: #f59e0b; --sp-accent-strong: #d97706; /* amber */ }
+/* Default accent for cards without numbers */
+.floating-card:not([data-card-number]) { 
+    --sp-accent: #818cf8; 
+    --sp-accent-strong: #6366f1; 
+}
 
-/* Dynamic cards default accent if not numbered yet */
-.floating-card:not([data-card-number]) { --sp-accent: #818cf8; --sp-accent-strong: #6366f1; }
-
-/* Responsive sizing for collapsed/expanded presets */
+/* Responsive adjustments */
 @media (max-width: 1280px) {
-    .floating-card.collapsed { width: min(90vw, 800px); }
-    .floating-card.expanded { width: min(92vw, 900px); height: min(70vh, 520px); }
+    .floating-card {
+        width: min(90vw, 850px) !important;
+        height: min(70vh, 500px) !important;
+    }
+    .floating-card.expanded {
+        width: min(95vw, 1200px) !important;
+        height: min(80vh, 700px) !important;
+    }
 }
 
 @media (max-width: 640px) {
-    .floating-card { width: min(96vw, 480px); height: 60vh; }
-    .floating-card.collapsed { width: 96vw; height: 45vh; }
-    .floating-card.expanded { width: 96vw; height: 70vh; }
+    .floating-card {
+        width: 96vw !important;
+        height: 60vh !important;
+    }
+    .floating-card.expanded {
+        width: 96vw !important;
+        height: 75vh !important;
+    }
+    .floating-card-header {
+        padding: 6px 8px;
+        height: 36px;
+    }
 }
 
-/* Reduced motion accessibility */
-@media (prefers-reduced-motion: reduce) {
-    .floating-card, .floating-card * {
-        transition: none !important;
-        animation: none !important;
+/* ==================== FLOATING CARDS MANAGER (LIKE ATTACHMENTS) ==================== */
+
+.floating-cards-manager {
+    position: fixed;
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    z-index: 49999; /* Just below chat input (50000) */
+    width: auto;
+    max-width: 90vw;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    pointer-events: none;
+    display: none;
+}
+
+.floating-cards-manager.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+    display: block;
+}
+
+.floating-cards-manager.has-cards {
+    width: 600px;
+    max-width: min(900px, 90vw);
+}
+
+.cards-manager-section {
+    padding: 8px 12px;
+    background: var(--sp-card-bg);
+    backdrop-filter: saturate(120%) blur(16px);
+    -webkit-backdrop-filter: saturate(120%) blur(16px);
+    border: 1px solid var(--sp-card-border);
+    border-radius: 12px;
+    box-shadow: var(--sp-card-shadow);
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    overflow: hidden;
+}
+
+.cards-manager-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.cards-manager-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sp-fg);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cards-manager-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.card-manager-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: var(--sp-fg);
+    cursor: pointer;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    transition: all 0.15s ease;
+}
+
+.card-manager-btn:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 20%, transparent);
+    border-color: var(--sp-accent-strong);
+}
+
+.cards-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    max-height: 80px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 6px;
+    scrollbar-width: thin;
+    cursor: grab;
+    -webkit-overflow-scrolling: touch;
+}
+
+.cards-grid::-webkit-scrollbar {
+    height: 6px;
+}
+
+.cards-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.cards-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.cards-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.cards-grid.dragging {
+    cursor: grabbing;
+}
+
+.card-preview-item {
+    position: relative;
+    min-width: 120px;
+    max-width: 160px;
+    height: 68px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+    flex: 0 0 auto;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+}
+
+.card-preview-item:hover {
+    border-color: var(--sp-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-preview-item.hidden {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.card-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.card-preview-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--sp-fg);
+    background: color-mix(in oklab, var(--sp-accent) 40%, transparent);
+    border: 1px solid color-mix(in oklab, var(--sp-accent) 50%, transparent);
+}
+
+.card-preview-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--sp-fg);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-preview-status {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: auto;
+}
+
+.card-preview-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.card-preview-item:hover .card-preview-actions {
+    opacity: 1;
+}
+
+.card-preview-action-btn {
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.card-preview-action-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+}
+
+.card-preview-action-btn.show {
+    background: color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
+}
+
+.card-preview-action-btn.close:hover {
+    background: var(--sp-danger);
+}
+
+@media (max-width: 768px) {
+    .floating-cards-manager {
+        width: 95vw;
+        max-width: 95vw;
+    }
+    
+    .floating-cards-manager.has-cards {
+        width: 95vw;
+        max-width: 95vw;
     }
 }

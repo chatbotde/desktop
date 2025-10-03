@@ -1,6 +1,6 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
-import { createNewFloatingCard, routeMessageToCard, getCardByNumber } from './floating-cards.js';
+import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryCard, centerCardSmooth } from './floating-cards.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {
@@ -25,15 +25,17 @@ export function sendMessage() {
     updateSendButtonVisual();
     dom.typingIndicator.classList.add('active');
     dom.messageInput.disabled = true;
+    
     try {
         const all = [];
         if (hasImages) all.push(...window.__getImageAttachments().map(att => ({ id: att.id, name: att.name, type: att.type, size: att.size, data: att.data, source: att.source, mediaType: 'image', dimensions: att.dimensions })));
         if (hasMedia) all.push(...window.__getMediaAttachments().map(att => ({ id: att.id, name: att.name, type: att.type, size: att.size, data: att.data, source: att.source, mediaType: att.mediaType, dimensions: att.dimensions, duration: att.duration })));
+        
         // Parse @mention routing: @<num> or @new/@+
         const route = parseCardRoute(raw);
         const messageData = { content: route.cleaned, timestamp: new Date().toISOString(), id: Date.now().toString(), type: hasAny ? 'mixed' : 'text', attachments: all, meta: {} };
 
-        // Attach targetCard metadata and forward if present
+        // Route to specific card or primary card
         if (route.target === 'new') {
             const newCard = createNewFloatingCard({ title: message.slice(0, 48) });
             const assigned = Number(newCard?.dataset?.cardNumber);
@@ -45,20 +47,22 @@ export function sendMessage() {
             messageData.meta.targetCard = route.target;
             const forwarded = routeMessageToCard(messageData, route.target);
             if (!forwarded) {
-                // If target card not present, create new, assign that number if free else use auto
-                const targetCard = getCardByNumber(route.target);
-                if (!targetCard) {
-                    const newC = createNewFloatingCard({ title: message.slice(0, 48) });
-                    const assigned2 = Number(newC?.dataset?.cardNumber);
-                    if (assigned2) {
-                        messageData.meta.targetCard = assigned2;
-                        routeMessageToCard(messageData, assigned2);
-                    }
+                // If target card not found, create new
+                const newC = createNewFloatingCard({ title: message.slice(0, 48) });
+                const assigned2 = Number(newC?.dataset?.cardNumber);
+                if (assigned2) {
+                    messageData.meta.targetCard = assigned2;
+                    routeMessageToCard(messageData, assigned2);
                 }
             }
         } else {
-            // default behavior mirrors to Display 1 as before
-            tryForwardToDisplayOne(messageData);
+            // Default: route to primary card and center it smoothly
+            const primary = getPrimaryCard();
+            if (primary) {
+                const primaryNumber = Number(primary.dataset.cardNumber);
+                messageData.meta.targetCard = primaryNumber;
+                routeMessageToCard(messageData, primaryNumber);
+            }
         }
 
         // Always send upstream (main process) with meta for logging/backends
@@ -80,21 +84,6 @@ export function resetSendingState() {
     updateSendButtonVisual();
 }
 
-function tryForwardToDisplayOne(messageData) {
-    const card = document.getElementById('floatingCard1');
-    if (!card) return;
-    const iframe = card.querySelector('iframe');
-    if (!iframe || !iframe.contentWindow) return;
-    // Target origin: in dev it's http://localhost:5173; fallback to '*'
-    const targetOrigin = iframe.src && iframe.src.startsWith('http') ? new URL(iframe.src).origin : '*';
-    try {
-        iframe.contentWindow.postMessage({ type: 'chat-input-message', payload: messageData }, targetOrigin);
-    } catch (e) {
-        console.warn('Forward to display one failed, retrying with *', e);
-        try { iframe.contentWindow.postMessage({ type: 'chat-input-message', payload: messageData }, '*'); } catch (_) {}
-    }
-}
-
 // Parse routing directives from message input.
 // Supports:
 //  - @<number> anywhere (first occurrence wins) e.g., "@3 open google.com"
@@ -114,5 +103,4 @@ function parseCardRoute(raw) {
     }
     return { target, cleaned };
 }
-
 

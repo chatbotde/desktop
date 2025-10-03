@@ -136,7 +136,7 @@ export function Messages({
       <div 
         ref={messagesContainerRef}
         onScroll={onScroll}
-        className="px-6 py-4 space-y-4 min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+        className="px-8 py-6 space-y-4 min-h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       >
         {messages.map((message) => (
           <div 
@@ -148,7 +148,7 @@ export function Messages({
                 : 'justify-start pr-20'
             }`}
           >
-            <div className="max-w-full">
+            <div className="max-w-full break-words overflow-hidden">
               {/* Media attachments */}
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mb-3 space-y-2">
@@ -169,12 +169,6 @@ export function Messages({
                 />
               )}
               
-              {/* Message timestamp */}
-              <div className={`text-xs text-white/40 mt-1 ${
-                message.role === 'user' ? 'text-right' : 'text-left'
-              }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
             </div>
           </div>
         ))}
@@ -182,10 +176,10 @@ export function Messages({
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex justify-start pr-20 message-appear">
-            <div className="max-w-full">
-              <div className="bg-gray-800/60 backdrop-blur-lg text-white rounded-2xl p-4 border border-gray-600/20 shadow-md">
+            <div className="max-w-full break-words overflow-hidden">
+              <div className="bg-transparent text-white px-2 py-1">
                 <div className="flex items-center space-x-2">
-                  <div className="text-sm text-white/70 mr-2">AI is typing</div>
+                  <div className="text-sm text-white/70 mr-2">AI is thinking</div>
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>

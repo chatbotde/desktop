@@ -143,6 +143,10 @@ export function autoResize() {
         const newHeight = Math.min(dom.messageInput.scrollHeight, maxHeight);
         dom.messageInput.style.height = newHeight + 'px';
         dom.messageInput.style.width = '100%';
+
+        // While expanded, keep the window bottom anchored as height changes
+        adjustWindowHeightSmooth('expand');
+        if (window.__positionAttachmentsContainer) window.__positionAttachmentsContainer();
     }
     if (state.expansionState === 'expanding' || state.expansionState === 'collapsing') {
         adjustWindowHeightSmooth(state.expansionState === 'expanding' ? 'expand' : 'collapse');
@@ -167,13 +171,14 @@ export function adjustWindowHeightSmooth(action = 'auto') {
             const previousHeight = state.lastTargetHeight; state.lastTargetHeight = targetHeight;
             requestAnimationFrame(() => {
                 if (window.chatInputAPI?.updateWindowHeight) window.chatInputAPI.updateWindowHeight(targetHeight);
-                if (action === 'expand' && window.chatInputAPI?.updateWindowPosition) {
-                    // Calculate the height difference for upward expansion
-                    const diff = targetHeight - previousHeight; 
-                    const currentY = window.screenY; 
-                    // Move window up by the height difference to maintain bottom position
-                    const newY = Math.max(0, currentY - diff);
-                    window.chatInputAPI.updateWindowPosition(window.screenX, newY);
+                if (window.chatInputAPI?.updateWindowPosition) {
+                    // Keep bottom anchored on any height change: move up when growing, down when shrinking
+                    const diff = targetHeight - previousHeight;
+                    if (diff !== 0) {
+                        const currentY = window.screenY;
+                        const newY = Math.max(0, currentY - diff);
+                        window.chatInputAPI.updateWindowPosition(window.screenX, newY);
+                    }
                 }
             });
         }
