@@ -22,6 +22,7 @@
     position: fixed;
     width: 850px;
     height: 500px;
+    box-sizing: border-box; /* Ensure borders don't affect measured size */
     background:
         radial-gradient(120% 120% at 100% 0%, color-mix(in oklab, var(--sp-accent) 14%, transparent) 0%, transparent 55%),
         linear-gradient(to bottom, var(--sp-card-bg-gradient-top), var(--sp-card-bg-gradient-bottom)),
@@ -67,7 +68,6 @@
     transition: none;
     z-index: 3000;
     will-change: transform;
-    cursor: grabbing !important;
 }
 
 .floating-card.expanded {
@@ -82,7 +82,7 @@
     inset: -10%;
     border-radius: inherit;
     pointer-events: none;
-    z-index: 0;
+    z-index: -1; /* FIXED: Behind everything to not interfere with resize handles */
     background:
         radial-gradient(120% 80% at 0% -20%, color-mix(in oklab, var(--sp-accent) 30%, transparent) 0%, transparent 50%),
         radial-gradient(100% 70% at 100% 0%, rgba(255,255,255,0.14) 0%, transparent 55%),
@@ -120,9 +120,10 @@
     user-select: none;
     flex-shrink: 0;
     height: var(--sp-header-height);
-    z-index: 10;
-    cursor: grab;
-    transition: background-color 0.2s ease;
+    z-index: 1; /* FIXED: Lower z-index to not block resize handles */
+    cursor: default;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
 .floating-card-header:hover {
@@ -131,8 +132,17 @@
         linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
-.floating-card-header:active {
+/* Visual feedback when drag mode is enabled */
+.floating-card.drag-enabled .floating-card-header {
     cursor: grabbing;
+    background:
+        linear-gradient(to bottom, color-mix(in oklab, var(--sp-accent) 20%, transparent), transparent),
+        linear-gradient(to bottom, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--sp-accent-strong) 50%, transparent) inset;
+}
+
+.floating-card-header:active {
+    cursor: default;
 }
 
 .floating-card-title {
@@ -241,6 +251,92 @@
     transition: opacity 0.3s ease;
 }
 
+/* ==================== CARD SETTINGS DROPDOWN ==================== */
+.floating-card-settings-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--sp-fg);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+.floating-card-settings-btn:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 20%, transparent);
+    transform: scale(1.05);
+}
+.floating-card-settings-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 0 0 4px color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
+}
+
+.floating-card-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    background: var(--sp-card-bg);
+    backdrop-filter: saturate(120%) blur(16px);
+    -webkit-backdrop-filter: saturate(120%) blur(16px);
+    border: 1px solid var(--sp-card-border);
+    border-radius: 10px;
+    box-shadow: var(--sp-card-shadow);
+    padding: 6px;
+    z-index: 3001;
+}
+.floating-card-menu .floating-card-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sp-fg);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.floating-card-menu .floating-card-menu-item:hover {
+    background: color-mix(in oklab, var(--sp-accent-strong) 20%, transparent);
+}
+
+/* ==================== NEUTRAL (NO-ACCENT) MODE ==================== */
+.floating-card.neutral {
+    /* Match the chat input lighting button effect: transparent glass + subtle border */
+    --sp-accent: rgba(148, 163, 184, 0.35);
+    --sp-accent-strong: rgba(148, 163, 184, 0.5);
+    background: none !important;
+    backdrop-filter: saturate(120%) blur(20px);
+    -webkit-backdrop-filter: saturate(120%) blur(20px);
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
+}
+.floating-card.neutral::before {
+    display: none; /* Remove accent liquid overlays */
+}
+.floating-card.neutral:focus-within {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.floating-card.neutral .floating-card-header {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.floating-card.neutral .floating-card-header:hover {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+}
+.floating-card.neutral .floating-card-number-badge {
+    background: rgba(148, 163, 184, 0.25);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
 .floating-card iframe.hidden {
     opacity: 0;
     pointer-events: none;
@@ -258,10 +354,12 @@
 .resize-handle {
     position: absolute;
     background: transparent;
-    z-index: 1001;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    z-index: 1002; /* FIXED: Higher than everything else in the card */
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     opacity: 0;
-    pointer-events: auto; /* CRITICAL: Ensure handles are always interactive */
+    pointer-events: auto !important; /* CRITICAL: Ensure handles are ALWAYS interactive */
 }
 
 .floating-card:hover .resize-handle {
@@ -271,18 +369,21 @@
 .resize-handle:hover {
     background: rgba(59, 130, 246, 0.35) !important;
     opacity: 1 !important;
+    transform: scale(1.1);
 }
 
 .resize-handle:active {
-    background: rgba(59, 130, 246, 0.5) !important;
+    background: rgba(59, 130, 246, 0.6) !important;
     opacity: 1 !important;
+    transform: scale(1.15);
+    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Corner handles - LARGER for easier grabbing */
 .resize-nw, .resize-ne, .resize-sw, .resize-se {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
+    width: 20px; /* INCREASED from 16px for easier grabbing */
+    height: 20px;
+    border-radius: 4px;
 }
 
 .resize-nw {
@@ -315,15 +416,15 @@
 
 /* Edge handles - WIDER for easier grabbing */
 .resize-n, .resize-s {
-    left: 16px;
-    right: 16px;
-    height: 8px;
+    left: 20px;
+    right: 20px;
+    height: 10px; /* INCREASED from 8px */
 }
 
 .resize-w, .resize-e {
-    top: 16px;
-    bottom: 16px;
-    width: 8px;
+    top: 20px;
+    bottom: 20px;
+    width: 10px; /* INCREASED from 8px */
 }
 
 .resize-n {
@@ -350,20 +451,35 @@
     background: linear-gradient(to left, rgba(59, 130, 246, 0.12), transparent);
 }
 
-/* Resizing state */
+/* Resizing state - optimized for performance */
 .floating-card.resizing {
     transition: none !important;
     user-select: none;
     will-change: width, height;
+    /* GPU acceleration */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 
-.floating-card.resizing * {
+/* FIXED: Don't block pointer events on ALL children, only specific ones */
+.floating-card.resizing .floating-card-header,
+.floating-card.resizing iframe,
+.floating-card.resizing button {
     pointer-events: none;
 }
 
+/* CRITICAL: Keep resize handles interactive during resize */
 .floating-card.resizing .resize-handle {
-    pointer-events: auto;
-    opacity: 1;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    z-index: 1003;
+}
+
+.floating-card.resizing iframe {
+    /* Disable pointer events and rendering during resize for better performance */
+    pointer-events: none;
+    will-change: transform;
 }
 
 /* Per-card accent colors */

@@ -178,6 +178,8 @@ function setupCardControls(card, cardNumber) {
     const expandBtn = card.querySelector('.floating-card-expand-btn');
     const hideBtn = card.querySelector('.floating-card-hide-btn');
     const closeBtn = card.querySelector('.floating-card-close');
+    const settingsBtn = card.querySelector('.floating-card-settings-btn');
+    const settingsMenu = card.querySelector('.floating-card-menu');
     const iframe = card.querySelector('iframe');
     
     // Initially visible
@@ -244,14 +246,67 @@ function setupCardControls(card, cardNumber) {
             fadeOutAndRemove(card, cardNumber);
         });
     }
-    
-    // Double-click header to expand/collapse
-    const header = card.querySelector('.floating-card-header');
-    if (header) {
-        header.addEventListener('dblclick', () => {
-            toggleExpand(card, expandBtn);
+    // Settings button and menu actions
+    if (settingsBtn && settingsMenu) {
+        // Toggle menu visibility
+        const toggleMenu = (show) => {
+            const shouldShow = show ?? settingsMenu.hasAttribute('hidden');
+            if (shouldShow) {
+                settingsMenu.removeAttribute('hidden');
+                settingsMenu.setAttribute('aria-hidden', 'false');
+            } else {
+                settingsMenu.setAttribute('hidden', '');
+                settingsMenu.setAttribute('aria-hidden', 'true');
+            }
+        };
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!settingsMenu.hasAttribute('hidden')) {
+                if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    toggleMenu(false);
+                }
+            }
+        });
+        // Handle menu actions
+        settingsMenu.addEventListener('click', (e) => {
+            const btn = e.target.closest('.floating-card-menu-item');
+            if (!btn) return;
+            e.stopPropagation();
+            const action = btn.dataset.action;
+            if (action === 'toggle-neutral') {
+                const isNeutral = card.classList.toggle('neutral');
+                // Persist state on dataset for previews or later use
+                card.dataset.neutral = String(isNeutral);
+                // Update menu label to reflect current state
+                const toggleItem = settingsMenu.querySelector('[data-action="toggle-neutral"]');
+                if (toggleItem) {
+                    toggleItem.textContent = isNeutral ? 'Use color' : 'No color (neutral)';
+                }
+                toggleMenu(false);
+                updateCardsManager();
+            } else if (action === 'next-color') {
+                // Cycle color palette index for this card
+                const number = Number(card.dataset.cardNumber);
+                // Determine current color index based on palette name
+                const currentName = card.dataset.colorTheme;
+                let index = COLOR_PALETTE.findIndex(c => c.name === currentName);
+                if (index < 0) index = (number - 1) % COLOR_PALETTE.length;
+                const next = COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length];
+                card.style.setProperty('--sp-accent', next.accent);
+                card.style.setProperty('--sp-accent-strong', next.strong);
+                card.dataset.colorTheme = next.name;
+                // If neutral was active, keep it neutral but remember chosen color for when toggled back
+                toggleMenu(false);
+                updateCardsManager();
+            }
         });
     }
+    
+    // Note: header double-click reserved for enabling drag; do not attach expand/collapse here
 }
 
 // ==================== POSITIONING ====================
@@ -271,6 +326,53 @@ export function centerCardSmooth(card) {
     }, 400);
 }
 
+// ==================== POSITION HELPERS ====================
+function isUserPositioned(card) {
+    return card && card.dataset.userPositioned === 'true';
+}
+
+function markUserPositioned(card) {
+    if (card) card.dataset.userPositioned = 'true';
+}
+
+function clampCardToViewport(card, margin = 8) {
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.top;
+    let width = rect.width;
+    let height = rect.height;
+    const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - height - margin);
+    left = Math.min(Math.max(left, margin), maxLeft);
+    top = Math.min(Math.max(top, margin), maxTop);
+    card.style.left = Math.round(left) + 'px';
+    card.style.top = Math.round(top) + 'px';
+    card.style.bottom = 'auto';
+}
+
+function resizeAroundCenter(card, newWidth, newHeight, smooth = true) {
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const targetLeft = Math.round(centerX - newWidth / 2);
+    const targetTop = Math.round(centerY - newHeight / 2);
+    if (smooth) {
+        card.style.transition = 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1), top 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), height 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+    card.style.width = Math.round(newWidth) + 'px';
+    card.style.height = Math.round(newHeight) + 'px';
+    card.style.left = targetLeft + 'px';
+    card.style.top = targetTop + 'px';
+    card.style.bottom = 'auto';
+    // Clamp into viewport after sizing
+    clampCardToViewport(card);
+    if (smooth) {
+        setTimeout(() => { card.style.transition = ''; }, 260);
+    }
+}
+
 // ==================== EXPAND / COLLAPSE ====================
 function toggleExpand(card, expandBtn) {
     const isExpanded = card.classList.contains('expanded');
@@ -278,8 +380,14 @@ function toggleExpand(card, expandBtn) {
     if (isExpanded) {
         // Collapse to default size
         card.classList.remove('expanded');
-        card.style.width = '850px';
-        card.style.height = '500px';
+        // If user positioned, keep anchor at current center; otherwise, center
+        if (isUserPositioned(card)) {
+            resizeAroundCenter(card, 850, 500, true);
+        } else {
+            card.style.width = '850px';
+            card.style.height = '500px';
+            centerCardSmooth(card);
+        }
         
         if (expandBtn) {
             expandBtn.innerHTML = `
@@ -292,8 +400,13 @@ function toggleExpand(card, expandBtn) {
     } else {
         // Expand to larger size
         card.classList.add('expanded');
-        card.style.width = '1200px';
-        card.style.height = '700px';
+        if (isUserPositioned(card)) {
+            resizeAroundCenter(card, 1200, 700, true);
+        } else {
+            card.style.width = '1200px';
+            card.style.height = '700px';
+            centerCardSmooth(card);
+        }
         
         if (expandBtn) {
             expandBtn.innerHTML = `
@@ -304,19 +417,20 @@ function toggleExpand(card, expandBtn) {
             expandBtn.title = 'Collapse';
         }
     }
-    
-    // Re-center after expand/collapse
-    centerCardSmooth(card);
 }
 
 function setupExpandCollapse(card) {
     // Already handled in setupCardControls
 }
 
-// ==================== DRAGGING (IMPROVED - CURSOR MUST STAY IN HEADER) ====================
+// ==================== DRAGGING (DOUBLE-CLICK TO ENABLE, CURSOR MUST STAY IN HEADER) ====================
 function setupDraggable(card) {
     let isDragging = false;
+    let dragEnabled = false;
     let startX, startY, initialX, initialY;
+    let lastClickTime = 0;
+    let clickTimer = null;
+    const doubleClickThreshold = 300; // 300ms for double-click detection
     
     const header = card.querySelector('.floating-card-header');
     if (!header) return;
@@ -325,19 +439,45 @@ function setupDraggable(card) {
         // Don't drag if clicking on buttons
         if (e.target.closest('button')) return;
         
-        isDragging = true;
-        card.classList.add('dragging');
-        bringToFront(card);
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastClickTime;
         
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = card.getBoundingClientRect();
-        initialX = rect.left;
-        initialY = rect.top;
+        // Clear any existing timer
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+            clickTimer = null;
+        }
         
-        e.preventDefault();
-        document.body.style.userSelect = 'none';
-        header.style.cursor = 'grabbing';
+        // Check if this is a double-click
+        if (timeDiff < doubleClickThreshold) {
+            // Double-click detected - enable dragging
+            dragEnabled = true;
+            isDragging = true;
+            card.classList.add('dragging');
+            card.classList.add('drag-enabled');
+            bringToFront(card);
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = card.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+            
+            e.preventDefault();
+            document.body.style.userSelect = 'none';
+            header.style.cursor = 'grabbing';
+        } else {
+            // Single click - set timer for potential double-click
+            clickTimer = setTimeout(() => {
+                // This was just a single click, do nothing special
+                clickTimer = null;
+            }, doubleClickThreshold);
+            
+            // Just bring to front on single click
+            bringToFront(card);
+        }
+        
+        lastClickTime = currentTime;
     });
     
     // Mouse move - attached to document for smooth tracking
@@ -374,14 +514,19 @@ function setupDraggable(card) {
         
         card.style.left = constrainedX + 'px';
         card.style.top = constrainedY + 'px';
+        card.style.bottom = 'auto';
     };
     
     function endDrag() {
         if (isDragging) {
             isDragging = false;
+            dragEnabled = false;
             card.classList.remove('dragging');
+            card.classList.remove('drag-enabled');
             header.style.cursor = 'grab';
             document.body.style.userSelect = '';
+            // Remember that the user has manually placed the card
+            markUserPositioned(card);
         }
     }
     
@@ -392,141 +537,271 @@ function setupDraggable(card) {
     document.addEventListener('mouseleave', endDrag);
 }
 
-// ==================== RESIZING (IMPROVED - CURSOR MUST STAY NEAR EDGES) ====================
+// ==================== RESIZING (ULTRA-SMOOTH WITH RAF & GPU ACCELERATION) ====================
 function setupResizable(card) {
-    const handles = card.querySelectorAll('.resize-handle');
+    let handles = card.querySelectorAll('.resize-handle');
+    if (!handles || handles.length === 0) {
+        try {
+            console.warn('[FloatingCards] No resize handles found, injecting default handles');
+            const dirs = ['nw','n','ne','e','se','s','sw','w'];
+            dirs.forEach(d => {
+                const h = document.createElement('div');
+                h.className = `resize-handle resize-${d}`;
+                card.appendChild(h);
+            });
+            handles = card.querySelectorAll('.resize-handle');
+        } catch {}
+    }
     let isResizing = false;
     let resizeDirection = '';
-    let startX, startY, initialX, initialY, initialWidth, initialHeight;
+    let startX, startY, initialBounds;
     let activeHandle = null;
-    const minSize = 300;
+    let rafId = null;
+    let lastMouseEvent = null;
     
-    handles.forEach(handle => {
-        handle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            isResizing = true;
-            activeHandle = handle;
-            resizeDirection = Array.from(handle.classList).find(c => c.startsWith('resize-'));
-            card.classList.add('resizing');
-            bringToFront(card);
-            
-            startX = e.clientX;
-            startY = e.clientY;
-            const rect = card.getBoundingClientRect();
-            initialX = rect.left;
-            initialY = rect.top;
-            initialWidth = rect.width;
-            initialHeight = rect.height;
-            
-            document.body.style.userSelect = 'none';
-            document.body.style.cursor = window.getComputedStyle(handle).cursor;
-        });
-    });
-    
-    const handleMouseMove = (e) => {
-        if (!isResizing || !activeHandle) return;
-        
-        // Check if cursor is still reasonably close to the card edges
-        const cardRect = card.getBoundingClientRect();
-        const tolerance = 100; // pixels tolerance from card edges
-        const isNearCard = (
-            e.clientX >= cardRect.left - tolerance &&
-            e.clientX <= cardRect.right + tolerance &&
-            e.clientY >= cardRect.top - tolerance &&
-            e.clientY <= cardRect.bottom + tolerance
-        );
-        
-        // If cursor leaves card area with tolerance, stop resizing
-        if (!isNearCard) {
-            endResize();
-            return;
-        }
-        
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        let newX = initialX;
-        let newY = initialY;
-        let newWidth = initialWidth;
-        let newHeight = initialHeight;
-        
-        // Apply resize based on direction
-        switch (resizeDirection) {
-            case 'resize-nw':
-                newWidth = initialWidth - deltaX;
-                newHeight = initialHeight - deltaY;
-                newX = initialX + deltaX;
-                newY = initialY + deltaY;
-                break;
-            case 'resize-n':
-                newHeight = initialHeight - deltaY;
-                newY = initialY + deltaY;
-                break;
-            case 'resize-ne':
-                newWidth = initialWidth + deltaX;
-                newHeight = initialHeight - deltaY;
-                newY = initialY + deltaY;
-                break;
-            case 'resize-e':
-                newWidth = initialWidth + deltaX;
-                break;
-            case 'resize-se':
-                newWidth = initialWidth + deltaX;
-                newHeight = initialHeight + deltaY;
-                break;
-            case 'resize-s':
-                newHeight = initialHeight + deltaY;
-                break;
-            case 'resize-sw':
-                newWidth = initialWidth - deltaX;
-                newHeight = initialHeight + deltaY;
-                newX = initialX + deltaX;
-                break;
-            case 'resize-w':
-                newWidth = initialWidth - deltaX;
-                newX = initialX + deltaX;
-                break;
-        }
-        
-        // Apply minimum size constraints
-        if (newWidth >= minSize) {
-            card.style.width = newWidth + 'px';
-            if (resizeDirection.includes('w')) {
-                card.style.left = newX + 'px';
-            }
-        }
-        if (newHeight >= minSize) {
-            card.style.height = newHeight + 'px';
-            if (resizeDirection.includes('n')) {
-                card.style.top = newY + 'px';
-            }
-        }
-        
-        // Constrain to viewport
-        const rect = card.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            card.style.width = (window.innerWidth - rect.left) + 'px';
-        }
-        if (rect.bottom > window.innerHeight) {
-            card.style.height = (window.innerHeight - rect.top) + 'px';
-        }
+    // Configuration
+    const config = {
+        minWidth: 300,
+        minHeight: 200,
+        maxWidth: window.innerWidth,
+        maxHeight: window.innerHeight,
+        snapThreshold: 20, // Snap to edges when within this distance
     };
     
-    function endResize() {
-        if (isResizing) {
-            isResizing = false;
-            resizeDirection = '';
-            activeHandle = null;
-            card.classList.remove('resizing');
-            document.body.style.userSelect = '';
-            document.body.style.cursor = '';
+    // Initialize resize on handle mousedown
+    handles.forEach(handle => {
+        handle.addEventListener('mousedown', startResize);
+    });
+    
+    function startResize(e) {
+        if (e.button !== 0) return; // Only left click
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+    isResizing = true;
+        activeHandle = e.currentTarget;
+        // Determine the specific direction class (exclude the generic 'resize-handle')
+        resizeDirection = Array.from(activeHandle.classList).find(
+            c => c !== 'resize-handle' && c.startsWith('resize-')
+        ) || '';
+        if (!resizeDirection) {
+            try { console.warn('[FloatingCards] resize direction not found on handle', activeHandle.className); } catch {}
+            return;
+        }
+    try { console.debug('[FloatingCards] resize start', { dir: resizeDirection }); } catch {}
+        
+        // Bring card to front and add resizing state
+        bringToFront(card);
+        card.classList.add('resizing');
+        
+        // Capture initial state
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = card.getBoundingClientRect();
+        initialBounds = {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+        };
+        
+    // Optimize for performance
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = window.getComputedStyle(activeHandle).cursor;
+        card.style.willChange = 'width, height, transform';
+    // Ensure iframe does not swallow mouse events during resize
+    const iframe = card.querySelector('iframe');
+    if (iframe) iframe.style.pointerEvents = 'none';
+        
+        // Attach move and end listeners
+        // Do not use passive here so we can optionally preventDefault in future
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', endResize);
+        document.addEventListener('mouseleave', endResize);
+    }
+    
+    function onMouseMove(e) {
+        if (!isResizing) return;
+        lastMouseEvent = e;
+        
+        // Use RAF for smooth 60fps updates
+        if (!rafId) {
+            rafId = requestAnimationFrame(performResize);
         }
     }
     
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', endResize);
-    document.addEventListener('mouseleave', endResize);
+    function performResize() {
+        rafId = null;
+        if (!isResizing || !lastMouseEvent) return;
+        
+        const e = lastMouseEvent;
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        
+        // Calculate new bounds based on resize direction
+        const newBounds = calculateNewBounds(deltaX, deltaY);
+        
+        // Apply constraints
+        const constrainedBounds = applyConstraints(newBounds);
+        
+    // Apply to DOM with transform for GPU acceleration
+        applyBounds(constrainedBounds);
+        
+        // Continue animation loop if still resizing
+        if (isResizing) {
+            rafId = requestAnimationFrame(performResize);
+        }
+    }
+    
+    function calculateNewBounds(deltaX, deltaY) {
+        const bounds = { ...initialBounds };
+        
+        // Calculate based on resize direction
+        const directions = {
+            'resize-nw': () => {
+                bounds.width = initialBounds.width - deltaX;
+                bounds.height = initialBounds.height - deltaY;
+                bounds.left = initialBounds.left + deltaX;
+                bounds.top = initialBounds.top + deltaY;
+            },
+            'resize-n': () => {
+                bounds.height = initialBounds.height - deltaY;
+                bounds.top = initialBounds.top + deltaY;
+            },
+            'resize-ne': () => {
+                bounds.width = initialBounds.width + deltaX;
+                bounds.height = initialBounds.height - deltaY;
+                bounds.top = initialBounds.top + deltaY;
+            },
+            'resize-e': () => {
+                bounds.width = initialBounds.width + deltaX;
+            },
+            'resize-se': () => {
+                bounds.width = initialBounds.width + deltaX;
+                bounds.height = initialBounds.height + deltaY;
+            },
+            'resize-s': () => {
+                bounds.height = initialBounds.height + deltaY;
+            },
+            'resize-sw': () => {
+                bounds.width = initialBounds.width - deltaX;
+                bounds.height = initialBounds.height + deltaY;
+                bounds.left = initialBounds.left + deltaX;
+            },
+            'resize-w': () => {
+                bounds.width = initialBounds.width - deltaX;
+                bounds.left = initialBounds.left + deltaX;
+            },
+        };
+        
+        const resizeFunc = directions[resizeDirection];
+        if (resizeFunc) resizeFunc();
+        
+        return bounds;
+    }
+    
+    function applyConstraints(bounds) {
+        const constrained = { ...bounds };
+        
+        // Apply minimum size constraints
+        if (constrained.width < config.minWidth) {
+            constrained.width = config.minWidth;
+            if (resizeDirection.includes('w')) {
+                constrained.left = initialBounds.left + initialBounds.width - config.minWidth;
+            }
+        }
+        
+        if (constrained.height < config.minHeight) {
+            constrained.height = config.minHeight;
+            if (resizeDirection.includes('n')) {
+                constrained.top = initialBounds.top + initialBounds.height - config.minHeight;
+            }
+        }
+        
+        // Apply maximum size constraints (viewport bounds)
+        const maxWidth = window.innerWidth - constrained.left;
+        const maxHeight = window.innerHeight - constrained.top;
+        
+        if (constrained.width > maxWidth) {
+            constrained.width = maxWidth;
+        }
+        if (constrained.height > maxHeight) {
+            constrained.height = maxHeight;
+        }
+        
+        // Keep within viewport bounds
+        if (constrained.left < 0) {
+            constrained.width += constrained.left;
+            constrained.left = 0;
+        }
+        if (constrained.top < 0) {
+            constrained.height += constrained.top;
+            constrained.top = 0;
+        }
+        
+        // Snap to edges when close
+        if (Math.abs(constrained.left) < config.snapThreshold) {
+            constrained.left = 0;
+        }
+        if (Math.abs(constrained.top) < config.snapThreshold) {
+            constrained.top = 0;
+        }
+        if (Math.abs(window.innerWidth - (constrained.left + constrained.width)) < config.snapThreshold) {
+            constrained.width = window.innerWidth - constrained.left;
+        }
+        if (Math.abs(window.innerHeight - (constrained.top + constrained.height)) < config.snapThreshold) {
+            constrained.height = window.innerHeight - constrained.top;
+        }
+        
+        return constrained;
+    }
+    
+    function applyBounds(bounds) {
+        // Use transform for position (GPU accelerated)
+        card.style.left = Math.round(bounds.left) + 'px';
+        card.style.top = Math.round(bounds.top) + 'px';
+        // Ensure bottom is not constraining vertical positioning
+        card.style.bottom = 'auto';
+        card.style.width = Math.round(bounds.width) + 'px';
+        card.style.height = Math.round(bounds.height) + 'px';
+        // Mark as user-positioned after any manual resize/move via handles
+        markUserPositioned(card);
+    }
+    
+    function endResize() {
+        if (!isResizing) return;
+        
+        isResizing = false;
+        lastMouseEvent = null;
+        
+        // Cancel any pending animation frame
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+        
+    // Clean up state
+        resizeDirection = '';
+        activeHandle = null;
+        card.classList.remove('resizing');
+        card.style.willChange = '';
+    const iframe2 = card.querySelector('iframe');
+    if (iframe2) iframe2.style.pointerEvents = '';
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        
+        // Remove event listeners
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', endResize);
+        document.removeEventListener('mouseleave', endResize);
+    }
+    
+    // Handle window resize to update max constraints
+    window.addEventListener('resize', () => {
+        config.maxWidth = window.innerWidth;
+        config.maxHeight = window.innerHeight;
+    });
 }
 
 // ==================== FOCUS STACKING ====================
@@ -581,7 +856,16 @@ export function showCard(card, cardNumber) {
     card.style.display = 'flex';
     card.dataset.hidden = 'false';
     bringToFront(card);
-    centerCardSmooth(card);
+    // Preserve user placement; only center if never moved
+    if (!isUserPositioned(card)) {
+        centerCardSmooth(card);
+    } else {
+        // Clamp to viewport and use a subtle transition
+        const prev = card.style.transition;
+        card.style.transition = 'left 0.2s ease, top 0.2s ease';
+        clampCardToViewport(card);
+        setTimeout(() => { card.style.transition = prev; }, 220);
+    }
     updateCardsManager();
 }
 
@@ -640,7 +924,12 @@ export function routeMessageToCard(messageData, number) {
     if (card.style.display === 'none') {
         showCard(card, number);
     } else {
-        centerCardSmooth(card);
+        if (!isUserPositioned(card)) {
+            centerCardSmooth(card);
+        } else {
+            bringToFront(card);
+            clampCardToViewport(card);
+        }
         bringToFront(card);
     }
     
@@ -796,10 +1085,18 @@ function createCardPreview(card, number) {
     const isHidden = card.style.display === 'none' || card.dataset.hidden === 'true';
     if (isHidden) preview.classList.add('hidden');
 
-    // Get card color
-    const color = getColorForCard(number);
-    preview.style.setProperty('--sp-accent', color.accent);
-    preview.style.setProperty('--sp-accent-strong', color.strong);
+    // Get card color (respect per-card override and neutral)
+    const isNeutral = card.classList.contains('neutral');
+    if (!isNeutral) {
+        const themeName = card.dataset.colorTheme;
+        const color = COLOR_PALETTE.find(c => c.name === themeName) || getColorForCard(number);
+        preview.style.setProperty('--sp-accent', color.accent);
+        preview.style.setProperty('--sp-accent-strong', color.strong);
+    } else {
+        // Use subtle gray accent for preview when neutral
+        preview.style.setProperty('--sp-accent', 'rgba(148, 163, 184, 0.5)');
+        preview.style.setProperty('--sp-accent-strong', 'rgba(148, 163, 184, 0.7)');
+    }
 
     // Get card title
     const titleEl = card.querySelector('.floating-card-title');
