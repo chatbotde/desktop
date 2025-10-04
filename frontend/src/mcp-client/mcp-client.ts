@@ -154,7 +154,7 @@ export class MCPClient extends EventEmitter {
       });
 
       // Connect
-      await client.connect(transport);
+      await client.connect(transport as any);
 
       // Store client and transport
       this.clients.set(serverId, client);
@@ -230,7 +230,7 @@ export class MCPClient extends EventEmitter {
     return {
       name: serverInfo?.name || 'Unknown',
       version: serverInfo?.version || 'Unknown',
-      protocolVersion: serverInfo?.protocolVersion || '2024-11-05',
+      protocolVersion: (serverInfo?.protocolVersion as string) || '2024-11-05',
       capabilities: {
         tools: !!client.getServerCapabilities()?.tools,
         resources: !!client.getServerCapabilities()?.resources,
@@ -316,8 +316,8 @@ export class MCPClient extends EventEmitter {
     
     return await client.callTool({
       name: params.name,
-      arguments: params.arguments
-    });
+      arguments: params.arguments as any
+    }) as CallToolResult;
   }
 
   /**
@@ -405,7 +405,7 @@ export class MCPClient extends EventEmitter {
     
     return await client.getPrompt({
       name: params.name,
-      arguments: params.arguments
+      arguments: params.arguments as any
     });
   }
 

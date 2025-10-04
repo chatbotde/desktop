@@ -52,6 +52,8 @@ export {
   openaiProvider,
   AnthropicProvider,
   anthropicProvider,
+  OpenRouterProvider,
+  openrouterProvider,
 } from './providers';
 
 // Export registry

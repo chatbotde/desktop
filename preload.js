@@ -62,5 +62,17 @@ contextBridge.exposeInMainWorld("api", {
     getVersions: () => Promise.resolve({
         electron: process.versions.electron,
         node: process.versions.node
-    })
+    }),
+
+    // MCP APIs
+    mcpConnect: (config) => ipcRenderer.invoke('mcp:connect', config),
+    mcpSend: (serverId, message) => ipcRenderer.invoke('mcp:send', serverId, message),
+    mcpDisconnect: (serverId) => ipcRenderer.invoke('mcp:disconnect', serverId),
+    onMcpMessage: (serverId, callback) => {
+        const handler = (event, sid, message) => {
+            if (sid === serverId) callback(message);
+        };
+        ipcRenderer.on('mcp:message', handler);
+        return () => ipcRenderer.removeListener('mcp:message', handler);
+    }
 });

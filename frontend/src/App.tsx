@@ -2,12 +2,10 @@ import { useEffect } from 'react'
 import { Messages } from '@/components/Messages'
 import { 
   AppBackground, 
-  WelcomeScreen, 
-  ScreenCaptureModal
+  WelcomeScreen
 } from '@/components'
 import { 
   useChatManager, 
-  useWindowManager, 
   useScrollManager 
 } from '@/hooks'
 
@@ -19,40 +17,9 @@ import {
 function App() {
   // Use custom hooks for state management
   const chatManager = useChatManager()
-  const windowManager = useWindowManager()
   const scrollManager = useScrollManager()
-  
- 
 
   useEffect(() => {
-    // Load screen info on mount
-    if (window.api?.getScreenInfo) {
-      window.api.getScreenInfo().then(info => {
-        windowManager.setScreenInfo(info)
-      })
-    }
-
-    // Load initial content protection state
-    if (window.api?.getContentProtection) {
-      window.api.getContentProtection().then(isEnabled => {
-        windowManager.setContentProtection(isEnabled)
-      })
-    }
-
-    // Load initial theme state
-    if (window.api?.getTheme) {
-      window.api.getTheme().then(theme => {
-        windowManager.setCurrentTheme(theme as 'transparent' | 'black')
-      })
-    }
-
-    // Listen for theme changes from backend
-    if (window.api?.onThemeChanged) {
-      window.api.onThemeChanged((theme: string) => {
-        windowManager.setCurrentTheme(theme as 'transparent' | 'black')
-      })
-    }
-
     // Set up the message listener using the exposed API
     if (window.api?.onChatMessage) {
       console.log('Main Window: Setting up chat message listener');
@@ -75,7 +42,7 @@ function App() {
         }
       }
     };
-  }, [chatManager.handleChatMessage, windowManager])
+  }, [chatManager.handleChatMessage])
 
   // Listen for forwarded messages from Chat Input (floating Display 1 iframe)
   useEffect(() => {
@@ -93,14 +60,11 @@ function App() {
   
 
   return (
-    <div className={`h-screen w-full flex flex-col ${windowManager.currentTheme === 'black' ? 'bg-black' : 'bg-transparent'}`}>
-      {/* Test Button - Floating */}
-      
-
+    <div className="h-screen w-full flex flex-col bg-transparent">
       {/* Full Height Content Area */}
       <div className="relative flex-1 overflow-hidden">
-        {/* Background - Conditional based on theme */}
-        <AppBackground currentTheme={windowManager.currentTheme} />
+        {/* Background */}
+        <AppBackground />
 
         {/* Full Height Content Container */}
         <div className="relative z-10 h-full">
@@ -124,21 +88,9 @@ function App() {
 
           {/* Welcome Content (shown when no chat) */}
           {!chatManager.showChat && (
-            <WelcomeScreen currentTheme={windowManager.currentTheme} />
+            <WelcomeScreen />
           )}
         </div>
-
-        {/* Screen Capture Section - Overlay */}
-        <ScreenCaptureModal
-          isVisible={windowManager.showSettings}
-          onClose={() => windowManager.setShowSettings(false)}
-          isCapturing={windowManager.isCapturing}
-          desktopSources={windowManager.desktopSources}
-          selectedSource={windowManager.selectedSource}
-          onSourceSelect={windowManager.handleSourceSelect}
-          onRefreshSources={windowManager.handleGetDesktopSources}
-          screenInfo={windowManager.screenInfo}
-        />
       </div>
     </div>
   )

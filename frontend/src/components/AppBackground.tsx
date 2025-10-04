@@ -1,8 +1,4 @@
-interface AppBackgroundProps {
-  currentTheme: 'transparent' | 'black'
-}
-
-export function AppBackground({ currentTheme }: AppBackgroundProps) {
+export function AppBackground() {
   return (
     <>
       {/* No background - completely transparent */}

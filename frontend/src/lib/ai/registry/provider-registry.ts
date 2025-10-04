@@ -7,8 +7,9 @@ import type { IAIProvider, AIModel } from '../types';
 import { geminiProvider } from '../providers/gemini-provider';
 import { openaiProvider } from '../providers/openai-provider';
 import { anthropicProvider } from '../providers/anthropic-provider';
+import { openrouterProvider } from '../providers/openrouter-provider';
 
-export type ProviderName = 'gemini' | 'openai' | 'anthropic';
+export type ProviderName = 'gemini' | 'openai' | 'anthropic' | 'openrouter';
 
 /**
  * Provider Registry Class
@@ -37,6 +38,7 @@ export class ProviderRegistry {
     this.registerProvider('gemini', geminiProvider);
     this.registerProvider('openai', openaiProvider);
     this.registerProvider('anthropic', anthropicProvider);
+    this.registerProvider('openrouter', openrouterProvider);
   }
 
   /**

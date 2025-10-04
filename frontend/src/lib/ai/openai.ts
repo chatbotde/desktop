@@ -84,7 +84,7 @@ export async function createResponse<T = unknown>(
             max_output_tokens: params.max_output_tokens,
             stream: true,
         } as any);
-        return stream as AsyncIterable<StreamEvent>;
+        return stream as unknown as AsyncIterable<StreamEvent>;
     }
 
     const res = await client.responses.create({
@@ -114,7 +114,7 @@ export async function* streamText(
     } as any);
 
     // The SDK yields a sequence of events; we forward only text chunks when identifiable.
-    for await (const event of stream as AsyncIterable<any>) {
+    for await (const event of stream as unknown as AsyncIterable<any>) {
         // Heuristic extraction: different event types may carry text deltas.
         // Common cases: { type: 'response.output_text.delta', delta: '...' }
         // or structured blocks with { content: [{ type: 'output_text', text: '...' }] }

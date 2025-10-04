@@ -238,9 +238,9 @@
 
 /* Model Selection Dropdown Styles */
 #modelSelectDropdown {
-    min-width: 320px;
-    max-width: 380px;
-    max-height: 400px;
+    min-width: 240px;
+    max-width: 320px;
+    max-height: 320px;
     overflow-y: auto;
 }
 
@@ -330,6 +330,22 @@
 
 #modelSelectDropdown .dropdown-item.selected .model-name {
     color: var(--accent);
+}
+
+/* Minimal model list support */
+#modelSelectDropdown .dropdown-item-simple {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+#modelSelectDropdown .dropdown-item-simple:hover,
+#modelSelectDropdown .dropdown-item-simple[aria-selected="true"] {
+    background: rgba(255,255,255,0.08);
 }
 
 /* ==================== PLUS ACTIONS: ICON COLUMN ==================== */

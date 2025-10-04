@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import type { ChatMessage, MediaAttachment } from '@/components/Messages'
-import { windowResizeManager } from '@/lib/window-resize'
 import { sendMediaToGemini } from '@/lib/ai/gemini'
 import { handleModelChange as unifiedHandleModelChange } from '@/lib/ai/unified-ai-service'
 
@@ -55,13 +54,6 @@ export function useChatManager() {
     setShowChat(true)
     setIsTyping(true)
 
-    // Trigger window resize after content change
-    setTimeout(() => {
-      if (windowResizeManager) {
-        windowResizeManager.forceResize();
-      }
-    }, 100)
-
     try {
       // Send message with media to Gemini and handle streaming response
       const responseStream = await sendMediaToGemini(messageData.content || '', mediaAttachments);
@@ -93,13 +85,6 @@ export function useChatManager() {
         ));
       }
       
-      // Trigger window resize after content change
-      setTimeout(() => {
-        if (windowResizeManager) {
-          windowResizeManager.forceResize();
-        }
-      }, 100);
-      
     } catch (error) {
       console.error('Error getting response from Gemini:', error);
       setIsTyping(false);
@@ -113,13 +98,6 @@ export function useChatManager() {
       };
       
       setMessages(prev => [...prev, errorMessage]);
-      
-      // Trigger window resize after content change
-      setTimeout(() => {
-        if (windowResizeManager) {
-          windowResizeManager.forceResize();
-        }
-      }, 100);
     }
   }, [])
 

@@ -242,6 +242,20 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     return ipcRenderer.invoke('get-supported-formats');
   },
 
+  // ==================== AI MODEL METHODS ====================
+  
+  // Get all available AI models from all providers
+  getAllAIModels: () => {
+    console.log('Preload: Getting all AI models');
+    return ipcRenderer.invoke('get-all-ai-models');
+  },
+
+  // Notify model change to main process
+  notifyModelChange: (modelId, modelDetails) => {
+    console.log('Preload: Notifying model change', modelId);
+    ipcRenderer.send('ai-model-changed', { modelId, modelDetails });
+  },
+
   // Future extensibility - placeholder functions for additional features
   openAttachmentPicker: () => {
     console.log('Preload: Opening attachment picker (placeholder)');

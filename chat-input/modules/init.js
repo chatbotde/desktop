@@ -40,7 +40,7 @@ export async function boot() {
     await geometryController.init();
     initializeContentProtection();
     initializeTheme();
-    initializeModelSelection();
+    await initializeModelSelection(); // Now awaiting async function
     wireModelDropdownInteractions();
     wireDropdownButtons();
     initializeClickThrough();
@@ -81,8 +81,7 @@ export async function boot() {
         dom.plusButton.addEventListener('mouseup', () => { if (pressTimer) clearTimeout(pressTimer); });
         dom.plusButton.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
 
-        // Left-side trigger: model button opens the left dial quickly (can choose another trigger if needed)
-        dom.modelSelectButton?.addEventListener('click', (e) => { e.stopPropagation(); toggleDial(speedDialLeft); closeDial(speedDial); });
+    // Model button now exclusively opens the model selection dropdown (handled in dropdowns.js)
 
     document.addEventListener('click', (e) => {
             const insideAny = (el) => el && (el.contains(e.target));

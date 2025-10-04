@@ -48,7 +48,7 @@ export function AppWithMCP() {
   return (
     <div>
       {/* Your existing app content */}
-      <YourExistingApp />
+      <div>Your App Content Here</div>
       
       {/* Optional: MCP Status Indicator */}
       <MCPStatusIndicator />

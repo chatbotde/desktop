@@ -1,5 +1,6 @@
 const { app, ipcMain, globalShortcut } = require("electron");
 const path = require("path");
+const { spawn } = require("child_process");
 const { LaunchWindowManager } = require("./launch-window");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
@@ -16,6 +17,10 @@ let autoStartupManager = null;
 let chatInputWindow = null;
 let ipcHandlersRegistered = false;
 let chatInputIpcHandlersRegistered = false;
+
+// MCP Server Management
+const mcpProcesses = new Map();
+const mcpListeners = new Map();
 
 function createLaunchWindow() {
   if (!launchWindowManager) {
@@ -166,6 +171,101 @@ function createLaunchWindow() {
       return { error: 'Launch window manager not available', success: false };
     });
 
+    // MCP IPC Handlers
+    ipcMain.handle('mcp:connect', async (event, config) => {
+      const { serverId, command, args = [], env = {} } = config;
+      
+      try {
+        console.log(`Main: Connecting to MCP server ${serverId} with command: ${command} ${args.join(' ')}`);
+        
+        // Spawn the MCP server process
+        const childProcess = spawn(command, args, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env, ...env }
+        });
+
+        // Store the process
+        mcpProcesses.set(serverId, childProcess);
+
+        // Set up output listeners
+        childProcess.stdout.on('data', (data) => {
+          const sender = mcpListeners.get(serverId);
+          if (sender && !sender.isDestroyed()) {
+            sender.send('mcp:message', serverId, data.toString());
+          }
+        });
+
+        childProcess.stderr.on('data', (data) => {
+          console.error(`MCP ${serverId} stderr:`, data.toString());
+        });
+
+        childProcess.on('close', (code) => {
+          console.log(`MCP ${serverId} exited with code ${code}`);
+          mcpProcesses.delete(serverId);
+          mcpListeners.delete(serverId);
+        });
+
+        childProcess.on('error', (error) => {
+          console.error(`MCP ${serverId} error:`, error);
+        });
+
+        // Store the sender for this server
+        mcpListeners.set(serverId, event.sender);
+
+        return { success: true };
+      } catch (error) {
+        console.error(`Failed to start MCP ${serverId}:`, error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('mcp:send', async (event, serverId, message) => {
+      const process = mcpProcesses.get(serverId);
+      
+      if (!process) {
+        throw new Error(`MCP server ${serverId} not found`);
+      }
+
+      try {
+        const jsonMessage = JSON.stringify(message) + '\n';
+        process.stdin.write(jsonMessage);
+      } catch (error) {
+        console.error(`Failed to send to MCP ${serverId}:`, error);
+        throw error;
+      }
+    });
+
+    ipcMain.handle('mcp:disconnect', async (event, serverId) => {
+      const process = mcpProcesses.get(serverId);
+      
+      if (process) {
+        console.log(`Main: Disconnecting MCP server ${serverId}`);
+        process.kill();
+        mcpProcesses.delete(serverId);
+        mcpListeners.delete(serverId);
+      }
+    });
+
+    // AI Model IPC Handlers
+    ipcMain.handle('get-all-ai-models', async () => {
+      try {
+        // Use CommonJS export of models (single source of truth)
+        const modelConfig = require('./frontend/src/lib/ai/model-config-export.cjs');
+        const models = modelConfig.getAllModels();
+        console.log('Main: Retrieved', models.length, 'AI models from model-config');
+        return models;
+      } catch (error) {
+        console.error('Main: Error getting AI models:', error);
+        return [];
+      }
+    });
+
+    ipcMain.on('ai-model-changed', (event, { modelId, modelDetails }) => {
+      console.log('Main: AI model changed to', modelId, modelDetails);
+      // You can add additional logic here if needed
+      // For example, notifying other windows or saving preferences
+    });
+
     ipcHandlersRegistered = true;
     console.log('Main: IPC handlers registered');
   }
@@ -287,6 +387,14 @@ app.on("window-all-closed", () => {
 app.on("will-quit", () => {
   // Unregister all global shortcuts
   globalShortcut.unregisterAll();
+  
+  // Clean up MCP processes
+  mcpProcesses.forEach((process, serverId) => {
+    console.log(`Main: Killing MCP process ${serverId}`);
+    process.kill();
+  });
+  mcpProcesses.clear();
+  mcpListeners.clear();
   
   // Clean up when quitting
   if (chatInputWindow) {

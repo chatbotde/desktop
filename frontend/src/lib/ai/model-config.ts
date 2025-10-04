@@ -171,6 +171,40 @@ export const AVAILABLE_MODELS: AIModel[] = [
     contextWindow: 200000,
     isAvailable: false, // Not implemented yet
   },
+  {
+    id: 'deepseek/deepseek-chat-v3.1:free',
+    name: 'deepseek/deepseek-chat',
+    displayName: 'DeepSeek Chat',
+    provider: 'openrouter',
+    description: 'DeepSeek\'s most capable model for chat',
+    category: 'reasoning',
+    maxTokens: 8192,
+    inputCost: 0.27,
+    outputCost: 1.10,
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'images', 'advanced-reasoning', 'code-generation'],
+    contextWindow: 64000,
+    isAvailable: true, // Now implemented!
+  },
+  {
+    id: 'deepseek/deepseek-reasoner',
+    name: 'deepseek/deepseek-reasoner',
+    displayName: 'DeepSeek Reasoner',
+    provider: 'openrouter',
+    description: 'DeepSeek\'s advanced reasoning model',
+    category: 'reasoning',
+    maxTokens: 8192,
+    inputCost: 0.55,
+    outputCost: 2.19,
+    supportsImages: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'advanced-reasoning', 'code-generation'],
+    contextWindow: 64000,
+    isAvailable: true, // Now implemented!
+  },
 ];
 
 // Model configuration management
