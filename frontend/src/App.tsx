@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { Messages } from '@/components/Messages'
 import { 
   AppBackground, 
-  WelcomeScreen
+  WelcomeScreen,
+  ThreeBackground
 } from '@/components'
 import { 
   useChatManager, 
@@ -63,6 +64,9 @@ function App() {
     <div className="h-screen w-full flex flex-col bg-transparent">
       {/* Full Height Content Area */}
       <div className="relative flex-1 overflow-hidden">
+        {/* Three.js Background */}
+        <ThreeBackground />
+        
         {/* Background */}
         <AppBackground />
 

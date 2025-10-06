@@ -1,8 +1,9 @@
 /**
  * React Hook for managing a single MCP server connection
+ * Provides a focused interface for working with one server
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { mcpClient } from '../mcp-client';
 import type {
   MCPConnectionState,
@@ -15,56 +16,59 @@ import type {
 } from '../types';
 
 export interface UseMCPServerOptions {
-  serverId: string;
-  autoRefresh?: boolean;
-  refreshInterval?: number;
+  readonly serverId: string;
+  readonly autoRefresh?: boolean;
+  readonly refreshInterval?: number;
 }
 
 export interface UseMCPServerReturn {
   // Connection
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  connectionState: MCPConnectionState | undefined;
-  isConnected: boolean;
+  readonly connectionState: MCPConnectionState | undefined;
+  readonly isConnected: boolean;
   
   // Tools
-  tools: Tool[];
+  readonly tools: readonly Tool[];
   refreshTools: () => Promise<void>;
-  callTool: (name: string, args?: Record<string, unknown>) => Promise<CallToolResult>;
+  callTool: (name: string, args?: Readonly<Record<string, unknown>>) => Promise<CallToolResult>;
   
   // Resources
-  resources: Resource[];
+  readonly resources: readonly Resource[];
   refreshResources: () => Promise<void>;
   readResource: (uri: string) => Promise<ReadResourceResult>;
   
   // Prompts
-  prompts: Prompt[];
+  readonly prompts: readonly Prompt[];
   refreshPrompts: () => Promise<void>;
-  getPrompt: (name: string, args?: Record<string, unknown>) => Promise<GetPromptResult>;
+  getPrompt: (name: string, args?: Readonly<Record<string, unknown>>) => Promise<GetPromptResult>;
   
   // Loading states
-  loading: {
-    tools: boolean;
-    resources: boolean;
-    prompts: boolean;
+  readonly loading: {
+    readonly tools: boolean;
+    readonly resources: boolean;
+    readonly prompts: boolean;
   };
   
   // Errors
-  error: Error | null;
+  readonly error: Error | null;
 }
 
 /**
  * Hook for managing a single MCP server
+ * Automatically syncs with client state and provides convenient methods
  */
 export function useMCPServer({
   serverId,
   autoRefresh = false,
   refreshInterval = 30000
 }: UseMCPServerOptions): UseMCPServerReturn {
-  const [connectionState, setConnectionState] = useState<MCPConnectionState | undefined>();
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [connectionState, setConnectionState] = useState<MCPConnectionState | undefined>(
+    () => mcpClient.getConnectionState(serverId)
+  );
+  const [tools, setTools] = useState<readonly Tool[]>([]);
+  const [resources, setResources] = useState<readonly Resource[]>([]);
+  const [prompts, setPrompts] = useState<readonly Prompt[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState({
     tools: false,
@@ -73,71 +77,99 @@ export function useMCPServer({
   });
 
   const isConnected = connectionState?.status === 'connected';
+  const refreshIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Store listeners in ref to prevent recreation
+  const listenersRef = useRef<{
+    onConnectionStatus: (sid: string, state: MCPConnectionState) => void;
+    onToolsUpdated: (sid: string, serverTools: readonly Tool[]) => void;
+    onResourcesUpdated: (sid: string, serverResources: readonly Resource[]) => void;
+    onPromptsUpdated: (sid: string, serverPrompts: readonly Prompt[]) => void;
+    onError: (sid: string, err: Error) => void;
+  } | undefined>(undefined);
 
   // Listen for connection state changes
   useEffect(() => {
-    const handleConnectionStatus = (sid: string, state: MCPConnectionState) => {
-      if (sid === serverId) {
-        setConnectionState(state);
-        if (state.lastError) {
-          setError(state.lastError);
+    const listeners = {
+      onConnectionStatus: (sid: string, state: MCPConnectionState) => {
+        if (sid === serverId) {
+          setConnectionState(state);
+          if (state.lastError) {
+            setError(state.lastError);
+          }
+          // Clear error on successful connection
+          if (state.status === 'connected') {
+            setError(null);
+          }
+        }
+      },
+      onToolsUpdated: (sid: string, serverTools: readonly Tool[]) => {
+        if (sid === serverId) {
+          setTools(serverTools);
+        }
+      },
+      onResourcesUpdated: (sid: string, serverResources: readonly Resource[]) => {
+        if (sid === serverId) {
+          setResources(serverResources);
+        }
+      },
+      onPromptsUpdated: (sid: string, serverPrompts: readonly Prompt[]) => {
+        if (sid === serverId) {
+          setPrompts(serverPrompts);
+        }
+      },
+      onError: (sid: string, err: Error) => {
+        if (sid === serverId) {
+          setError(err);
         }
       }
     };
 
-    const handleToolsUpdated = (sid: string, serverTools: Tool[]) => {
-      if (sid === serverId) {
-        setTools(serverTools);
-      }
-    };
+    listenersRef.current = listeners;
 
-    const handleResourcesUpdated = (sid: string, serverResources: Resource[]) => {
-      if (sid === serverId) {
-        setResources(serverResources);
-      }
-    };
-
-    const handlePromptsUpdated = (sid: string, serverPrompts: Prompt[]) => {
-      if (sid === serverId) {
-        setPrompts(serverPrompts);
-      }
-    };
-
-    const handleError = (sid: string, err: Error) => {
-      if (sid === serverId) {
-        setError(err);
-      }
-    };
-
-    mcpClient.on('connection:status', handleConnectionStatus);
-    mcpClient.on('tools:updated', handleToolsUpdated);
-    mcpClient.on('resources:updated', handleResourcesUpdated);
-    mcpClient.on('prompts:updated', handlePromptsUpdated);
-    mcpClient.on('connection:error', handleError);
-
-    // Initialize state
-    setConnectionState(mcpClient.getConnectionState(serverId));
+    mcpClient.on('connection:status', listeners.onConnectionStatus);
+    mcpClient.on('tools:updated', listeners.onToolsUpdated);
+    mcpClient.on('resources:updated', listeners.onResourcesUpdated);
+    mcpClient.on('prompts:updated', listeners.onPromptsUpdated);
+    mcpClient.on('connection:error', listeners.onError);
 
     return () => {
-      mcpClient.off('connection:status', handleConnectionStatus);
-      mcpClient.off('tools:updated', handleToolsUpdated);
-      mcpClient.off('resources:updated', handleResourcesUpdated);
-      mcpClient.off('prompts:updated', handlePromptsUpdated);
-      mcpClient.off('connection:error', handleError);
+      const currentListeners = listenersRef.current;
+      if (currentListeners) {
+        mcpClient.off('connection:status', currentListeners.onConnectionStatus);
+        mcpClient.off('tools:updated', currentListeners.onToolsUpdated);
+        mcpClient.off('resources:updated', currentListeners.onResourcesUpdated);
+        mcpClient.off('prompts:updated', currentListeners.onPromptsUpdated);
+        mcpClient.off('connection:error', currentListeners.onError);
+      }
     };
   }, [serverId]);
 
   // Auto-refresh capabilities
   useEffect(() => {
-    if (!autoRefresh || !isConnected) return;
+    if (!autoRefresh || !isConnected) {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = undefined;
+      }
+      return;
+    }
 
-    const interval = setInterval(() => {
-      refreshTools();
-      refreshResources();
-      refreshPrompts();
-    }, refreshInterval);
+    const refresh = () => {
+      void Promise.all([
+        refreshTools(),
+        refreshResources(),
+        refreshPrompts()
+      ]).catch(console.error);
+    };
 
-    return () => clearInterval(interval);
+    refreshIntervalRef.current = setInterval(refresh, refreshInterval);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
   }, [autoRefresh, isConnected, refreshInterval]);
 
   // Connection methods
@@ -154,10 +186,13 @@ export function useMCPServer({
 
   const disconnect = useCallback(async () => {
     await mcpClient.disconnect(serverId);
+    setError(null);
   }, [serverId]);
 
   // Tool methods
   const refreshTools = useCallback(async () => {
+    if (!mcpClient.isConnected(serverId)) return;
+    
     setLoading(prev => ({ ...prev, tools: true }));
     try {
       const serverTools = await mcpClient.getTools(serverId, true);
@@ -166,6 +201,7 @@ export function useMCPServer({
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
+      throw error;
     } finally {
       setLoading(prev => ({ ...prev, tools: false }));
     }
@@ -173,7 +209,7 @@ export function useMCPServer({
 
   const callTool = useCallback(async (
     name: string,
-    args?: Record<string, unknown>
+    args?: Readonly<Record<string, unknown>>
   ): Promise<CallToolResult> => {
     try {
       const result = await mcpClient.callTool({
@@ -192,6 +228,8 @@ export function useMCPServer({
 
   // Resource methods
   const refreshResources = useCallback(async () => {
+    if (!mcpClient.isConnected(serverId)) return;
+    
     setLoading(prev => ({ ...prev, resources: true }));
     try {
       const serverResources = await mcpClient.getResources(serverId, true);
@@ -200,6 +238,7 @@ export function useMCPServer({
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
+      throw error;
     } finally {
       setLoading(prev => ({ ...prev, resources: false }));
     }
@@ -219,6 +258,8 @@ export function useMCPServer({
 
   // Prompt methods
   const refreshPrompts = useCallback(async () => {
+    if (!mcpClient.isConnected(serverId)) return;
+    
     setLoading(prev => ({ ...prev, prompts: true }));
     try {
       const serverPrompts = await mcpClient.getPrompts(serverId, true);
@@ -227,6 +268,7 @@ export function useMCPServer({
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
+      throw error;
     } finally {
       setLoading(prev => ({ ...prev, prompts: false }));
     }
@@ -234,7 +276,7 @@ export function useMCPServer({
 
   const getPrompt = useCallback(async (
     name: string,
-    args?: Record<string, unknown>
+    args?: Readonly<Record<string, unknown>>
   ): Promise<GetPromptResult> => {
     try {
       const result = await mcpClient.getPrompt({

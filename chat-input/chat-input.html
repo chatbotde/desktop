@@ -6,63 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
     <link rel="stylesheet" href="css/main.css">
-    <style>
-        /* Glassmorphism for Model Select dropdown */
-        #modelSelectDropdown.glass {
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            background: rgba(20, 20, 20, 0.45);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: opacity 120ms ease, transform 120ms ease;
-        }
-        /* Slightly more compact width for a clean, simple look */
-        #modelSelectDropdown {
-            min-width: 240px !important;
-            max-width: 280px !important;
-        }
-        /* Simple list variant */
-        #modelSelectDropdown .dropdown-header {
-            background: transparent;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 8px 10px;
-        }
-        #modelSelectDropdown .dropdown-title { font-weight: 500; opacity: 0.9; }
-        #modelSelectDropdown .dropdown-content.simple-list {
-            max-height: 240px;
-            overflow: auto;
-            padding: 6px;
-            background: transparent; /* remove scroll bg */
-        }
-        /* Minimal item style: only model name */
-        #modelSelectDropdown .dropdown-item-simple {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 8px 10px;
-            border: none;
-            border-radius: 8px;
-            background: transparent;
-            color: inherit;
-            font-size: 13px;
-            line-height: 1.2;
-            cursor: pointer;
-        }
-        #modelSelectDropdown .dropdown-item-simple:hover,
-        #modelSelectDropdown .dropdown-item-simple[aria-selected="true"] {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        /* Clean, subtle scrollbar without track background */
-        #modelSelectDropdown .dropdown-content.simple-list::-webkit-scrollbar { width: 8px; height: 8px; }
-        #modelSelectDropdown .dropdown-content.simple-list::-webkit-scrollbar-track { background: transparent; }
-        #modelSelectDropdown .dropdown-content.simple-list::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.18);
-            border-radius: 8px;
-        }
-        #modelSelectDropdown .dropdown-content.simple-list { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.22) transparent; }
-    </style>
     
 </head>
 
@@ -596,10 +539,10 @@
         </div>
     </div>
 
-    <!-- Model Selection dropdown (simplified, glass, auto-positioned above the button) -->
-    <div id="modelSelectDropdown" class="dropdown-menu glass simple" role="menu" aria-hidden="true">
+    <!-- Model Selection dropdown -->
+    <div id="modelSelectDropdown" class="dropdown-menu" role="menu" aria-hidden="true">
         <div class="dropdown-header">
-            <span class="dropdown-title">Model</span>
+            <span class="dropdown-title">Select AI Model</span>
             <button class="dropdown-close-btn" id="closeModelSelectDropdown" aria-label="Close dropdown" title="Close">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 6 6 18"/>
@@ -607,8 +550,109 @@
                 </svg>
             </button>
         </div>
-        <div class="dropdown-content simple-list" role="none">
-            <!-- Items will be populated dynamically to avoid hardcoded markup -->
+        <div class="dropdown-content" role="none">
+            <div class="dropdown-separator"></div>
+            
+            <!-- Google Models -->
+            <div class="dropdown-label">Google Gemini</div>
+            <button class="dropdown-item" data-model="gemini-2.0-flash-exp" role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+                </svg>
+                <div>
+                    <div class="model-name">Gemini 2.0 Flash (Experimental)</div>
+                    <div class="model-desc">Latest experimental model with improved performance</div>
+                    <div class="model-features">
+                        <span class="feature-badge">📷 Images</span>
+                        <span class="feature-badge">🎵 Audio</span>
+                        <span class="feature-badge">🎬 Video</span>
+                        <span class="cost-badge">$0.075/1K tokens</span>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="dropdown-item" data-model="gemini-2.5-flash" role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2" />
+                </svg>
+                <div>
+                    <div class="model-name">Gemini 2.5 Flash</div>
+                    <div class="model-desc">Advanced flash model with enhanced capabilities</div>
+                    <div class="model-features">
+                        <span class="feature-badge">📷 Images</span>
+                        <span class="feature-badge">🎵 Audio</span>
+                        <span class="feature-badge">🎬 Video</span>
+                        <span class="cost-badge">$0.075/1K tokens</span>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="dropdown-item" data-model="gemini-1.5-flash" role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <div>
+                    <div class="model-name">Gemini 1.5 Flash</div>
+                    <div class="model-desc">Fast and efficient multimodal model</div>
+                    <div class="model-features">
+                        <span class="feature-badge">📷 Images</span>
+                        <span class="feature-badge">🎵 Audio</span>
+                        <span class="feature-badge">🎬 Video</span>
+                        <span class="cost-badge">$0.075/1K tokens</span>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="dropdown-item" data-model="gemini-1.5-pro" role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/>
+                </svg>
+                <div>
+                    <div class="model-name">Gemini 1.5 Pro</div>
+                    <div class="model-desc">Most capable multimodal model for complex reasoning</div>
+                    <div class="model-features">
+                        <span class="feature-badge">📷 Images</span>
+                        <span class="feature-badge">🎵 Audio</span>
+                        <span class="feature-badge">🎬 Video</span>
+                        <span class="cost-badge">$3.50/1K tokens</span>
+                    </div>
+                </div>
+            </button>
+            
+            <div class="dropdown-separator"></div>
+            
+            <!-- Future Models (Coming Soon) -->
+            <div class="dropdown-label">Coming Soon</div>
+            <button class="dropdown-item" data-model="gpt-4o" disabled role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <div>
+                    <div class="model-name">GPT-4o (OpenAI)</div>
+                    <div class="model-desc">Coming soon - OpenAI's multimodal model</div>
+                    <div class="model-features">
+                        <span class="feature-badge disabled">📷 Images</span>
+                        <span class="feature-badge disabled">🎵 Audio</span>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="dropdown-item" data-model="claude-3-5-sonnet" disabled role="menuitem" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <div>
+                    <div class="model-name">Claude 3.5 Sonnet (Anthropic)</div>
+                    <div class="model-desc">Coming soon - Anthropic's reasoning model</div>
+                    <div class="model-features">
+                        <span class="feature-badge disabled">📷 Images</span>
+                        <span class="feature-badge disabled">🧠 Reasoning</span>
+                    </div>
+                </div>
+            </button>
         </div>
     </div>
 

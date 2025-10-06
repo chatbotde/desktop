@@ -86,8 +86,15 @@ export function renderImageAttachment(attachment) {
     const attachmentElement = document.createElement('div');
     attachmentElement.className = 'attachment-item';
     attachmentElement.setAttribute('data-attachment-id', attachment.id);
-    attachmentElement.style.opacity = '0';
-    attachmentElement.style.transform = 'scale(0.8)';
+    
+    // Skip animation for screenshot captures
+    const skipAnimation = attachment.source === 'screenshot';
+    
+    if (!skipAnimation) {
+        attachmentElement.style.opacity = '0';
+        attachmentElement.style.transform = 'scale(0.8)';
+    }
+    
     attachmentElement.innerHTML = `
         <img src="${attachment.data}" alt="${attachment.name}" class="attachment-preview" />
         <div class="attachment-info">${attachment.name}</div>
@@ -99,11 +106,16 @@ export function renderImageAttachment(attachment) {
         </button>
     `;
     dom.attachmentsGrid.appendChild(attachmentElement);
-    requestAnimationFrame(() => {
-        attachmentElement.style.opacity = '1';
-        attachmentElement.style.transform = 'scale(1)';
+    
+    if (!skipAnimation) {
+        requestAnimationFrame(() => {
+            attachmentElement.style.opacity = '1';
+            attachmentElement.style.transform = 'scale(1)';
+            positionAttachmentsContainer();
+        });
+    } else {
         positionAttachmentsContainer();
-    });
+    }
 }
 
 export function showAttachmentLoading() {

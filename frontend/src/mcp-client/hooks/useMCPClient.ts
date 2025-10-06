@@ -1,8 +1,9 @@
 /**
  * React Hook for using MCP Client
+ * Provides a clean interface for managing multiple MCP server connections
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { mcpClient } from '../mcp-client';
 import type {
   MCPConnectionState,
@@ -26,77 +27,87 @@ export interface UseMCPClientReturn {
   disconnect: (serverId: string) => Promise<void>;
   
   // Connection state
-  connectionStates: Map<string, MCPConnectionState>;
+  readonly connectionStates: ReadonlyMap<string, MCPConnectionState>;
   isConnected: (serverId: string) => boolean;
   getConnectionState: (serverId: string) => MCPConnectionState | undefined;
   
   // Tools
-  getTools: (serverId: string, refresh?: boolean) => Promise<Tool[]>;
-  getAllTools: (refresh?: boolean) => Promise<Map<string, Tool[]>>;
+  getTools: (serverId: string, refresh?: boolean) => Promise<readonly Tool[]>;
+  getAllTools: (refresh?: boolean) => Promise<ReadonlyMap<string, readonly Tool[]>>;
   callTool: (params: ToolCallParams) => Promise<CallToolResult>;
-  tools: Map<string, Tool[]>;
+  readonly tools: ReadonlyMap<string, readonly Tool[]>;
   
   // Resources
-  getResources: (serverId: string, refresh?: boolean) => Promise<Resource[]>;
-  getAllResources: (refresh?: boolean) => Promise<Map<string, Resource[]>>;
+  getResources: (serverId: string, refresh?: boolean) => Promise<readonly Resource[]>;
+  getAllResources: (refresh?: boolean) => Promise<ReadonlyMap<string, readonly Resource[]>>;
   readResource: (params: ResourceReadParams) => Promise<ReadResourceResult>;
-  resources: Map<string, Resource[]>;
+  readonly resources: ReadonlyMap<string, readonly Resource[]>;
   
   // Prompts
-  getPrompts: (serverId: string, refresh?: boolean) => Promise<Prompt[]>;
-  getAllPrompts: (refresh?: boolean) => Promise<Map<string, Prompt[]>>;
+  getPrompts: (serverId: string, refresh?: boolean) => Promise<readonly Prompt[]>;
+  getAllPrompts: (refresh?: boolean) => Promise<ReadonlyMap<string, readonly Prompt[]>>;
   getPrompt: (params: PromptGetParams) => Promise<GetPromptResult>;
-  prompts: Map<string, Prompt[]>;
+  readonly prompts: ReadonlyMap<string, readonly Prompt[]>;
   
   // Server info
-  servers: Map<string, MCPServerConfig>;
+  readonly servers: ReadonlyMap<string, MCPServerConfig>;
 }
 
 /**
  * Main hook for using MCP Client in React components
+ * Manages state synchronization with the MCP client instance
  */
 export function useMCPClient(): UseMCPClientReturn {
-  const [connectionStates, setConnectionStates] = useState<Map<string, MCPConnectionState>>(
-    new Map()
+  const [connectionStates, setConnectionStates] = useState<ReadonlyMap<string, MCPConnectionState>>(
+    () => mcpClient.getAllConnectionStates()
   );
-  const [tools, setTools] = useState<Map<string, Tool[]>>(new Map());
-  const [resources, setResources] = useState<Map<string, Resource[]>>(new Map());
-  const [prompts, setPrompts] = useState<Map<string, Prompt[]>>(new Map());
-  const [servers, setServers] = useState<Map<string, MCPServerConfig>>(
-    mcpClient.getServerConfigs()
+  const [tools, setTools] = useState<ReadonlyMap<string, readonly Tool[]>>(new Map());
+  const [resources, setResources] = useState<ReadonlyMap<string, readonly Resource[]>>(new Map());
+  const [prompts, setPrompts] = useState<ReadonlyMap<string, readonly Prompt[]>>(new Map());
+  const [servers, setServers] = useState<ReadonlyMap<string, MCPServerConfig>>(
+    () => mcpClient.getServerConfigs()
   );
+
+  // Use refs to store listeners to avoid recreating them
+  const listenersRef = useRef<{
+    onConnectionStatus: (serverId: string, state: MCPConnectionState) => void;
+    onToolsUpdated: (serverId: string, serverTools: readonly Tool[]) => void;
+    onResourcesUpdated: (serverId: string, serverResources: readonly Resource[]) => void;
+    onPromptsUpdated: (serverId: string, serverPrompts: readonly Prompt[]) => void;
+  } | undefined>(undefined);
 
   // Listen for connection state changes
   useEffect(() => {
-    const handleConnectionStatus = (serverId: string, state: MCPConnectionState) => {
-      setConnectionStates(prev => new Map(prev).set(serverId, state));
+    const listeners = {
+      onConnectionStatus: (serverId: string, state: MCPConnectionState) => {
+        setConnectionStates(prev => new Map(prev).set(serverId, state));
+      },
+      onToolsUpdated: (serverId: string, serverTools: readonly Tool[]) => {
+        setTools(prev => new Map(prev).set(serverId, serverTools));
+      },
+      onResourcesUpdated: (serverId: string, serverResources: readonly Resource[]) => {
+        setResources(prev => new Map(prev).set(serverId, serverResources));
+      },
+      onPromptsUpdated: (serverId: string, serverPrompts: readonly Prompt[]) => {
+        setPrompts(prev => new Map(prev).set(serverId, serverPrompts));
+      }
     };
 
-    const handleToolsUpdated = (serverId: string, serverTools: Tool[]) => {
-      setTools(prev => new Map(prev).set(serverId, serverTools));
-    };
+    listenersRef.current = listeners;
 
-    const handleResourcesUpdated = (serverId: string, serverResources: Resource[]) => {
-      setResources(prev => new Map(prev).set(serverId, serverResources));
-    };
-
-    const handlePromptsUpdated = (serverId: string, serverPrompts: Prompt[]) => {
-      setPrompts(prev => new Map(prev).set(serverId, serverPrompts));
-    };
-
-    mcpClient.on('connection:status', handleConnectionStatus);
-    mcpClient.on('tools:updated', handleToolsUpdated);
-    mcpClient.on('resources:updated', handleResourcesUpdated);
-    mcpClient.on('prompts:updated', handlePromptsUpdated);
-
-    // Initialize state from current client state
-    setConnectionStates(mcpClient.getAllConnectionStates());
+    mcpClient.on('connection:status', listeners.onConnectionStatus);
+    mcpClient.on('tools:updated', listeners.onToolsUpdated);
+    mcpClient.on('resources:updated', listeners.onResourcesUpdated);
+    mcpClient.on('prompts:updated', listeners.onPromptsUpdated);
 
     return () => {
-      mcpClient.off('connection:status', handleConnectionStatus);
-      mcpClient.off('tools:updated', handleToolsUpdated);
-      mcpClient.off('resources:updated', handleResourcesUpdated);
-      mcpClient.off('prompts:updated', handlePromptsUpdated);
+      const currentListeners = listenersRef.current;
+      if (currentListeners) {
+        mcpClient.off('connection:status', currentListeners.onConnectionStatus);
+        mcpClient.off('tools:updated', currentListeners.onToolsUpdated);
+        mcpClient.off('resources:updated', currentListeners.onResourcesUpdated);
+        mcpClient.off('prompts:updated', currentListeners.onPromptsUpdated);
+      }
     };
   }, []);
 
@@ -109,6 +120,28 @@ export function useMCPClient(): UseMCPClientReturn {
   const removeServer = useCallback(async (serverId: string) => {
     await mcpClient.removeServer(serverId);
     setServers(mcpClient.getServerConfigs());
+    
+    // Clean up state for removed server
+    setConnectionStates(prev => {
+      const next = new Map(prev);
+      next.delete(serverId);
+      return next;
+    });
+    setTools(prev => {
+      const next = new Map(prev);
+      next.delete(serverId);
+      return next;
+    });
+    setResources(prev => {
+      const next = new Map(prev);
+      next.delete(serverId);
+      return next;
+    });
+    setPrompts(prev => {
+      const next = new Map(prev);
+      next.delete(serverId);
+      return next;
+    });
   }, []);
 
   const connect = useCallback(async (serverId: string) => {

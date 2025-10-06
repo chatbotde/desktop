@@ -19,14 +19,13 @@ export async function handleImageUpload() {
 
 export async function handleDesktopCapture() {
     try {
-        showAttachmentLoading();
+        // Skip loading animation for screenshots
         const result = await window.CaptureAPI.quickScreenshot();
-        hideAttachmentLoading();
         if (result.success && result.screenshot) {
             addImageAttachment({ name: result.screenshot.name, type: result.screenshot.type, size: result.screenshot.size, data: result.screenshot.data, source: 'screenshot' });
         } else { console.error('Failed to take screenshot:', result.error); }
     } catch (error) {
-        hideAttachmentLoading(); console.error('Error in desktop capture:', error);
+        console.error('Error in desktop capture:', error);
     }
 }
 

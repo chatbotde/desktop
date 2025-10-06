@@ -1,16 +1,16 @@
 # MCP Client
 
-A comprehensive Model Context Protocol (MCP) client for React + Electron applications. Supports connecting to both local (stdio) and online (SSE/StreamableHTTP) MCP servers.
+A comprehensive, type-safe Model Context Protocol (MCP) client for React + Electron applications. Supports connecting to both local (stdio) and online (SSE/StreamableHTTP) MCP servers.
 
 ## Features
 
 - ✅ **Multiple Transport Types**: stdio, SSE, and Streamable HTTP
 - ✅ **React Hooks**: Easy integration with React components
-- ✅ **TypeScript**: Fully typed for excellent DX
+- ✅ **TypeScript**: Fully typed with immutable data structures
 - ✅ **Multiple Servers**: Connect to multiple MCP servers simultaneously
-- ✅ **Auto-reconnect**: Configurable retry logic
-- ✅ **Caching**: Intelligent caching of tools, resources, and prompts
-- ✅ **Event-driven**: Real-time updates via event emitters
+- ✅ **Auto-retry**: Configurable retry with `maxRetries` and `retryDelay`
+- ✅ **Intelligent Caching**: Automatic caching of tools, resources, and prompts
+- ✅ **Event-driven**: Real-time updates via type-safe event emitters
 - ✅ **Electron-ready**: Built for Electron apps with IPC support
 
 ## Installation
@@ -111,7 +111,10 @@ mcp.addServer({
   env: { 
     NODE_ENV: 'production' 
   },
-  autoConnect: true
+  autoConnect: true,
+  retryOnFailure: true,
+  maxRetries: 3,
+  retryDelay: 2000
 });
 ```
 
@@ -230,6 +233,9 @@ import { mcpClient } from '@/mcp-client';
 // Listen for connection changes
 mcpClient.on('connection:status', (serverId, state) => {
   console.log(`Server ${serverId}:`, state.status);
+  if (state.status === 'reconnecting') {
+    console.log(`Retry attempt ${state.retryCount}`);
+  }
 });
 
 // Listen for errors
@@ -237,19 +243,17 @@ mcpClient.on('connection:error', (serverId, error) => {
   console.error(`Server ${serverId} error:`, error);
 });
 
-// Listen for tool updates
+// Listen for updates
 mcpClient.on('tools:updated', (serverId, tools) => {
-  console.log(`Tools updated for ${serverId}:`, tools);
+  console.log(`Tools updated for ${serverId}`);
 });
 
-// Listen for resource updates
 mcpClient.on('resources:updated', (serverId, resources) => {
-  console.log(`Resources updated for ${serverId}:`, resources);
+  console.log(`Resources updated for ${serverId}`);
 });
 
-// Listen for prompt updates
 mcpClient.on('prompts:updated', (serverId, prompts) => {
-  console.log(`Prompts updated for ${serverId}:`, prompts);
+  console.log(`Prompts updated for ${serverId}`);
 });
 ```
 

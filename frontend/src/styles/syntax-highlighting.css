@@ -96,38 +96,6 @@
   color: #ff79c6;
 }
 
-/* Math styling */
-.katex {
-  font-size: 1.1em;
-  color: #f8f8f2;
-}
-
-.katex-display {
-  margin: 1.5em 0;
-  text-align: center;
-}
-
-.katex-display .katex {
-  font-size: 1.2em;
-}
-
-/* Math block styling */
-.math-block {
-  background: rgba(68, 71, 90, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  border: 1px solid rgba(68, 71, 90, 0.5);
-}
-
-/* Inline math styling */
-.math-inline {
-  padding: 0.2em 0.4em;
-  background: rgba(68, 71, 90, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(68, 71, 90, 0.3);
-}
-
 /* Enhanced code block styling */
 .code-block-enhanced {
   position: relative;
@@ -222,38 +190,6 @@
   max-height: 32rem;
 }
 
-/* Math styling */
-.katex {
-  font-size: 1.1em;
-  color: #f8f8f2;
-}
-
-.katex-display {
-  margin: 1.5em 0;
-  text-align: center;
-}
-
-.katex-display .katex {
-  font-size: 1.2em;
-}
-
-/* Math block styling */
-.math-block {
-  background: rgba(68, 71, 90, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  border: 1px solid rgba(68, 71, 90, 0.5);
-}
-
-/* Inline math styling */
-.math-inline {
-  padding: 0.2em 0.4em;
-  background: rgba(68, 71, 90, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(68, 71, 90, 0.3);
-}
-
 /* Improved markdown styling */
 .markdown-content h1 {
   color: #f8fafc;
@@ -322,23 +258,7 @@
   color: #93c5fd;
 }
 
-/* Animation for message appearance */
-@keyframes messageAppear {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-appear {
-  animation: messageAppear 0.3s ease-out;
-}
-
-/* Scrollbar styling */
+/* Scrollbar styling for code blocks */
 .code-content::-webkit-scrollbar,
 .terminal-content::-webkit-scrollbar,
 .json-content::-webkit-scrollbar {

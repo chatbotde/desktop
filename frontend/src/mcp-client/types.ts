@@ -14,78 +14,91 @@ import type {
 export type { Tool, Resource, Prompt, CallToolResult, ReadResourceResult, GetPromptResult };
 
 export type TransportType = 'stdio' | 'sse' | 'streamable-http';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
 
 export interface MCPServerConfig {
-  id: string;
-  name: string;
-  description?: string;
-  type: TransportType;
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly type: TransportType;
   
   // For stdio (local) servers
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
+  readonly command?: string;
+  readonly args?: readonly string[];
+  readonly env?: Readonly<Record<string, string>>;
   
   // For SSE/HTTP servers
-  url?: string;
-  headers?: Record<string, string>;
+  readonly url?: string;
+  readonly headers?: Readonly<Record<string, string>>;
   
   // Connection settings
-  autoConnect?: boolean;
-  retryOnFailure?: boolean;
-  maxRetries?: number;
+  readonly autoConnect?: boolean;
+  readonly retryOnFailure?: boolean;
+  readonly maxRetries?: number;
+  readonly retryDelay?: number; // ms between retries
 }
 
 export interface MCPConnectionState {
-  serverId: string;
-  status: 'disconnected' | 'connecting' | 'connected' | 'error';
-  error?: string;
-  connectedAt?: Date;
-  lastError?: Error;
+  readonly serverId: string;
+  readonly status: ConnectionStatus;
+  readonly error?: string;
+  readonly connectedAt?: Date;
+  readonly lastError?: Error;
+  readonly retryCount?: number;
 }
 
 export interface MCPServerCapabilities {
-  tools?: boolean;
-  resources?: boolean;
-  prompts?: boolean;
-  sampling?: boolean;
-  logging?: boolean;
-  elicitation?: boolean;
+  readonly tools?: boolean;
+  readonly resources?: boolean;
+  readonly prompts?: boolean;
+  readonly sampling?: boolean;
+  readonly logging?: boolean;
+  readonly elicitation?: boolean;
 }
 
 export interface MCPServerInfo {
-  name: string;
-  version: string;
-  capabilities: MCPServerCapabilities;
-  protocolVersion: string;
+  readonly name: string;
+  readonly version: string;
+  readonly capabilities: MCPServerCapabilities;
+  readonly protocolVersion: string;
 }
 
 export interface ToolCallParams {
-  serverId: string;
-  name: string;
-  arguments?: Record<string, unknown>;
+  readonly serverId: string;
+  readonly name: string;
+  readonly arguments?: Readonly<Record<string, unknown>>;
 }
 
 export interface ResourceReadParams {
-  serverId: string;
-  uri: string;
+  readonly serverId: string;
+  readonly uri: string;
 }
 
 export interface PromptGetParams {
-  serverId: string;
-  name: string;
-  arguments?: Record<string, unknown>;
+  readonly serverId: string;
+  readonly name: string;
+  readonly arguments?: Readonly<Record<string, unknown>>;
 }
 
 export interface MCPClientEvents {
   'connection:status': (serverId: string, state: MCPConnectionState) => void;
   'connection:error': (serverId: string, error: Error) => void;
-  'tools:updated': (serverId: string, tools: Tool[]) => void;
-  'resources:updated': (serverId: string, resources: Resource[]) => void;
-  'prompts:updated': (serverId: string, prompts: Prompt[]) => void;
-  'server:notification': (serverId: string, notification: any) => void;
+  'tools:updated': (serverId: string, tools: readonly Tool[]) => void;
+  'resources:updated': (serverId: string, resources: readonly Resource[]) => void;
+  'prompts:updated': (serverId: string, prompts: readonly Prompt[]) => void;
 }
 
 export type EventListener<T extends keyof MCPClientEvents> = MCPClientEvents[T];
+
+// Transport interface for better abstraction
+export interface MCPTransport {
+  start(): Promise<void>;
+  send(message: unknown): Promise<void>;
+  close(): Promise<void>;
+  isConnected(): boolean;
+  on(event: string, listener: (...args: unknown[]) => void): void;
+  off(event: string, listener: (...args: unknown[]) => void): void;
+  removeAllListeners(): void;
+}
 
 

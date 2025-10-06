@@ -284,13 +284,75 @@ class ScreenshotCapture extends CaptureBase {
     }
 
     /**
-     * Quick screenshot capture (convenience method)
+     * Quick screenshot capture (convenience method) - optimized for speed
      * @returns {Promise<Object>} Screenshot data
      */
     async quickCapture() {
-        return this.captureScreen({
-            name: `quick-screenshot-${Date.now()}.png`
-        });
+        try {
+            // Get primary screen source with reasonable thumbnail size for quick capture
+            const sources = await this.getDesktopSources({
+                types: ['screen'],
+                thumbnailSize: { width: 1920, height: 1080 }
+            });
+
+            if (sources.length === 0) {
+                throw new Error('No screen sources available');
+            }
+
+            const source = sources[0]; // Primary screen
+
+            if (!source.thumbnail) {
+                throw new Error('Failed to capture screenshot: no thumbnail available');
+            }
+
+            // Use the available thumbnail directly (much faster than getting high-res again)
+            let screenshotBuffer;
+
+            if (source.thumbnail.toPNG && typeof source.thumbnail.toPNG === 'function') {
+                screenshotBuffer = source.thumbnail.toPNG();
+            } else if (source.thumbnail.toDataURL && typeof source.thumbnail.toDataURL === 'function') {
+                const dataUrl = source.thumbnail.toDataURL();
+                screenshotBuffer = Buffer.from(dataUrl.split(',')[1], 'base64');
+            } else if (Buffer.isBuffer(source.thumbnail)) {
+                screenshotBuffer = source.thumbnail;
+            } else {
+                // Simple fallback
+                throw new Error('Unsupported thumbnail format for quick capture');
+            }
+
+            // Create screenshot file object
+            const fileName = `quick-screenshot-${Date.now()}.png`;
+            const base64Data = screenshotBuffer.toString('base64');
+            const dataUrl = `data:image/png;base64,${base64Data}`;
+
+            return {
+                success: true,
+                screenshot: {
+                    name: fileName,
+                    type: 'image/png',
+                    size: screenshotBuffer.length,
+                    data: dataUrl,
+                    source: 'screenshot',
+                    dimensions: {
+                        width: source.thumbnail.getSize().width,
+                        height: source.thumbnail.getSize().height
+                    },
+                    timestamp: Date.now(),
+                    sourceInfo: {
+                        id: source.id,
+                        name: source.name,
+                        displayId: source.display_id
+                    }
+                }
+            };
+
+        } catch (error) {
+            console.error('Quick screenshot capture error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to capture screenshot'
+            };
+        }
     }
 
     /**

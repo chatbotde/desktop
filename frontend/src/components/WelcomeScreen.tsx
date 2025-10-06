@@ -1,5 +1,5 @@
 import { Rocket, AlertCircle } from 'lucide-react'
-import { isGeminiConfigured, getGeminiConfigStatus } from '@/lib/ai/gemini-utils'
+import { isGeminiConfigured, getGeminiConfigStatus } from '@/lib/ai/gemini'
 
 export function WelcomeScreen() {
   return (

@@ -11,7 +11,8 @@ import {
   modelConfigManager,
   type AIModel 
 } from '@/lib/ai/model-config';
-import { handleModelChange } from '@/lib/ai/unified-ai-service';
+// Updated: The new simplified system doesn't require manual model change handling
+// Model changes are automatically handled when you call modelConfigManager.setSelectedModel()
 
 export function ModelSelectionDemo() {
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
@@ -34,8 +35,8 @@ export function ModelSelectionDemo() {
     setSelectedModel(model);
     console.log('Demo: Model changed to:', model);
     
-    // Trigger the unified AI service model change handler
-    handleModelChange();
+    // The new system automatically handles model changes
+    // No manual service reinitialization needed
     
     setTestMessage(`Model changed to: ${model.displayName}`);
     setTimeout(() => setTestMessage(''), 3000);
@@ -175,7 +176,7 @@ export function ModelSelectionDemo() {
             <h3 className="text-lg font-semibold">Chat Input with Model Selection</h3>
             <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 relative">
               <PromptInputWithActions 
-                onModelChange={handleModelChange}
+                onModelChange={() => console.log('Model changed')}
               />
             </div>
           </div>
@@ -197,7 +198,7 @@ export function ModelSelectionDemo() {
                   if (randomModel) {
                     modelConfigManager.setSelectedModel(randomModel.id);
                     setSelectedModel(randomModel);
-                    handleModelChange();
+                    // Model change is automatic - no manual handling needed
                     setTestMessage(`Randomly selected: ${randomModel.displayName}`);
                     setTimeout(() => setTestMessage(''), 3000);
                   }

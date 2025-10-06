@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react'
 import type { ChatMessage, MediaAttachment } from '@/components/Messages'
 import { sendMediaToGemini } from '@/lib/ai/gemini'
-import { handleModelChange as unifiedHandleModelChange } from '@/lib/ai/unified-ai-service'
+// Updated import: using new simplified AI module
+// Note: handleModelChange is available from the new system at @/lib/ai
+// For now, we'll create a simple stub since the old unified-ai-service was removed
 
 export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -148,9 +150,9 @@ export function useChatManager() {
   }
 
   const handleModelChange = () => {
-    // Use unified AI service to handle model changes
-    unifiedHandleModelChange()
-    console.log('Chat manager: AI model changed, services reinitialized')
+    // Model change handling - the new simplified system auto-handles this
+    // No need for manual service reinitialization
+    console.log('Chat manager: AI model changed')
   }
 
   return {

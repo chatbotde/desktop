@@ -45,11 +45,7 @@ function handleClickOutside(event) {
 export function wireDropdownButtons() {
     dom.uploadButton?.addEventListener('click', (e) => { e.stopPropagation(); showDropdownAdvanced('uploadDropdown', dom.uploadButton); });
     dom.captureButton?.addEventListener('click', (e) => { e.stopPropagation(); showDropdownAdvanced('captureDropdown', dom.captureButton); });
-    dom.modelSelectButton?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Prefer placing the model dropdown above the button for easy navigation
-        showDropdownAdvanced('modelSelectDropdown', dom.modelSelectButton, { position: 'auto', preferAbove: true });
-    });
+    dom.modelSelectButton?.addEventListener('click', (e) => { e.stopPropagation(); showDropdownAdvanced('modelSelectDropdown', dom.modelSelectButton); });
     // In expanded state, toggle inline speed-dial instead of floating dropdown
     const expandedDial = document.getElementById('expandedSpeedDial');
     if (expandedDial && dom.expandedPlusButton) {
