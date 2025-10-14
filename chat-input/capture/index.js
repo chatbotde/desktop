@@ -345,13 +345,13 @@ class CaptureAPI {
         
         // If duration specified, auto-stop after duration
         if (durationSeconds) {
-            setTimeout(async () => {
-                try {
-                    await this.stopVideoRecording(startResult.recordingId);
-                } catch (error) {
-                    console.error('Auto-stop recording failed:', error);
-                }
-            }, durationSeconds * 1000);
+            const recording = this.activeRecorders.get(startResult.recordingId);
+            if (recording) {
+                recording.autoStopTimeout = setTimeout(() => {
+                    this.stopVideoRecording(startResult.recordingId)
+                        .catch(error => console.error('Auto-stop recording failed:', error));
+                }, durationSeconds * 1000);
+            }
         }
         
         return startResult;
@@ -374,13 +374,13 @@ class CaptureAPI {
         
         // If duration specified, auto-stop after duration
         if (durationSeconds) {
-            setTimeout(async () => {
-                try {
-                    await this.stopAudioRecording(startResult.recordingId);
-                } catch (error) {
-                    console.error('Auto-stop recording failed:', error);
-                }
-            }, durationSeconds * 1000);
+            const recording = this.activeRecorders.get(startResult.recordingId);
+            if (recording) {
+                recording.autoStopTimeout = setTimeout(() => {
+                    this.stopAudioRecording(startResult.recordingId)
+                        .catch(error => console.error('Auto-stop recording failed:', error));
+                }, durationSeconds * 1000);
+            }
         }
         
         return startResult;
@@ -428,9 +428,12 @@ class CaptureAPI {
      * Cleanup all resources
      */
     cleanup() {
-        // Stop all active recordings
+        // Stop all active recordings and clear timeouts
         for (const [recordingId, recording] of this.activeRecorders.entries()) {
             try {
+                if (recording.autoStopTimeout) {
+                    clearTimeout(recording.autoStopTimeout);
+                }
                 recording.recorder.cleanup();
             } catch (error) {
                 console.error(`Failed to cleanup recording ${recordingId}:`, error);

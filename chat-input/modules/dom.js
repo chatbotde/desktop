@@ -34,6 +34,7 @@ export const dom = {
     get attachmentsGrid() { return document.getElementById('attachmentsGrid'); },
     get clearAllButton() { return document.getElementById('clearAllAttachments'); },
     get clickThroughButton() { return document.getElementById('clickThroughButton'); },
+    get hideChatButton() { return document.getElementById('hideChatButton'); },
 };
 
 

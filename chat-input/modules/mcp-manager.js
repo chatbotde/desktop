@@ -32,20 +32,12 @@ export function initMCPManager() {
 }
 
 /**
- * Set up MCP Settings Button
+ * Set up MCP Settings Button (now handled by content card)
  */
 function setupMCPButton() {
-    const mcpButton = document.getElementById('mcpSettingsButton');
-    if (!mcpButton) {
-        console.warn('MCP Manager: MCP settings button not found');
-        return;
-    }
-    
-    mcpButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMCPModal();
-    });
+    // MCP settings button is now handled by content card
+    // The button click is handled in content-card.js
+    console.log('MCP Manager: MCP settings now handled by content card');
 }
 
 /**

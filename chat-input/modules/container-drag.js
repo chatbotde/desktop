@@ -1,15 +1,39 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
 
+// Expose updateHideButtonPosition globally so other modules can use it
+function updateHideButtonPosition() {
+    const hideButton = dom.hideChatButton;
+    if (!hideButton || !dom.chatInputContainer) return;
+    
+    const containerRect = dom.chatInputContainer.getBoundingClientRect();
+    const buttonWidth = 36;
+    const gap = 10;
+    
+    hideButton.style.position = 'fixed';
+    hideButton.style.left = (containerRect.left - buttonWidth - gap) + 'px';
+    hideButton.style.top = (containerRect.top + containerRect.height / 2) + 'px';
+    hideButton.style.transform = 'translateY(-50%)';
+}
+
+// Make it accessible globally
+window.updateHideButtonPosition = updateHideButtonPosition;
+
 export function initializeContainerDrag() {
     if (!dom.chatInputContainer) return;
 
-    // Reset to default bottom-center position at start
-    resetToDefaultPosition();
+    // Don't reset position - let CSS handle initial centering
+    // resetToDefaultPosition(); // REMOVED - CSS centers it now
+    
+    // Initial position update for hide button after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+        updateHideButtonPosition();
+    }, 100);
 
-    // Re-init on resize to keep within bounds
+    // Re-init on resize to keep within bounds and update button position
     window.addEventListener('resize', () => {
         clampWithinViewport();
+        updateHideButtonPosition();
     });
 
     // Double-click detection variables
@@ -74,6 +98,9 @@ export function initializeContainerDrag() {
         dom.chatInputContainer.style.top = constrainedY + 'px';
         dom.chatInputContainer.style.bottom = 'auto';
         dom.chatInputContainer.style.transform = 'none';
+        
+        // Update hide button position to follow the container
+        updateHideButtonPosition();
     });
 
     function endDrag() {
@@ -90,10 +117,12 @@ export function initializeContainerDrag() {
 }
 
 function resetToDefaultPosition() {
+    // Reset to center position
     dom.chatInputContainer.style.left = '50%';
-    dom.chatInputContainer.style.top = 'auto';
-    dom.chatInputContainer.style.bottom = '20px';
-    dom.chatInputContainer.style.transform = 'translateX(-50%)';
+    dom.chatInputContainer.style.top = '50%';
+    dom.chatInputContainer.style.bottom = 'auto';
+    dom.chatInputContainer.style.transform = 'translate(-50%, -50%)';
+    updateHideButtonPosition();
 }
 
 function clampWithinViewport() {
@@ -112,6 +141,7 @@ function clampWithinViewport() {
         dom.chatInputContainer.style.top = top + 'px';
         dom.chatInputContainer.style.bottom = 'auto';
         dom.chatInputContainer.style.transform = 'none';
+        updateHideButtonPosition();
     }
 }
 

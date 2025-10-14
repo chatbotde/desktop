@@ -48,6 +48,14 @@ function createLaunchWindow() {
         chatInputWindow.createChatInputWindow();
       }
       chatInputWindow.show();
+      
+      // Send event to show chat input UI if it's hidden
+      const chatWindow = chatInputWindow.getChatInputWindow();
+      if (chatWindow && !chatWindow.isDestroyed()) {
+        console.log('Main: Sending show-chat-input-ui event to renderer');
+        chatWindow.webContents.send('show-chat-input-ui');
+      }
+      
       setTimeout(() => {
         if (launchWindowManager) {
           launchWindowManager.forceWindowAboveAll();
@@ -169,6 +177,14 @@ function createLaunchWindow() {
         }
       }
       return { error: 'Launch window manager not available', success: false };
+    });
+    
+    // Launch window set active state (on hover)
+    ipcMain.on('launch-window-set-active', () => {
+      if (launchWindowManager) {
+        console.log('Main: Setting launch window to active state (hover detected)');
+        launchWindowManager.setActiveState();
+      }
     });
 
     // MCP IPC Handlers

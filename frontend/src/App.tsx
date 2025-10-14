@@ -3,7 +3,7 @@ import { Messages } from '@/components/Messages'
 import { 
   AppBackground, 
   WelcomeScreen,
-  ThreeBackground
+  
 } from '@/components'
 import { 
   useChatManager, 
@@ -65,7 +65,7 @@ function App() {
       {/* Full Height Content Area */}
       <div className="relative flex-1 overflow-hidden">
         {/* Three.js Background */}
-        <ThreeBackground />
+        
         
         {/* Background */}
         <AppBackground />

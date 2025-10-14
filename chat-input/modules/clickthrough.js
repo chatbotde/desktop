@@ -6,17 +6,57 @@ let lastMousePosition = { x: 0, y: 0 };
 let mouseOverIframe = false;
 let iframeCheckInterval = null;
 
-// Define UI container selectors that should always be interactive
-const UI_CONTAINERS = [
-    '.chat-input-container',
-    '.attachments-container',
-    '.floating-cards-manager',
-    '.floating-card',
-    '.dropdown-menu',
-    '.speed-dial',
-    '.mcp-modal',
-    '.submenu'
-];
+// Generic patterns to identify UI elements automatically
+const UI_PATTERNS = {
+    // Class name patterns that suggest UI elements
+    classPatterns: [
+        /container$/i,
+        /wrapper$/i,
+        /modal$/i,
+        /dialog$/i,
+        /dropdown$/i,
+        /menu$/i,
+        /panel$/i,
+        /sidebar$/i,
+        /toolbar$/i,
+        /button$/i,
+        /input$/i,
+        /card$/i,
+        /popup$/i,
+        /overlay$/i,
+        /tooltip$/i
+    ],
+    // Data attributes that indicate interactivity
+    dataAttributes: [
+        'data-action',
+        'data-clickable',
+        'data-interactive',
+        'data-ui',
+        'data-component',
+        'data-testid'
+    ],
+    // ARIA roles that indicate interactive elements
+    ariaRoles: [
+        'button',
+        'menuitem',
+        'link',
+        'tab',
+        'checkbox',
+        'radio',
+        'switch',
+        'textbox',
+        'searchbox',
+        'combobox',
+        'listbox',
+        'menu',
+        'menubar',
+        'tablist',
+        'dialog',
+        'alertdialog',
+        'toolbar',
+        'tooltip'
+    ]
+};
 
 /**
  * Check if mouse is over any frontend UI area (iframes containing the React app)
@@ -78,35 +118,118 @@ function stopIframeMonitoring() {
 
 /**
  * Check if an element is part of the UI
- * This automatically includes all children of UI containers
+ * Auto-detects UI elements using multiple heuristics - no manual selector updates needed!
  */
 function isUIElement(element) {
-    if (!element) return false;
+    if (!element || element === document.body || element === document.documentElement) {
+        return false;
+    }
     
     // Check if element is an iframe (frontend UI)
     if (element.tagName === 'IFRAME') {
         return true;
     }
     
-    // Check if element or any parent is a UI container
-    for (const selector of UI_CONTAINERS) {
-        if (element.closest(selector)) {
-            return true;
-        }
-    }
-    
-    // Check for interactive elements (buttons, inputs, textareas, etc.)
-    const interactiveElements = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'];
+    // Check for standard interactive HTML elements
+    const interactiveElements = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A', 'VIDEO', 'AUDIO', 'CANVAS'];
     if (interactiveElements.includes(element.tagName)) {
         return true;
     }
     
-    // Check for elements with click handlers or interactive attributes
-    if (element.onclick || 
-        element.hasAttribute('data-action') || 
-        element.hasAttribute('data-subaction') ||
-        element.hasAttribute('role') && ['button', 'menuitem', 'link'].includes(element.getAttribute('role'))) {
+    // Check for elements with event listeners or handlers
+    if (element.onclick || element.onmousedown || element.onmouseup || 
+        element.ondblclick || element.oncontextmenu) {
         return true;
+    }
+    
+    // Check for any data-* attributes that suggest interactivity
+    for (const attr of UI_PATTERNS.dataAttributes) {
+        if (element.hasAttribute(attr)) {
+            return true;
+        }
+    }
+    
+    // Check ARIA roles
+    const role = element.getAttribute('role');
+    if (role && UI_PATTERNS.ariaRoles.includes(role)) {
+        return true;
+    }
+    
+    // Check class names against patterns
+    const classList = element.classList;
+    if (classList.length > 0) {
+        const classString = Array.from(classList).join(' ');
+        for (const pattern of UI_PATTERNS.classPatterns) {
+            if (pattern.test(classString)) {
+                return true;
+            }
+        }
+    }
+    
+    // Check for contenteditable
+    if (element.contentEditable === 'true') {
+        return true;
+    }
+    
+    // Check for cursor style (pointer indicates clickable)
+    const computedStyle = window.getComputedStyle(element);
+    if (computedStyle.cursor === 'pointer' || computedStyle.cursor === 'text') {
+        return true;
+    }
+    
+    // Check for elements with z-index (often UI overlays)
+    const zIndex = computedStyle.zIndex;
+    if (zIndex && zIndex !== 'auto' && parseInt(zIndex) > 0) {
+        return true;
+    }
+    
+    // Check for elements with opacity less than 1 but not hidden (often UI overlays)
+    const opacity = parseFloat(computedStyle.opacity);
+    if (opacity > 0 && opacity < 1 && computedStyle.display !== 'none') {
+        return true;
+    }
+    
+    // Check for elements with position fixed or absolute (often UI components)
+    const position = computedStyle.position;
+    if (position === 'fixed' || position === 'absolute') {
+        // Additional check: must be visible and have reasonable size
+        const rect = element.getBoundingClientRect();
+        if (rect.width > 10 && rect.height > 10) {
+            return true;
+        }
+    }
+    
+    // Check for draggable elements
+    if (element.draggable) {
+        return true;
+    }
+    
+    // Check for tabindex (indicates keyboard navigable)
+    if (element.hasAttribute('tabindex')) {
+        return true;
+    }
+    
+    // Recursively check parent elements (up to 5 levels)
+    let parent = element.parentElement;
+    let depth = 0;
+    while (parent && depth < 5) {
+        // Check parent class patterns
+        const parentClasses = Array.from(parent.classList).join(' ');
+        for (const pattern of UI_PATTERNS.classPatterns) {
+            if (pattern.test(parentClasses)) {
+                return true;
+            }
+        }
+        
+        // Check if parent has high z-index
+        const parentStyle = window.getComputedStyle(parent);
+        const parentZIndex = parentStyle.zIndex;
+        if (parentZIndex && parentZIndex !== 'auto' && parseInt(parentZIndex) > 0) {
+            return true;
+        }
+        
+        parent = parent.parentElement;
+        depth++;
     }
     
     return false;

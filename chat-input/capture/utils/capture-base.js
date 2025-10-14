@@ -25,24 +25,19 @@ class CaptureBase {
             fetchWindowIcons = false
         } = options;
 
-        try {
-            const sources = await desktopCapturer.getSources({
-                types,
-                thumbnailSize,
-                fetchWindowIcons
-            });
+        const sources = await desktopCapturer.getSources({
+            types,
+            thumbnailSize,
+            fetchWindowIcons
+        });
 
-            return sources.map(source => ({
-                id: source.id,
-                name: source.name,
-                display_id: source.display_id,
-                thumbnail: source.thumbnail ? source.thumbnail.toDataURL() : null,
-                appIcon: source.appIcon ? source.appIcon.toDataURL() : null
-            }));
-        } catch (error) {
-            console.error('Error getting desktop sources:', error);
-            throw new Error('Failed to get desktop sources: ' + error.message);
-        }
+        return sources.map(source => ({
+            id: source.id,
+            name: source.name,
+            display_id: source.display_id,
+            thumbnail: source.thumbnail,
+            appIcon: source.appIcon
+        }));
     }
 
     /**
@@ -71,11 +66,7 @@ class CaptureBase {
      */
     async createMediaStream(sourceId, constraints = {}) {
         const defaultConstraints = {
-            audio: {
-                mandatory: {
-                    chromeMediaSource: 'desktop'
-                }
-            },
+            audio: false,
             video: {
                 mandatory: {
                     chromeMediaSource: 'desktop',
@@ -83,24 +74,15 @@ class CaptureBase {
                     minWidth: 1280,
                     maxWidth: 1920,
                     minHeight: 720,
-                    maxHeight: 1080,
-                    minFrameRate: 30,
-                    maxFrameRate: 60
+                    maxHeight: 1080
                 }
             }
         };
 
-        // Merge with custom constraints
-        const finalConstraints = this.mergeConstraints(defaultConstraints, constraints);
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(finalConstraints);
-            this.currentStream = stream;
-            return stream;
-        } catch (error) {
-            console.error('Error creating media stream:', error);
-            throw new Error('Failed to create media stream: ' + error.message);
-        }
+        const finalConstraints = { ...defaultConstraints, ...constraints };
+        const stream = await navigator.mediaDevices.getUserMedia(finalConstraints);
+        this.currentStream = stream;
+        return stream;
     }
 
     /**
@@ -119,14 +101,9 @@ class CaptureBase {
             video: false
         };
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(defaultConstraints);
-            this.currentStream = stream;
-            return stream;
-        } catch (error) {
-            console.error('Error creating audio stream:', error);
-            throw new Error('Failed to create audio stream: ' + error.message);
-        }
+        const stream = await navigator.mediaDevices.getUserMedia(defaultConstraints);
+        this.currentStream = stream;
+        return stream;
     }
 
     /**
@@ -134,9 +111,7 @@ class CaptureBase {
      */
     stopMediaStream() {
         if (this.currentStream) {
-            this.currentStream.getTracks().forEach(track => {
-                track.stop();
-            });
+            this.currentStream.getTracks().forEach(track => track.stop());
             this.currentStream = null;
         }
     }
@@ -150,31 +125,21 @@ class CaptureBase {
     createMediaRecorder(stream, options = {}) {
         const defaultOptions = {
             mimeType: this.getSupportedMimeType(),
-            videoBitsPerSecond: 2000000, // 2 Mbps
-            audioBitsPerSecond: 128000   // 128 kbps
+            videoBitsPerSecond: 2000000,
+            audioBitsPerSecond: 128000
         };
 
         const finalOptions = { ...defaultOptions, ...options };
+        const recorder = new MediaRecorder(stream, finalOptions);
+        
+        recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                this.recordedChunks.push(event.data);
+            }
+        };
 
-        try {
-            const recorder = new MediaRecorder(stream, finalOptions);
-            
-            recorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) {
-                    this.recordedChunks.push(event.data);
-                }
-            };
-
-            recorder.onerror = (event) => {
-                console.error('MediaRecorder error:', event.error);
-            };
-
-            this.mediaRecorder = recorder;
-            return recorder;
-        } catch (error) {
-            console.error('Error creating media recorder:', error);
-            throw new Error('Failed to create media recorder: ' + error.message);
-        }
+        this.mediaRecorder = recorder;
+        return recorder;
     }
 
     /**
@@ -215,38 +180,8 @@ class CaptureBase {
             type: mimeType || this.getSupportedMimeType() 
         });
         
-        // Clear chunks after creating blob
         this.recordedChunks = [];
-        
         return blob;
-    }
-
-    /**
-     * Merge media constraints objects
-     * @param {Object} defaults - Default constraints
-     * @param {Object} custom - Custom constraints
-     * @returns {Object} Merged constraints
-     */
-    mergeConstraints(defaults, custom) {
-        const result = { ...defaults };
-        
-        if (custom.audio) {
-            if (typeof custom.audio === 'boolean') {
-                result.audio = custom.audio;
-            } else {
-                result.audio = { ...defaults.audio, ...custom.audio };
-            }
-        }
-        
-        if (custom.video) {
-            if (typeof custom.video === 'boolean') {
-                result.video = custom.video;
-            } else {
-                result.video = { ...defaults.video, ...custom.video };
-            }
-        }
-        
-        return result;
     }
 
     /**
@@ -257,37 +192,19 @@ class CaptureBase {
     getQualityPresets(quality = 'medium') {
         const presets = {
             low: {
-                video: {
-                    mandatory: {
-                        maxWidth: 1280,
-                        maxHeight: 720,
-                        maxFrameRate: 30
-                    }
-                },
-                videoBitsPerSecond: 1000000, // 1 Mbps
-                audioBitsPerSecond: 64000    // 64 kbps
+                video: { mandatory: { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30 } },
+                videoBitsPerSecond: 1000000,
+                audioBitsPerSecond: 64000
             },
             medium: {
-                video: {
-                    mandatory: {
-                        maxWidth: 1920,
-                        maxHeight: 1080,
-                        maxFrameRate: 30
-                    }
-                },
-                videoBitsPerSecond: 2000000, // 2 Mbps
-                audioBitsPerSecond: 128000   // 128 kbps
+                video: { mandatory: { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 30 } },
+                videoBitsPerSecond: 2000000,
+                audioBitsPerSecond: 128000
             },
             high: {
-                video: {
-                    mandatory: {
-                        maxWidth: 2560,
-                        maxHeight: 1440,
-                        maxFrameRate: 60
-                    }
-                },
-                videoBitsPerSecond: 4000000, // 4 Mbps
-                audioBitsPerSecond: 192000   // 192 kbps
+                video: { mandatory: { maxWidth: 2560, maxHeight: 1440, maxFrameRate: 60 } },
+                videoBitsPerSecond: 4000000,
+                audioBitsPerSecond: 192000
             }
         };
 
@@ -320,19 +237,6 @@ class CaptureBase {
             window.MediaRecorder &&
             desktopCapturer
         );
-    }
-
-    /**
-     * Get capture permissions status
-     * @returns {Promise<string>} Permission status
-     */
-    static async getPermissionsStatus() {
-        try {
-            const result = await navigator.permissions.query({ name: 'camera' });
-            return result.state;
-        } catch (error) {
-            return 'unknown';
-        }
     }
 }
 

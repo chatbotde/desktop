@@ -104,6 +104,11 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('toggle-main-window');
   },
   
+  // Listen for show chat input UI event (from launch window click)
+  onShowChatInputUI: (callback) => {
+    ipcRenderer.on('show-chat-input-ui', callback);
+  },
+  
   // ==================== FILE PICKER METHODS ====================
   
   // Image and attachment handling

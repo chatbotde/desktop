@@ -59,83 +59,8 @@ class ScreenshotCapture extends CaptureBase {
                 throw new Error('Failed to capture screenshot: no thumbnail available');
             }
 
-            // Debug thumbnail information
-            console.log('Thumbnail type:', typeof highResSource.thumbnail);
-            console.log('Thumbnail constructor:', highResSource.thumbnail.constructor?.name);
-            if (highResSource.thumbnail && typeof highResSource.thumbnail === 'object') {
-                const methods = Object.getOwnPropertyNames(highResSource.thumbnail).filter(prop => {
-                    try {
-                        return typeof highResSource.thumbnail[prop] === 'function';
-                    } catch (e) {
-                        return false;
-                    }
-                });
-                console.log('Available methods:', methods);
-                
-                // Also check prototype methods
-                const protoMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(highResSource.thumbnail)).filter(prop => {
-                    try {
-                        return typeof highResSource.thumbnail[prop] === 'function';
-                    } catch (e) {
-                        return false;
-                    }
-                });
-                console.log('Prototype methods:', protoMethods);
-            }
-
-                        // Convert thumbnail to buffer - handle different thumbnail formats
-            let screenshotBuffer;
-            
-            if (highResSource.thumbnail.toPNG && typeof highResSource.thumbnail.toPNG === 'function') {
-                // Native Image with toPNG method
-                screenshotBuffer = highResSource.thumbnail.toPNG();
-            } else if (highResSource.thumbnail.toDataURL && typeof highResSource.thumbnail.toDataURL === 'function') {
-                // Native Image with toDataURL method
-                const dataUrl = highResSource.thumbnail.toDataURL();
-                screenshotBuffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-            } else if (highResSource.thumbnail.getBitmap && typeof highResSource.thumbnail.getBitmap === 'function') {
-                // Native Image with getBitmap method
-                const bitmap = highResSource.thumbnail.getBitmap();
-                screenshotBuffer = Buffer.from(bitmap);
-            } else if (Buffer.isBuffer(highResSource.thumbnail)) {
-                // Already a buffer
-                screenshotBuffer = highResSource.thumbnail;
-            } else if (typeof highResSource.thumbnail === 'string') {
-                // Data URL string
-                if (highResSource.thumbnail.startsWith('data:')) {
-                    screenshotBuffer = Buffer.from(highResSource.thumbnail.split(',')[1], 'base64');
-                } else {
-                    // Base64 string
-                    screenshotBuffer = Buffer.from(highResSource.thumbnail, 'base64');
-                }
-            } else {
-                // Fallback: try to convert to string first
-                console.warn('Unexpected thumbnail format:', typeof highResSource.thumbnail);
-                console.warn('Thumbnail object:', highResSource.thumbnail);
-                
-                try {
-                    // Try different approaches
-                    if (highResSource.thumbnail.toDataURL) {
-                        const dataUrl = highResSource.thumbnail.toDataURL();
-                        screenshotBuffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-                    } else if (highResSource.thumbnail.toString && typeof highResSource.thumbnail.toString === 'function') {
-                        const thumbnailStr = highResSource.thumbnail.toString();
-                        if (thumbnailStr.startsWith('data:')) {
-                            screenshotBuffer = Buffer.from(thumbnailStr.split(',')[1], 'base64');
-                        } else {
-                            // Try as base64
-                            screenshotBuffer = Buffer.from(thumbnailStr, 'base64');
-                        }
-                    } else {
-                        // Last resort: JSON stringify and see what we get
-                        console.error('Cannot handle thumbnail format. Available properties:', Object.keys(highResSource.thumbnail));
-                        throw new Error(`Unsupported thumbnail format. Type: ${typeof highResSource.thumbnail}, Constructor: ${highResSource.thumbnail.constructor?.name}`);
-                    }
-                } catch (fallbackError) {
-                    console.error('Fallback thumbnail conversion failed:', fallbackError);
-                    throw new Error(`Failed to convert thumbnail: ${fallbackError.message}`);
-                }
-            }
+            // Convert thumbnail to PNG buffer (Electron's NativeImage)
+            const screenshotBuffer = highResSource.thumbnail.toPNG();
             
             // Create screenshot file object
             const fileName = name || `screenshot-${Date.now()}.png`;
@@ -300,25 +225,12 @@ class ScreenshotCapture extends CaptureBase {
             }
 
             const source = sources[0]; // Primary screen
-
             if (!source.thumbnail) {
                 throw new Error('Failed to capture screenshot: no thumbnail available');
             }
 
-            // Use the available thumbnail directly (much faster than getting high-res again)
-            let screenshotBuffer;
-
-            if (source.thumbnail.toPNG && typeof source.thumbnail.toPNG === 'function') {
-                screenshotBuffer = source.thumbnail.toPNG();
-            } else if (source.thumbnail.toDataURL && typeof source.thumbnail.toDataURL === 'function') {
-                const dataUrl = source.thumbnail.toDataURL();
-                screenshotBuffer = Buffer.from(dataUrl.split(',')[1], 'base64');
-            } else if (Buffer.isBuffer(source.thumbnail)) {
-                screenshotBuffer = source.thumbnail;
-            } else {
-                // Simple fallback
-                throw new Error('Unsupported thumbnail format for quick capture');
-            }
+            // Convert thumbnail to PNG buffer (Electron's NativeImage)
+            const screenshotBuffer = source.thumbnail.toPNG();
 
             // Create screenshot file object
             const fileName = `quick-screenshot-${Date.now()}.png`;

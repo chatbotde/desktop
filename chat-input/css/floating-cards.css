@@ -2,7 +2,7 @@
 
 /* Design tokens */
 :root {
-    --sp-card-bg: rgba(14, 18, 26, 0.45);
+    --sp-card-bg: rgba(14, 18, 26, 0.98);
     --sp-card-bg-gradient-top: rgba(255, 255, 255, 0.08);
     --sp-card-bg-gradient-bottom: rgba(255, 255, 255, 0.03);
     --sp-card-border: rgba(148, 163, 184, 0.35);
@@ -39,10 +39,11 @@
     flex-direction: column;
     overflow: hidden;
     transition:
-        width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-        border-color 0.2s;
+        width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 0.15s,
+        transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: auto;
     user-select: text;
     min-width: 300px;
@@ -62,12 +63,18 @@
 .floating-card:focus-within {
     border-color: color-mix(in oklab, var(--sp-accent-strong) 60%, transparent);
     box-shadow: var(--sp-card-shadow-active), 0 0 0 1px color-mix(in oklab, var(--sp-accent-strong) 40%, transparent);
+    transform: translateY(-1px);
 }
 
 .floating-card.dragging {
     transition: none;
     z-index: 3000;
     will-change: transform;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 1px 0 color-mix(in oklab, var(--sp-accent) 10%, transparent) inset,
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 0 0 1px color-mix(in oklab, var(--sp-accent-strong) 30%, transparent);
 }
 
 .floating-card.expanded {
@@ -349,117 +356,123 @@
     pointer-events: auto;
 }
 
-/* ==================== RESIZE HANDLES (IMPROVED VISIBILITY & FUNCTIONALITY) ==================== */
+/* ==================== RESIZE HANDLES (SUBTLE & SMOOTH) ==================== */
 
 .resize-handle {
     position: absolute;
     background: transparent;
     z-index: 1002; /* FIXED: Higher than everything else in the card */
-    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: 
+        background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+        opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
     opacity: 0;
     pointer-events: auto !important; /* CRITICAL: Ensure handles are ALWAYS interactive */
 }
 
 .floating-card:hover .resize-handle {
-    opacity: 1;
+    opacity: 0.6;
 }
 
 .resize-handle:hover {
-    background: rgba(59, 130, 246, 0.35) !important;
-    opacity: 1 !important;
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.08) !important;
+    opacity: 0.8 !important;
+    transform: scale(1.05);
 }
 
 .resize-handle:active {
-    background: rgba(59, 130, 246, 0.6) !important;
+    background: rgba(255, 255, 255, 0.12) !important;
     opacity: 1 !important;
-    transform: scale(1.15);
-    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: scale(1.08);
+    transition: transform 0.08s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Corner handles - LARGER for easier grabbing */
+/* Corner handles - SUBTLE & ELEGANT */
 .resize-nw, .resize-ne, .resize-sw, .resize-se {
-    width: 20px; /* INCREASED from 16px for easier grabbing */
-    height: 20px;
-    border-radius: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
 }
 
 .resize-nw {
     top: 0;
     left: 0;
     cursor: nw-resize;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
 }
 
 .resize-ne {
     top: 0;
     right: 0;
     cursor: ne-resize;
-    background: linear-gradient(225deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+    background: linear-gradient(225deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
 }
 
 .resize-sw {
     bottom: 0;
     left: 0;
     cursor: sw-resize;
-    background: linear-gradient(45deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
 }
 
 .resize-se {
     bottom: 0;
     right: 0;
     cursor: se-resize;
-    background: linear-gradient(315deg, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+    background: linear-gradient(315deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
 }
 
-/* Edge handles - WIDER for easier grabbing */
+/* Edge handles - SUBTLE & REFINED */
 .resize-n, .resize-s {
-    left: 20px;
-    right: 20px;
-    height: 10px; /* INCREASED from 8px */
+    left: 16px;
+    right: 16px;
+    height: 8px;
 }
 
 .resize-w, .resize-e {
-    top: 20px;
-    bottom: 20px;
-    width: 10px; /* INCREASED from 8px */
+    top: 16px;
+    bottom: 16px;
+    width: 8px;
 }
 
 .resize-n {
     top: 0;
     cursor: n-resize;
-    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.12), transparent);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent);
 }
 
 .resize-s {
     bottom: 0;
     cursor: s-resize;
-    background: linear-gradient(to top, rgba(59, 130, 246, 0.12), transparent);
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.04), transparent);
 }
 
 .resize-w {
     left: 0;
     cursor: w-resize;
-    background: linear-gradient(to right, rgba(59, 130, 246, 0.12), transparent);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.04), transparent);
 }
 
 .resize-e {
     right: 0;
     cursor: e-resize;
-    background: linear-gradient(to left, rgba(59, 130, 246, 0.12), transparent);
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.04), transparent);
 }
 
-/* Resizing state - optimized for performance */
+/* Resizing state - optimized for performance & smoothness */
 .floating-card.resizing {
     transition: none !important;
     user-select: none;
-    will-change: width, height;
-    /* GPU acceleration */
+    will-change: width, height, transform;
+    /* Enhanced GPU acceleration */
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
+    /* Subtle visual feedback during resize */
+    box-shadow: 
+        0 1px 0 color-mix(in oklab, var(--sp-accent) 10%, transparent) inset,
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* FIXED: Don't block pointer events on ALL children, only specific ones */
@@ -472,8 +485,9 @@
 /* CRITICAL: Keep resize handles interactive during resize */
 .floating-card.resizing .resize-handle {
     pointer-events: auto !important;
-    opacity: 1 !important;
+    opacity: 0.8 !important;
     z-index: 1003;
+    background: rgba(255, 255, 255, 0.06) !important;
 }
 
 .floating-card.resizing iframe {

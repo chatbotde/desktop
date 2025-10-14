@@ -8,6 +8,7 @@ import { showDropdownAdvanced, hideAllDropdowns, wireDropdownButtons } from './d
 import { expandUI, collapseUI, autoResize, updateSendButton, adjustWindowHeightSmooth } from './expand-collapse.js';
 import { initializeClickThrough, toggleClickThrough } from './clickthrough.js';
 import { initializeFloatingCards } from './floating-cards.js';
+import { initializeContentCard, showContentCard, hideContentCard, isContentCardOpen } from './content-card.js';
 import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from './model-selection.js';
 import { sendMessage, resetSendingState } from './messaging.js';
 import { handlePasteContent } from './paste-drop.js';
@@ -18,6 +19,9 @@ import { initializeContainerDrag } from './container-drag.js';
 import { initializeClipboardInjection } from './clipboard-injector.js';
 import { initClipboardUI } from './clipboard-ui.js';
 import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
+import { initializeUndoRedo, recordState } from './undo-redo.js';
+import { handleKeyboardShortcut, initializeKeyboardShortcuts } from './keyboard-shortcuts.js';
+import { initializeInputEnhancements } from './input-enhancements.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {
@@ -45,9 +49,13 @@ export async function boot() {
     wireDropdownButtons();
     initializeClickThrough();
     initializeFloatingCards();
+    initializeContentCard();
     initializeContainerDrag();
     initializeClipboardInjection();
     initClipboardUI();
+    initializeUndoRedo();
+    initializeKeyboardShortcuts();
+    initializeInputEnhancements();
 
     // legacy no-op to keep older calls safe
     window.adjustWindowHeight = () => {};
@@ -61,107 +69,30 @@ export async function boot() {
     dom.messageInput.addEventListener('dblclick', () => expandUI());
     dom.collapseButton.addEventListener('click', () => collapseUI());
     dom.expandButton.addEventListener('click', () => expandUI());
-    // Collapsed plus button toggles speed-dial first; holds expand shortcut on long-press
+    // Plus button shows content card
     {
-    const speedDial = document.getElementById('collapsedSpeedDial');
-    const speedDialLeft = document.getElementById('collapsedSpeedDialLeft');
         let pressTimer;
-        const openDial = (dial) => { if (!dom.promptInput.classList.contains('expanded')) { dial?.classList.add('open'); dial?.setAttribute('aria-hidden', 'false'); } };
-        const closeDial = (dial) => { dial?.classList.remove('open'); dial?.setAttribute('aria-hidden', 'true'); closeSubmenus(dial); };
-        const toggleDial = (dial) => { if (!dial) return; if (dial.classList.contains('open')) closeDial(dial); else openDial(dial); };
-    const closeAllDials = () => { closeDial(speedDial); closeDial(speedDialLeft); };
-        const closeSubmenus = (dial) => {
-            dial?.querySelector('.upload-submenu')?.classList.remove('open');
-            dial?.querySelector('.capture-submenu')?.classList.remove('open');
-        };
-
-        // Right plus toggles right dial
-        dom.plusButton.addEventListener('click', (e) => { e.stopPropagation(); toggleDial(speedDial); closeDial(speedDialLeft); });
+        
+        // Collapsed plus button shows content card
+        dom.plusButton.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            if (isContentCardOpen()) {
+                hideContentCard();
+            } else {
+                showContentCard();
+            }
+        });
+        
+        // Long press to expand
         dom.plusButton.addEventListener('mousedown', () => { pressTimer = setTimeout(() => { expandUI(); }, 500); });
         dom.plusButton.addEventListener('mouseup', () => { if (pressTimer) clearTimeout(pressTimer); });
         dom.plusButton.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
 
-    // Model button now exclusively opens the model selection dropdown (handled in dropdowns.js)
-
-    document.addEventListener('click', (e) => {
-            const insideAny = (el) => el && (el.contains(e.target));
-            if (!insideAny(speedDial) && e.target !== dom.plusButton) closeDial(speedDial);
-            if (!insideAny(speedDialLeft) && e.target !== dom.modelSelectButton) closeDial(speedDialLeft);
-        });
-
-        // Close dial when expanding
-        const closeOnExpand = () => closeAllDials();
+        // Close content card when expanding
+        const closeOnExpand = () => {
+            hideContentCard();
+        };
         dom.expandButton.addEventListener('click', closeOnExpand);
-
-        // Handle speed-dial actions
-        function handleDialClicks(dial, triggerButton) {
-            dial?.addEventListener('click', (e) => {
-            const item = e.target.closest('.speed-item');
-            if (!item) return;
-            e.stopPropagation();
-            const action = item.getAttribute('data-action');
-            // small ripple/feedback
-            item.style.transform = 'scale(0.94)';
-            setTimeout(() => { item.style.transform = ''; }, 120);
-            switch (action) {
-                case 'upload':
-                        // Toggle submenu and align to clicked item height
-                        const u = dial.querySelector('.upload-submenu');
-                        const c = dial.querySelector('.capture-submenu');
-                        c?.classList.remove('open');
-                        if (u) {
-                            const top = item.offsetTop + (item.offsetHeight/2) - (u.offsetHeight/2);
-                            u.style.top = `${Math.max(0, top)}px`;
-                            u.classList.toggle('open');
-                        }
-                    break;
-                case 'capture':
-                        // Toggle submenu and align to clicked item height
-                        const u2 = dial.querySelector('.upload-submenu');
-                        const c2 = dial.querySelector('.capture-submenu');
-                        u2?.classList.remove('open');
-                        if (c2) {
-                            const top2 = item.offsetTop + (item.offsetHeight/2) - (c2.offsetHeight/2);
-                            c2.style.top = `${Math.max(0, top2)}px`;
-                            c2.classList.toggle('open');
-                        }
-                    break;
-                case 'theme':
-                        toggleTheme();
-                    break;
-                case 'expand':
-                        expandUI();
-                    break;
-                    case 'collapse':
-                        collapseUI();
-                    break;
-            }
-                // keep dial open for submenus, close for others
-                if (action !== 'upload' && action !== 'capture') closeDial(dial);
-            });
-
-            // Submenu item clicks
-            dial?.addEventListener('click', (e) => {
-                const sub = e.target.closest('.submenu-item');
-                if (!sub) return;
-                e.stopPropagation();
-                const subaction = sub.getAttribute('data-subaction');
-                switch (subaction) {
-                    case 'upload-image': handleImageUpload(); break;
-                    case 'upload-video': handleVideoUpload(); break;
-                    case 'upload-audio': handleAudioUpload(); break;
-                    case 'desktop-capture': handleDesktopCapture(); break;
-                    case 'audio-capture': handleAudioCapture(); break;
-                    case 'capture-video': handleVideoCapture(); break;
-                }
-                closeSubmenus(dial);
-                closeDial(dial);
-                dom.messageInput.focus();
-            });
-        }
-
-    handleDialClicks(speedDial, dom.plusButton);
-    handleDialClicks(speedDialLeft, dom.modelSelectButton);
     }
 
     dom.uploadDropdown.addEventListener('click', (e) => {
@@ -191,7 +122,18 @@ export async function boot() {
         dom.messageInput.focus();
     });
 
-    // Plus actions dropdown
+    // Expanded plus button shows content card instead of dropdown
+    dom.expandedPlusButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isContentCardOpen()) {
+            hideContentCard();
+        } else {
+            showContentCard();
+        }
+        hideAllDropdowns();
+    });
+
+    // Plus actions dropdown (kept for backward compatibility)
     dom.plusActionsDropdown.addEventListener('click', (e) => {
         const button = e.target.closest('[data-action]');
         if (!button) return;
@@ -241,6 +183,23 @@ export async function boot() {
     dom.themeToggleButton.addEventListener('click', () => toggleTheme());
     dom.hideShowButton.addEventListener('click', () => window.chatInputAPI?.hideWindow?.());
     dom.toggleMainWindowButton.addEventListener('click', () => window.chatInputAPI?.toggleMainWindow?.());
+    
+    // Hide chat button (cross button on left side) - hides only the chat input, not the whole window
+    if (dom.hideChatButton) {
+        dom.hideChatButton.addEventListener('click', (e) => {
+            console.log('Hide button clicked!');
+            e.stopPropagation(); // Prevent the click from triggering the show logic
+            // Hide the chat input container and the hide button itself
+            if (dom.chatInputContainer) {
+                console.log('Hiding chat input container');
+                dom.chatInputContainer.style.display = 'none';
+            }
+            if (dom.hideChatButton) {
+                console.log('Hiding hide button');
+                dom.hideChatButton.style.display = 'none';
+            }
+        });
+    }
 
     // Auto-paste toggle button
     if (dom.autoPasteToggleButton) {
@@ -279,7 +238,76 @@ export async function boot() {
     if (window.chatInputAPI) {
         window.chatInputAPI.onClearInput(() => { dom.messageInput.value = ''; autoResize(); resetSendingState(); dom.messageInput.focus(); });
         window.chatInputAPI.onFocusInput(() => { dom.messageInput.focus(); });
+        
+        // Listen for show chat input UI event (triggered when launch window is clicked)
+        if (window.chatInputAPI.onShowChatInputUI) {
+            window.chatInputAPI.onShowChatInputUI(() => {
+                console.log('Show chat input UI event received from launch window');
+                if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+                    console.log('Chat input is hidden, showing it now');
+                    dom.chatInputContainer.style.display = 'flex';
+                    if (dom.hideChatButton) {
+                        dom.hideChatButton.style.display = 'flex';
+                    }
+                    setTimeout(() => {
+                        if (window.updateHideButtonPosition) {
+                            window.updateHideButtonPosition();
+                        }
+                        if (dom.messageInput) {
+                            dom.messageInput.focus();
+                        }
+                    }, 50);
+                }
+            });
+        }
     }
+    
+    // Show chat input when clicking anywhere on the window (if it's hidden)
+    document.body.addEventListener('click', (e) => {
+        console.log('Body clicked, checking if chat input is hidden');
+        console.log('Chat input display:', dom.chatInputContainer?.style.display);
+        
+        // Check if chat input is hidden
+        if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+            console.log('Chat input is hidden, showing it now');
+            // Show the chat input container and button
+            dom.chatInputContainer.style.display = 'flex';
+            if (dom.hideChatButton) {
+                dom.hideChatButton.style.display = 'flex';
+            }
+            // Update button position after showing
+            setTimeout(() => {
+                if (window.updateHideButtonPosition) {
+                    console.log('Updating hide button position');
+                    window.updateHideButtonPosition();
+                }
+                // Focus the message input
+                if (dom.messageInput) {
+                    dom.messageInput.focus();
+                }
+            }, 50);
+        }
+    });
+    
+    // Also listen for window focus to show chat input (when launch window is clicked)
+    window.addEventListener('focus', () => {
+        console.log('Window focused');
+        if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+            console.log('Chat input is hidden on focus, showing it');
+            dom.chatInputContainer.style.display = 'flex';
+            if (dom.hideChatButton) {
+                dom.hideChatButton.style.display = 'flex';
+            }
+            setTimeout(() => {
+                if (window.updateHideButtonPosition) {
+                    window.updateHideButtonPosition();
+                }
+                if (dom.messageInput) {
+                    dom.messageInput.focus();
+                }
+            }, 50);
+        }
+    });
 
     // capture api
     if (window.RendererCaptureAPI) {
@@ -287,8 +315,11 @@ export async function boot() {
         window.rendererCaptureAPI.setVolumeCallback((data) => updateVolumeIndicator(data.volume));
     }
 
-    // keyboard shortcuts
+    // keyboard shortcuts - now handled by keyboard-shortcuts module
     document.addEventListener('keydown', (e) => {
+        // Handle keyboard shortcuts with the new system
+        handleKeyboardShortcut(e);
+        
         // Check if user is typing in an input/textarea (like MCP modal)
         const isTypingInInput = document.activeElement && (
             document.activeElement.tagName === 'INPUT' || 
@@ -296,21 +327,6 @@ export async function boot() {
             document.activeElement.isContentEditable ||
             document.activeElement.closest('.mcp-modal, .dropdown-menu')
         );
-        
-        // If in MCP modal or other input, allow all standard shortcuts (Ctrl+V, Ctrl+C, Ctrl+A, etc.)
-        if (isTypingInInput) {
-            // Allow standard editing shortcuts to work normally
-            if (e.ctrlKey && ['v', 'c', 'x', 'a', 'z', 'y'].includes(e.key.toLowerCase())) {
-                return; // Let the browser handle it
-            }
-        }
-        
-        // Global shortcuts (only when NOT in other inputs)
-        if (!isTypingInInput) {
-            if (e.key === 'h' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.hideWindow?.(); return; }
-            if (e.key === 'm' && e.ctrlKey) { e.preventDefault(); window.chatInputAPI?.toggleMainWindow?.(); return; }
-            if (e.key === 't' && e.ctrlKey) { e.preventDefault(); toggleTheme(); return; }
-        }
         
         // Only auto-focus messageInput if not already typing in another input field
         if (!isTypingInInput && document.activeElement !== dom.messageInput && !e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1 && /^[a-zA-Z0-9\s]$/.test(e.key)) {

@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("launchWindowAPI", {
   
   // Window Control
   openMainWindow: () => ipcRenderer.send('open-main-window'),
+  setActiveState: () => ipcRenderer.send('launch-window-set-active'),
   
   // Memory Optimization API
   toggleMemoryOptimization: () => ipcRenderer.invoke('launch-window-toggle-memory-optimization'),

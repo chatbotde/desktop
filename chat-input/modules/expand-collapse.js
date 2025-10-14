@@ -2,6 +2,21 @@ import { dom } from './dom.js';
 import { state } from './state.js';
 import { updateAttachmentsVisibility } from './attachments.js';
 
+// Helper to update hide button position (imported from container-drag conceptually)
+function updateHideButtonPosition() {
+    const hideButton = dom.hideChatButton;
+    if (!hideButton || !dom.chatInputContainer) return;
+    
+    const containerRect = dom.chatInputContainer.getBoundingClientRect();
+    const buttonWidth = 36;
+    const gap = 10;
+    
+    hideButton.style.position = 'fixed';
+    hideButton.style.left = (containerRect.left - buttonWidth - gap) + 'px';
+    hideButton.style.top = (containerRect.top + containerRect.height / 2) + 'px';
+    hideButton.style.transform = 'translateY(-50%)';
+}
+
 export function expandUI() {
     if (state.isTransitioning || state.expansionState === 'expanded' || state.expansionState === 'expanding') return;
     state.isTransitioning = true;
@@ -36,7 +51,8 @@ export function expandUI() {
     setTimeout(() => { 
         state.isTransitioning = false; 
         state.expansionState = 'expanded'; 
-        if (window.__positionAttachmentsContainer) window.__positionAttachmentsContainer(); 
+        if (window.__positionAttachmentsContainer) window.__positionAttachmentsContainer();
+        updateHideButtonPosition(); // Update button position after expansion
     }, 300);
 }
 
@@ -44,6 +60,7 @@ export function collapseUI() {
     if (state.isTransitioning || state.expansionState === 'collapsed' || state.expansionState === 'collapsing') return;
     state.isTransitioning = true;
     state.expansionState = 'collapsing';
+    updateHideButtonPosition(); // Update button position when collapsing starts
     
     // Store expanded height before collapse for downward positioning
     const expandedHeight = dom.chatInputContainer.offsetHeight;
@@ -171,15 +188,8 @@ export function adjustWindowHeightSmooth(action = 'auto') {
             const previousHeight = state.lastTargetHeight; state.lastTargetHeight = targetHeight;
             requestAnimationFrame(() => {
                 if (window.chatInputAPI?.updateWindowHeight) window.chatInputAPI.updateWindowHeight(targetHeight);
-                if (window.chatInputAPI?.updateWindowPosition) {
-                    // Keep bottom anchored on any height change: move up when growing, down when shrinking
-                    const diff = targetHeight - previousHeight;
-                    if (diff !== 0) {
-                        const currentY = window.screenY;
-                        const newY = Math.max(0, currentY - diff);
-                        window.chatInputAPI.updateWindowPosition(window.screenX, newY);
-                    }
-                }
+                // NOTE: Removed bottom-anchoring behavior - window stays centered now
+                // The CSS keeps the window centered with transform: translate(-50%, -50%)
             });
         }
         state.isHeightAdjusting = false; processHeightQueue();

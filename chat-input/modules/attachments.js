@@ -1,5 +1,6 @@
 import { dom } from './dom.js';
 import { state, getNextAttachmentId } from './state.js';
+import { recordAttachmentChange } from './undo-redo.js';
 
 function positionAttachmentsContainer() {
     const container = dom.attachmentsContainer;
@@ -45,6 +46,14 @@ export function addImageAttachment(imageData) {
     renderImageAttachment(attachment);
     updateAttachmentsVisibility();
     positionAttachmentsContainer();
+    
+    // Record state change for undo/redo
+    try {
+        recordAttachmentChange();
+    } catch (e) {
+        console.warn('Failed to record attachment change:', e);
+    }
+    
     setTimeout(() => {
         if (typeof window.adjustWindowHeight === 'function') window.adjustWindowHeight();
         positionAttachmentsContainer();
@@ -55,6 +64,14 @@ export function addImageAttachment(imageData) {
 export function removeImageAttachment(attachmentId) {
     const index = state.imageAttachments.findIndex(att => att.id === attachmentId);
     if (index !== -1) state.imageAttachments.splice(index, 1);
+    
+    // Record state change for undo/redo
+    try {
+        recordAttachmentChange();
+    } catch (e) {
+        console.warn('Failed to record attachment change:', e);
+    }
+    
     const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
     if (element) {
         element.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
@@ -77,6 +94,14 @@ export function clearAllMediaAttachments() {
     state.imageAttachments = [];
     state.mediaAttachments = [];
     dom.attachmentsGrid.innerHTML = '';
+    
+    // Record state change for undo/redo
+    try {
+        recordAttachmentChange();
+    } catch (e) {
+        console.warn('Failed to record attachment change:', e);
+    }
+    
     updateAttachmentsVisibility();
     positionAttachmentsContainer();
     if (typeof window.adjustWindowHeight === 'function') window.adjustWindowHeight();

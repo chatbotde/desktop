@@ -361,6 +361,15 @@ class LaunchWindowManager {
 
     console.log('Launch Window: Setting up memory optimization');
     
+    // Ensure window stays visible - check every 10 seconds
+    setInterval(() => {
+      if (this.launchWindow && !this.launchWindow.isDestroyed() && !this.launchWindow.isVisible()) {
+        console.log('Launch Window: Window was hidden, restoring visibility');
+        this.launchWindow.show();
+        this.setActiveState();
+      }
+    }, 10000); // Check every 10 seconds
+    
     // Monitor system power state changes
     powerMonitor.on('suspend', () => {
       console.log('Launch Window: System suspending - enabling ultra-low memory mode');
@@ -662,8 +671,8 @@ class LaunchWindowManager {
     
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
       try {
-        // Hide the window completely
-        this.launchWindow.hide();
+        // DO NOT hide the window - keep it visible but optimized
+        // this.launchWindow.hide(); // DISABLED - window must stay visible
         
         // Reduce process priority
         this.launchWindow.webContents.setAudioMuted(true);
@@ -689,8 +698,10 @@ class LaunchWindowManager {
     
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
       try {
-        // Show the window again
-        this.launchWindow.show();
+        // Ensure the window is shown (in case it was hidden)
+        if (!this.launchWindow.isVisible()) {
+          this.launchWindow.show();
+        }
         
         // Reload the content
         this.launchWindow.loadFile(path.join(__dirname, 'launch-window.html'));

@@ -565,7 +565,8 @@ function setupResizable(card) {
         minHeight: 200,
         maxWidth: window.innerWidth,
         maxHeight: window.innerHeight,
-        snapThreshold: 20, // Snap to edges when within this distance
+        snapThreshold: 15, // Snap to edges when within this distance
+        smoothness: 0.95, // Smoothing factor for resize calculations
     };
     
     // Initialize resize on handle mousedown
@@ -645,7 +646,7 @@ function setupResizable(card) {
         // Apply constraints
         const constrainedBounds = applyConstraints(newBounds);
         
-    // Apply to DOM with transform for GPU acceleration
+        // Apply to DOM with transform for GPU acceleration
         applyBounds(constrainedBounds);
         
         // Continue animation loop if still resizing
@@ -758,13 +759,19 @@ function setupResizable(card) {
     }
     
     function applyBounds(bounds) {
-        // Use transform for position (GPU accelerated)
-        card.style.left = Math.round(bounds.left) + 'px';
-        card.style.top = Math.round(bounds.top) + 'px';
-        // Ensure bottom is not constraining vertical positioning
+        // Use transform for position (GPU accelerated) with smooth interpolation
+        const smoothLeft = Math.round(bounds.left);
+        const smoothTop = Math.round(bounds.top);
+        const smoothWidth = Math.round(bounds.width);
+        const smoothHeight = Math.round(bounds.height);
+        
+        // Apply with smooth transitions
+        card.style.left = smoothLeft + 'px';
+        card.style.top = smoothTop + 'px';
         card.style.bottom = 'auto';
-        card.style.width = Math.round(bounds.width) + 'px';
-        card.style.height = Math.round(bounds.height) + 'px';
+        card.style.width = smoothWidth + 'px';
+        card.style.height = smoothHeight + 'px';
+        
         // Mark as user-positioned after any manual resize/move via handles
         markUserPositioned(card);
     }
@@ -781,13 +788,22 @@ function setupResizable(card) {
             rafId = null;
         }
         
-    // Clean up state
+        // Clean up state with smooth transition
         resizeDirection = '';
         activeHandle = null;
+        
+        // Add a subtle transition back to normal state
+        card.style.transition = 'box-shadow 0.2s ease, transform 0.1s ease';
         card.classList.remove('resizing');
-        card.style.willChange = '';
-    const iframe2 = card.querySelector('iframe');
-    if (iframe2) iframe2.style.pointerEvents = '';
+        
+        // Reset styles after transition
+        setTimeout(() => {
+            card.style.willChange = '';
+            card.style.transition = '';
+        }, 200);
+        
+        const iframe2 = card.querySelector('iframe');
+        if (iframe2) iframe2.style.pointerEvents = '';
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
         

@@ -69,5 +69,14 @@
 </head>
 
 <body>
+    <script>
+        // Activate window on hover
+        document.body.addEventListener('mouseenter', () => {
+            console.log('Launch window: Mouse entered, setting active state');
+            if (window.launchWindowAPI && window.launchWindowAPI.setActiveState) {
+                window.launchWindowAPI.setActiveState();
+            }
+        });
+    </script>
 </body>
 </html>
