@@ -12,7 +12,7 @@ import type { Tool } from '@/mcp-client';
 export function MCPIntegration() {
   const mcp = useMCPClient();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [allTools, setAllTools] = useState<Map<string, Tool[]>>(new Map());
+  const [allTools, setAllTools] = useState<ReadonlyMap<string, readonly Tool[]>>(new Map());
 
   useEffect(() => {
     // Initialize MCP servers

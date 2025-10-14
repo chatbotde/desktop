@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Messages } from '@/components/Messages'
 import { 
-  AppBackground, 
   WelcomeScreen,
   
 } from '@/components'
@@ -67,9 +66,6 @@ function App() {
         {/* Three.js Background */}
         
         
-        {/* Background */}
-        <AppBackground />
-
         {/* Full Height Content Container */}
         <div className="relative z-10 h-full">
           {/* Chat Messages Area */}
