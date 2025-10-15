@@ -1,17 +1,35 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getSelectedModel } from './model-config';
 import type { MediaAttachment } from './gemini';
+import { resolveEnvValue, hasValidEnvValue } from './env-utils';
+
+const ANTHROPIC_PRIMARY_KEY = 'VITE_ANTHROPIC_API_KEY';
+const ANTHROPIC_FALLBACK_KEYS = ['VITE_ANTROPIC_API_KEY', 'ANTHROPIC_API_KEY'];
 
 // Initialize the Anthropic client
-const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
-const anthropic = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+const resolvedKey = resolveEnvValue(ANTHROPIC_PRIMARY_KEY, {
+  fallbacks: ANTHROPIC_FALLBACK_KEYS,
+  provider: 'Anthropic',
+});
+
+if (!hasValidEnvValue(resolvedKey)) {
+  console.warn(
+    '[AI Config] Anthropic API key missing or appears to be a placeholder. Update your .env with a valid value.'
+  );
+}
+
+const anthropic = new Anthropic({ apiKey: resolvedKey.value, dangerouslyAllowBrowser: true });
 
 export class AnthropicChatService {
   private chatHistory: Anthropic.MessageParam[] = [];
   private systemContext: string = '';
 
   constructor() {
-    // Initialize with empty history
+    if (!hasValidEnvValue(resolvedKey)) {
+      console.warn(
+        '[AI Config] Anthropic service is initialized without a valid API key. Attempts to use it will fail until configured.'
+      );
+    }
   }
 
   private async convertMediaToAnthropicFormat(attachment: MediaAttachment): Promise<Anthropic.ImageBlockParam | null> {
@@ -169,8 +187,13 @@ export const sendMediaToAnthropic = (message: string, attachments?: MediaAttachm
 
 // Utility functions
 export function isAnthropicConfigured(): boolean {
-  const key = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  return !!(key && key !== 'your_api_key_here' && key.length > 0);
+  return hasValidEnvValue(
+    resolveEnvValue(ANTHROPIC_PRIMARY_KEY, {
+      fallbacks: ANTHROPIC_FALLBACK_KEYS,
+      provider: 'Anthropic',
+      warnOnFallback: false,
+    })
+  );
 }
 
 export function getAnthropicConfigStatus() {

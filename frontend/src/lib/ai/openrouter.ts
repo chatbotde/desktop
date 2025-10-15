@@ -1,16 +1,23 @@
 import OpenAI from "openai";
 import { getSelectedModel } from './model-config';
 import type { MediaAttachment } from './gemini';
+import { resolveEnvValue, hasValidEnvValue } from './env-utils';
 
 // Initialize the OpenRouter client lazily to avoid errors with missing API key
 let openrouter: OpenAI | null = null;
 
 function getOpenRouterClient(): OpenAI {
   if (!openrouter) {
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || '';
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    const resolvedKey = resolveEnvValue('VITE_OPENROUTER_API_KEY', {
+      fallbacks: ['OPENROUTER_API_KEY'],
+      provider: 'OpenRouter',
+    });
+
+    if (!hasValidEnvValue(resolvedKey)) {
       throw new Error('OpenRouter API key not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.');
     }
+
+    const apiKey = resolvedKey.value;
     openrouter = new OpenAI({
       apiKey,
       baseURL: 'https://openrouter.ai/api/v1',
@@ -176,8 +183,12 @@ export const sendMediaToOpenRouter = (message: string, attachments?: MediaAttach
 
 // Utility functions
 export function isOpenRouterConfigured(): boolean {
-  const key = import.meta.env.VITE_OPENROUTER_API_KEY;
-  return !!(key && key !== 'your_api_key_here' && key.length > 0);
+  const resolvedKey = resolveEnvValue('VITE_OPENROUTER_API_KEY', {
+    fallbacks: ['OPENROUTER_API_KEY'],
+    provider: 'OpenRouter',
+    warnOnFallback: false,
+  });
+  return hasValidEnvValue(resolvedKey);
 }
 
 export function getOpenRouterConfigStatus() {

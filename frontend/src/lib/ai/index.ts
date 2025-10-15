@@ -24,6 +24,13 @@ export {
   sendMessageComplete,
 } from './unified-ai-service';
 
+export {
+  resolveEnvValue,
+  hasValidEnvValue,
+  type EnvResolution,
+  type ResolveOptions,
+} from './env-utils';
+
 // Export Gemini service and utilities
 export {
   GeminiChatService,
