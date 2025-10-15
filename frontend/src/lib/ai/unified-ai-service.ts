@@ -2,7 +2,6 @@ import { getSelectedModel } from './model-config';
 import { geminiService, isGeminiConfigured } from './gemini';
 import { openaiService, isOpenAIConfigured } from './openai';
 import { anthropicService, isAnthropicConfigured } from './anthropic';
-import { openrouterService, isOpenRouterConfigured } from './openrouter';
 import type { MediaAttachment } from './gemini';
 
 export class UnifiedAIService {
@@ -38,12 +37,6 @@ export class UnifiedAIService {
           throw new Error('Anthropic API key not configured. Please add VITE_ANTHROPIC_API_KEY to your .env file.');
         }
         return anthropicService.sendMessageWithMedia(message, attachments);
-
-      case 'openrouter':
-        if (!isOpenRouterConfigured()) {
-          throw new Error('OpenRouter API key not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.');
-        }
-        return openrouterService.sendMessageWithMedia(message, attachments);
 
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
@@ -81,9 +74,6 @@ export class UnifiedAIService {
       case 'anthropic':
         anthropicService.clearHistory();
         break;
-      case 'openrouter':
-        openrouterService.clearHistory();
-        break;
     }
   }
 
@@ -105,9 +95,6 @@ export class UnifiedAIService {
         break;
       case 'anthropic':
         anthropicService.addSystemContext(context);
-        break;
-      case 'openrouter':
-        openrouterService.addSystemContext(context);
         break;
     }
   }
@@ -144,8 +131,6 @@ export class UnifiedAIService {
         return isOpenAIConfigured();
       case 'anthropic':
         return isAnthropicConfigured();
-      case 'openrouter':
-        return isOpenRouterConfigured();
       default:
         return false;
     }

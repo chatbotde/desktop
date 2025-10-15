@@ -2,7 +2,7 @@
  * Main entry point for the AI module
  * 
  * Multi-provider AI integration with automatic routing.
- * Supports: Google Gemini, OpenAI, Anthropic Claude, and OpenRouter.
+ * Supports: Google Gemini, OpenAI, and Anthropic Claude.
  * 
  * Quick Start:
  * ```typescript
@@ -67,16 +67,6 @@ export {
   isAnthropicConfigured,
   getAnthropicConfigStatus,
 } from './anthropic';
-
-// Export OpenRouter service and utilities
-export {
-  OpenRouterChatService,
-  openrouterService,
-  sendToOpenRouter,
-  sendMediaToOpenRouter,
-  isOpenRouterConfigured,
-  getOpenRouterConfigStatus,
-} from './openrouter';
 
 // Export model configuration
 export {

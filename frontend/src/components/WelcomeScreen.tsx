@@ -2,8 +2,7 @@ import { Rocket, AlertCircle, CheckCircle } from 'lucide-react'
 import { 
   isGeminiConfigured, 
   isOpenAIConfigured, 
-  isAnthropicConfigured, 
-  isOpenRouterConfigured,
+  isAnthropicConfigured,
   unifiedAIService
 } from '@/lib/ai'
 
@@ -14,7 +13,6 @@ export function WelcomeScreen() {
     { name: 'Google Gemini', isConfigured: isGeminiConfigured(), icon: '🤖' },
     { name: 'OpenAI', isConfigured: isOpenAIConfigured(), icon: '🔮' },
     { name: 'Anthropic Claude', isConfigured: isAnthropicConfigured(), icon: '🧠' },
-    { name: 'OpenRouter', isConfigured: isOpenRouterConfigured(), icon: '🌐' },
   ]
 
   return (

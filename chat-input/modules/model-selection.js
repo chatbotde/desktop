@@ -103,7 +103,6 @@ export function renderModelDropdown() {
         'google': 'Google',
         'openai': 'OpenAI',
         'anthropic': 'Anthropic',
-        'openrouter': 'OpenRouter',
         'other': 'Other'
     };
     
