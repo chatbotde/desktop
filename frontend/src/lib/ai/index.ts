@@ -1,21 +1,30 @@
 /**
  * Main entry point for the AI module
  * 
- * Simple, focused AI integration with Gemini.
+ * Multi-provider AI integration with automatic routing.
+ * Supports: Google Gemini, OpenAI, Anthropic Claude, and OpenRouter.
  * 
  * Quick Start:
  * ```typescript
- * import { geminiService, sendMediaToGemini } from '@/lib/ai';
+ * import { unifiedAIService, sendMessage } from '@/lib/ai';
  * 
- * // Send a message with media
- * const stream = await sendMediaToGemini('Describe this image', attachments);
+ * // Send a message with media (automatically routes to selected provider)
+ * const stream = await sendMessage('Describe this image', attachments);
  * for await (const chunk of stream) {
  *   console.log(chunk);
  * }
  * ```
  */
 
-// Export Gemini service and utilities (all from gemini.ts)
+// Export Unified AI Service (recommended - automatically routes to correct provider)
+export {
+  UnifiedAIService,
+  unifiedAIService,
+  sendMessage,
+  sendMessageComplete,
+} from './unified-ai-service';
+
+// Export Gemini service and utilities
 export {
   GeminiChatService,
   geminiService,
@@ -26,12 +35,41 @@ export {
   type MediaAttachment,
   type ChatMessage,
   type GeminiChatHistory,
-  // Utility functions
   isGeminiConfigured,
   getGeminiConfigStatus,
   initializeGeminiWithContext,
   testGeminiConnection,
 } from './gemini';
+
+// Export OpenAI service and utilities
+export {
+  OpenAIChatService,
+  openaiService,
+  sendToOpenAI,
+  sendMediaToOpenAI,
+  isOpenAIConfigured,
+  getOpenAIConfigStatus,
+} from './openai';
+
+// Export Anthropic service and utilities
+export {
+  AnthropicChatService,
+  anthropicService,
+  sendToAnthropic,
+  sendMediaToAnthropic,
+  isAnthropicConfigured,
+  getAnthropicConfigStatus,
+} from './anthropic';
+
+// Export OpenRouter service and utilities
+export {
+  OpenRouterChatService,
+  openrouterService,
+  sendToOpenRouter,
+  sendMediaToOpenRouter,
+  isOpenRouterConfigured,
+  getOpenRouterConfigStatus,
+} from './openrouter';
 
 // Export model configuration
 export {

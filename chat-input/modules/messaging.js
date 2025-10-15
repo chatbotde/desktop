@@ -33,7 +33,15 @@ export function sendMessage() {
         
         // Parse @mention routing: @<num> or @new/@+
         const route = parseCardRoute(raw);
-        const messageData = { content: route.cleaned, timestamp: new Date().toISOString(), id: Date.now().toString(), type: hasAny ? 'mixed' : 'text', attachments: all, meta: {} };
+        const messageData = { 
+            content: route.cleaned, 
+            timestamp: new Date().toISOString(), 
+            id: Date.now().toString(), 
+            type: hasAny ? 'mixed' : 'text', 
+            attachments: all, 
+            meta: {},
+            selectedModel: state.selectedModel // Include the selected model
+        };
 
         // Route to specific card or primary card
         if (route.target === 'new') {

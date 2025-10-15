@@ -183,3 +183,18 @@
     background: rgba(59, 130, 246, 0.1);
     border-color: rgba(59, 130, 246, 0.3);
 }
+
+/* Model name display in button */
+#selectedModelName {
+    font-size: 12px;
+    font-weight: 600;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#modelSelectButton svg {
+    flex-shrink: 0;
+}
+

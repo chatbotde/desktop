@@ -22,6 +22,7 @@ interface CodeBlockProps {
 function CodeBlock({ code, language, className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
   const [html, setHtml] = useState('')
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     const highlight = async () => {
@@ -53,48 +54,97 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy code:', err)
+      // Fallback for Electron or browsers without clipboard API
+      console.warn('Clipboard API failed, using fallback:', err)
+      const textArea = document.createElement('textarea')
+      textArea.value = code
+      textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      
+      try {
+        document.execCommand('copy')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (execErr) {
+        console.error('Both clipboard methods failed:', execErr)
+      } finally {
+        document.body.removeChild(textArea)
+      }
     }
   }
 
   return (
     <div className={cn("code-block-enhanced group", className)}>
-      {/* Language label and copy button */}
-      <div className="code-header">
-        <span className="font-mono text-xs uppercase tracking-wide text-gray-300">
-          {language || 'code'}
-        </span>
+      {/* Language label and action buttons */}
+      <div className="code-header cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
+        <div className="flex items-center gap-2">
+          <svg 
+            className={cn(
+              "w-4 h-4 text-gray-400 transition-transform duration-200",
+              isCollapsed ? "rotate-0" : "rotate-90"
+            )}
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="font-mono text-xs uppercase tracking-wide text-gray-400 font-semibold">
+            {language || 'plaintext'}
+          </span>
+          <span className="text-xs text-gray-500">
+            {code.split('\n').length} lines
+          </span>
+        </div>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 opacity-0 group-hover:opacity-100 transition-all duration-200"
-          onClick={handleCopy}
+          className={cn(
+            "h-7 px-2 text-xs font-medium rounded transition-all duration-200",
+            copied 
+              ? "bg-green-600/20 text-green-400 hover:bg-green-600/30" 
+              : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/60 hover:text-white opacity-60 group-hover:opacity-100"
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleCopy()
+          }}
+          title={copied ? "Copied!" : "Copy code"}
         >
           {copied ? (
-            <Check className="w-3 h-3 text-green-400" />
+            <>
+              <Check className="w-3.5 h-3.5 mr-1" />
+              Copied!
+            </>
           ) : (
-            <Copy className="w-3 h-3" />
+            <>
+              <Copy className="w-3.5 h-3.5 mr-1" />
+              Copy
+            </>
           )}
         </Button>
       </div>
 
       {/* Code content with Shiki highlighting */}
-      <div className="code-content">
-        {html ? (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
-        ) : (
-          <pre>
-            <code>{code}</code>
-          </pre>
-        )}
-      </div>
+      {!isCollapsed && (
+        <div className="code-content">
+          {html ? (
+            <div dangerouslySetInnerHTML={{ __html: html }} />
+          ) : (
+            <pre>
+              <code>{code}</code>
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 function InlineCode({ children }: { children: string }) {
   return (
-    <code className="text-blue-300 text-sm font-mono">
+    <code className="px-1.5 py-0.5 mx-0.5 bg-gray-800/60 border border-gray-700/50 rounded text-blue-300 text-sm font-mono">
       {children}
     </code>
   )

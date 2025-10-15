@@ -24,6 +24,7 @@ export function CodeEditor({
 }: CodeEditorProps) {
   const [copied, setCopied] = useState(false);
   const [html, setHtml] = useState('');
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,8 +72,19 @@ export function CodeEditor({
   return (
     <div className={cn("code-block-enhanced group", className)}>
       {/* Header */}
-      <div className="code-header">
+      <div className="code-header cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="flex items-center gap-2">
+          <svg 
+            className={cn(
+              "w-4 h-4 text-gray-400 transition-transform duration-200",
+              isCollapsed ? "rotate-0" : "rotate-90"
+            )}
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
           <div className="w-3 h-3 rounded-full bg-red-500"></div>
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -84,13 +96,19 @@ export function CodeEditor({
           <span className="font-mono text-xs uppercase tracking-wide text-gray-300">
             {language}
           </span>
+          <span className="text-xs text-gray-500">
+            {code.split('\n').length} lines
+          </span>
         </div>
         <div className="flex gap-1">
           <Button
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 opacity-0 group-hover:opacity-100 transition-all duration-200"
-            onClick={handleDownload}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDownload()
+            }}
             title="Download code"
           >
             <Download className="w-3 h-3" />
@@ -99,7 +117,10 @@ export function CodeEditor({
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 opacity-0 group-hover:opacity-100 transition-all duration-200"
-            onClick={handleCopy}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleCopy()
+            }}
             title="Copy code"
           >
             <AnimatePresence mode="wait">
@@ -128,19 +149,21 @@ export function CodeEditor({
       </div>
 
       {/* Code Content */}
-      <div className="code-content">
-        {html ? (
-          <div 
-            ref={codeRef}
-            className={cn(showLineNumbers && "line-numbers")}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        ) : (
-          <pre>
-            <code>{code}</code>
-          </pre>
-        )}
-      </div>
+      {!isCollapsed && (
+        <div className="code-content">
+          {html ? (
+            <div 
+              ref={codeRef}
+              className={cn(showLineNumbers && "line-numbers")}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          ) : (
+            <pre>
+              <code>{code}</code>
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }

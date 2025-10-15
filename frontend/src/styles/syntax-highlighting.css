@@ -99,33 +99,55 @@
 /* Enhanced code block styling */
 .code-block-enhanced {
   position: relative;
-  margin: 1rem 0;
+  margin: 1.25rem 0;
   border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, #0d1117 0%, #111827 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.1);
+  width: 98%;
+  max-width: 100%;
+  transition: all 0.3s ease;
+}
+
+.code-block-enhanced:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.2);
 }
 
 .code-block-enhanced .code-header {
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
-  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #1a1f2e 0%, #161b22 100%);
+  border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+  padding: 0.75rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  transition: background 0.2s ease;
+}
+
+.code-block-enhanced .code-header:hover {
+  background: linear-gradient(135deg, #1f2937 0%, #1a1f2e 100%);
 }
 
 .code-block-enhanced .code-content {
-  background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
-  padding: 1rem;
+  background: #0d1117;
+  padding: 1.25rem 1.5rem;
   overflow-x: auto;
-  max-height: 32rem;
+  max-height: 600px;
+  border-top: 1px solid rgba(55, 65, 81, 0.3);
 }
 
 .code-block-enhanced pre {
   margin: 0;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  background: transparent !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.6;
+}
+
+.code-block-enhanced code {
+  background: transparent !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
 }
 
 /* Terminal styling */
@@ -262,25 +284,75 @@
 .code-content::-webkit-scrollbar,
 .terminal-content::-webkit-scrollbar,
 .json-content::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
 }
 
 .code-content::-webkit-scrollbar-track,
 .terminal-content::-webkit-scrollbar-track,
 .json-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
 }
 
 .code-content::-webkit-scrollbar-thumb,
 .terminal-content::-webkit-scrollbar-thumb,
 .json-content::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
+  background: rgba(107, 114, 128, 0.5);
+  border-radius: 5px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
 }
 
 .code-content::-webkit-scrollbar-thumb:hover,
 .terminal-content::-webkit-scrollbar-thumb:hover,
 .json-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+  background: rgba(107, 114, 128, 0.7);
+}
+
+/* Shiki code block overrides */
+.code-block-enhanced .shiki,
+.code-block-enhanced .shiki pre {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.code-block-enhanced .shiki code {
+  background: transparent !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  display: block;
+}
+
+/* Line numbers styling if present */
+.code-block-enhanced .line-number {
+  color: rgba(156, 163, 175, 0.5);
+  padding-right: 1rem;
+  user-select: none;
+}
+
+/* Collapse/Expand animation */
+.code-content {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 600px;
+    opacity: 1;
+  }
+}
+
+/* Hover effects for interactive elements */
+.code-header:hover {
+  cursor: pointer;
+}
+
+.code-header svg {
+  flex-shrink: 0;
 }

@@ -7,6 +7,15 @@ export function hideDropdown(id) {
     dropdown.classList.remove('open');
     dropdown.style.display = 'none';
     dropdown.setAttribute('aria-hidden', 'true');
+    
+    // Hide backdrop if closing model selector
+    if (id === 'modelSelectDropdown') {
+        const backdrop = document.getElementById('modelSelectBackdrop');
+        if (backdrop) {
+            backdrop.classList.remove('show');
+            setTimeout(() => backdrop.style.display = 'none', 300);
+        }
+    }
 }
 
 export function hideAllDropdowns() {
@@ -18,27 +27,71 @@ export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown || !triggerButton) return;
     hideAllDropdowns();
-    dropdown.style.display = 'block';
-    dropdown.setAttribute('aria-hidden', 'false');
-    geometryController.positionDropdownAdvanced(dropdown, triggerButton, {
-        preferredPosition: options.position || 'below',
-        offset: options.offset || 8,
-        margin: options.margin || 20,
-        constrainToScreen: options.constrainToScreen !== false,
-        preferAbove: options.preferAbove || false
-    });
+    
+    // Special handling for model selector - center it like a modal
+    if (dropdownId === 'modelSelectDropdown') {
+        // Show backdrop
+        const backdrop = document.getElementById('modelSelectBackdrop');
+        if (backdrop) {
+            backdrop.style.display = 'block';
+            requestAnimationFrame(() => backdrop.classList.add('show'));
+        }
+        
+        // Position modal in center - no scale animation
+        dropdown.style.display = 'block';
+        dropdown.setAttribute('aria-hidden', 'false');
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = '50%';
+        dropdown.style.left = '50%';
+        dropdown.style.transform = 'translate(-50%, -50%)';
+    } else {
+        // Normal dropdown positioning for others
+        dropdown.style.display = 'block';
+        dropdown.setAttribute('aria-hidden', 'false');
+        geometryController.positionDropdownAdvanced(dropdown, triggerButton, {
+            preferredPosition: options.position || 'below',
+            offset: options.offset || 8,
+            margin: options.margin || 20,
+            constrainToScreen: options.constrainToScreen !== false,
+            preferAbove: options.preferAbove || false
+        });
+    }
+    
     // next tick to allow CSS transitions
     requestAnimationFrame(() => dropdown.classList.add('open'));
-    setTimeout(() => document.addEventListener('click', handleClickOutside), 10);
+    setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+        document.addEventListener('keydown', handleEscapeKey);
+    }, 10);
 }
 
 function handleClickOutside(event) {
+    // Check if clicking on backdrop
+    const backdrop = document.getElementById('modelSelectBackdrop');
+    if (backdrop && event.target === backdrop) {
+        hideAllDropdowns();
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+        return;
+    }
+    
     const dropdowns = document.querySelectorAll('.dropdown-menu:not([aria-hidden="true"])');
     let inside = false;
-    dropdowns.forEach(d => { if (d.contains(event.target)) inside = true; });
+    dropdowns.forEach(d => { 
+        if (d.contains(event.target)) inside = true; 
+    });
     if (!inside) {
         hideAllDropdowns();
         document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+    }
+}
+
+function handleEscapeKey(event) {
+    if (event.key === 'Escape') {
+        hideAllDropdowns();
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
     }
 }
 

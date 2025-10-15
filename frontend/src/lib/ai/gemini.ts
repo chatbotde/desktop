@@ -34,17 +34,27 @@ export class GeminiChatService {
   private chatHistory: GeminiChatHistory[] = [];
 
   constructor() {
-    this.initializeChat();
+    // Don't initialize chat in constructor - do it lazily when needed
   }
 
   private initializeChat() {
     const selectedModel = getSelectedModel();
-    const modelName = selectedModel?.name || 'gemini-2.5-flash';
+    // Only use Gemini models, fallback to default if non-Gemini model is selected
+    let modelName = 'gemini-2.5-flash';
+    if (selectedModel && selectedModel.provider === 'google') {
+      modelName = selectedModel.name;
+    }
     
     this.chat = ai.chats.create({
       model: modelName,
       history: this.chatHistory,
     });
+  }
+  
+  private ensureChatInitialized() {
+    if (!this.chat) {
+      this.initializeChat();
+    }
   }
 
   private async convertMediaToGeminiFormat(attachment: MediaAttachment) {
@@ -80,6 +90,7 @@ export class GeminiChatService {
   }
 
   async sendMessageWithMedia(message: string, attachments?: MediaAttachment[]): Promise<AsyncGenerator<string, void, unknown>> {
+    this.ensureChatInitialized();
     if (!this.chat) throw new Error('Chat not initialized');
 
     const parts: any[] = [];
@@ -152,6 +163,7 @@ export class GeminiChatService {
   }
 
   reinitializeWithCurrentModel() {
+    this.chat = null; // Reset chat
     this.initializeChat();
   }
 

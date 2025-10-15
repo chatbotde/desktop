@@ -118,7 +118,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
     contextWindow: 1000000,
     isAvailable: true,
   },
-  // OpenAI Models (future support)
+  // OpenAI Models
   {
     id: 'gpt-4o',
     name: 'gpt-4o',
@@ -134,7 +134,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
     supportsVideo: false,
     capabilities: ['text', 'images', 'audio', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
-    isAvailable: false, // Not implemented yet
+    isAvailable: true, // Now implemented!
   },
   {
     id: 'gpt-4-turbo',
@@ -151,12 +151,12 @@ export const AVAILABLE_MODELS: AIModel[] = [
     supportsVideo: false,
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
-    isAvailable: false, // Not implemented yet
+    isAvailable: true, // Now implemented!
   },
-  // Anthropic Models (future support)
+  // Anthropic Models
   {
     id: 'claude-3-5-sonnet',
-    name: 'claude-3-5-sonnet',
+    name: 'claude-3-5-sonnet-20241022',
     displayName: 'Claude 3.5 Sonnet',
     provider: 'anthropic',
     description: 'Anthropic\'s most capable model for complex tasks',
@@ -169,7 +169,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
     supportsVideo: false,
     capabilities: ['text', 'images', 'advanced-reasoning', 'code-generation'],
     contextWindow: 200000,
-    isAvailable: false, // Not implemented yet
+    isAvailable: true, // Now implemented!
   },
   {
     id: 'deepseek/deepseek-chat-v3.1:free',

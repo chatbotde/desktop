@@ -98,9 +98,18 @@ export function renderModelDropdown() {
     
     console.log('📊 Models grouped by provider:', Object.keys(modelsByProvider));
     
-    // Render grouped models
+    // Provider name mapping for better display
+    const providerNames = {
+        'google': 'Google',
+        'openai': 'OpenAI',
+        'anthropic': 'Anthropic',
+        'openrouter': 'OpenRouter',
+        'other': 'Other'
+    };
+    
+    // Render grouped models in clean compact style
     Object.entries(modelsByProvider).forEach(([provider, models], index) => {
-        // Add provider label
+        // Add provider label with separator
         if (index > 0) {
             const separator = document.createElement('div');
             separator.className = 'dropdown-separator';
@@ -109,48 +118,20 @@ export function renderModelDropdown() {
         
         const label = document.createElement('div');
         label.className = 'dropdown-label';
-        label.textContent = provider;
+        label.textContent = providerNames[provider.toLowerCase()] || provider;
         container.appendChild(label);
         
-        // Add models for this provider
+        // Add models for this provider - CLEAN & SIMPLE
         models.forEach(model => {
             const btn = document.createElement('button');
-            btn.className = 'dropdown-item';
+            btn.className = 'dropdown-item-simple';
             btn.dataset.model = model.id;
             btn.setAttribute('role', 'menuitem');
             btn.setAttribute('tabindex', '-1');
             
-            const modelDiv = document.createElement('div');
+            // Only show the model name - no description, no features, no cost
+            btn.textContent = model.name || model.id;
             
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'model-name';
-            nameDiv.textContent = model.name || model.id;
-            
-            const descDiv = document.createElement('div');
-            descDiv.className = 'model-desc';
-            descDiv.textContent = model.description || '';
-            
-            const featuresDiv = document.createElement('div');
-            featuresDiv.className = 'model-features';
-            if (model.features && model.features.length > 0) {
-                model.features.forEach(feature => {
-                    const badge = document.createElement('span');
-                    badge.className = 'feature-badge';
-                    badge.textContent = feature;
-                    featuresDiv.appendChild(badge);
-                });
-            }
-            
-            const costBadge = document.createElement('span');
-            costBadge.className = 'cost-badge';
-            costBadge.textContent = model.cost || 'N/A';
-            featuresDiv.appendChild(costBadge);
-            
-            modelDiv.appendChild(nameDiv);
-            modelDiv.appendChild(descDiv);
-            modelDiv.appendChild(featuresDiv);
-            
-            btn.appendChild(modelDiv);
             container.appendChild(btn);
         });
     });
@@ -161,6 +142,12 @@ export function updateModelButtonState() {
     if (currentModel && dom.modelSelectButton) {
         dom.modelSelectButton.title = `Current: ${currentModel.name}`;
         dom.modelSelectButton.classList.add('has-selection');
+        
+        // Update the displayed model name in the button
+        const modelNameSpan = document.getElementById('selectedModelName');
+        if (modelNameSpan) {
+            modelNameSpan.textContent = currentModel.name;
+        }
     }
 }
 

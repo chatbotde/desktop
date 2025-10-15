@@ -123,17 +123,19 @@ export function Messages({
       <div 
         ref={messagesContainerRef}
         onScroll={onScroll}
-        className="px-8 py-6 space-y-4 min-h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+        className="px-4 md:px-8 lg:px-12 py-6 space-y-6 min-h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       >
         {messages.map((message) => (
           <div 
             key={message.id} 
             data-message-type={message.role}
             className={`message-appear flex ${
-              message.role === 'user' ? 'justify-end pl-20' : 'justify-start pr-20'
+              message.role === 'user' ? 'justify-end' : 'justify-start'
             }`}
           >
-            <div className="max-w-full break-words overflow-hidden">
+            <div className={`break-words overflow-hidden ${
+              message.role === 'user' ? 'max-w-[85%] md:max-w-[75%] lg:max-w-[65%]' : 'max-w-[90%] md:max-w-[85%] lg:max-w-[75%]'
+            }`}>
               {/* Media attachments (if any) */}
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mb-3 space-y-2">
@@ -159,8 +161,8 @@ export function Messages({
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start pr-20 message-appear">
-            <div className="bg-transparent text-white px-2 py-1">
+          <div className="flex justify-start message-appear">
+            <div className="bg-transparent text-white px-4 py-2 max-w-[90%] md:max-w-[85%] lg:max-w-[75%]">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-white/70 mr-2">AI is thinking</span>
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />

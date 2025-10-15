@@ -236,14 +236,212 @@
     white-space: nowrap;
 }
 
-/* Model Selection Dropdown Styles */
-#modelSelectDropdown {
-    min-width: 320px;
-    max-width: 380px;
-    max-height: 400px;
-    overflow-y: auto;
+/* Modal Backdrop */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    z-index: 99998;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
 }
 
+.modal-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Model Selection Dropdown Styles - SHARP SLICK CENTERED MODAL */
+#modelSelectDropdown {
+    min-width: 360px;
+    max-width: 460px;
+    max-height: 80vh;
+    overflow: hidden;
+    /* Center in screen */
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    opacity: 0;
+    z-index: 99999 !important;
+    transition: opacity 0.15s ease !important;
+    box-shadow: 
+        0 32px 128px rgba(0, 0, 0, 0.6),
+        0 16px 64px rgba(0, 0, 0, 0.4),
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    outline: none !important;
+}
+
+#modelSelectDropdown.open {
+    opacity: 1;
+}
+
+/* Remove focus outlines - slick appearance */
+#modelSelectDropdown:focus,
+#modelSelectDropdown *:focus {
+    outline: none !important;
+}
+
+/* Enhanced header for sharp modal style */
+#modelSelectDropdown .dropdown-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 0;
+    border-radius: 16px 16px 0 0;
+    background: var(--bg-popover);
+    flex-shrink: 0;
+}
+
+#modelSelectDropdown .dropdown-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    text-transform: none;
+    color: var(--text);
+}
+
+#modelSelectDropdown .dropdown-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+#modelSelectDropdown .dropdown-close-btn:hover {
+    transform: scale(1.08);
+}
+
+#modelSelectDropdown .dropdown-close-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+#modelSelectDropdown .dropdown-content {
+    padding: 8px 16px 16px 16px;
+    max-height: calc(80vh - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Sharp, slick custom scrollbar */
+#modelSelectDropdown .dropdown-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+#modelSelectDropdown .dropdown-content::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+}
+
+#modelSelectDropdown .dropdown-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+
+#modelSelectDropdown .dropdown-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    background-clip: padding-box;
+}
+
+#modelSelectDropdown .dropdown-content::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.35);
+    background-clip: padding-box;
+}
+
+/* Simple model item style - SHARP & SLICK */
+.dropdown-item-simple {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 13px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s ease, color 0.1s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 2px 0;
+    position: relative;
+    outline: none !important;
+}
+
+.dropdown-item-simple:focus {
+    outline: none !important;
+}
+
+.dropdown-item-simple:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent);
+}
+
+.dropdown-item-simple.selected {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--accent);
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item-simple.selected::before {
+    content: "✓";
+    margin-right: 12px;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+}
+
+.dropdown-item-simple[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.dropdown-item-simple[disabled]:hover {
+    background: transparent;
+    color: var(--text);
+}
+
+/* Provider label styling - SHARP */
+#modelSelectDropdown .dropdown-label {
+    padding: 14px 20px 6px 20px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 8px;
+}
+
+#modelSelectDropdown .dropdown-label:first-child {
+    margin-top: 4px;
+}
+
+#modelSelectDropdown .dropdown-separator {
+    margin: 12px 16px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Old detailed model item styles - kept for backward compatibility but unused */
 #modelSelectDropdown .dropdown-item {
     align-items: flex-start;
     padding: 12px 10px;

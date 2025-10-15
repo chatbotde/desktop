@@ -1,9 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import type { ChatMessage, MediaAttachment } from '@/components/Messages'
-import { sendMediaToGemini } from '@/lib/ai/gemini'
-// Updated import: using new simplified AI module
-// Note: handleModelChange is available from the new system at @/lib/ai
-// For now, we'll create a simple stub since the old unified-ai-service was removed
+import { sendMessage } from '@/lib/ai'
+import { setSelectedModel } from '@/lib/ai/model-config'
 
 export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -14,6 +12,12 @@ export function useChatManager() {
 
   const handleChatMessage = useCallback(async (messageData: any) => {
     console.log('Main Window: Received message from chat input window:', messageData);
+    
+    // Sync the selected model from chat-input window to main window
+    if (messageData.selectedModel) {
+      console.log('Main Window: Syncing selected model:', messageData.selectedModel);
+      setSelectedModel(messageData.selectedModel);
+    }
     
     // Generate a unique message ID
     const messageId = messageData.id || `msg_${Date.now()}_${++messageCounterRef.current}`;
@@ -57,8 +61,8 @@ export function useChatManager() {
     setIsTyping(true)
 
     try {
-      // Send message with media to Gemini and handle streaming response
-      const responseStream = await sendMediaToGemini(messageData.content || '', mediaAttachments);
+      // Send message with media to the selected AI provider (automatically routed)
+      const responseStream = await sendMessage(messageData.content || '', mediaAttachments);
       
       setIsTyping(false);
       
@@ -88,14 +92,14 @@ export function useChatManager() {
       }
       
     } catch (error) {
-      console.error('Error getting response from Gemini:', error);
+      console.error('Error getting response from AI provider:', error);
       setIsTyping(false);
       
       // Add error message
       const errorMessage: ChatMessage = {
         id: `error_${Date.now()}_${++messageCounterRef.current}`,
         role: 'assistant',
-        content: `Sorry, I encountered an error while processing your message. Please make sure your Gemini API key is configured correctly. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        content: `Sorry, I encountered an error while processing your message. ${error instanceof Error ? error.message : 'Unknown error'}`,
         timestamp: new Date()
       };
       
