@@ -80,3 +80,16 @@ export {
   getAvailableModels,
   getModelsByProvider,
 } from './model-config';
+
+// Export system prompts
+export {
+  type SystemPrompt,
+  SYSTEM_PROMPTS,
+  LEARNING_ASSISTANT_PROMPT,
+  GENERAL_ASSISTANT_PROMPT,
+  CODE_ASSISTANT_PROMPT,
+  CREATIVE_ASSISTANT_PROMPT,
+  getSystemPromptById,
+  getDefaultSystemPrompt,
+  applySystemPrompt,
+} from './system-prompts';

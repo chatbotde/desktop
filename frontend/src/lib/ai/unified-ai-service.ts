@@ -3,8 +3,15 @@ import { geminiService, isGeminiConfigured } from './gemini';
 import { openaiService, isOpenAIConfigured } from './openai';
 import { anthropicService, isAnthropicConfigured } from './anthropic';
 import type { MediaAttachment } from './gemini';
+import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 
 export class UnifiedAIService {
+  private currentSystemPrompt: SystemPrompt | null = null;
+
+  constructor() {
+    // Initialize with default learning assistant prompt
+    this.setSystemPrompt('learning');
+  }
   /**
    * Send a message with optional media attachments to the currently selected AI provider
    * Returns a streaming async generator for real-time response
@@ -159,6 +166,54 @@ export class UnifiedAIService {
         ? `${selectedModel.provider} API is configured and ready!`
         : `${selectedModel.provider} API key not configured. Please add the appropriate API key to your .env file.`
     };
+  }
+
+  /**
+   * Set the system prompt for all AI services
+   * @param promptId - ID of the system prompt to use ('learning', 'general', 'code', 'creative')
+   */
+  setSystemPrompt(promptId: string) {
+    const prompt = getSystemPromptById(promptId);
+    if (!prompt) {
+      console.warn(`System prompt '${promptId}' not found, using default`);
+      this.currentSystemPrompt = getDefaultSystemPrompt();
+    } else {
+      this.currentSystemPrompt = prompt;
+    }
+
+    // Apply to all services
+    const promptText = this.currentSystemPrompt.prompt;
+    geminiService.addSystemContext(promptText);
+    openaiService.addSystemContext(promptText);
+    anthropicService.addSystemContext(promptText);
+
+    console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
+  }
+
+  /**
+   * Get the current system prompt
+   */
+  getCurrentSystemPrompt(): SystemPrompt | null {
+    return this.currentSystemPrompt;
+  }
+
+  /**
+   * Apply a custom system prompt
+   */
+  setCustomSystemPrompt(prompt: string, name: string = 'Custom') {
+    this.currentSystemPrompt = {
+      id: 'custom',
+      name,
+      description: 'Custom system prompt',
+      prompt
+    };
+
+    // Apply to all services
+    geminiService.addSystemContext(prompt);
+    openaiService.addSystemContext(prompt);
+    anthropicService.addSystemContext(prompt);
+
+    console.log(`✅ Custom system prompt applied: ${name}`);
   }
 }
 
