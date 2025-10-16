@@ -94,9 +94,11 @@ export function initializeContainerDrag() {
         const constrainedX = Math.max(minX, Math.min(newX, maxX));
         const constrainedY = Math.max(minY, Math.min(newY, maxY));
 
+        const bottomY = window.innerHeight - constrainedY - containerHeight;
+
         dom.chatInputContainer.style.left = constrainedX + 'px';
-        dom.chatInputContainer.style.top = constrainedY + 'px';
-        dom.chatInputContainer.style.bottom = 'auto';
+        dom.chatInputContainer.style.top = 'auto';
+        dom.chatInputContainer.style.bottom = bottomY + 'px';
         dom.chatInputContainer.style.transform = 'none';
         
         // Update hide button position to follow the container

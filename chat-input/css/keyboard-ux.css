@@ -326,6 +326,7 @@
 
 /* Character counter for expanded mode */
 .char-counter {
+    display: none !important;
     position: absolute;
     bottom: 12px;
     right: 12px;

@@ -21,6 +21,10 @@ export function hideDropdown(id) {
 export function hideAllDropdowns() {
     const dropdowns = document.querySelectorAll('.dropdown-menu');
     dropdowns.forEach(dd => hideDropdown(dd.id));
+    
+    // Remove all event listeners when hiding dropdowns
+    document.removeEventListener('click', handleClickOutside, true);
+    document.removeEventListener('keydown', handleEscapeKey);
 }
 
 export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
@@ -34,6 +38,7 @@ export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
         const backdrop = document.getElementById('modelSelectBackdrop');
         if (backdrop) {
             backdrop.style.display = 'block';
+            backdrop.style.zIndex = '99998';
             requestAnimationFrame(() => backdrop.classList.add('show'));
         }
         
@@ -59,10 +64,12 @@ export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
     
     // next tick to allow CSS transitions
     requestAnimationFrame(() => dropdown.classList.add('open'));
+    
+    // Add click outside listeners with a small delay to prevent immediate closure
     setTimeout(() => {
-        document.addEventListener('click', handleClickOutside);
+        document.addEventListener('click', handleClickOutside, true);
         document.addEventListener('keydown', handleEscapeKey);
-    }, 10);
+    }, 50);
 }
 
 function handleClickOutside(event) {
@@ -75,11 +82,18 @@ function handleClickOutside(event) {
         return;
     }
     
-    const dropdowns = document.querySelectorAll('.dropdown-menu:not([aria-hidden="true"])');
+    const dropdowns = document.querySelectorAll('.dropdown-menu.open');
+    if (dropdowns.length === 0) {
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+        return;
+    }
+    
     let inside = false;
     dropdowns.forEach(d => { 
         if (d.contains(event.target)) inside = true; 
     });
+    
     if (!inside) {
         hideAllDropdowns();
         document.removeEventListener('click', handleClickOutside);

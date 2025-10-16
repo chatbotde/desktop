@@ -13,14 +13,14 @@
     z-index: 50000; /* Always above floating cards */
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
-    top: 50%;
+    bottom: 10%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
 }
 
 .chat-input-container.expanded {
-    transform: translate(-50%, -50%);
-    transform-origin: center center;
+    transform: translateX(-50%);
+    transform-origin: bottom center;
     padding-bottom: 8px;
 }
 
@@ -319,7 +319,7 @@
 
 .prompt-input.expanded #messageInput {
     min-height: 44px;
-    max-height: 200px;
+    max-height: 88px;
     white-space: pre-wrap;
     overflow-y: auto;
     transition: max-height 0.25s ease;
