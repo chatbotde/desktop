@@ -24,6 +24,7 @@ export const dom = {
     get captureDropdown() { return document.getElementById('captureDropdown'); },
     get modelSelectButton() { return document.getElementById('modelSelectButton'); },
     get modelSelectDropdown() { return document.getElementById('modelSelectDropdown'); },
+    get newChatButton() { return document.getElementById('newChatButton'); },
     get chatInputContainer() { return document.querySelector('.chat-input-container'); },
     get contentProtectionButton() { return document.getElementById('contentProtectionButton'); },
     get plusButton() { return document.getElementById('plusButton'); },

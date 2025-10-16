@@ -115,8 +115,8 @@ class WindowBehavior {
       }
     };
 
-    // Check every 2 seconds to maintain position above taskbar
-    this.alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 2000);
+    // OPTIMIZED: Check every 5 seconds instead of 2 seconds to reduce CPU/memory usage
+    this.alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 5000);
 
     // Clean up interval when window is destroyed
     this.chatInputWindow.on("closed", () => {

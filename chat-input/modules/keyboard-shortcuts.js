@@ -37,7 +37,6 @@ const shortcuts = {
     'ctrl+e': { action: toggleExpanded, description: 'Toggle expanded/collapsed', category: 'window' },
     
     // Action shortcuts
-    'ctrl+enter': { action: sendMessage, description: 'Send message (alternative)', category: 'action' },
     'ctrl+shift+x': { action: clearAllMediaAttachments, description: 'Clear all attachments', category: 'action' },
     
     // Help

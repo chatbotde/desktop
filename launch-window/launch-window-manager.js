@@ -224,8 +224,8 @@ class LaunchWindowManager {
       }
     };
 
-    // Check every 1.5 seconds to maintain position
-    const alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 1500);
+    // OPTIMIZED: Check every 5 seconds instead of 1.5 seconds to reduce CPU/memory usage
+    const alwaysOnTopInterval = setInterval(maintainAlwaysOnTop, 5000);
     
     // Clean up interval when window is destroyed
     this.launchWindow.on('closed', () => {
@@ -361,14 +361,15 @@ class LaunchWindowManager {
 
     console.log('Launch Window: Setting up memory optimization');
     
-    // Ensure window stays visible - check every 10 seconds
+    // OPTIMIZED: Check window visibility less frequently (every 30 seconds instead of 10)
+    // This reduces unnecessary checks and saves memory
     setInterval(() => {
       if (this.launchWindow && !this.launchWindow.isDestroyed() && !this.launchWindow.isVisible()) {
         console.log('Launch Window: Window was hidden, restoring visibility');
         this.launchWindow.show();
         this.setActiveState();
       }
-    }, 10000); // Check every 10 seconds
+    }, 30000); // Check every 30 seconds instead of 10
     
     // Monitor system power state changes
     powerMonitor.on('suspend', () => {
@@ -418,7 +419,7 @@ class LaunchWindowManager {
       clearInterval(this.memoryMonitoringInterval);
     }
     
-    // Check memory usage every 30 seconds
+    // OPTIMIZED: Check memory usage every 60 seconds instead of 30 to reduce overhead
     this.memoryMonitoringInterval = setInterval(() => {
       try {
         const memoryUsage = process.memoryUsage();
@@ -442,7 +443,7 @@ class LaunchWindowManager {
       } catch (error) {
         console.error('Launch Window: Error monitoring memory:', error);
       }
-    }, 30000); // Check every 30 seconds
+    }, 60000); // Check every 60 seconds instead of 30
   }
 
   stopMemoryMonitoring() {
@@ -550,8 +551,8 @@ class LaunchWindowManager {
     if (!this.launchWindow || this.launchWindow.isDestroyed()) return;
     
     try {
-      // Reduce frame rate to save CPU
-      this.launchWindow.webContents.setFrameRate(10); // 10 FPS when inactive (higher than before)
+      // OPTIMIZED: Set frame rate to 15 FPS instead of 10 for better responsiveness while still saving resources
+      this.launchWindow.webContents.setFrameRate(15); // 15 FPS when inactive
       
       // Throttle background processing
       this.launchWindow.webContents.setBackgroundThrottling(true);
@@ -671,8 +672,7 @@ class LaunchWindowManager {
     
     if (this.launchWindow && !this.launchWindow.isDestroyed()) {
       try {
-        // DO NOT hide the window - keep it visible but optimized
-        // this.launchWindow.hide(); // DISABLED - window must stay visible
+        // Keep window visible but optimize aggressively
         
         // Reduce process priority
         this.launchWindow.webContents.setAudioMuted(true);
@@ -682,8 +682,15 @@ class LaunchWindowManager {
           console.log('Launch Window: Cache cleared in ultra-low memory mode');
         });
         
-        // Set minimal frame rate
-        this.launchWindow.webContents.setFrameRate(0);
+        // OPTIMIZED: Set frame rate to 5 FPS instead of 0 to keep window responsive
+        // Frame rate 0 can cause rendering issues
+        this.launchWindow.webContents.setFrameRate(5);
+        
+        // Force garbage collection if available
+        if (global.gc) {
+          console.log('Launch Window: Forcing garbage collection');
+          global.gc();
+        }
       } catch (error) {
         console.error('Launch Window: Error enabling ultra-low memory mode:', error);
       }

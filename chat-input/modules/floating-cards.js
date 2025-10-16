@@ -34,10 +34,10 @@ export function initializeFloatingCards() {
         title: 'Display Card', 
         centered: true, 
         visible: true,
-        width: 850,
-        height: 500
+        width: 600,
+        height: 400
     });
-    
+
     if (primaryCard) {
         container.appendChild(primaryCard);
     }
@@ -64,10 +64,15 @@ export function initializeFloatingCards() {
             e.preventDefault();
             createNewFloatingCard();
         }
-        // Escape: close focused card
+        // Escape: close focused card (except card 1)
         if (e.key === 'Escape') {
             const focused = document.querySelector('.floating-card:focus-within');
-            if (focused) focused.remove();
+            if (focused) {
+                const cardNumber = Number(focused.dataset.cardNumber);
+                if (cardNumber !== 1) {
+                    focused.remove();
+                }
+            }
         }
     });
 }
@@ -243,6 +248,10 @@ function setupCardControls(card, cardNumber) {
     if (closeBtn) {
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            // Prevent closing card 1 (primary card)
+            if (cardNumber === 1) {
+                return;
+            }
             fadeOutAndRemove(card, cardNumber);
         });
     }
@@ -1166,6 +1175,10 @@ function createCardPreview(card, number) {
     if (closeBtn) {
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            // Prevent closing card 1 (primary card)
+            if (number === 1) {
+                return;
+            }
             fadeOutAndRemove(card, number);
         });
     }

@@ -2,18 +2,18 @@ import { dom } from './dom.js';
 import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
 import { appendToInput, getClipboardText } from './clipboard-injector.js';
 
-// Theme configuration for better maintainability
-const THEME = {
+// Theme-aware styling using CSS variables for consistency
+const STYLES = {
   bar: {
-    background: '#2b2f36',
-    border: '#1f2329',
-    shadow: '0 8px 18px rgba(0,0,0,0.35)'
+    background: 'var(--bg-popover)',
+    border: 'var(--border)',
+    shadow: 'var(--shadow-sm)'
   },
   buttons: {
-    add: { bg: '#4f46e5', border: '#4f46e5' },
-    autoOn: { bg: '#16a34a', border: '#16a34a' },
-    autoOff: { bg: '#374151', border: '#374151' },
-    close: { bg: '#374151', border: '#4b5563' }
+    add: { bg: 'var(--primary)', border: 'var(--primary-border)' },
+    autoOn: { bg: 'var(--success)', border: 'var(--success-border)' },
+    autoOff: { bg: 'var(--bg-hover)', border: 'var(--border-hover)' },
+    close: { bg: 'var(--bg-hover)', border: 'var(--border)' }
   }
 };
 
@@ -32,7 +32,7 @@ class ClipboardBarManager {
   createBar() {
     if (this.barEl) return this.barEl;
 
-    // Create main container
+    // Create main container, mimicking .prompt-input
     this.barEl = this.createElement('div', {
       id: 'clipboardPromptBar',
       styles: {
@@ -40,14 +40,15 @@ class ClipboardBarManager {
         display: 'none',
         alignItems: 'center',
         gap: '8px',
-        padding: '6px 10px',
-        borderRadius: '8px',
-        background: THEME.bar.background,
-        color: '#fff',
-        border: `1px solid ${THEME.bar.border}`,
-        boxShadow: THEME.bar.shadow,
+        padding: '8px',
+        borderRadius: 'var(--radius)',
+        background: STYLES.bar.background,
+        color: 'var(--text)',
+        border: `1px solid ${STYLES.bar.border}`,
+        boxShadow: STYLES.bar.shadow,
         zIndex: '1000',
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        transition: 'all 0.2s ease-in-out'
       }
     });
 
@@ -56,31 +57,32 @@ class ClipboardBarManager {
       text: this.createElement('div', {
         styles: {
           flex: '1',
-          fontSize: '12px',
+          fontSize: '13px',
           lineHeight: '1.4',
           maxHeight: '3.6em',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           display: '-webkit-box',
           webkitLineClamp: '2',
-          webkitBoxOrient: 'vertical'
+          webkitBoxOrient: 'vertical',
+          color: 'var(--text-dim)'
         }
       }),
       
       addBtn: this.createElement('button', {
         textContent: 'Add',
-        styles: this.getButtonStyles(THEME.buttons.add)
+        styles: this.getButtonStyles(STYLES.buttons.add)
       }),
       
       toggleBtn: this.createElement('button', {
         textContent: 'Auto OFF',
-        styles: this.getButtonStyles(THEME.buttons.autoOff)
+        styles: this.getButtonStyles(STYLES.buttons.autoOff)
       }),
       
       closeBtn: this.createElement('button', {
         textContent: '✕',
         title: 'Dismiss',
-        styles: { ...this.getButtonStyles(THEME.buttons.close), padding: '6px 8px' }
+        styles: { ...this.getButtonStyles(STYLES.buttons.close), padding: '6px 8px' }
       })
     };
 
@@ -107,13 +109,15 @@ class ClipboardBarManager {
   // Get standardized button styles
   getButtonStyles({ bg, border }) {
     return {
-      padding: '6px 10px',
-      borderRadius: '6px',
+      padding: '6px 12px',
+      borderRadius: 'var(--radius-sm)',
       border: `1px solid ${border}`,
       background: bg,
       color: '#fff',
       cursor: 'pointer',
-      fontWeight: '600'
+      fontWeight: '500',
+      fontSize: '13px',
+      transition: 'background-color 0.2s, border-color 0.2s'
     };
   }
 
@@ -159,9 +163,9 @@ class ClipboardBarManager {
     btn.textContent = isOn ? 'Auto ON' : 'Auto OFF';
     btn.title = `Auto-paste is ${isOn ? 'ON' : 'OFF'} (click to toggle)`;
     
-    const theme = isOn ? THEME.buttons.autoOn : THEME.buttons.autoOff;
-    btn.style.background = theme.bg;
-    btn.style.borderColor = theme.border;
+    const style = isOn ? STYLES.buttons.autoOn : STYLES.buttons.autoOff;
+    btn.style.background = style.bg;
+    btn.style.borderColor = style.border;
   }
 
   // Position bar above chat input container
@@ -173,9 +177,9 @@ class ClipboardBarManager {
     const rect = container.getBoundingClientRect();
     const gap = 8;
     
-    this.barEl.style.left = `${Math.round(rect.left + 8)}px`;
-    this.barEl.style.width = `${Math.max(180, Math.round(rect.width - 16))}px`;
-    this.barEl.style.top = `${Math.max(8, Math.round(rect.top - (this.barEl.offsetHeight || 44) - gap))}px`;
+    this.barEl.style.left = `${Math.round(rect.left)}px`;
+    this.barEl.style.width = `${Math.round(rect.width)}px`;
+    this.barEl.style.top = `${Math.max(8, Math.round(rect.top - (this.barEl.offsetHeight || 48) - gap))}px`;
   }
 
   // Show bar with clipboard content

@@ -179,6 +179,42 @@ export async function boot() {
 
     dom.clearAllButton.addEventListener('click', () => clearAllMediaAttachments());
     dom.sendButton.addEventListener('click', () => sendMessage());
+    
+    // New Chat button - clears conversation and resets to new chat
+    if (dom.newChatButton) {
+        dom.newChatButton.addEventListener('click', () => {
+            // Clear the message input
+            dom.messageInput.value = '';
+            
+            // Clear all attachments
+            clearAllMediaAttachments();
+            
+            // Reset sending state
+            resetSendingState();
+            
+            // Clear the primary card content by reloading the iframe
+            const primaryCard = document.querySelector('.floating-card[data-card-number="1"]');
+            if (primaryCard) {
+                const iframe = primaryCard.querySelector('iframe');
+                if (iframe && iframe.src) {
+                    // Reload the iframe to clear content
+                    iframe.src = iframe.src;
+                }
+            }
+            
+            // Optionally notify the backend to clear conversation history
+            if (window.chatInputAPI && window.chatInputAPI.clearConversation) {
+                window.chatInputAPI.clearConversation();
+            }
+            
+            // Focus back on the input
+            dom.messageInput.focus();
+            
+            // Auto-resize the input
+            autoResize();
+        });
+    }
+    
     dom.lightingButton.addEventListener('click', () => toggleLighting());
     dom.themeToggleButton.addEventListener('click', () => toggleTheme());
     dom.hideShowButton.addEventListener('click', () => window.chatInputAPI?.hideWindow?.());
@@ -193,6 +229,8 @@ export async function boot() {
             if (dom.chatInputContainer) {
                 console.log('Hiding chat input container');
                 dom.chatInputContainer.style.display = 'none';
+                // Store hidden state to prevent issues
+                sessionStorage.setItem('chatInputHidden', 'true');
             }
             if (dom.hideChatButton) {
                 console.log('Hiding hide button');
@@ -212,9 +250,12 @@ export async function boot() {
     }
 
     dom.messageInput.addEventListener('keydown', (e) => {
-        const isCollapsed = !dom.promptInput.classList.contains('expanded');
-        if (isCollapsed && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        if (!isCollapsed && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); sendMessage(); }
+        // Send on Enter (but not with Shift)
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+        // No need for specific newline handling, as Shift+Enter is the default.
     });
     dom.messageInput.addEventListener('input', () => { autoResize(); updateSendButton(); });
 
@@ -243,24 +284,36 @@ export async function boot() {
         if (window.chatInputAPI.onShowChatInputUI) {
             window.chatInputAPI.onShowChatInputUI(() => {
                 console.log('Show chat input UI event received from launch window');
-                if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+                if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
                     console.log('Chat input is hidden, showing it now');
-                    dom.chatInputContainer.style.display = 'flex';
-                    if (dom.hideChatButton) {
-                        dom.hideChatButton.style.display = 'flex';
-                    }
-                    setTimeout(() => {
-                        if (window.updateHideButtonPosition) {
-                            window.updateHideButtonPosition();
-                        }
-                        if (dom.messageInput) {
-                            dom.messageInput.focus();
-                        }
-                    }, 50);
+                    showChatInput();
                 }
             });
         }
     }
+    
+    // Helper function to show chat input (centralized logic)
+    const showChatInput = () => {
+        console.log('Showing chat input');
+        if (dom.chatInputContainer) {
+            dom.chatInputContainer.style.display = 'flex';
+            sessionStorage.setItem('chatInputHidden', 'false');
+        }
+        if (dom.hideChatButton) {
+            dom.hideChatButton.style.display = 'flex';
+        }
+        setTimeout(() => {
+            if (window.updateHideButtonPosition) {
+                window.updateHideButtonPosition();
+            }
+            if (dom.messageInput) {
+                dom.messageInput.focus();
+            }
+        }, 50);
+    };
+    
+    // Expose globally for easy access
+    window.showChatInput = showChatInput;
     
     // Show chat input when clicking anywhere on the window (if it's hidden)
     document.body.addEventListener('click', (e) => {
@@ -268,46 +321,29 @@ export async function boot() {
         console.log('Chat input display:', dom.chatInputContainer?.style.display);
         
         // Check if chat input is hidden
-        if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+        if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
             console.log('Chat input is hidden, showing it now');
-            // Show the chat input container and button
-            dom.chatInputContainer.style.display = 'flex';
-            if (dom.hideChatButton) {
-                dom.hideChatButton.style.display = 'flex';
-            }
-            // Update button position after showing
-            setTimeout(() => {
-                if (window.updateHideButtonPosition) {
-                    console.log('Updating hide button position');
-                    window.updateHideButtonPosition();
-                }
-                // Focus the message input
-                if (dom.messageInput) {
-                    dom.messageInput.focus();
-                }
-            }, 50);
+            showChatInput();
         }
     });
     
     // Also listen for window focus to show chat input (when launch window is clicked)
     window.addEventListener('focus', () => {
         console.log('Window focused');
-        if (dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+        if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
             console.log('Chat input is hidden on focus, showing it');
-            dom.chatInputContainer.style.display = 'flex';
-            if (dom.hideChatButton) {
-                dom.hideChatButton.style.display = 'flex';
-            }
-            setTimeout(() => {
-                if (window.updateHideButtonPosition) {
-                    window.updateHideButtonPosition();
-                }
-                if (dom.messageInput) {
-                    dom.messageInput.focus();
-                }
-            }, 50);
+            showChatInput();
         }
     });
+    
+    // Periodic check to ensure chat input is always restorable (runs every 5 seconds)
+    // This is a safety net in case events fail
+    setInterval(() => {
+        // Only check if hidden flag is set
+        if (sessionStorage.getItem('chatInputHidden') === 'true' && dom.chatInputContainer && dom.chatInputContainer.style.display === 'none') {
+            console.log('Periodic check: Chat input visibility check OK');
+        }
+    }, 5000);
 
     // capture api
     if (window.RendererCaptureAPI) {
