@@ -159,9 +159,6 @@ export async function boot() {
             case 'click-through':
                 toggleClickThrough();
                 break;
-            case 'toggle-main':
-                window.chatInputAPI?.toggleMainWindow?.();
-                break;
             case 'protection':
                 toggleContentProtection();
                 break;
@@ -218,7 +215,6 @@ export async function boot() {
     dom.lightingButton.addEventListener('click', () => toggleLighting());
     dom.themeToggleButton.addEventListener('click', () => toggleTheme());
     dom.hideShowButton.addEventListener('click', () => window.chatInputAPI?.hideWindow?.());
-    dom.toggleMainWindowButton.addEventListener('click', () => window.chatInputAPI?.toggleMainWindow?.());
     
     // Hide chat button (cross button on left side) - hides only the chat input, not the whole window
     if (dom.hideChatButton) {

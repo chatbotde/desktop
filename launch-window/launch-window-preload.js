@@ -14,7 +14,6 @@ contextBridge.exposeInMainWorld("launchWindowAPI", {
   disableContentProtection: () => ipcRenderer.invoke('launch-window-disable-content-protection'),
   
   // Window Control
-  openMainWindow: () => ipcRenderer.send('open-main-window'),
   setActiveState: () => ipcRenderer.send('launch-window-set-active'),
   
   // Memory Optimization API

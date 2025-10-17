@@ -129,42 +129,6 @@ class BasicIpcHandlers {
         chatInputWindow.hide();
       }
     });
-
-    // Handle main window toggle (hide/show)
-    ipcMain.on("toggle-main-window", (event) => {
-      const allWindows = BrowserWindow.getAllWindows();
-      const mainWindow = allWindows.find((win) => {
-        if (win.isDestroyed()) return false;
-
-        try {
-          const url = win.webContents.getURL();
-          // Check for development server or production files
-          const isMainWindow =
-            url.includes("localhost:5173") ||
-            url.includes("localhost:3000") ||
-            (url.includes("index.html") && !url.includes("chat-input.html")) ||
-            url.includes("app-frontend") ||
-            url.includes("frontend/dist");
-
-          return isMainWindow;
-        } catch (error) {
-          console.log("IPC: Error checking window URL:", error);
-          return false;
-        }
-      });
-
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        if (mainWindow.isVisible()) {
-          mainWindow.hide();
-          console.log("IPC: Main window hidden");
-        } else {
-          mainWindow.showInactive();
-          console.log("IPC: Main window shown");
-        }
-      } else {
-        console.log("IPC: Main window not found or destroyed");
-      }
-    });
   }
 }
 

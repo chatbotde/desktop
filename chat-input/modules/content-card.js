@@ -170,9 +170,6 @@ function handleContentCardAction(action) {
         case 'hide':
             window.chatInputAPI?.hideWindow?.();
             break;
-        case 'toggle-main':
-            window.chatInputAPI?.toggleMainWindow?.();
-            break;
         case 'collapse':
             collapseUI();
             break;

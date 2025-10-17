@@ -32,7 +32,6 @@ const shortcuts = {
     
     // Window shortcuts
     'ctrl+h': { action: hideWindow, description: 'Hide window', category: 'window' },
-    'ctrl+m': { action: toggleMainWindow, description: 'Toggle main window', category: 'window' },
     'ctrl+t': { action: toggleTheme, description: 'Toggle theme', category: 'window' },
     'ctrl+e': { action: toggleExpanded, description: 'Toggle expanded/collapsed', category: 'window' },
     
@@ -259,15 +258,6 @@ function moveCursorToEnd(e) {
 function hideWindow(e) {
     e?.preventDefault();
     window.chatInputAPI?.hideWindow?.();
-    return false;
-}
-
-/**
- * Toggle main window
- */
-function toggleMainWindow(e) {
-    e?.preventDefault();
-    window.chatInputAPI?.toggleMainWindow?.();
     return false;
 }
 

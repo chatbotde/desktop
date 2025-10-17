@@ -4,10 +4,8 @@ const path = require('path');
 class LaunchWindowManager {
   constructor() {
     this.launchWindow = null;
-    this.mainWindow = null;
     this.windowManager = null;
     this.shortcutManager = null;
-    this.isMainWindowOpen = false;
     this.contentProtectionEnabled = true; // Enable content protection by default
     
     // Memory optimization states
@@ -107,14 +105,14 @@ class LaunchWindowManager {
       event.preventDefault();
     });
 
-    // Handle click to open main window
+    // Handle click to open chat input
     this.launchWindow.webContents.on('did-finish-load', () => {
       // Apply content protection after load
       this.applyContentProtection();
       
       this.launchWindow.webContents.executeJavaScript(`
         document.addEventListener('click', () => {
-          require('electron').ipcRenderer.send('open-main-window');
+          require('electron').ipcRenderer.send('toggle-chat-input');
         });
       `);
     });
@@ -235,17 +233,6 @@ class LaunchWindowManager {
     });
   }
 
-  openMainWindow() {
-    if (this.isMainWindowOpen && this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.focus();
-      return this.mainWindow;
-    }
-
-    // Import WindowManager and ShortcutManager from the main window module
-    // Main window disabled; instead, focus chat input via main.js
-    return null;
-  }
-
   closeLaunchWindow() {
     // Unregister launch window shortcuts
     if (globalShortcut.isRegistered('CommandOrControl+Alt+Y')) {
@@ -253,16 +240,6 @@ class LaunchWindowManager {
     }
     if (globalShortcut.isRegistered('CommandOrControl+Alt+L')) {
       globalShortcut.unregister('CommandOrControl+Alt+L');
-    }
-    
-    // Unregister main window shortcuts if they exist
-    if (this.shortcutManager) {
-      this.shortcutManager.unregisterAllShortcuts();
-    }
-    
-    // Close main window if open
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.destroy();
     }
     
     // Force close launch window
@@ -274,20 +251,8 @@ class LaunchWindowManager {
     require('electron').app.quit();
   }
 
-  registerMainWindowShortcuts() {
-    // Register only the main window specific shortcuts
-    this.shortcutManager.registerHideShowShortcut();
-    this.shortcutManager.registerMouseIgnoreShortcut();
-    this.shortcutManager.registerLinuxAlternativeShortcuts();
-    this.shortcutManager.logRegisteredShortcuts();
-  }
-
   getLaunchWindow() {
     return this.launchWindow;
-  }
-
-  getMainWindow() {
-    return this.mainWindow;
   }
 
   forceWindowAboveAll() {

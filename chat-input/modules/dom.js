@@ -12,7 +12,6 @@ export const dom = {
     get lightingButton() { return document.getElementById('lightingButton'); },
     get themeToggleButton() { return document.getElementById('themeToggleButton'); },
     get hideShowButton() { return document.getElementById('hideShowButton'); },
-    get toggleMainWindowButton() { return document.getElementById('toggleMainWindowButton'); },
     get autoPasteToggleButton() { return document.getElementById('autoPasteToggleButton'); },
     get promptInput() { return document.querySelector('.prompt-input'); },
     get dragHandle() { return document.querySelector('.drag-handle'); },

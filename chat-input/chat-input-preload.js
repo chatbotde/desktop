@@ -98,12 +98,6 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('hide-chat-input');
   },
   
-  // Toggle main window visibility
-  toggleMainWindow: () => {
-    console.log('Preload: Toggling main window visibility');
-    ipcRenderer.send('toggle-main-window');
-  },
-  
   // Listen for show chat input UI event (from launch window click)
   onShowChatInputUI: (callback) => {
     ipcRenderer.on('show-chat-input-ui', callback);

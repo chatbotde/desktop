@@ -40,28 +40,7 @@ function createLaunchWindow() {
   if (!ipcHandlersRegistered) {
     console.log('Main: Setting up IPC handlers');
     
-    ipcMain.on('open-main-window', () => {
-      // Main window disabled – open or focus chat input instead
-      console.log('Main: Opening chat input (main window disabled)');
-      if (!chatInputWindow) {
-        chatInputWindow = new ChatInputWindow();
-        chatInputWindow.createChatInputWindow();
-      }
-      chatInputWindow.show();
-      
-      // Send event to show chat input UI if it's hidden
-      const chatWindow = chatInputWindow.getChatInputWindow();
-      if (chatWindow && !chatWindow.isDestroyed()) {
-        console.log('Main: Sending show-chat-input-ui event to renderer');
-        chatWindow.webContents.send('show-chat-input-ui');
-      }
-      
-      setTimeout(() => {
-        if (launchWindowManager) {
-          launchWindowManager.forceWindowAboveAll();
-        }
-      }, 200);
-    });
+
 
     // Handle chat input window toggle
     ipcMain.on('toggle-chat-input', () => {
@@ -70,12 +49,6 @@ function createLaunchWindow() {
         console.log('Main: Creating new chat input window');
         chatInputWindow = new ChatInputWindow();
         chatInputWindow.createChatInputWindow();
-        
-        // Set main window reference if available
-        const mainWindow = launchWindowManager.getMainWindow();
-        if (mainWindow) {
-          chatInputWindow.setMainWindow(mainWindow);
-        }
       } else {
         console.log('Main: Toggling existing chat input window');
         chatInputWindow.toggle();
@@ -330,13 +303,6 @@ function registerGlobalShortcuts() {
       // Create chat input window if it doesn't exist
       chatInputWindow = new ChatInputWindow();
       chatInputWindow.createChatInputWindow();
-      
-      // Set main window reference if available
-      const mainWindow = launchWindowManager ? launchWindowManager.getMainWindow() : null;
-      if (mainWindow) {
-        chatInputWindow.setMainWindow(mainWindow);
-      }
-      
       chatInputWindow.show();
     }
   });

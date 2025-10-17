@@ -11,7 +11,6 @@ const { IpcHandlerRegistry } = require("./window/handlers/ipc-handler-registry")
 class ChatInputWindow {
   constructor() {
     this.chatInputWindow = null;
-    this.mainWindow = null;
     this.windowBehavior = null;
     this.securityManager = null;
     this.captureAPI = new CaptureAPI();
@@ -52,10 +51,6 @@ class ChatInputWindow {
     // Initialize security manager
     this.securityManager = new SecurityManager(this.chatInputWindow);
     this.securityManager.applyScreenCaptureProtection();
-  }
-
-  setMainWindow(mainWindow) {
-    this.mainWindow = mainWindow;
   }
 
   show() {
