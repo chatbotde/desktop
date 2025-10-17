@@ -131,6 +131,19 @@ export function createFloatingCard(options = {}) {
     // Visibility
     card.style.display = visible ? 'flex' : 'none';
 
+    // Set iframe src dynamically based on environment
+    const iframe = card.querySelector('iframe');
+    if (iframe && window.electronAPI && window.electronAPI.getFrontendURL) {
+        window.electronAPI.getFrontendURL().then(url => {
+            console.log(`Setting card ${cardNumber} iframe to:`, url);
+            iframe.src = url;
+        }).catch(err => {
+            console.error(`Failed to get frontend URL for card ${cardNumber}:`, err);
+            // Fallback to development URL
+            iframe.src = 'http://localhost:5173';
+        });
+    }
+
     // Wire up controls
     setupCardControls(card, cardNumber);
     

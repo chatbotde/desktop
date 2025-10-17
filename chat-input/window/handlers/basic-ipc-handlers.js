@@ -1,4 +1,5 @@
 const { BrowserWindow, ipcMain } = require("electron");
+const { environmentConfig } = require("../../../utils/environment");
 
 /**
  * Basic IPC handlers for chat input window
@@ -21,13 +22,10 @@ class BasicIpcHandlers {
           const url = win.webContents.getURL();
           console.log("IPC: Checking window URL:", url);
 
-          // Check for development server or production files
-          const isMainWindow =
-            url.includes("localhost:5173") ||
-            url.includes("localhost:3000") ||
-            (url.includes("index.html") && !url.includes("chat-input.html")) ||
-            url.includes("app-frontend") ||
-            url.includes("frontend/dist");
+          // Use environment config to check if this is the main frontend window
+          const isMainWindow = environmentConfig.isMainFrontendWindow(url) && 
+                              !url.includes("chat-input.html") &&
+                              !url.includes("launch-window.html");
 
           return isMainWindow;
         } catch (error) {

@@ -88,7 +88,8 @@ class FloatingCardBrowserIntegration {
 
     // Get the current URL from the iframe
     const iframe = card.querySelector('iframe');
-    let url = 'http://localhost:5173'; // Default URL
+    // Get default URL from environment config via IPC
+    let url = await window.electronAPI?.getFrontendURL?.() || 'http://localhost:5173'; // Fallback to dev URL
     
     if (iframe && iframe.src) {
       url = iframe.src;

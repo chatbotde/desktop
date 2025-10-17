@@ -5,6 +5,7 @@ const { LaunchWindowManager } = require("./launch-window");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
 const { clipboardMonitor } = require("./clipboard-monitor");
+const { environmentConfig } = require("./utils/environment");
 
 // Set app icon
 if (process.platform === 'win32') {
@@ -253,6 +254,23 @@ function createLaunchWindow() {
       console.log('Main: AI model changed to', modelId, modelDetails);
       // You can add additional logic here if needed
       // For example, notifying other windows or saving preferences
+    });
+
+    // Environment Config IPC Handlers
+    ipcMain.handle('get-frontend-url', () => {
+      const frontendURL = environmentConfig.getFrontendURL();
+      console.log('Main: Frontend URL requested:', frontendURL);
+      return frontendURL;
+    });
+
+    ipcMain.handle('get-frontend-base-url', () => {
+      const baseURL = environmentConfig.getFrontendBaseURL();
+      console.log('Main: Frontend base URL requested:', baseURL);
+      return baseURL;
+    });
+
+    ipcMain.handle('is-development', () => {
+      return environmentConfig.isDev();
     });
 
     ipcHandlersRegistered = true;

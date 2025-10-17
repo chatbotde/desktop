@@ -365,6 +365,32 @@ contextBridge.exposeInMainWorld("electronAPI", {
    */
   removeMCPListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);
+  },
+
+  // ==================== ENVIRONMENT CONFIG ====================
+  
+  /**
+   * Get the frontend URL (development or production)
+   * @returns {Promise<string>} Frontend URL
+   */
+  getFrontendURL: () => {
+    return ipcRenderer.invoke('get-frontend-url');
+  },
+
+  /**
+   * Get the frontend base URL
+   * @returns {Promise<string>} Frontend base URL
+   */
+  getFrontendBaseURL: () => {
+    return ipcRenderer.invoke('get-frontend-base-url');
+  },
+
+  /**
+   * Check if running in development mode
+   * @returns {Promise<boolean>} True if development
+   */
+  isDevelopment: () => {
+    return ipcRenderer.invoke('is-development');
   }
 });
 
