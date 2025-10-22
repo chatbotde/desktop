@@ -438,15 +438,25 @@ function toggleExpand(card, expandBtn) {
             expandBtn.title = 'Expand';
         }
     } else {
-        // Expand to larger size
+        // Expand to larger size but ensure it fits within viewport
         card.classList.add('expanded');
+        
+        // Calculate max dimensions that fit within viewport
+        const maxWidth = Math.min(1200, window.innerWidth - 40);
+        const maxHeight = Math.min(700, window.innerHeight - 40);
+        
         if (isUserPositioned(card)) {
-            resizeAroundCenter(card, 1200, 700, true);
+            resizeAroundCenter(card, maxWidth, maxHeight, true);
         } else {
-            card.style.width = '1200px';
-            card.style.height = '700px';
+            card.style.width = maxWidth + 'px';
+            card.style.height = maxHeight + 'px';
             centerCardSmooth(card);
         }
+        
+        // Ensure card stays within viewport after expansion
+        setTimeout(() => {
+            clampCardToViewport(card, 20);
+        }, 250);
         
         if (expandBtn) {
             expandBtn.innerHTML = `
