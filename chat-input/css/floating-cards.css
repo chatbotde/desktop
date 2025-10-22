@@ -247,6 +247,7 @@
 }
 
 /* Control buttons - simplified, YouTube-like icon buttons */
+.floating-card-new-chat-btn,
 .floating-card-create-btn,
 .floating-card-iframe-toggle-btn,
 .floating-card-expand-btn,
@@ -277,6 +278,7 @@
 }
 
 /* SVG icon sizing and crisp rendering */
+.floating-card-new-chat-btn svg,
 .floating-card-create-btn svg,
 .floating-card-iframe-toggle-btn svg,
 .floating-card-expand-btn svg,
@@ -290,6 +292,7 @@
     shape-rendering: geometricPrecision;
 }
 /* Help strokes stay crisp when used */
+.floating-card-new-chat-btn svg *,
 .floating-card-create-btn svg *,
 .floating-card-iframe-toggle-btn svg *,
 .floating-card-expand-btn svg *,
@@ -300,6 +303,7 @@
 }
 
 /* Subtle hover state (no scale/glow) */
+.floating-card-new-chat-btn:hover,
 .floating-card-create-btn:hover,
 .floating-card-iframe-toggle-btn:hover,
 .floating-card-expand-btn:hover,
@@ -327,7 +331,13 @@
     border-color: color-mix(in oklab, var(--sp-danger) 55%, rgba(255,255,255,0.18));
 }
 
+/* Hide close button for card #1 */
+.floating-card[data-card-number="1"] .floating-card-close {
+    display: none;
+}
+
 /* Active press state: slight depression, no glow */
+.floating-card-new-chat-btn:active,
 .floating-card-create-btn:active,
 .floating-card-iframe-toggle-btn:active,
 .floating-card-expand-btn:active,
@@ -341,6 +351,7 @@
 }
 
 /* Keyboard focus ring - simplified */
+.floating-card-new-chat-btn:focus-visible,
 .floating-card-create-btn:focus-visible,
 .floating-card-iframe-toggle-btn:focus-visible,
 .floating-card-expand-btn:focus-visible,
@@ -352,6 +363,7 @@
 }
 
 /* Lightweight ripple effect (centered) */
+.floating-card-new-chat-btn::after,
 .floating-card-create-btn::after,
 .floating-card-iframe-toggle-btn::after,
 .floating-card-expand-btn::after,
@@ -368,6 +380,7 @@
     opacity: 0;
     transition: transform 300ms var(--sp-anim-easing), opacity 400ms var(--sp-anim-easing);
 }
+.floating-card-new-chat-btn:active::after,
 .floating-card-create-btn:active::after,
 .floating-card-iframe-toggle-btn:active::after,
 .floating-card-expand-btn:active::after,

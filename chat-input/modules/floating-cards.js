@@ -209,6 +209,7 @@ export function createNewFloatingCard(options = {}) {
 }
 
 function setupCardControls(card, cardNumber) {
+    const newChatBtn = card.querySelector('.floating-card-new-chat-btn');
     const createBtn = card.querySelector('.floating-card-create-btn');
     const iframeToggleBtn = card.querySelector('.floating-card-iframe-toggle-btn');
     const expandBtn = card.querySelector('.floating-card-expand-btn');
@@ -222,6 +223,16 @@ function setupCardControls(card, cardNumber) {
     if (iframe) {
         iframe.classList.add('visible');
         iframe.classList.remove('hidden');
+    }
+    
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Clear the iframe content by reloading it
+            if (iframe && iframe.src) {
+                iframe.src = iframe.src;
+            }
+        });
     }
     
     if (createBtn) {
@@ -277,6 +288,11 @@ function setupCardControls(card, cardNumber) {
     }
     
     if (closeBtn) {
+        // Hide close button for card #1
+        if (cardNumber === 1) {
+            closeBtn.style.display = 'none';
+        }
+        
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             // Prevent closing card 1 (primary card)

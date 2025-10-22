@@ -87,10 +87,44 @@ export async function boot() {
     dom.messageInput.focus();
     updateSendButton();
 
+    // Update expand button title based on state
+    const updateExpandButtonTitle = () => {
+        if (dom.promptInput.classList.contains('expanded')) {
+            dom.expandButton.setAttribute('title', 'Collapse');
+            dom.expandButton.setAttribute('aria-label', 'Collapse');
+        } else {
+            dom.expandButton.setAttribute('title', 'Expand');
+            dom.expandButton.setAttribute('aria-label', 'Expand');
+        }
+    };
+
+    // Override expandUI and collapseUI to update button title
+    const originalExpandUI = expandUI;
+    const originalCollapseUI = collapseUI;
+    
+    window.expandUI = () => {
+        originalExpandUI();
+        setTimeout(updateExpandButtonTitle, 0);
+    };
+    
+    window.collapseUI = () => {
+        originalCollapseUI();
+        setTimeout(updateExpandButtonTitle, 0);
+    };
+
     // listeners
     dom.messageInput.addEventListener('dblclick', () => expandUI());
     dom.collapseButton.addEventListener('click', () => collapseUI());
-    dom.expandButton.addEventListener('click', () => expandUI());
+    dom.expandButton.addEventListener('click', () => {
+        if (dom.promptInput.classList.contains('expanded')) {
+            collapseUI();
+        } else {
+            expandUI();
+        }
+    });
+    
+    // Initial title update
+    updateExpandButtonTitle();
     // Plus button shows content card
     {
         let pressTimer;

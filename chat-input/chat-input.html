@@ -616,6 +616,13 @@
             <div class="floating-card-header">
                 <span class="floating-card-title"> </span>
                 <div style="display: flex; align-items: center; gap: 4px; position: relative;">
+                    <!-- New Chat Button -->
+                    <button class="floating-card-new-chat-btn" aria-label="New Chat" title="New Chat (Clear conversation)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <path d="M12 7v6M9 10h6"/>
+                        </svg>
+                    </button>
                     <!-- Card Settings (color & appearance) -->
                     <button class="floating-card-settings-btn" aria-label="Card settings" title="Card settings">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -651,7 +658,7 @@
                             <path d="m8 10 4 4 4-4"/>
                         </svg>
                     </button>
-                    <button class="floating-card-close" aria-label="Close card" title="Close (Esc)">
+                    <button class="floating-card-close" aria-label="Close card" title="Close (Esc)" data-hide-for-card="1">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 6 6 18M6 6l12 12"/>
                         </svg>
