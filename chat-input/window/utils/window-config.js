@@ -63,7 +63,7 @@ class WindowConfig {
       maxHeight: dimensions.height,
       closable: true,
       focusable: true,
-      show: false,
+      show: true, // Changed from false to true to make window visible by default
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

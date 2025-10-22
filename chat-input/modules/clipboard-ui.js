@@ -46,9 +46,10 @@ class ClipboardBarManager {
         color: 'var(--text)',
         border: `1px solid ${STYLES.bar.border}`,
         boxShadow: STYLES.bar.shadow,
-        zIndex: '1000',
+        zIndex: '50000', // Same level as chat-input-container
         pointerEvents: 'auto',
         transition: 'all 0.2s ease-in-out'
+        // Position will be set dynamically by position() method
       }
     });
 
@@ -82,7 +83,7 @@ class ClipboardBarManager {
       closeBtn: this.createElement('button', {
         textContent: '✕',
         title: 'Dismiss',
-        styles: { ...this.getButtonStyles(STYLES.buttons.close), padding: '6px 8px' }
+        styles: this.getButtonStyles(STYLES.buttons.close, true)
       })
     };
 
@@ -107,24 +108,70 @@ class ClipboardBarManager {
   }
 
   // Get standardized button styles
-  getButtonStyles({ bg, border }) {
-    return {
-      padding: '6px 12px',
-      borderRadius: 'var(--radius-sm)',
+  getButtonStyles({ bg, border }, isClose = false) {
+    const baseStyles = {
       border: `1px solid ${border}`,
       background: bg,
       color: '#fff',
       cursor: 'pointer',
       fontWeight: '500',
       fontSize: '13px',
-      transition: 'background-color 0.2s, border-color 0.2s'
+      transition: 'background-color 0.2s, border-color 0.2s, transform 0.1s ease'
     };
+
+    if (isClose) {
+      // Circle around close button
+      return {
+        ...baseStyles,
+        padding: '8px',
+        borderRadius: '50%',
+        width: '32px',
+        height: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '32px'
+      };
+    } else {
+      // Tablet-like appearance for other buttons
+      return {
+        ...baseStyles,
+        padding: '8px 16px',
+        borderRadius: '20px',
+        border: `2px solid ${border}`,
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        overflow: 'hidden'
+      };
+    }
   }
 
   // Bind all event handlers
   bindEvents() {
     // Close button
     this.elements.closeBtn.addEventListener('click', () => this.hide());
+
+    // Add hover effects for better UX
+    this.elements.addBtn.addEventListener('mouseenter', () => {
+      this.elements.addBtn.style.transform = 'scale(1.05)';
+    });
+    this.elements.addBtn.addEventListener('mouseleave', () => {
+      this.elements.addBtn.style.transform = 'scale(1)';
+    });
+
+    this.elements.toggleBtn.addEventListener('mouseenter', () => {
+      this.elements.toggleBtn.style.transform = 'scale(1.05)';
+    });
+    this.elements.toggleBtn.addEventListener('mouseleave', () => {
+      this.elements.toggleBtn.style.transform = 'scale(1)';
+    });
+
+    this.elements.closeBtn.addEventListener('mouseenter', () => {
+      this.elements.closeBtn.style.transform = 'scale(1.1)';
+    });
+    this.elements.closeBtn.addEventListener('mouseleave', () => {
+      this.elements.closeBtn.style.transform = 'scale(1)';
+    });
 
     // Click-through management
     this.barEl.addEventListener('pointerenter', () => this.handleClickThroughEnter());
@@ -177,9 +224,13 @@ class ClipboardBarManager {
     const rect = container.getBoundingClientRect();
     const gap = 8;
     
+    // Position directly above the chat input with exact alignment
+    this.barEl.style.position = 'fixed';
+    this.barEl.style.top = `${Math.max(8, Math.round(rect.top - (this.barEl.offsetHeight || 48) - gap))}px`;
     this.barEl.style.left = `${Math.round(rect.left)}px`;
     this.barEl.style.width = `${Math.round(rect.width)}px`;
-    this.barEl.style.top = `${Math.max(8, Math.round(rect.top - (this.barEl.offsetHeight || 48) - gap))}px`;
+    this.barEl.style.bottom = 'auto'; // Reset bottom since we're using top
+    this.barEl.style.transform = 'none'; // Reset transform for precise positioning
   }
 
   // Show bar with clipboard content

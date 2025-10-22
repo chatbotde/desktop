@@ -22,16 +22,8 @@ class WindowPositionHandlers {
         const newX = currentX + deltaX;
         const newY = currentY + deltaY;
 
-        // Get screen bounds to prevent dragging off screen
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-        const [windowWidth, windowHeight] = chatInputWindow.getSize();
-
-        // Constrain to screen bounds
-        const constrainedX = Math.max(0, Math.min(screenWidth - windowWidth, newX));
-        const constrainedY = Math.max(0, Math.min(screenHeight - windowHeight, newY));
-
-        chatInputWindow.setPosition(constrainedX, constrainedY);
+        // Set window position without constraints
+        chatInputWindow.setPosition(newX, newY);
       }
     });
 

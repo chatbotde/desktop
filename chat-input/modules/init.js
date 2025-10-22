@@ -57,6 +57,28 @@ export async function boot() {
     initializeKeyboardShortcuts();
     initializeInputEnhancements();
 
+    // Handle persistent toggle click
+    const persistentToggle = document.getElementById('persistentToggle');
+    if (persistentToggle) {
+        persistentToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Toggle chat input visibility
+            if (dom.chatInputContainer) {
+                const isHidden = dom.chatInputContainer.style.display === 'none';
+                dom.chatInputContainer.style.display = isHidden ? 'flex' : 'none';
+                
+                // Store hidden state
+                sessionStorage.setItem('chatInputHidden', isHidden ? 'false' : 'true');
+                
+                // Also toggle hide button visibility
+                if (dom.hideChatButton) {
+                    dom.hideChatButton.style.display = isHidden ? 'flex' : 'none';
+                }
+            }
+        });
+    }
+
     // legacy no-op to keep older calls safe
     window.adjustWindowHeight = () => {};
 
@@ -380,5 +402,3 @@ export async function boot() {
         }
     });
 }
-
-

@@ -1,29 +1,33 @@
 /* ==================== BUTTON COMPONENT STYLES ==================== */
 
+/* Base action button - simplified YouTube-like feel */
 .action-btn {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: var(--text-dim);
-    background: transparent;
+    background: color-mix(in oklab, #ffffff 6%, transparent);
     border: 1px solid var(--border);
-    border-radius: 50%;
-    transition: all 0.15s ease;
+    border-radius: 9999px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
     flex-shrink: 0;
     font-size: 14px;
     font-weight: 500;
     font-family: inherit;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden; /* ripple */
 }
 
 .action-btn:hover {
-    background: #303132;
+    background: color-mix(in oklab, #ffffff 12%, transparent);
     color: var(--text);
     border-color: var(--border-hover);
 }
 
 .action-btn:active {
-    background: #353637;
+    transform: scale(0.98);
 }
 
 .action-btn:focus-visible {
@@ -37,14 +41,43 @@
 }
 
 .action-btn.icon-only {
-    width: 32px;
-    height: 32px;
+    width: var(--sp-icon-btn-size);
+    height: var(--sp-icon-btn-size);
+    padding: 0;
 }
 
 .action-btn.with-text {
     padding: 8px 16px;
     border-radius: 18px;
     gap: 8px;
+}
+
+/* SVG crispness and sizing for icon-only buttons */
+.action-btn.icon-only svg {
+    width: var(--sp-icon-size);
+    height: var(--sp-icon-size);
+    display: block;
+    shape-rendering: geometricPrecision;
+}
+.action-btn.icon-only svg * {
+    vector-effect: non-scaling-stroke;
+}
+
+/* Lightweight ripple on press */
+.action-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.25), rgba(255,255,255,0) 60%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 360ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.action-btn:active::after {
+    transform: scale(2.4);
+    opacity: 1;
 }
 
 .action-btn.primary {
@@ -76,6 +109,46 @@
     color: #fff;
     border-color: var(--danger);
     animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* Icon-only variants among other components */
+.card-preview-action-btn,
+.dropdown-close-btn,
+.content-card-close {
+    position: relative;
+    overflow: hidden; /* ripple */
+}
+.card-preview-action-btn svg,
+.dropdown-close-btn svg,
+.content-card-close svg {
+    width: var(--sp-icon-size);
+    height: var(--sp-icon-size);
+    display: block;
+    shape-rendering: geometricPrecision;
+}
+.card-preview-action-btn svg *,
+.dropdown-close-btn svg *,
+.content-card-close svg * {
+    vector-effect: non-scaling-stroke;
+}
+.card-preview-action-btn::after,
+.dropdown-close-btn::after,
+.content-card-close::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 360ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-preview-action-btn:active::after,
+.dropdown-close-btn:active::after,
+.content-card-close:active::after {
+    transform: scale(2.2);
+    opacity: 1;
 }
 
 /* Transparency/Lighting Effect Button */

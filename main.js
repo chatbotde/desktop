@@ -1,7 +1,7 @@
 const { app, ipcMain, globalShortcut } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
-const { LaunchWindowManager } = require("./launch-window");
+// Remove LaunchWindowManager import
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
 const { clipboardMonitor } = require("./clipboard-monitor");
@@ -13,7 +13,7 @@ if (process.platform === 'win32') {
 }
 
 // Global instances
-let launchWindowManager = null;
+// Remove launchWindowManager
 let autoStartupManager = null;
 let chatInputWindow = null;
 let ipcHandlersRegistered = false;
@@ -23,261 +23,16 @@ let chatInputIpcHandlersRegistered = false;
 const mcpProcesses = new Map();
 const mcpListeners = new Map();
 
-function createLaunchWindow() {
-  if (!launchWindowManager) {
-    launchWindowManager = new LaunchWindowManager();
+// Remove createLaunchWindow function and replace with direct chat input window creation
+function createChatInputWindow() {
+  if (!chatInputWindow) {
+    console.log('Main: Creating new chat input window');
+    chatInputWindow = new ChatInputWindow();
+    chatInputWindow.createChatInputWindow();
+    // Show the window immediately
+    chatInputWindow.show();
   }
-  
-  const launchWin = launchWindowManager.createLaunchWindow();
-  
-  // Ensure launch window has highest priority from start
-  setTimeout(() => {
-    if (launchWindowManager) {
-      launchWindowManager.forceWindowAboveAll();
-    }
-  }, 500);
-  
-  // Setup IPC handlers (only once)
-  if (!ipcHandlersRegistered) {
-    console.log('Main: Setting up IPC handlers');
-    
-
-
-    // Handle chat input window toggle
-    ipcMain.on('toggle-chat-input', () => {
-      console.log('Main: Toggle chat input requested');
-      if (!chatInputWindow) {
-        console.log('Main: Creating new chat input window');
-        chatInputWindow = new ChatInputWindow();
-        chatInputWindow.createChatInputWindow();
-      } else {
-        console.log('Main: Toggling existing chat input window');
-        chatInputWindow.toggle();
-        
-        // Ensure launch window stays above chat input when toggled
-        setTimeout(() => {
-          if (launchWindowManager) {
-            launchWindowManager.forceWindowAboveAll();
-          }
-        }, 200);
-      }
-    });
-
-    // Handle chat input hide request
-    ipcMain.on('hide-chat-input', () => {
-      console.log('Main: Hide chat input requested');
-      if (chatInputWindow) {
-        chatInputWindow.hide();
-      }
-    });
-
-    // Launch window content protection handlers (Highest Priority)
-    ipcMain.handle('launch-window-toggle-content-protection', () => {
-      if (launchWindowManager) {
-        const enabled = launchWindowManager.toggleContentProtection();
-        console.log(`Main: Launch window content protection ${enabled ? 'ENABLED' : 'DISABLED'} with highest priority`);
-        return enabled;
-      }
-      return false;
-    });
-
-    ipcMain.handle('launch-window-get-content-protection', () => {
-      if (launchWindowManager) {
-        return launchWindowManager.isContentProtectionEnabled();
-      }
-      return false;
-    });
-
-    ipcMain.handle('launch-window-enable-content-protection', () => {
-      if (launchWindowManager) {
-        launchWindowManager.enableContentProtection();
-        console.log('Main: Launch window content protection ENABLED with highest priority');
-        return true;
-      }
-      return false;
-    });
-
-    ipcMain.handle('launch-window-disable-content-protection', () => {
-      if (launchWindowManager) {
-        launchWindowManager.disableContentProtection();
-        console.log('Main: Launch window content protection DISABLED');
-        return true;
-      }
-      return false;
-    });
-
-    // Memory optimization handlers
-
-    ipcMain.handle('launch-window-toggle-memory-optimization', () => {
-      if (launchWindowManager) {
-        const enabled = launchWindowManager.toggleMemoryOptimization();
-        console.log(`Main: Launch window memory optimization ${enabled ? 'ENABLED' : 'DISABLED'}`);
-        return enabled;
-      }
-      return false;
-    });
-
-    ipcMain.handle('launch-window-get-memory-status', () => {
-      if (launchWindowManager) {
-        return launchWindowManager.getMemoryOptimizationStatus();
-      }
-      return { enabled: false, isInactive: false, hasInactiveTimer: false, hasHoverTimeout: false };
-    });
-
-    // NEW: Add handlers for the new memory management functions
-    ipcMain.handle('launch-window-perform-memory-cleanup', async () => {
-      if (launchWindowManager) {
-        try {
-          const result = await launchWindowManager.performMemoryCleanup();
-          console.log('Main: Launch window memory cleanup completed');
-          return result;
-        } catch (error) {
-          console.error('Main: Launch window memory cleanup failed:', error);
-          return { error: error.message };
-        }
-      }
-      return { error: 'Launch window manager not available' };
-    });
-
-    ipcMain.handle('launch-window-adjust-optimization-level', () => {
-      if (launchWindowManager) {
-        try {
-          launchWindowManager.adjustOptimizationLevel();
-          console.log('Main: Launch window optimization level adjusted');
-          return { success: true };
-        } catch (error) {
-          console.error('Main: Launch window optimization adjustment failed:', error);
-          return { error: error.message, success: false };
-        }
-      }
-      return { error: 'Launch window manager not available', success: false };
-    });
-    
-    // Launch window set active state (on hover)
-    ipcMain.on('launch-window-set-active', () => {
-      if (launchWindowManager) {
-        console.log('Main: Setting launch window to active state (hover detected)');
-        launchWindowManager.setActiveState();
-      }
-    });
-
-    // MCP IPC Handlers
-    ipcMain.handle('mcp:connect', async (event, config) => {
-      const { serverId, command, args = [], env = {} } = config;
-      
-      try {
-        console.log(`Main: Connecting to MCP server ${serverId} with command: ${command} ${args.join(' ')}`);
-        
-        // Spawn the MCP server process
-        const childProcess = spawn(command, args, {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: { ...process.env, ...env }
-        });
-
-        // Store the process
-        mcpProcesses.set(serverId, childProcess);
-
-        // Set up output listeners
-        childProcess.stdout.on('data', (data) => {
-          const sender = mcpListeners.get(serverId);
-          if (sender && !sender.isDestroyed()) {
-            sender.send('mcp:message', serverId, data.toString());
-          }
-        });
-
-        childProcess.stderr.on('data', (data) => {
-          console.error(`MCP ${serverId} stderr:`, data.toString());
-        });
-
-        childProcess.on('close', (code) => {
-          console.log(`MCP ${serverId} exited with code ${code}`);
-          mcpProcesses.delete(serverId);
-          mcpListeners.delete(serverId);
-        });
-
-        childProcess.on('error', (error) => {
-          console.error(`MCP ${serverId} error:`, error);
-        });
-
-        // Store the sender for this server
-        mcpListeners.set(serverId, event.sender);
-
-        return { success: true };
-      } catch (error) {
-        console.error(`Failed to start MCP ${serverId}:`, error);
-        throw error;
-      }
-    });
-
-    ipcMain.handle('mcp:send', async (event, serverId, message) => {
-      const process = mcpProcesses.get(serverId);
-      
-      if (!process) {
-        throw new Error(`MCP server ${serverId} not found`);
-      }
-
-      try {
-        const jsonMessage = JSON.stringify(message) + '\n';
-        process.stdin.write(jsonMessage);
-      } catch (error) {
-        console.error(`Failed to send to MCP ${serverId}:`, error);
-        throw error;
-      }
-    });
-
-    ipcMain.handle('mcp:disconnect', async (event, serverId) => {
-      const process = mcpProcesses.get(serverId);
-      
-      if (process) {
-        console.log(`Main: Disconnecting MCP server ${serverId}`);
-        process.kill();
-        mcpProcesses.delete(serverId);
-        mcpListeners.delete(serverId);
-      }
-    });
-
-    // AI Model IPC Handlers
-    ipcMain.handle('get-all-ai-models', async () => {
-      try {
-        // Use CommonJS export of models (single source of truth)
-        const modelConfig = require('./frontend/src/lib/ai/model-config-export.cjs');
-        const models = modelConfig.getAllModels();
-        console.log('Main: Retrieved', models.length, 'AI models from model-config');
-        return models;
-      } catch (error) {
-        console.error('Main: Error getting AI models:', error);
-        return [];
-      }
-    });
-
-    ipcMain.on('ai-model-changed', (event, { modelId, modelDetails }) => {
-      console.log('Main: AI model changed to', modelId, modelDetails);
-      // You can add additional logic here if needed
-      // For example, notifying other windows or saving preferences
-    });
-
-    // Environment Config IPC Handlers
-    ipcMain.handle('get-frontend-url', () => {
-      const frontendURL = environmentConfig.getFrontendURL();
-      console.log('Main: Frontend URL requested:', frontendURL);
-      return frontendURL;
-    });
-
-    ipcMain.handle('get-frontend-base-url', () => {
-      const baseURL = environmentConfig.getFrontendBaseURL();
-      console.log('Main: Frontend base URL requested:', baseURL);
-      return baseURL;
-    });
-
-    ipcMain.handle('is-development', () => {
-      return environmentConfig.isDev();
-    });
-
-    ipcHandlersRegistered = true;
-    console.log('Main: IPC handlers registered');
-  }
-  
-  return launchWin;
+  return chatInputWindow.getChatInputWindow();
 }
 
 app.whenReady().then(async () => {
@@ -288,7 +43,8 @@ app.whenReady().then(async () => {
     // Setup auto-startup on first run or after installation
     await autoStartupManager.setupAutoStartup();
     
-    createLaunchWindow();
+    // Create and show chat input window directly instead of launch window
+    createChatInputWindow();
     
     // Register global shortcuts
     registerGlobalShortcuts();
@@ -298,11 +54,153 @@ app.whenReady().then(async () => {
   } catch (error) {
     console.error('Main: Error during app initialization:', error);
     // Continue with basic functionality even if auto-startup fails
-    createLaunchWindow();
+    createChatInputWindow();
     registerGlobalShortcuts();
     setupClipboardMonitoring();
   }
 });
+
+// Setup IPC handlers (only once)
+if (!ipcHandlersRegistered) {
+  console.log('Main: Setting up IPC handlers');
+  
+  // Handle chat input window toggle - modified to work without launch window
+  ipcMain.on('toggle-chat-input', () => {
+    console.log('Main: Toggle chat input requested');
+    if (!chatInputWindow) {
+      console.log('Main: Creating new chat input window');
+      chatInputWindow = new ChatInputWindow();
+      chatInputWindow.createChatInputWindow();
+      chatInputWindow.show();
+    } else {
+      console.log('Main: Toggling existing chat input window');
+      chatInputWindow.toggle();
+    }
+  });
+
+  // Handle chat input hide request
+  ipcMain.on('hide-chat-input', () => {
+    console.log('Main: Hide chat input requested');
+    if (chatInputWindow) {
+      chatInputWindow.hide();
+    }
+  });
+
+  // MCP IPC Handlers
+  ipcMain.handle('mcp:connect', async (event, config) => {
+    const { serverId, command, args = [], env = {} } = config;
+    
+    try {
+      console.log(`Main: Connecting to MCP server ${serverId} with command: ${command} ${args.join(' ')}`);
+      
+      // Spawn the MCP server process
+      const childProcess = spawn(command, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, ...env }
+      });
+
+      // Store the process
+      mcpProcesses.set(serverId, childProcess);
+
+      // Set up output listeners
+      childProcess.stdout.on('data', (data) => {
+        const sender = mcpListeners.get(serverId);
+        if (sender && !sender.isDestroyed()) {
+          sender.send('mcp:message', serverId, data.toString());
+        }
+      });
+
+      childProcess.stderr.on('data', (data) => {
+        console.error(`MCP ${serverId} stderr:`, data.toString());
+      });
+
+      childProcess.on('close', (code) => {
+        console.log(`MCP ${serverId} exited with code ${code}`);
+        mcpProcesses.delete(serverId);
+        mcpListeners.delete(serverId);
+      });
+
+      childProcess.on('error', (error) => {
+        console.error(`MCP ${serverId} error:`, error);
+      });
+
+      // Store the sender for this server
+      mcpListeners.set(serverId, event.sender);
+
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to start MCP ${serverId}:`, error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('mcp:send', async (event, serverId, message) => {
+    const process = mcpProcesses.get(serverId);
+    
+    if (!process) {
+      throw new Error(`MCP server ${serverId} not found`);
+    }
+
+    try {
+      const jsonMessage = JSON.stringify(message) + '\n';
+      process.stdin.write(jsonMessage);
+    } catch (error) {
+      console.error(`Failed to send to MCP ${serverId}:`, error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('mcp:disconnect', async (event, serverId) => {
+    const process = mcpProcesses.get(serverId);
+    
+    if (process) {
+      console.log(`Main: Disconnecting MCP server ${serverId}`);
+      process.kill();
+      mcpProcesses.delete(serverId);
+      mcpListeners.delete(serverId);
+    }
+  });
+
+  // AI Model IPC Handlers
+  ipcMain.handle('get-all-ai-models', async () => {
+    try {
+      // Use CommonJS export of models (single source of truth)
+      const modelConfig = require('./frontend/src/lib/ai/model-config-export.cjs');
+      const models = modelConfig.getAllModels();
+      console.log('Main: Retrieved', models.length, 'AI models from model-config');
+      return models;
+    } catch (error) {
+      console.error('Main: Error getting AI models:', error);
+      return [];
+    }
+  });
+
+  ipcMain.on('ai-model-changed', (event, { modelId, modelDetails }) => {
+    console.log('Main: AI model changed to', modelId, modelDetails);
+    // You can add additional logic here if needed
+    // For example, notifying other windows or saving preferences
+  });
+
+  // Environment Config IPC Handlers
+  ipcMain.handle('get-frontend-url', () => {
+    const frontendURL = environmentConfig.getFrontendURL();
+    console.log('Main: Frontend URL requested:', frontendURL);
+    return frontendURL;
+  });
+
+  ipcMain.handle('get-frontend-base-url', () => {
+    const baseURL = environmentConfig.getFrontendBaseURL();
+    console.log('Main: Frontend base URL requested:', baseURL);
+    return baseURL;
+  });
+
+  ipcMain.handle('is-development', () => {
+    return environmentConfig.isDev();
+  });
+
+  ipcHandlersRegistered = true;
+  console.log('Main: IPC handlers registered');
+}
 
 function registerGlobalShortcuts() {
   // Register Ctrl+H to hide/show chat input window
@@ -380,7 +278,7 @@ function setupClipboardMonitoring() {
 
 app.on("window-all-closed", () => {
   // Don't quit the app when all windows are closed
-  // The launch window should persist
+  // The chat input window should persist
   // Only quit when explicitly closed via Ctrl+Alt+Y
 });
 
@@ -399,8 +297,5 @@ app.on("will-quit", () => {
   // Clean up when quitting
   if (chatInputWindow) {
     chatInputWindow.destroy();
-  }
-  if (launchWindowManager) {
-    launchWindowManager.closeLaunchWindow();
   }
 });

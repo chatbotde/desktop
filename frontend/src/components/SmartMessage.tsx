@@ -64,15 +64,16 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
     // Better text rendering and spacing
     "leading-[1.7] tracking-normal font-normal antialiased",
     role === 'assistant' 
-      ? 'bg-transparent px-5 py-3' 
+      ? 'bg-transparent px-6 py-4' 
       : cn(
-          // Enhanced gradient and spacing
-          'bg-gradient-to-br from-blue-600/90 via-blue-600/80 to-blue-700/90',
-          'px-7 py-6 rounded-2xl shadow-lg border border-blue-500/30',
-          // Better hover effects
-          'hover:shadow-xl hover:border-blue-400/40 hover:from-blue-600/95 hover:via-blue-600/85 hover:to-blue-700/95',
-          // Extra padding at bottom when collapsed
-          shouldShowToggle && !isExpanded && 'pb-10'
+          'bg-gradient-blue',
+          'rounded-2xl',
+          'border border-blue-400/20',
+          'shadow-lg',
+          'px-5',
+        
+          'p-0',
+          shouldShowToggle && !isExpanded && 'pb-12'
         ),
     className
   )
@@ -120,30 +121,31 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
 
         {/* Expand/Collapse button for user messages */}
         {role === 'user' && shouldShowToggle && (
-          <button
+            <button
             onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
-              "absolute bottom-2.5 right-2.5 flex items-center gap-1.5",
-              "text-xs font-medium text-white/90 hover:text-white",
-              "bg-blue-700/70 hover:bg-blue-700/90",
-              "px-3 py-1.5 rounded-lg",
-              "transition-all duration-200",
-              "backdrop-blur-md shadow-sm hover:shadow-md",
-              "border border-blue-500/30 hover:border-blue-400/50"
+              "absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center gap-2",
+              "text-xs font-medium text-white/95 hover:text-white",
+              "bg-blue-800/80 hover:bg-blue-800/95",
+              "px-4 py-2 rounded-full",
+              "transition-all duration-300 ease-out",
+              "backdrop-blur-sm shadow-lg hover:shadow-xl",
+              "border border-blue-400/40 hover:border-blue-300/60",
+              "hover:scale-105 active:scale-95"
             )}
-          >
+            >
             {isExpanded ? (
               <>
-                <ChevronUp className="w-3.5 h-3.5" />
-                <span className="tracking-wide">Show less</span>
+              <ChevronUp className="w-4 h-4" />
+              <span className="tracking-wide">Show less</span>
               </>
             ) : (
               <>
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span className="tracking-wide">Show more</span>
+              <ChevronDown className="w-4 h-4" />
+              <span className="tracking-wide">Show more</span>
               </>
             )}
-          </button>
+            </button>
         )}
       </div>
 

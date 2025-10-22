@@ -1,7 +1,5 @@
 /* ==================== RECORDING COMPONENT STYLES ==================== */
 
-/* === RECORDING UI STYLES === */
-
 /* Recording indicator */
 .recording-indicator {
     background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -35,9 +33,6 @@
 .recording-timer {
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    background: none;
-    padding: 2px 6px;
-    border-radius: 4px;
     font-size: 11px;
 }
 
@@ -55,12 +50,11 @@
 }
 
 .recording-stop:hover {
-    background: none;
     border-color: rgba(255, 255, 255, 0.5);
     transform: scale(1.05);
 }
 
-/* Recording button states */
+/* Recording button active state */
 .action-btn.recording {
     background: var(--danger) !important;
     border-color: var(--danger) !important;

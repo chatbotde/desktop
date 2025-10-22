@@ -5,7 +5,7 @@
   "main": "main.js",
   "homepage": "https://github.com/sonicthinking/buddy",
   "repository": {
-    "type": "git", 
+    "type": "git",
     "url": "https://github.com/sonicthinking/buddy.git"
   },
   "scripts": {
@@ -21,7 +21,12 @@
     "package": "npm run build:all && electron-forge package",
     "make": "npm run build:all && electron-forge make"
   },
-  "keywords": ["desktop", "companion", "productivity", "electron"],
+  "keywords": [
+    "desktop",
+    "companion",
+    "productivity",
+    "electron"
+  ],
   "author": "sonicthinking",
   "license": "ISC",
   "description": "A desktop companion app built with Electron",
@@ -40,6 +45,7 @@
     "wait-on": "^8.0.4"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "tesseract.js": "^5.1.1"
   }
 }

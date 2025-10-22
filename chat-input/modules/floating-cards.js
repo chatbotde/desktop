@@ -19,6 +19,24 @@ const COLOR_PALETTE = [
     { accent: '#8b5cf6', strong: '#7c3aed', name: 'purple' },    // Purple
     { accent: '#14b8a6', strong: '#0d9488', name: 'teal' },      // Teal
     { accent: '#ef4444', strong: '#dc2626', name: 'red' },       // Red
+    { accent: '#84cc16', strong: '#65a30d', name: 'lime' },      // Lime
+    { accent: '#06d6a0', strong: '#059669', name: 'mint' },      // Mint
+    { accent: '#ff6b6b', strong: '#e03131', name: 'coral' },     // Coral
+    { accent: '#4dabf7', strong: '#228be6', name: 'sky' },       // Sky
+    { accent: '#69db7c', strong: '#51cf66', name: 'green' },     // Green
+    { accent: '#ffd43b', strong: '#fab005', name: 'yellow' },    // Yellow
+    { accent: '#ff8cc8', strong: '#e64980', name: 'rose' },      // Rose
+    { accent: '#9775fa', strong: '#7950f2', name: 'indigo' },    // Indigo
+    { accent: '#20c997', strong: '#12b886', name: 'seafoam' },   // Seafoam
+    { accent: '#fd7e14', strong: '#e8590c', name: 'tangerine' }, // Tangerine
+    { accent: '#495057', strong: '#343a40', name: 'slate' },     // Slate
+    { accent: '#6f42c1', strong: '#5a3396', name: 'plum' },      // Plum
+    { accent: '#fd79a8', strong: '#e84393', name: 'magenta' },   // Magenta
+    { accent: '#00cec9', strong: '#00b894', name: 'turquoise' }, // Turquoise
+    { accent: 'rgb(2, 6, 23)', strong: 'rgb(1, 3, 12)', name: 'midnight' },     // Dark blue-black
+    { accent: 'rgb(3, 7, 18)', strong: 'rgb(1, 4, 10)', name: 'charcoal' },     // Dark charcoal
+    { accent: 'rgb(15, 15, 15)', strong: 'rgb(8, 8, 8)', name: 'obsidian' },    // Near black
+    { accent: 'rgb(23, 23, 23)', strong: 'rgb(12, 12, 12)', name: 'onyx' },     // Dark gray
 ];
 
 function getColorForCard(cardNumber) {

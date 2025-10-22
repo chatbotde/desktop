@@ -343,7 +343,7 @@
     height: 36px;
     border-radius: 50%;
     background: hsl(222.2 84% 4.9%);
-    border: 2px dashed white;
+    border: 2px  white;
     color: white;
     display: flex;
     align-items: center;
@@ -379,6 +379,47 @@
 .prompt-input.transparent:focus-within {
     background: none;
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== PERSISTENT TOGGLE UI STYLES ==================== */
+
+.persistent-toggle {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 100px;
+    background: rgba(51, 51, 51, 0.8);
+    border-radius: 15px 0 0 15px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 50001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.persistent-toggle:hover {
+    background: rgba(66, 66, 66, 0.9);
+    width: 35px;
+}
+
+.toggle-indicator {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle-indicator svg {
+    width: 20px;
+    height: 20px;
 }
 
 /* ==================== CONTENT CARD STYLES ==================== */
@@ -590,5 +631,19 @@
     .action-item {
         padding: 8px 10px;
         font-size: 13px;
+    }
+    
+    .persistent-toggle {
+        width: 25px;
+        height: 80px;
+    }
+    
+    .persistent-toggle:hover {
+        width: 30px;
+    }
+    
+    .toggle-indicator svg {
+        width: 16px;
+        height: 16px;
     }
 }
