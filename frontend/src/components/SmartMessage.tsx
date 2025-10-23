@@ -11,7 +11,7 @@ interface SmartMessageProps {
   onCopy?: (text: string) => void
 }
 
-export function SmartMessage({ content, role, className, onCopy }: SmartMessageProps) {
+export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [shouldShowToggle, setShouldShowToggle] = useState(false)
@@ -66,17 +66,16 @@ export function SmartMessage({ content, role, className, onCopy }: SmartMessageP
     role === 'assistant' 
       ? 'bg-transparent px-6 py-4' 
       : cn(
-          'bg-gradient-blue',
+          'bg-gradient-to-r from-blue-500 to-blue-600',
           'rounded-2xl',
-          'border border-blue-400/20',
-          'shadow-lg',
-          'px-5',
-        
-          'p-0',
+          'border border-white/10',
+          'shadow-lg shadow-blue-500/20',
+          'px-5 py-4', // Changed pl-5 pr-5 to px-5 for consistent horizontal padding
+          'hover:shadow-xl hover:shadow-blue-500/30',
+          'transition-all duration-300 ease-in-out',
           shouldShowToggle && !isExpanded && 'pb-12'
-        ),
-    className
-  )
+      )
+    )
 
   const contentWrapperStyles = cn(
     // Enhanced spacing and overflow handling

@@ -46,13 +46,15 @@ export function expandUI() {
         if (heightDiff > 0) {
             requestAnimationFrame(() => adjustWindowHeightSmooth('expand'));
         }
+        // Update button positions after expansion
+        updateHideButtonPosition();
+        if (window.updatePersistentTogglePosition) window.updatePersistentTogglePosition();
     }, 50);
     
     setTimeout(() => { 
         state.isTransitioning = false; 
         state.expansionState = 'expanded'; 
         if (window.__positionAttachmentsContainer) window.__positionAttachmentsContainer();
-        updateHideButtonPosition(); // Update button position after expansion
     }, 300);
 }
 
@@ -60,7 +62,10 @@ export function collapseUI() {
     if (state.isTransitioning || state.expansionState === 'collapsed' || state.expansionState === 'collapsing') return;
     state.isTransitioning = true;
     state.expansionState = 'collapsing';
-    updateHideButtonPosition(); // Update button position when collapsing starts
+    
+    // Update button positions when collapsing starts
+    updateHideButtonPosition();
+    if (window.updatePersistentTogglePosition) window.updatePersistentTogglePosition();
     
     // Store expanded height before collapse for downward positioning
     const expandedHeight = dom.chatInputContainer.offsetHeight;
@@ -94,6 +99,9 @@ export function collapseUI() {
         // Ensure collapsed state is fully applied
         autoResize();
         if (window.__positionAttachmentsContainer) window.__positionAttachmentsContainer();
+        // Update button positions after collapse is complete
+        updateHideButtonPosition();
+        if (window.updatePersistentTogglePosition) window.updatePersistentTogglePosition();
     }, 300);
 }
 
@@ -229,5 +237,3 @@ export function updateSendButton() {
         dom.loadingSpinner.style.display = 'none';
     }
 }
-
-

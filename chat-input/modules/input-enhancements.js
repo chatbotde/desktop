@@ -426,43 +426,7 @@ export function initializeInputEnhancements() {
         setTimeout(smartAutoFocus, 100);
     });
     
-    // Show help hint on first load
-    setTimeout(() => {
-        showHelpHint();
-    }, 2000);
-    
     console.log('Input enhancements initialized');
 }
 
-/**
- * Show help hint for keyboard shortcuts
- */
-function showHelpHint() {
-    let hint = document.getElementById('help-hint');
-    
-    if (!hint) {
-        hint = document.createElement('div');
-        hint.id = 'help-hint';
-        hint.className = 'help-hint';
-        hint.innerHTML = 'Press <kbd>Ctrl</kbd>+<kbd>/</kbd> for keyboard shortcuts';
-        document.body.appendChild(hint);
-    }
-    
-    hint.classList.add('show');
-    
-    // Hide after 5 seconds
-    setTimeout(() => {
-        hint.classList.remove('show');
-    }, 5000);
-    
-    // Don't show again after user sees it once
-    localStorage.setItem('help-hint-shown', 'true');
-}
-
-/**
- * Check if help hint should be shown
- */
-function shouldShowHelpHint() {
-    return !localStorage.getItem('help-hint-shown');
-}
 

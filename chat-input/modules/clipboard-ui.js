@@ -257,15 +257,31 @@ class ClipboardBarManager {
     if (!container) return;
     
     const rect = container.getBoundingClientRect();
-    const gap = 12;
     
-    // Position with smooth animation
-    this.barEl.style.position = 'fixed';
-    this.barEl.style.top = `${Math.max(12, Math.round(rect.top - (this.barEl.offsetHeight || 60) - gap))}px`;
-    this.barEl.style.left = `${Math.round(rect.left)}px`;
-    this.barEl.style.width = `${Math.round(rect.width)}px`;
-    this.barEl.style.bottom = 'auto';
-    this.barEl.style.transform = 'none';
+    // Validate that we have valid dimensions before positioning
+    if (rect.width === 0 || rect.height === 0) return;
+    
+    const gap = 16; // Increased gap for better visual separation
+    
+    // Calculate position ensuring it's within viewport bounds
+    const barHeight = this.barEl.offsetHeight || 60;
+    const topPos = Math.max(gap, Math.round(rect.top - barHeight - gap));
+    const leftPos = Math.round(rect.left);
+    const width = Math.round(Math.min(rect.width, window.innerWidth - gap * 2)); // Ensure it fits in viewport
+    
+    // Only update position if we have valid values
+    if (topPos >= 0 && leftPos >= 0 && width > 50) { // Minimum width check
+      this.barEl.style.position = 'fixed';
+      this.barEl.style.top = `${topPos}px`;
+      this.barEl.style.left = `${Math.max(gap, leftPos)}px`;
+      this.barEl.style.width = `${width}px`;
+      this.barEl.style.bottom = 'auto';
+      this.barEl.style.transform = 'none';
+      
+      // Ensure the bar is clickable by setting proper z-index and pointer events
+      this.barEl.style.zIndex = '50000';
+      this.barEl.style.pointerEvents = 'auto';
+    }
   }
 
   // Show bar with clipboard content and entrance animation
