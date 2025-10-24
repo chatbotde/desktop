@@ -5,5 +5,4 @@ export { ScrollToTopButton } from './ScrollToTopButton'
 export { SmartMessage } from './SmartMessage'
 export { PromptInputWithActions } from './prompt-input'
 export { ModelSelector } from './ModelSelector'
-export { ThreeBackground } from './three'
 

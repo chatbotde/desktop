@@ -2,6 +2,7 @@ import { getSelectedModel } from './model-config';
 import { geminiService, isGeminiConfigured } from './gemini';
 import { openaiService, isOpenAIConfigured } from './openai';
 import { anthropicService, isAnthropicConfigured } from './anthropic';
+import { openRouterService, isOpenRouterConfigured } from './openrouter';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 
@@ -45,6 +46,12 @@ export class UnifiedAIService {
         }
         return anthropicService.sendMessageWithMedia(message, attachments);
 
+      case 'openrouter':
+        if (!isOpenRouterConfigured()) {
+          throw new Error('OpenRouter API key not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.');
+        }
+        return openRouterService.sendMessageWithMedia(message, attachments);
+
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
     }
@@ -81,6 +88,9 @@ export class UnifiedAIService {
       case 'anthropic':
         anthropicService.clearHistory();
         break;
+      case 'openrouter':
+        openRouterService.clearHistory();
+        break;
     }
   }
 
@@ -102,6 +112,9 @@ export class UnifiedAIService {
         break;
       case 'anthropic':
         anthropicService.addSystemContext(context);
+        break;
+      case 'openrouter':
+        openRouterService.addSystemContext(context);
         break;
     }
   }
@@ -138,6 +151,8 @@ export class UnifiedAIService {
         return isOpenAIConfigured();
       case 'anthropic':
         return isAnthropicConfigured();
+      case 'openrouter':
+        return isOpenRouterConfigured();
       default:
         return false;
     }
@@ -186,6 +201,7 @@ export class UnifiedAIService {
     geminiService.addSystemContext(promptText);
     openaiService.addSystemContext(promptText);
     anthropicService.addSystemContext(promptText);
+    openRouterService.addSystemContext(promptText);
 
     console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
   }
@@ -212,6 +228,7 @@ export class UnifiedAIService {
     geminiService.addSystemContext(prompt);
     openaiService.addSystemContext(prompt);
     anthropicService.addSystemContext(prompt);
+    openRouterService.addSystemContext(prompt);
 
     console.log(`✅ Custom system prompt applied: ${name}`);
   }
