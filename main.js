@@ -5,6 +5,7 @@ const { spawn } = require("child_process");
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
 const { AutoStartupManager } = require("./startup");
 const { clipboardMonitor } = require("./clipboard-monitor");
+const { textSelectionMonitor } = require("./chat-input/electron-api/text-selection");
 const { environmentConfig } = require("./utils/environment");
 
 // Set app icon
@@ -51,12 +52,16 @@ app.whenReady().then(async () => {
 
     // Start clipboard monitoring for auto-paste
     setupClipboardMonitoring();
+    
+    // Start text selection monitoring
+    setupTextSelectionMonitoring();
   } catch (error) {
     console.error('Main: Error during app initialization:', error);
     // Continue with basic functionality even if auto-startup fails
     createChatInputWindow();
     registerGlobalShortcuts();
     setupClipboardMonitoring();
+    setupTextSelectionMonitoring();
   }
 });
 
@@ -273,6 +278,90 @@ function setupClipboardMonitoring() {
     clipboardMonitor.setCheckInterval(intervalMs);
     console.log('Main: Clipboard check interval set to', intervalMs, 'ms');
     return true;
+  });
+}
+
+function setupTextSelectionMonitoring() {
+  console.log('Main: Setting up text selection monitoring');
+
+  // Start text selection monitoring
+  textSelectionMonitor.startMonitoring();
+
+  // Handle text selection changes
+  textSelectionMonitor.onSelection((selectionData) => {
+    console.log('Main: Text selection changed', selectionData?.text?.substring(0, 50) + '...');
+
+    // Validate selection data
+    if (!selectionData || typeof selectionData !== 'object') {
+      console.log('Main: Invalid selection data received, skipping');
+      return;
+    }
+
+    // Validate text content
+    const text = selectionData.text || selectionData.content || '';
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      console.log('Main: Empty or invalid text selection, skipping');
+      return;
+    }
+
+    // Debug: Log chat input window status
+    console.log('Main: Chat input window status:', {
+      exists: !!chatInputWindow,
+      windowExists: chatInputWindow && chatInputWindow.getChatInputWindow(),
+      notDestroyed: chatInputWindow && chatInputWindow.getChatInputWindow() && !chatInputWindow.getChatInputWindow().isDestroyed(),
+      isVisible: chatInputWindow && chatInputWindow.getChatInputWindow() && chatInputWindow.getChatInputWindow().isVisible()
+    });
+
+    // Only process selection data if we have a chat input window
+    if (chatInputWindow && chatInputWindow.getChatInputWindow() &&
+        !chatInputWindow.getChatInputWindow().isDestroyed()) {
+
+      console.log('Main: Processing text selection');
+      
+      // Send text selection directly to the chat input window
+      try {
+        const result = chatInputWindow.getChatInputWindow().webContents.send('text-selection-changed', selectionData);
+        console.log('Main: Successfully sent text selection to chat input window');
+      } catch (error) {
+        console.error('Main: Error sending text selection to chat input window:', error);
+      }
+    } else {
+      console.log('Main: Skipping text selection processing - chat input window not available');
+    }
+  });
+
+  // IPC handlers for text selection monitoring control
+  ipcMain.handle('start-text-selection-monitoring', () => {
+    textSelectionMonitor.startMonitoring();
+    console.log('Main: Text selection monitoring started');
+    return true;
+  });
+
+  ipcMain.handle('stop-text-selection-monitoring', () => {
+    textSelectionMonitor.stopMonitoring();
+    console.log('Main: Text selection monitoring stopped');
+    return true;
+  });
+
+  ipcMain.handle('get-text-selection-monitoring-status', () => {
+    return textSelectionMonitor.isActive();
+  });
+  
+  // Handle add to chat from UI
+  ipcMain.on('add-to-chat', (event, text) => {
+    console.log('Main: Adding text to chat from UI:', typeof text === 'string' ? text.substring(0, 50) + '...' : text);
+    
+    // Validate input
+    if (!text || typeof text !== 'string') {
+      console.warn('Main: Invalid text input for add-to-chat');
+      return;
+    }
+    
+    // Send text to chat input window
+    if (chatInputWindow && chatInputWindow.getChatInputWindow() &&
+        !chatInputWindow.getChatInputWindow().isDestroyed()) {
+      chatInputWindow.getChatInputWindow().webContents.send('add-text-to-input', text);
+    }
   });
 }
 

@@ -18,6 +18,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test-chat": "electron test-chat-input.js",
     "test-capture": "electron chat-input/test-capture-runner.js",
+    "test-text-selection": "electron test-text-selection.js",
+    "debug-text-selection": "node debug-text-selection.js",
+    "test-selection-hook": "electron test-selection-hook.js",
+    "test-simple-selection": "node simple-selection-test.js",
+    "debug-text-selection-monitor": "node debug-text-selection-monitor.js",
     "package": "npm run build:all && electron-forge package",
     "make": "npm run build:all && electron-forge make"
   },
@@ -41,11 +46,12 @@
     "@electron/fuses": "^1.8.0",
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
-    "electron": "^37.2.6",
+    "electron": "^37.7.1",
     "wait-on": "^8.0.4"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "selection-hook": "^1.0.12",
     "tesseract.js": "^5.1.1"
   }
 }

@@ -391,6 +391,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
    */
   isDevelopment: () => {
     return ipcRenderer.invoke('is-development');
+  },
+  
+  // ==================== TEXT SELECTION METHODS ====================
+  
+  // Listen for text selection changes
+  onTextSelectionChanged: (callback) => {
+    console.log('Preload: Setting up text selection changed listener');
+    ipcRenderer.on('text-selection-changed', (event, selectionData) => {
+      console.log('Preload: Received text-selection-changed event', selectionData);
+      callback(event, selectionData);
+    });
+  },
+  
+  // Listen for add text to input requests
+  onAddTextToInput: (callback) => {
+    ipcRenderer.on('add-text-to-input', (event, text) => {
+      callback(event, text);
+    });
   }
 });
 

@@ -42,6 +42,7 @@ class ClipboardBarManager {
     this.lastSignature = '';
     this.wasClickThroughOn = false;
     this.resizeHandler = null;
+    this.isTextSelection = false; // Track if this is text selection or clipboard
   }
 
   // Create bar elements with optimized DOM construction
@@ -238,16 +239,22 @@ class ClipboardBarManager {
 
   // Update toggle button state with enhanced visuals
   updateToggleButton() {
-    const isOn = isAutoClipboardEnabled();
-    const btn = this.elements.toggleBtn;
-    
-    btn.classList.toggle('active', isOn);
-    btn.textContent = isOn ? 'Auto ON' : 'Auto OFF';
-    btn.title = `Auto-paste is ${isOn ? 'ON' : 'OFF'} (click to toggle)`;
-    
-    const style = isOn ? STYLES.buttons.autoOn : STYLES.buttons.autoOff;
-    btn.style.background = style.bg;
-    btn.style.borderColor = style.border;
+    // Only show auto toggle for clipboard events, not text selection
+    if (this.isTextSelection) {
+      this.elements.toggleBtn.style.display = 'none';
+    } else {
+      this.elements.toggleBtn.style.display = 'flex';
+      const isOn = isAutoClipboardEnabled();
+      const btn = this.elements.toggleBtn;
+      
+      btn.classList.toggle('active', isOn);
+      btn.textContent = isOn ? 'Auto ON' : 'Auto OFF';
+      btn.title = `Auto-paste is ${isOn ? 'ON' : 'OFF'} (click to toggle)`;
+      
+      const style = isOn ? STYLES.buttons.autoOn : STYLES.buttons.autoOff;
+      btn.style.background = style.bg;
+      btn.style.borderColor = style.border;
+    }
   }
 
   // Position bar above chat input container with animation
@@ -284,13 +291,26 @@ class ClipboardBarManager {
     }
   }
 
-  // Show bar with clipboard content and entrance animation
-  show(preview, signature, payload) {
+  // Show bar with content and entrance animation
+  show(preview, signature, payload, isTextSelection = false) {
+    console.log('Clipboard UI: Showing bar with content', { preview, isTextSelection, signature });
     this.createBar();
     this.lastSignature = signature || '';
     this.currentPayload = payload;
+    this.isTextSelection = isTextSelection;
     
-    this.elements.text.textContent = preview ? String(preview).slice(0, 200) : 'Copied content detected';
+    // Update icon based on content type
+    if (isTextSelection) {
+      this.elements.icon.innerHTML = '📝'; // Text selection icon
+      console.log('Clipboard UI: Showing text selection icon');
+    } else {
+      this.elements.icon.innerHTML = '📋'; // Clipboard icon
+      console.log('Clipboard UI: Showing clipboard icon');
+    }
+    
+    // Truncate preview text if too long
+    const truncatedPreview = preview ? String(preview).slice(0, 200) : 'Content detected';
+    this.elements.text.textContent = truncatedPreview;
     this.updateToggleButton();
     this.barEl.style.display = 'flex';
     this.position();
@@ -327,13 +347,24 @@ class ClipboardBarManager {
       window.removeEventListener('resize', this.resizeHandler);
     }
     this.currentPayload = null;
+    this.isTextSelection = false;
   }
 
   // Handle add button click
   handleAdd() {
     if (!this.currentPayload) return;
-    const text = getClipboardText(this.currentPayload);
+    
+    let text = '';
+    if (this.isTextSelection) {
+      // For text selection, the payload is already the text
+      text = typeof this.currentPayload === 'string' ? this.currentPayload : this.currentPayload.text || '';
+    } else {
+      // For clipboard, extract text from payload
+      text = getClipboardText(this.currentPayload);
+    }
+    
     if (text) {
+      console.log('Clipboard UI: Adding text to input', text);
       appendToInput(text);
       this.hide();
       dom.messageInput?.focus();
@@ -342,15 +373,18 @@ class ClipboardBarManager {
 
   // Handle toggle button click
   handleToggle() {
-    toggleAutoClipboardEnabled();
-    this.updateToggleButton();
-    
-    // Add visual feedback
-    const btn = this.elements.toggleBtn;
-    btn.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-      btn.style.transform = '';
-    }, 150);
+    // Only allow toggle for clipboard events, not text selection
+    if (!this.isTextSelection) {
+      toggleAutoClipboardEnabled();
+      this.updateToggleButton();
+      
+      // Add visual feedback
+      const btn = this.elements.toggleBtn;
+      btn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        btn.style.transform = '';
+      }, 150);
+    }
   }
 
   // Check if showing same content
@@ -363,15 +397,70 @@ class ClipboardBarManager {
 const clipboardBar = new ClipboardBarManager();
 
 export function initClipboardUI() {
+  console.log('Clipboard UI: Initializing clipboard UI');
+  
   // Listen to clipboard detection events
   document.addEventListener('clipboard:detected', (e) => {
+    console.log('Clipboard UI: Received clipboard:detected event', e.detail);
     const { payload, signature } = e.detail || {};
-    if (!payload || !signature) return;
-    if (clipboardBar.isDuplicate(signature)) return;
+    if (!payload || !signature) {
+      console.log('Clipboard UI: Invalid payload or signature');
+      return;
+    }
+    if (clipboardBar.isDuplicate(signature)) {
+      console.log('Clipboard UI: Duplicate signature, ignoring');
+      return;
+    }
     
-    const preview = getClipboardText(payload);
-    if (!preview) return; // ignore non-text content
+    // Check if this is a text selection event by looking at the signature
+    // The signature is a JSON string, so we need to parse it first
+    let isTextSelection = false;
+    try {
+      const parsedSignature = JSON.parse(signature);
+      isTextSelection = parsedSignature && parsedSignature.t === 'text-selection';
+      console.log('Clipboard UI: Parsed signature =', parsedSignature);
+    } catch (error) {
+      // Fallback to string matching if parsing fails
+      isTextSelection = signature.includes('"t":"text-selection"');
+      console.log('Clipboard UI: String matching for text selection =', isTextSelection);
+    }
     
-    clipboardBar.show(preview, signature, payload);
+    console.log('Clipboard UI: isTextSelection =', isTextSelection);
+    console.log('Clipboard UI: Signature =', signature);
+    
+    let preview = '';
+    if (isTextSelection) {
+      // For text selection, payload is the text itself
+      preview = typeof payload === 'string' ? payload : payload.text || '';
+      console.log('Clipboard UI: Text selection preview =', preview);
+    } else {
+      // For clipboard, extract text from payload
+      preview = getClipboardText(payload);
+      console.log('Clipboard UI: Clipboard preview =', preview);
+    }
+    
+    console.log('Clipboard UI: Preview text =', preview);
+    
+    // Validate preview text
+    if (!preview || typeof preview !== 'string') {
+      console.log('Clipboard UI: Invalid preview text, ignoring');
+      return;
+    }
+    
+    // Trim and limit preview length
+    preview = preview.trim();
+    if (preview.length === 0) {
+      console.log('Clipboard UI: Empty preview text, ignoring');
+      return;
+    }
+    
+    // Limit preview length for display
+    const maxLength = 200;
+    if (preview.length > maxLength) {
+      preview = preview.substring(0, maxLength) + '...';
+    }
+    
+    console.log('Clipboard UI: Showing bar with preview text');
+    clipboardBar.show(preview, signature, payload, isTextSelection);
   });
 }

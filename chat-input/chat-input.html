@@ -750,6 +750,13 @@
     
     <script src="capture/renderer/capture-renderer.js"></script>
     <script type="module" src="modules/index.js"></script>
+    <script>
+      // Add debugging to see if modules are loaded
+      console.log('Chat Input: HTML loaded, modules should be loading');
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('Chat Input: DOMContentLoaded event fired');
+      });
+    </script>
 </body>
 
 </html>

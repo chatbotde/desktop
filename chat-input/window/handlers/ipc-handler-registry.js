@@ -4,6 +4,7 @@ const { ContentProtectionHandlers } = require("./content-protection-handlers");
 const { ClickThroughHandlers } = require("./click-through-handlers");
 const { FilePickerHandlers } = require("./file-picker-handlers");
 const { CaptureApiHandlers } = require("./capture-api-handlers");
+const { TextSelectionHandlers } = require("./text-selection-handlers");
 
 /**
  * Central IPC handler registry for chat input window
@@ -27,6 +28,7 @@ class IpcHandlerRegistry {
     ClickThroughHandlers.registerHandlers();
     FilePickerHandlers.registerHandlers();
     CaptureApiHandlers.registerHandlers();
+    TextSelectionHandlers.registerHandlers();
 
     IpcHandlerRegistry.ipcHandlersRegistered = true;
     console.log("IPC: Chat input handlers registered (including new capture API)");
