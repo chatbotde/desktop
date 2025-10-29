@@ -33,14 +33,15 @@ export function handleTextSelection() {
           type: 'text/plain'
         };
         
-        // Dispatch the same event that clipboard UI listens to
+        // Dispatch event for text selection UI
+        // NOTE: This event does NOT check for duplicates, so it will appear every time
         try {
-          document.dispatchEvent(new CustomEvent('clipboard:detected', {
-            detail: { payload, signature }
+          document.dispatchEvent(new CustomEvent('text-selection:detected', {
+            detail: { text, payload }
           }));
-          console.log('Text Selection: Dispatched clipboard:detected event with text length', text?.length || 0);
+          console.log('Text Selection: Dispatched text-selection:detected event with text length', text?.length || 0);
         } catch (error) {
-          console.error('Text Selection: Error dispatching clipboard:detected event', error);
+          console.error('Text Selection: Error dispatching text-selection:detected event', error);
         }
       } else {
         console.log('Text Selection: Ignoring empty selection');

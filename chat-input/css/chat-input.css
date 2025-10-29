@@ -10,12 +10,14 @@
     
     max-width: 800px;
     margin: 0;
-    z-index: 50000; /* Always above floating cards */
+    z-index: 999999; /* Maximum z-index to stay above WebContentsView */
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
+    pointer-events: auto; /* Ensure it's always interactive */
+    isolation: isolate; /* Create new stacking context */
 }
 
 .chat-input-container.expanded {
@@ -48,6 +50,8 @@
     transform: none;
     will-change: transform, opacity, box-shadow;
     transform-origin: bottom center;
+    pointer-events: auto; /* Always interactive */
+    isolation: isolate; /* Create stacking context */
 }
 
 .prompt-input:focus-within {

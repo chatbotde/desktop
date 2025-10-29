@@ -22,6 +22,7 @@ import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipb
 import { initializeUndoRedo, recordState } from './undo-redo.js';
 import { handleKeyboardShortcut, initializeKeyboardShortcuts } from './keyboard-shortcuts.js';
 import { initializeInputEnhancements } from './input-enhancements.js';
+import { initTextSelectionUI } from './text-selection-ui.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {
@@ -56,6 +57,7 @@ export async function boot() {
     initializeUndoRedo();
     initializeKeyboardShortcuts();
     initializeInputEnhancements();
+    initTextSelectionUI();
 
     // Handle persistent toggle click
     const persistentToggle = document.getElementById('persistentToggle');
@@ -402,6 +404,9 @@ export async function boot() {
         window.rendererCaptureAPI = new window.RendererCaptureAPI();
         window.rendererCaptureAPI.setVolumeCallback((data) => updateVolumeIndicator(data.volume));
     }
+
+    // Text selection UI initialization (creates the floating panel)
+    // This is called in the boot() function above
 
     // keyboard shortcuts - now handled by keyboard-shortcuts module
     document.addEventListener('keydown', (e) => {

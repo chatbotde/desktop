@@ -77,6 +77,63 @@ class BasicIpcHandlers {
       }
     });
 
+    // Handle stop streaming request from chat input to main window
+    ipcMain.on("stop-streaming", (event) => {
+      console.log("IPC: Received stop streaming request from chat input");
+
+      // Find the main window
+      const allWindows = BrowserWindow.getAllWindows();
+      const mainWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          const url = win.webContents.getURL();
+          return environmentConfig.isMainFrontendWindow(url) && 
+                 !url.includes("chat-input.html") &&
+                 !url.includes("launch-window.html");
+        } catch (error) {
+          return false;
+        }
+      });
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        console.log("IPC: Sending stop streaming to main window");
+        try {
+          mainWindow.webContents.send("stop-streaming");
+          console.log("IPC: Stop streaming request sent successfully");
+        } catch (error) {
+          console.error("IPC: Error sending stop streaming to main window:", error);
+        }
+      } else {
+        console.log("IPC: Main window not found for stop streaming");
+      }
+    });
+
+    // Handle streaming status updates from main window to chat input
+    ipcMain.on("notify-streaming-status", (event, status) => {
+      console.log("IPC: Received streaming status update:", status);
+
+      // Find the chat input window
+      const allWindows = BrowserWindow.getAllWindows();
+      const chatInputWindow = allWindows.find((win) => {
+        if (win.isDestroyed()) return false;
+        try {
+          const url = win.webContents.getURL();
+          return url.includes("chat-input.html");
+        } catch {
+          return false;
+        }
+      });
+
+      if (chatInputWindow && !chatInputWindow.isDestroyed()) {
+        console.log("IPC: Sending streaming status to chat input window");
+        try {
+          chatInputWindow.webContents.send("streaming-status", status);
+        } catch (error) {
+          console.error("IPC: Error sending streaming status to chat input:", error);
+        }
+      }
+    });
+
     // Handle dynamic window height adjustment with debouncing
     let resizeTimeout = null;
     let lastResizeHeight = 0;

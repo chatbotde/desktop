@@ -1,0 +1,302 @@
+/* ==================== TEXT SELECTION UI PANEL ==================== */
+
+#textSelectionPanel {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-radius: 12px;
+  background: var(--bg-popover, rgba(14, 18, 26, 0.98));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.35));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 50000;
+  pointer-events: auto;
+  user-select: none;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  min-width: 280px;
+  max-width: 350px;
+  will-change: transform, opacity;
+}
+
+#textSelectionPanel.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.text-selection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px;
+  width: 100%;
+}
+
+/* Preview Section */
+.text-selection-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.4;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.preview-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+/* Actions Section */
+.text-selection-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Button Styles */
+.text-selection-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  outline: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.text-selection-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.text-selection-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.text-selection-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Button SVG Styling */
+.text-selection-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  stroke-width: 2.5;
+  opacity: 0.95;
+}
+
+/* Ask Button - Primary Action */
+.ask-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15));
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.ask-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.25));
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.ask-btn:active {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* Add Button - Secondary Action */
+.add-btn {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.08));
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.15));
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.add-btn:active {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+/* Close Button - Dismiss Action */
+.close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  flex-basis: auto;
+  min-width: 40px;
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+
+.close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.close-btn:active {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.close-btn span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  #textSelectionPanel {
+    min-width: 240px;
+    max-width: 280px;
+  }
+
+  .text-selection-preview {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .preview-text {
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .text-selection-actions {
+    gap: 6px;
+  }
+
+  .text-selection-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .text-selection-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  #textSelectionPanel {
+    background: rgba(14, 18, 26, 0.98);
+    border-color: rgba(148, 163, 184, 0.35);
+  }
+
+  .preview-text {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Light Theme Support */
+@media (prefers-color-scheme: light) {
+  #textSelectionPanel {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(200, 210, 220, 0.5);
+  }
+
+  .text-selection-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+
+  .text-selection-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .ask-btn {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #1d4ed8;
+  }
+
+  .ask-btn:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  .add-btn {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #15803d;
+  }
+
+  .add-btn:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.5);
+  }
+
+  .close-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .close-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #dc2626;
+  }
+
+  .preview-text {
+    color: rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* Animations - Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  #textSelectionPanel {
+    transition: none;
+  }
+
+  .text-selection-btn {
+    transition: none;
+  }
+}
