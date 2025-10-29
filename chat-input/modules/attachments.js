@@ -1,6 +1,7 @@
 import { dom } from './dom.js';
 import { state, getNextAttachmentId } from './state.js';
 import { recordAttachmentChange } from './undo-redo.js';
+import { updateSendButton } from './expand-collapse.js';
 
 function positionAttachmentsContainer() {
     const container = dom.attachmentsContainer;
@@ -54,6 +55,9 @@ export function addImageAttachment(imageData) {
         console.warn('Failed to record attachment change:', e);
     }
     
+    // Update send button visibility
+    updateSendButton();
+    
     setTimeout(() => {
         if (typeof window.adjustWindowHeight === 'function') window.adjustWindowHeight();
         positionAttachmentsContainer();
@@ -71,6 +75,9 @@ export function removeImageAttachment(attachmentId) {
     } catch (e) {
         console.warn('Failed to record attachment change:', e);
     }
+    
+    // Update send button visibility
+    updateSendButton();
     
     const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
     if (element) {
@@ -101,6 +108,9 @@ export function clearAllMediaAttachments() {
     } catch (e) {
         console.warn('Failed to record attachment change:', e);
     }
+    
+    // Update send button visibility
+    updateSendButton();
     
     updateAttachmentsVisibility();
     positionAttachmentsContainer();

@@ -11,7 +11,7 @@
     max-width: 800px;
     margin: 0;
     z-index: 50000; /* Always above floating cards */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     bottom: 10%;
     left: 50%;
@@ -61,7 +61,7 @@
 }
 
 .input-area {
-    padding: 4px 8px 0;
+    padding: 0 8px 0;
 }
 
 #messageInput {
@@ -75,7 +75,7 @@
     line-height: 1.3;
     min-height: 44px;
     max-height: 150px;
-    padding: 12px 0;
+    padding: 8px 15px;
     font-family: inherit;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -208,13 +208,13 @@
 
 /* Style the expand button to exactly match the target UI */
 .prompt-input:not(.expanded) #expandButton {
-    display: flex !important; /* Always show expand button in collapsed state */
+    display: flex ; 
     width: 32px;
     height: 32px;
     min-width: 32px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: none;
+    border: none;
     color: #ffffff;
     pointer-events: auto; /* Allow button interaction */
     transition: transform 0.3s ease;
@@ -233,8 +233,8 @@
     height: 32px;
     min-width: 32px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: none;
+    border: none;
     color: #ffffff;
     flex-shrink: 0;
 }
@@ -246,16 +246,16 @@
 
 /* Show expand button as collapse button in expanded state */
 .prompt-input.expanded #expandButton {
-    display: flex !important;
+    display: flex;
     width: 32px;
     height: 32px;
     min-width: 32px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: none;
+    border: none;
     color: #ffffff;
     flex-shrink: 0;
-    transform: rotate(180deg); /* Rotate to show collapse icon */
+    pointer-events: auto;
     transition: transform 0.3s ease;
 }
 
@@ -265,7 +265,6 @@
 }
 
 .prompt-input.expanded #expandButton svg {
-    transform: rotate(-180deg); /* Counter-rotate the icon to keep it upright */
     transition: transform 0.3s ease;
 }
 
@@ -281,8 +280,8 @@
     height: 32px;
     min-width: 32px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: none;
+    border: none;
     color: #ffffff;
     flex-shrink: 0;
 }
@@ -309,13 +308,13 @@
     border-color: var(--border);
     width: 100%;
     max-width: 100%;
-    border-radius: 16px; /* Cleaner shape when expanded */
+    border-radius: 24px; /* Cleaner shape when expanded */
     transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(1);
     opacity: 1;
-    padding: 6px 6px 4px;
+    padding: 0 0 0;
     min-height: auto;
     box-shadow: var(--shadow-sm);
 }
@@ -365,6 +364,8 @@
 .hide-chat-button {
     position: fixed;
     /* Position is set dynamically by JavaScript to follow the container */
+    /* Start hidden to prevent flash at top-left corner before JS positions it */
+    opacity: 0;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -376,8 +377,13 @@
     justify-content: center;
     cursor: pointer;
     z-index: 50001;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s ease, all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Show button after JS has positioned it */
+.hide-chat-button.positioned {
+    opacity: 1;
 }
 
 .hide-chat-button:hover {

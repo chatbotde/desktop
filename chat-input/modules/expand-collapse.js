@@ -15,6 +15,9 @@ function updateHideButtonPosition() {
     hideButton.style.left = (containerRect.left - buttonWidth - gap) + 'px';
     hideButton.style.top = (containerRect.top + containerRect.height / 2) + 'px';
     hideButton.style.transform = 'translateY(-50%)';
+    
+    // Add 'positioned' class to show the button after positioning
+    hideButton.classList.add('positioned');
 }
 
 export function expandUI() {
@@ -215,20 +218,17 @@ export function updateSendButton() {
     const hasText = dom.messageInput.value.trim().length > 0;
     const hasAttachments = (window.__attachmentsCount?.() ?? 0) > 0;
     const isExpanded = dom.promptInput.classList.contains('expanded');
-    if (!isExpanded) {
-        if (!hasText && !hasAttachments && !window.__isSending?.()) {
-            dom.expandButton.style.display = 'flex';
-            dom.sendButton.style.display = 'none';
-        } else {
-            dom.expandButton.style.display = 'none';
-            dom.sendButton.style.display = 'flex';
-            dom.sendButton.disabled = (!hasText && !hasAttachments) || window.__isSending?.();
-        }
+    
+    // Same behavior for both collapsed and expanded states
+    if (!hasText && !hasAttachments && !window.__isSending?.()) {
+        dom.expandButton.style.display = 'flex';
+        dom.sendButton.style.display = 'none';
     } else {
         dom.expandButton.style.display = 'none';
         dom.sendButton.style.display = 'flex';
         dom.sendButton.disabled = (!hasText && !hasAttachments) || window.__isSending?.();
     }
+    
     if (window.__isSending?.()) {
         dom.sendIcon.style.display = 'none';
         dom.loadingSpinner.style.display = 'block';

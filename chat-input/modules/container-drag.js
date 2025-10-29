@@ -14,6 +14,9 @@ function updateHideButtonPosition() {
     hideButton.style.left = (containerRect.left - buttonWidth - gap) + 'px';
     hideButton.style.top = (containerRect.top + containerRect.height / 2) + 'px';
     hideButton.style.transform = 'translateY(-50%)';
+    
+    // Add 'positioned' class to show the button after positioning
+    hideButton.classList.add('positioned');
 }
 
 // Make it accessible globally

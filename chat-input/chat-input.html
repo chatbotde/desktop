@@ -96,15 +96,14 @@
 
                 <div class="prompt-actions">
                     <div class="left-actions">
-                        <!-- New Chat Button -->
-                        <button class="action-btn icon-only" id="newChatButton" aria-label="New Chat"
-                            title="New Chat (Clear conversation)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                <path d="M12 7v6M9 10h6"/>
+                        <!-- Plus Button for expanded state -->
+                        <button class="action-btn icon-only expanded-plus-button" id="expandedPlusButton" aria-label="More actions" title="More actions">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5v14M5 12h14"/>
                             </svg>
                         </button>
+                        
+                        
 
                         <!-- AI Model Selection Button -->
                         <button class="action-btn with-text" id="modelSelectButton" aria-label="Select AI Model"
@@ -130,12 +129,7 @@
                         </button>
 
                         
-                        <!-- Plus Button for expanded state -->
-                        <button class="action-btn icon-only expanded-plus-button" id="expandedPlusButton" aria-label="More actions" title="More actions">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 5v14M5 12h14"/>
-                            </svg>
-                        </button>
+                        
                         
                         <!-- Hidden buttons for dropdown -->
                         <div class="hidden-buttons" id="hiddenButtons">
