@@ -12,7 +12,7 @@ import { initializeContentCard, showContentCard, hideContentCard, isContentCardO
 import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from './model-selection.js';
 import { sendMessage, resetSendingState } from './messaging.js';
 import { handlePasteContent } from './paste-drop.js';
-import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture } from './uploads-capture.js';
+import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from './uploads-capture.js';
 import { geometryController } from './geometry.js';
 import { stopCurrentRecording, updateVolumeIndicator } from './recording.js';
 import { initializeContainerDrag } from './container-drag.js';
@@ -173,6 +173,7 @@ export async function boot() {
         const action = button.getAttribute('data-action');
         switch (action) {
             case 'desktop-capture': handleDesktopCapture(); break;
+            case 'area-screenshot': handleAreaScreenshot(); break;
             case 'audio-capture': handleAudioCapture(); break;
             case 'capture-video': handleVideoCapture(); break;
         }

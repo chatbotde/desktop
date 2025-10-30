@@ -190,22 +190,90 @@ class ScreenshotCapture extends CaptureBase {
     }
 
     /**
-     * Capture screenshot with selection area (future enhancement)
-     * @param {Object} area - Selection area coordinates
+     * Capture screenshot with selection area
+     * @param {Object} area - Selection area coordinates {x, y, width, height}
      * @param {Object} options - Screenshot options
      * @returns {Promise<Object>} Screenshot data
      */
     async captureArea(area, options = {}) {
-        // This would require additional implementation for area selection
-        // For now, capture full screen and note the intended area
-        const result = await this.captureScreen(options);
-        
-        if (result.success) {
-            result.screenshot.selectionArea = area;
-            result.screenshot.name = result.screenshot.name.replace('screenshot', 'area-screenshot');
+        try {
+            // Get high-resolution screenshot of primary screen
+            const sources = await this.getDesktopSources({
+                types: ['screen'],
+                thumbnailSize: { width: 3840, height: 2160 } // High resolution for quality
+            });
+
+            if (sources.length === 0) {
+                throw new Error('No screen sources available');
+            }
+
+            const source = sources[0]; // Primary screen
+            if (!source.thumbnail) {
+                throw new Error('Failed to capture screenshot: no thumbnail available');
+            }
+
+            // Get the full screenshot as NativeImage
+            const fullImage = source.thumbnail;
+            const fullSize = fullImage.getSize();
+            
+            // Calculate scale factor between captured size and actual screen size
+            const { screen } = require('electron');
+            const display = screen.getPrimaryDisplay();
+            const screenSize = display.size;
+            const scaleX = fullSize.width / screenSize.width;
+            const scaleY = fullSize.height / screenSize.height;
+            
+            // Scale the area coordinates to match the captured image size
+            const scaledArea = {
+                x: Math.round(area.x * scaleX),
+                y: Math.round(area.y * scaleY),
+                width: Math.round(area.width * scaleX),
+                height: Math.round(area.height * scaleY)
+            };
+            
+            // Crop the image to the selected area
+            const croppedImage = fullImage.crop({
+                x: scaledArea.x,
+                y: scaledArea.y,
+                width: scaledArea.width,
+                height: scaledArea.height
+            });
+            
+            // Convert cropped image to PNG buffer
+            const screenshotBuffer = croppedImage.toPNG();
+            const fileName = options.name || `area-screenshot-${Date.now()}.png`;
+            const base64Data = screenshotBuffer.toString('base64');
+            const dataUrl = `data:image/png;base64,${base64Data}`;
+
+            return {
+                success: true,
+                screenshot: {
+                    name: fileName,
+                    type: 'image/png',
+                    size: screenshotBuffer.length,
+                    data: dataUrl,
+                    source: 'area-screenshot',
+                    dimensions: {
+                        width: scaledArea.width,
+                        height: scaledArea.height
+                    },
+                    selectionArea: area,
+                    timestamp: Date.now(),
+                    sourceInfo: {
+                        id: source.id,
+                        name: source.name,
+                        displayId: source.display_id
+                    }
+                }
+            };
+
+        } catch (error) {
+            console.error('Area screenshot capture error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to capture area screenshot'
+            };
         }
-        
-        return result;
     }
 
     /**

@@ -38,6 +38,16 @@ class CaptureAPI {
     }
 
     /**
+     * Take a screenshot of a specific area
+     * @param {Object} area - Area coordinates {x, y, width, height}
+     * @param {Object} options - Screenshot options
+     * @returns {Promise<Object>} Screenshot result
+     */
+    async takeAreaScreenshot(area, options = {}) {
+        return this.screenshotCapture.captureArea(area, options);
+    }
+
+    /**
      * Take screenshots of all screens
      * @param {Object} options - Screenshot options
      * @returns {Promise<Object>} Multiple screenshots result

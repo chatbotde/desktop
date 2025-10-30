@@ -1,0 +1,72 @@
+/* ==================== AREA SCREENSHOT STYLES ==================== */
+
+/* Fade in down animation */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Selection box pulse animation */
+@keyframes selectionPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4),
+                    inset 0 0 20px rgba(59, 130, 246, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.6),
+                    inset 0 0 30px rgba(59, 130, 246, 0.3);
+    }
+}
+
+/* Area screenshot overlay */
+.area-screenshot-overlay {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Selection box */
+.area-screenshot-selection {
+    transition: box-shadow 0.15s ease;
+}
+
+.area-screenshot-selection:not([style*="width: 0px"]) {
+    animation: selectionPulse 2s ease-in-out infinite;
+}
+
+/* Dimension indicator */
+.area-screenshot-dimensions {
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Instructions overlay */
+.area-screenshot-instructions {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.area-screenshot-instructions kbd {
+    font-weight: 600;
+}
+
+/* Hover effect for area screenshot button */
+button[data-action="area-screenshot"]:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+button[data-action="area-screenshot"]:hover svg {
+    stroke: #3b82f6;
+}
+
+/* Active state */
+button[data-action="area-screenshot"]:active {
+    background: rgba(59, 130, 246, 0.2);
+    transform: scale(0.98);
+}

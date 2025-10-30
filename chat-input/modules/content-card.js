@@ -1,7 +1,7 @@
 // Content Card Module - Shows list of available actions when speed-dial is opened
 import { dom } from './dom.js';
 import { state } from './state.js';
-import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture } from './uploads-capture.js';
+import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from './uploads-capture.js';
 import { toggleTheme, toggleLighting } from './theme.js';
 import { toggleClickThrough } from './clickthrough.js';
 import { toggleContentProtection } from './content-protection.js';
@@ -124,6 +124,9 @@ function handleContentCardAction(action) {
         // Capture actions
         case 'desktop-capture':
             handleDesktopCapture();
+            break;
+        case 'area-screenshot':
+            handleAreaScreenshot();
             break;
         case 'audio-capture':
             handleAudioCapture();

@@ -30,6 +30,18 @@ class CaptureApiHandlers {
       }
     });
 
+    ipcMain.handle("capture-area-screenshot", async (event, area, options = {}) => {
+      try {
+        const instance = this.getChatInputInstance();
+        if (!instance) return { success: false, error: 'Capture API not available' };
+        
+        return await instance.captureAPI.takeAreaScreenshot(area, options);
+      } catch (error) {
+        console.error('Area screenshot capture error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("get-screenshot-sources", async (event, includeWindows = true) => {
       try {
         const instance = this.getChatInputInstance();

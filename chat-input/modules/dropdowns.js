@@ -180,6 +180,7 @@ export function wireDropdownButtons() {
                     case 'upload-video': m.handleVideoUpload(); break;
                     case 'upload-audio': m.handleAudioUpload(); break;
                     case 'desktop-capture': m.handleDesktopCapture(); break;
+                    case 'area-screenshot': m.handleAreaScreenshot(); break;
                     case 'audio-capture': m.handleAudioCapture(); break;
                     case 'capture-video': m.handleVideoCapture(); break;
                 }

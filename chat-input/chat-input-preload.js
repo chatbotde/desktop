@@ -436,6 +436,16 @@ contextBridge.exposeInMainWorld("CaptureAPI", {
   },
 
   /**
+   * Take a screenshot of a specific area
+   * @param {Object} area - Area coordinates {x, y, width, height}
+   * @param {Object} options - Screenshot options
+   * @returns {Promise<Object>} Screenshot result
+   */
+  takeAreaScreenshot: (area, options = {}) => {
+    return ipcRenderer.invoke('capture-area-screenshot', area, options);
+  },
+
+  /**
    * Get available screenshot sources
    * @param {boolean} includeWindows - Include window sources
    * @returns {Promise<Object>} Available sources

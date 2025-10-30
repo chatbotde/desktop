@@ -1,6 +1,7 @@
 import { showAttachmentLoading, hideAttachmentLoading, addImageAttachment } from './attachments.js';
 import { addMediaAttachment } from './richmedia.js';
 import { showRecordingState, hideRecordingState } from './recording.js';
+import { activateAreaScreenshot } from './area-screenshot-cursor.js';
 
 export async function handleImageUpload() {
     try {
@@ -26,6 +27,15 @@ export async function handleDesktopCapture() {
         } else { console.error('Failed to take screenshot:', result.error); }
     } catch (error) {
         console.error('Error in desktop capture:', error);
+    }
+}
+
+export async function handleAreaScreenshot() {
+    try {
+        // Activate cursor-driven area selection mode
+        await activateAreaScreenshot();
+    } catch (error) {
+        console.error('Error in area screenshot:', error);
     }
 }
 
