@@ -203,6 +203,46 @@ if (!ipcHandlersRegistered) {
     return environmentConfig.isDev();
   });
 
+  // Media chunk streaming IPC handlers
+  ipcMain.handle('media:open', (event, suggestedPath) => {
+    try {
+      const os = require('os');
+      const filePath = suggestedPath || path.join(os.tmpdir(), `recording-${Date.now()}.webm`);
+      const fs = require('fs');
+      const ws = fs.createWriteStream(filePath, { flags: 'w' });
+      if (!global.writeStreams) global.writeStreams = new Map();
+      global.writeStreams.set(filePath, ws);
+      return { success: true, filePath };
+    } catch (error) {
+      console.error('Main: media:open failed', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('media:write', async (event, { filePath, base64 }) => {
+    if (!global.writeStreams) global.writeStreams = new Map();
+    const ws = global.writeStreams.get(filePath);
+    if (!ws) return { success: false, error: 'Write stream not found' };
+    try {
+      const buf = Buffer.from(base64, 'base64');
+      await new Promise((resolve, reject) => ws.write(buf, err => err ? reject(err) : resolve()));
+      return { success: true };
+    } catch (error) {
+      console.error('Main: media:write failed', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('media:close', (event, filePath) => {
+    if (!global.writeStreams) return { success: true };
+    const ws = global.writeStreams.get(filePath);
+    if (ws) {
+      ws.end();
+      global.writeStreams.delete(filePath);
+    }
+    return { success: true };
+  });
+
   ipcHandlersRegistered = true;
   console.log('Main: IPC handlers registered');
 }

@@ -4,6 +4,7 @@ import { initAutoClipboardImages } from './auto-clipboard-images.js';
 import { initMCPManager } from './mcp-manager.js';
 import { initializeTextSelection } from './text-selection.js';
 import { initClipboardUI } from './clipboard-ui.js';
+import { initBadgesIntegration } from './badges-integration.js';
 
 function start() {
     try { 
@@ -30,6 +31,11 @@ function start() {
       console.log('Modules: Initializing text selection');
       initializeTextSelection(); 
     } catch (e) { console.error('Text selection init failed', e); }
+    
+    try { 
+      console.log('Modules: Initializing badges integration');
+      initBadgesIntegration(); 
+    } catch (e) { console.error('Badges integration init failed', e); }
     
     console.log('Modules: All initialization completed');
 }

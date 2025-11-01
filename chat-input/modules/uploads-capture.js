@@ -2,6 +2,7 @@ import { showAttachmentLoading, hideAttachmentLoading, addImageAttachment } from
 import { addMediaAttachment } from './richmedia.js';
 import { showRecordingState, hideRecordingState } from './recording.js';
 import { activateAreaScreenshot } from './area-screenshot-cursor.js';
+import { recordingControlPanel } from './recording-control-panel.js';
 
 export async function handleImageUpload() {
     try {
@@ -71,13 +72,38 @@ export async function handleAudioCapture() {
             const result = await window.stopCurrentRecording();
             if (result.success) console.log('Audio recording stopped successfully');
         } else if (!window.__isRecording?.()) {
-            showRecordingState('audio');
-            if (window.rendererCaptureAPI) {
-                const result = await window.rendererCaptureAPI.startAudioRecording({ echoCancellation: true, noiseSuppression: true, autoGainControl: true });
-                if (result.success) { window.currentAudioRecordingId = result.recordingId; } else { hideRecordingState(); console.error('Failed to start audio recording:', result.error); }
-            } else { hideRecordingState(); console.error('Renderer capture API not available'); }
+            const result = await window.chatInputAPI.startAudioRecording({
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                processingEnabled: false,
+                timesliceMs: 500,
+                onChunk: async (blob) => {
+                    if (recordingControlPanel.filePath) {
+                        const dataUrl = await blob.arrayBuffer().then(buf => {
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                            return base64;
+                        });
+                        await window.electron.invoke('media:write', { 
+                            filePath: recordingControlPanel.filePath, 
+                            base64: dataUrl 
+                        });
+                        recordingControlPanel.updateStats(blob);
+                    }
+                }
+            });
+            if (result.success) {
+                window.currentAudioRecordingId = result.recordingId;
+                await recordingControlPanel.show('audio', result.recordingId, {
+                    filePath: null
+                });
+            } else {
+                console.error('Failed to start audio recording:', result.error);
+            }
         }
-    } catch (error) { hideRecordingState(); console.error('Error in audio capture:', error); }
+    } catch (error) {
+        console.error('Error in audio capture:', error);
+    }
 }
 
 export async function handleVideoCapture() {
@@ -85,13 +111,37 @@ export async function handleVideoCapture() {
         if (window.__isRecording?.() && window.__getRecordingType?.() === 'video') {
             const result = await window.stopCurrentRecording(); if (result.success) console.log('Video recording stopped successfully');
         } else if (!window.__isRecording?.()) {
-            showRecordingState('video');
-            if (window.rendererCaptureAPI) {
-                const result = await window.rendererCaptureAPI.startScreenRecording({ quality: 'medium', includeAudio: true });
-                if (result.success) { window.currentVideoRecordingId = result.recordingId; } else { hideRecordingState(); console.error('Failed to start video recording:', result.error); }
-            } else { hideRecordingState(); console.error('Renderer capture API not available'); }
+            const result = await window.chatInputAPI.startVideoRecording({
+                quality: 'medium',
+                includeAudio: true,
+                processingEnabled: false,
+                timesliceMs: 1000,
+                onChunk: async (blob) => {
+                    if (recordingControlPanel.filePath) {
+                        const dataUrl = await blob.arrayBuffer().then(buf => {
+                            const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                            return base64;
+                        });
+                        await window.electron.invoke('media:write', { 
+                            filePath: recordingControlPanel.filePath, 
+                            base64: dataUrl 
+                        });
+                        recordingControlPanel.updateStats(blob);
+                    }
+                }
+            });
+            if (result.success) {
+                window.currentVideoRecordingId = result.recordingId;
+                await recordingControlPanel.show('video', result.recordingId, {
+                    filePath: null
+                });
+            } else {
+                console.error('Failed to start video recording:', result.error);
+            }
         }
-    } catch (error) { hideRecordingState(); console.error('Error in video capture:', error); }
+    } catch (error) {
+        console.error('Error in video capture:', error);
+    }
 }
 
 

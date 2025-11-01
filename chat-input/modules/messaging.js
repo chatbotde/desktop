@@ -1,6 +1,7 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryCard, centerCardSmooth } from './floating-cards.js';
+import { getBadgeContent, clearBadgesAfterSend } from './badges.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {
@@ -14,11 +15,29 @@ export function updateSendButtonVisual() {
 
 export function sendMessage() {
     const raw = dom.messageInput.value;
-    const message = raw.trim();
+    let message = raw.trim();
     const hasImages = window.__getImageAttachments?.().length > 0;
     const hasMedia = window.__getMediaAttachments?.().length > 0;
     const hasAny = hasImages || hasMedia;
-    if ((!message && !hasAny) || state.isSending) return;
+    
+    // Get badge content
+    const badgeContent = getBadgeContent();
+    const hasBadgeTexts = badgeContent.texts.length > 0;
+    const hasBadgeImages = badgeContent.images.length > 0;
+    const hasBadges = hasBadgeTexts || hasBadgeImages;
+    
+    // Combine message with badge texts
+    if (hasBadgeTexts) {
+        const badgeTextsCombined = badgeContent.texts.join('\n\n');
+        if (message) {
+            message = `${message}\n\n${badgeTextsCombined}`;
+        } else {
+            message = badgeTextsCombined;
+        }
+    }
+    
+    const finalHasAny = hasAny || hasBadgeImages;
+    if ((!message && !finalHasAny) || state.isSending) return;
     if (!window.chatInputAPI) { console.error('chatInputAPI not available'); return; }
     state.isSending = true;
     state.lastMessageSent = message;
@@ -30,14 +49,16 @@ export function sendMessage() {
         const all = [];
         if (hasImages) all.push(...window.__getImageAttachments().map(att => ({ id: att.id, name: att.name, type: att.type, size: att.size, data: att.data, source: att.source, mediaType: 'image', dimensions: att.dimensions })));
         if (hasMedia) all.push(...window.__getMediaAttachments().map(att => ({ id: att.id, name: att.name, type: att.type, size: att.size, data: att.data, source: att.source, mediaType: att.mediaType, dimensions: att.dimensions, duration: att.duration })));
+        // Add badge images as attachments
+        if (hasBadgeImages) all.push(...badgeContent.images);
         
         // Parse @mention routing: @<num> or @new/@+
         const route = parseCardRoute(raw);
         const messageData = { 
-            content: route.cleaned, 
+            content: message, 
             timestamp: new Date().toISOString(), 
             id: Date.now().toString(), 
-            type: hasAny ? 'mixed' : 'text', 
+            type: finalHasAny ? 'mixed' : 'text', 
             attachments: all, 
             meta: {},
             selectedModel: state.selectedModel // Include the selected model
@@ -77,6 +98,11 @@ export function sendMessage() {
         window.chatInputAPI.sendMessage(messageData);
         dom.messageInput.value = '';
         window.__clearAllAttachments?.();
+        
+        // Clear badges after sending
+        if (hasBadges) {
+            clearBadgesAfterSend();
+        }
     } catch (err) {
         console.error('Error sending message', err);
         resetSendingState();

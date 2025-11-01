@@ -69,6 +69,45 @@
   letter-spacing: 0.2px;
 }
 
+/* Input Area Section */
+.text-selection-input-area {
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.text-selection-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, rgba(255, 255, 255, 0.9));
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 50px;
+  max-height: 150px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.text-selection-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.text-selection-textarea:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.text-selection-textarea:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}
+
 /* Actions Section */
 .text-selection-actions {
   display: flex;
@@ -219,6 +258,12 @@
     width: 12px;
     height: 12px;
   }
+
+  .text-selection-textarea {
+    font-size: 12px;
+    padding: 8px 10px;
+    min-height: 45px;
+  }
 }
 
 /* Dark Theme Support */
@@ -230,6 +275,16 @@
 
   .preview-text {
     color: rgba(255, 255, 255, 0.7);
+  }
+
+  .text-selection-textarea {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .text-selection-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
   }
 }
 
@@ -287,6 +342,27 @@
 
   .preview-text {
     color: rgba(0, 0, 0, 0.65);
+  }
+
+  .text-selection-textarea {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .text-selection-textarea::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .text-selection-textarea:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.05);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+
+  .text-selection-textarea:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.05);
   }
 }
 

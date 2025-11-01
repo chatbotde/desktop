@@ -271,6 +271,16 @@ class CaptureAPI {
     }
 
     /**
+     * Get recorder instance by ID
+     * @param {string} recordingId - Recording ID
+     * @returns {Object|null} Recorder instance
+     */
+    getRecorder(recordingId) {
+        const recording = this.activeRecorders.get(recordingId);
+        return recording ? recording.recorder : null;
+    }
+
+    /**
      * Get all active recordings
      * @returns {Array} List of active recordings
      */

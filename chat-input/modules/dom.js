@@ -35,6 +35,8 @@ export const dom = {
     get clearAllButton() { return document.getElementById('clearAllAttachments'); },
     get clickThroughButton() { return document.getElementById('clickThroughButton'); },
     get hideChatButton() { return document.getElementById('hideChatButton'); },
+    get badgesContainer() { return document.getElementById('badgesContainer'); },
+    get badgesGrid() { return document.getElementById('badgesGrid'); },
 };
 
 

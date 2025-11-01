@@ -1,6 +1,7 @@
 import { dom } from './dom.js';
 import { appendToInput } from './clipboard-injector.js';
 import { sendMessage } from './messaging.js';
+import { addTextBadge } from './badges.js';
 
 /**
  * Text Selection UI Manager
@@ -18,6 +19,7 @@ class TextSelectionUIManager {
     this.hideTimer = null;
     this.lastMouseX = window.innerWidth / 2;  // Track last mouse X
     this.lastMouseY = window.innerHeight / 2; // Track last mouse Y
+    this.userInput = ''; // Store user's additional input
     // REMOVED: lastSignature - we want to show panel every time, even for duplicates
   }
 
@@ -34,14 +36,21 @@ class TextSelectionUIManager {
           <div class="preview-icon">📝</div>
           <div class="preview-text"></div>
         </div>
+        <div class="text-selection-input-area">
+          <textarea 
+            class="text-selection-textarea" 
+            placeholder="Add your notes or context (optional)..."
+            rows="2"
+            maxlength="500"></textarea>
+        </div>
         <div class="text-selection-actions">
-          <button class="text-selection-btn ask-btn" title="Send selected text to AI" aria-label="Ask AI">
+          <button class="text-selection-btn ask-btn" title="Send selected text with your notes to AI" aria-label="Ask AI">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M5 9l7-7 7 7"/>
             </svg>
             <span>Ask</span>
           </button>
-          <button class="text-selection-btn add-btn" title="Add to input" aria-label="Add">
+          <button class="text-selection-btn add-btn" title="Add to input as badge" aria-label="Add">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 5v14M5 12h14"/>
             </svg>
@@ -57,9 +66,10 @@ class TextSelectionUIManager {
       </div>
     `;
 
-    // Cache button elements
+    // Cache button and input elements
     this.elements = {
       previewText: this.panel.querySelector('.preview-text'),
+      textarea: this.panel.querySelector('.text-selection-textarea'),
       askBtn: this.panel.querySelector('.ask-btn'),
       addBtn: this.panel.querySelector('.add-btn'),
       closeBtn: this.panel.querySelector('.close-btn')
@@ -78,11 +88,20 @@ class TextSelectionUIManager {
       this.lastMouseY = e.clientY;
     }, { passive: true });
 
-    // ... existing code ...
-    // Ask button - sends the selected text as a message
+    // Textarea input handler
+    this.elements.textarea.addEventListener('input', (e) => {
+      this.userInput = e.target.value;
+    });
+
+    // Prevent panel from closing when typing in textarea
+    this.elements.textarea.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Ask button - sends the selected text with user notes as a message
     this.elements.askBtn.addEventListener('click', () => this.handleAsk());
 
-    // Add button - adds text to input
+    // Add button - adds text to input as badge
     this.elements.addBtn.addEventListener('click', () => this.handleAdd());
 
     // Close button - dismisses the panel
@@ -116,10 +135,16 @@ class TextSelectionUIManager {
   handleAsk() {
     if (!this.currentText) return;
 
-    console.log('Text Selection UI: Asking AI about selected text');
+    console.log('Text Selection UI: Asking AI about selected text with user input');
 
-    // Add the text to input
-    appendToInput(this.currentText);
+    // Combine selected text with user input
+    let combinedText = this.currentText;
+    if (this.userInput && this.userInput.trim().length > 0) {
+      combinedText = `${this.currentText}\n\n---\n ${this.userInput.trim()}`;
+    }
+
+    // Add the combined text to input
+    appendToInput(combinedText);
 
     // Focus the input
     dom.messageInput?.focus();
@@ -136,10 +161,16 @@ class TextSelectionUIManager {
   handleAdd() {
     if (!this.currentText) return;
 
-    console.log('Text Selection UI: Adding selected text to input');
+    console.log('Text Selection UI: Adding selected text as badge with user input');
 
-    // Add the text to input
-    appendToInput(this.currentText);
+    // Combine selected text with user input for badge
+    let badgeText = this.currentText;
+    if (this.userInput && this.userInput.trim().length > 0) {
+      badgeText = `${this.currentText}\n\n---\n${this.userInput.trim()}`;
+    }
+
+    // Add the combined text as a badge
+    addTextBadge(badgeText);
 
     // Focus the input
     dom.messageInput?.focus();
@@ -212,6 +243,12 @@ class TextSelectionUIManager {
     const truncatedText = text ? String(text).slice(0, 150) : 'Text selected';
     this.elements.previewText.textContent = truncatedText;
 
+    // Clear textarea for new selection
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+      this.userInput = '';
+    }
+
     // Show panel with animation
     this.panel.style.display = 'flex';
     this.isVisible = true;
@@ -225,13 +262,13 @@ class TextSelectionUIManager {
     // Add resize listener
     window.addEventListener('resize', this.resizeHandler, { passive: true });
 
-    // Auto-hide timer
+    // Auto-hide timer (longer duration due to textarea)
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
     this.hideTimer = setTimeout(() => {
       this.hide();
-    }, 8000);
+    }, 15000); // Increased to 15 seconds to allow time for typing
   }
 
   hide() {
@@ -257,8 +294,15 @@ class TextSelectionUIManager {
       clearTimeout(this.hideTimer);
     }
 
+    // Reset state
     this.currentText = '';
     this.currentPayload = null;
+    this.userInput = '';
+    
+    // Clear textarea
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+    }
   }
 }
 

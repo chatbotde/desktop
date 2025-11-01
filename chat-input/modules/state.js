@@ -17,6 +17,9 @@ export const state = {
     imageAttachments: [],
     mediaAttachments: [],
     attachmentIdCounter: 0,
+    // Badges
+    badges: [],
+    badgeIdCounter: 0,
     // Recording
     recordingStartTime: 0,
     // Model selection
@@ -62,5 +65,6 @@ export const state = {
 };
 
 export const getNextAttachmentId = () => `attachment_${++state.attachmentIdCounter}`;
+export const getNextBadgeId = () => `badge_${++state.badgeIdCounter}`;
 
 

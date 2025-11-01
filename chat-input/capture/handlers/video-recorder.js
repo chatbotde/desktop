@@ -15,12 +15,30 @@ class VideoRecorder extends CaptureBase {
             frameRate: 30,
             videoBitsPerSecond: 2000000,
             audioBitsPerSecond: 128000,
+            processingEnabled: false,
+            processingOptions: {
+                brightness: 1.0,
+                contrast: 1.0,
+                saturate: 1.0,
+                blurPx: 0,
+                hueRotateDeg: 0
+            },
+            timesliceMs: 1000,
             ...options
         };
         
         this.startTime = null;
         this.recordingTimer = null;
         this.onProgress = null;
+
+        // Processing state
+        this.videoEl = null;
+        this.canvasEl = null;
+        this.canvasCtx = null;
+        this._rafId = null;
+
+        // Chunk callback
+        this.onChunk = null;
     }
 
     /**
@@ -36,11 +54,9 @@ class VideoRecorder extends CaptureBase {
         const options = { ...this.options, ...recordingOptions };
         
         try {
-            // Get desktop source
             const source = await this.getPrimaryScreenSource();
             
-            // Create video stream with audio
-            const stream = await this.createMediaStream(source.id, {
+            const baseStream = await this.createMediaStream(source.id, {
                 video: {
                     mandatory: {
                         chromeMediaSource: 'desktop',
@@ -55,32 +71,38 @@ class VideoRecorder extends CaptureBase {
                 } : false
             });
 
-            // Create media recorder
-            const recorder = this.createMediaRecorder(stream, {
+            // Optional real-time video processing
+            let streamForRecord = baseStream;
+            if (options.processingEnabled) {
+                streamForRecord = await this.buildProcessedVideoStream(baseStream, options);
+            }
+
+            const recorder = this.createMediaRecorder(streamForRecord, {
                 mimeType: this.getSupportedMimeType('video/webm;codecs=vp9,opus'),
                 videoBitsPerSecond: options.videoBitsPerSecond,
                 audioBitsPerSecond: options.audioBitsPerSecond
             });
 
-            // Set up event handlers
             recorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
                     this.recordedChunks.push(event.data);
+                    if (this.onChunk) this.onChunk(event.data);
                 }
             };
 
             recorder.onstop = () => {
                 this.stopRecordingTimer();
                 this.isCapturing = false;
+                this.teardownVideoProcessing();
             };
 
             recorder.onerror = (event) => {
                 console.error('Recording error:', event.error);
                 this.cleanup();
+                this.teardownVideoProcessing();
             };
 
-            // Start recording
-            recorder.start(1000); // Collect data every second
+            recorder.start(options.timesliceMs || 1000);
             this.isCapturing = true;
             this.startTime = Date.now();
             this.startRecordingTimer();
@@ -95,13 +117,17 @@ class VideoRecorder extends CaptureBase {
                 settings: {
                     quality: options.quality,
                     includeAudio: options.includeAudio,
-                    mimeType: recorder.mimeType
+                    mimeType: recorder.mimeType,
+                    processingEnabled: !!options.processingEnabled,
+                    processingOptions: options.processingOptions,
+                    timesliceMs: options.timesliceMs || 1000
                 }
             };
 
         } catch (error) {
             console.error('Failed to start video recording:', error);
             this.cleanup();
+            this.teardownVideoProcessing();
             return {
                 success: false,
                 error: error.message || 'Failed to start video recording'
@@ -266,6 +292,14 @@ class VideoRecorder extends CaptureBase {
     }
 
     /**
+     * Set chunk callback
+     * @param {Function} callback - Chunk callback function
+     */
+    setChunkCallback(callback) {
+        this.onChunk = typeof callback === 'function' ? callback : null;
+    }
+
+    /**
      * Cleanup resources
      */
     cleanup() {
@@ -273,6 +307,8 @@ class VideoRecorder extends CaptureBase {
         this.stopRecordingTimer();
         this.startTime = null;
         this.onProgress = null;
+        this.teardownVideoProcessing();
+        this.onChunk = null;
     }
 
     /**
@@ -308,6 +344,100 @@ class VideoRecorder extends CaptureBase {
             typeof MediaRecorder !== 'undefined' && 
             MediaRecorder.isTypeSupported(format)
         );
+    }
+
+    /**
+     * Real-time video processing via Canvas
+     * @param {MediaStream} baseStream - Base video stream
+     * @param {Object} options - Processing options
+     * @returns {MediaStream} Processed video stream
+     */
+    async buildProcessedVideoStream(baseStream, options) {
+        const track = baseStream.getVideoTracks()[0];
+        const settings = track.getSettings();
+
+        const video = document.createElement('video');
+        video.srcObject = baseStream;
+        video.muted = true;
+        video.setAttribute('playsinline', 'true');
+
+        await new Promise((resolve) => {
+            const onReady = () => {
+                video.removeEventListener('loadedmetadata', onReady);
+                resolve();
+            };
+            video.addEventListener('loadedmetadata', onReady);
+        });
+
+        try { await video.play(); } catch (_) {}
+
+        const canvas = document.createElement('canvas');
+        canvas.width = settings.width || 1920;
+        canvas.height = settings.height || 1080;
+
+        const ctx = canvas.getContext('2d');
+
+        const filter = this.getCanvasFilterString(options.processingOptions);
+        const draw = () => {
+            ctx.filter = filter;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            this._rafId = requestAnimationFrame(draw);
+        };
+        this._rafId = requestAnimationFrame(draw);
+
+        const processedVideoStream = canvas.captureStream(options.frameRate || 30);
+
+        let combined;
+        if (options.includeAudio) {
+            combined = new MediaStream();
+            const processedVideoTrack = processedVideoStream.getVideoTracks()[0];
+            if (processedVideoTrack) combined.addTrack(processedVideoTrack);
+            baseStream.getAudioTracks().forEach(t => combined.addTrack(t));
+        } else {
+            combined = processedVideoStream;
+        }
+
+        this.videoEl = video;
+        this.canvasEl = canvas;
+        this.canvasCtx = ctx;
+
+        return combined;
+    }
+
+    /**
+     * Get canvas filter string
+     * @param {Object} p - Processing options
+     * @returns {string} CSS filter string
+     */
+    getCanvasFilterString(p = {}) {
+        const brightness = p?.brightness ?? 1.0;
+        const contrast = p?.contrast ?? 1.0;
+        const saturate = p?.saturate ?? 1.0;
+        const blurPx = p?.blurPx ?? 0;
+        const hueRotateDeg = p?.hueRotateDeg ?? 0;
+
+        return `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) blur(${blurPx}px) hue-rotate(${hueRotateDeg}deg)`;
+    }
+
+    /**
+     * Teardown video processing resources
+     */
+    teardownVideoProcessing() {
+        if (this._rafId) {
+            try { cancelAnimationFrame(this._rafId); } catch (_) {}
+            this._rafId = null;
+        }
+        if (this.videoEl) {
+            try { this.videoEl.pause(); } catch (_) {}
+            this.videoEl.srcObject = null;
+            this.videoEl.remove();
+            this.videoEl = null;
+        }
+        if (this.canvasEl) {
+            this.canvasEl.remove();
+            this.canvasEl = null;
+            this.canvasCtx = null;
+        }
     }
 }
 

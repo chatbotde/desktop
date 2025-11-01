@@ -1,6 +1,7 @@
 import { dom } from './dom.js';
 import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
 import { appendToInput, getClipboardText } from './clipboard-injector.js';
+import { addTextBadge } from './badges.js';
 
 // Enhanced theme-aware styling with modern aesthetics
 const STYLES = {
@@ -364,8 +365,8 @@ class ClipboardBarManager {
     }
     
     if (text) {
-      console.log('Clipboard UI: Adding text to input', text);
-      appendToInput(text);
+      console.log('Clipboard UI: Adding text as badge', text);
+      addTextBadge(text);
       this.hide();
       dom.messageInput?.focus();
     }

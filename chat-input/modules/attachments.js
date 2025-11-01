@@ -48,6 +48,15 @@ export function addImageAttachment(imageData) {
     updateAttachmentsVisibility();
     positionAttachmentsContainer();
     
+    // Dispatch event for badge integration
+    try {
+        document.dispatchEvent(new CustomEvent('image-attachment:added', {
+            detail: { attachment, imageData }
+        }));
+    } catch (e) {
+        console.warn('Failed to dispatch image-attachment:added event:', e);
+    }
+    
     // Record state change for undo/redo
     try {
         recordAttachmentChange();

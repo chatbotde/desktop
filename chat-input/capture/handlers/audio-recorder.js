@@ -17,6 +17,14 @@ class AudioRecorder extends CaptureBase {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            processingEnabled: false,
+            processingOptions: {
+                highpassHz: 80,
+                lowpassHz: 12000,
+                compressor: { threshold: -24, ratio: 4, attack: 0.003, release: 0.25, knee: 3 },
+                gain: 1.0
+            },
+            timesliceMs: 1000,
             ...options
         };
         
@@ -26,6 +34,13 @@ class AudioRecorder extends CaptureBase {
         this.volumeCallback = null;
         this.analyser = null;
         this.volumeCheckInterval = null;
+
+        // Processing state
+        this.audioContext = null;
+        this.audioNodes = null;
+
+        // Chunk callback
+        this.onChunk = null;
     }
 
     /**
@@ -48,23 +63,26 @@ class AudioRecorder extends CaptureBase {
             } else if (options.source === 'both') {
                 stream = await this.createMixedAudioStream(options);
             } else {
-                // Default to microphone
                 stream = await this.createMicrophoneStream(options);
             }
 
-            // Create media recorder for audio
-            const recorder = this.createMediaRecorder(stream, {
+            // Optional real-time audio processing
+            let streamForRecord = stream;
+            if (options.processingEnabled) {
+                streamForRecord = await this.buildProcessedAudioStream(stream, options);
+            }
+
+            const recorder = this.createMediaRecorder(streamForRecord, {
                 mimeType: this.getAudioMimeType(),
                 audioBitsPerSecond: this.getAudioBitrate(options.quality)
             });
 
-            // Set up volume monitoring
-            this.setupVolumeMonitoring(stream);
+            this.setupVolumeMonitoring(streamForRecord);
 
-            // Set up event handlers
             recorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
                     this.recordedChunks.push(event.data);
+                    if (this.onChunk) this.onChunk(event.data);
                 }
             };
 
@@ -79,8 +97,7 @@ class AudioRecorder extends CaptureBase {
                 this.cleanup();
             };
 
-            // Start recording
-            recorder.start(1000); // Collect data every second
+            recorder.start(options.timesliceMs || 1000);
             this.isCapturing = true;
             this.startTime = Date.now();
             this.startRecordingTimer();
@@ -93,7 +110,10 @@ class AudioRecorder extends CaptureBase {
                     quality: options.quality,
                     sampleRate: options.sampleRate,
                     channelCount: options.channelCount,
-                    mimeType: recorder.mimeType
+                    mimeType: recorder.mimeType,
+                    processingEnabled: !!options.processingEnabled,
+                    processingOptions: options.processingOptions,
+                    timesliceMs: options.timesliceMs || 1000
                 }
             };
 
@@ -257,7 +277,7 @@ class AudioRecorder extends CaptureBase {
      */
     setupVolumeMonitoring(stream) {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const audioContext = this.audioContext || new (window.AudioContext || window.webkitAudioContext)();
             const source = audioContext.createMediaStreamSource(stream);
             const analyser = audioContext.createAnalyser();
             
@@ -311,6 +331,58 @@ class AudioRecorder extends CaptureBase {
      */
     setVolumeCallback(callback) {
         this.volumeCallback = callback;
+    }
+
+    /**
+     * Set chunk callback
+     * @param {Function} callback - Chunk callback function
+     */
+    setChunkCallback(callback) {
+        this.onChunk = typeof callback === 'function' ? callback : null;
+    }
+
+    /**
+     * Build processed audio stream using WebAudio nodes
+     * @param {MediaStream} inputStream - Input audio stream
+     * @param {Object} options - Processing options
+     * @returns {MediaStream} Processed audio stream
+     */
+    async buildProcessedAudioStream(inputStream, options) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: options.sampleRate });
+        const source = ctx.createMediaStreamSource(inputStream);
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = options.processingOptions?.highpassHz ?? 80;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = options.processingOptions?.lowpassHz ?? 12000;
+
+        const comp = ctx.createDynamicsCompressor();
+        const compCfg = options.processingOptions?.compressor || {};
+        if (typeof compCfg.threshold === 'number') comp.threshold.value = compCfg.threshold;
+        if (typeof compCfg.ratio === 'number') comp.ratio.value = compCfg.ratio;
+        if (typeof compCfg.attack === 'number') comp.attack.value = compCfg.attack;
+        if (typeof compCfg.release === 'number') comp.release.value = compCfg.release;
+        if (typeof compCfg.knee === 'number') comp.knee.value = compCfg.knee;
+
+        const gain = ctx.createGain();
+        gain.gain.value = options.processingOptions?.gain ?? 1.0;
+
+        const dest = ctx.createMediaStreamDestination();
+
+        source.connect(hp);
+        hp.connect(lp);
+        lp.connect(comp);
+        comp.connect(gain);
+        gain.connect(dest);
+
+        // Keep references for cleanup / monitoring
+        this.audioContext = ctx;
+        this.audioNodes = { source, hp, lp, comp, gain, dest };
+
+        return dest.stream;
     }
 
     /**
@@ -454,6 +526,14 @@ class AudioRecorder extends CaptureBase {
         this.startTime = null;
         this.onProgress = null;
         this.volumeCallback = null;
+
+        if (this.audioContext) {
+            try { this.audioContext.close(); } catch (_) {}
+            this.audioContext = null;
+            this.audioNodes = null;
+        }
+
+        this.onChunk = null;
     }
 
     /**
