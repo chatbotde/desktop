@@ -755,6 +755,76 @@ contextBridge.exposeInMainWorld('MediaUtils', {
   }
 });
 
+// Expose WebView API for external website viewing
+contextBridge.exposeInMainWorld('webView', {
+  /**
+   * Create a new web view
+   * @param {Object} options - Configuration options
+   * @returns {Promise<Object>}
+   */
+  create: (options) => ipcRenderer.invoke('webview:create', options),
+
+  /**
+   * Update web view bounds
+   * @param {string} viewId - The view identifier
+   * @param {Object} bounds - New bounds { x, y, width, height }
+   * @returns {Promise<Object>}
+   */
+  updateBounds: (viewId, bounds) => 
+    ipcRenderer.invoke('webview:update-bounds', { viewId, bounds }),
+
+  /**
+   * Navigate to a different URL
+   * @param {string} viewId - The view identifier
+   * @param {string} url - The URL to navigate to
+   * @returns {Promise<Object>}
+   */
+  navigate: (viewId, url) => 
+    ipcRenderer.invoke('webview:navigate', { viewId, url }),
+
+  /**
+   * Show/hide the web view
+   * @param {string} viewId - The view identifier
+   * @param {boolean} visible - Visibility state
+   * @returns {Promise<Object>}
+   */
+  setVisible: (viewId, visible) => 
+    ipcRenderer.invoke('webview:set-visible', { viewId, visible }),
+
+  /**
+   * Set click-through mode
+   * @param {string} viewId - The view identifier
+   * @param {boolean} enabled - Click-through enabled state
+   * @returns {Promise<Object>}
+   */
+  setClickThrough: (viewId, enabled) => 
+    ipcRenderer.invoke('webview:set-clickthrough', { viewId, enabled }),
+
+  /**
+   * Destroy a web view
+   * @param {string} viewId - The view identifier
+   * @returns {Promise<Object>}
+   */
+  destroy: (viewId) => 
+    ipcRenderer.invoke('webview:destroy', { viewId }),
+
+  /**
+   * Get all active web views
+   * @returns {Promise<Object>}
+   */
+  getActive: () => ipcRenderer.invoke('webview:get-active'),
+
+  /**
+   * Listen for WebView mouse state changes
+   * @param {Function} callback - Callback with {viewId, isOver}
+   */
+  onMouseState: (callback) => {
+    ipcRenderer.on('webview-mouse-state', (event, data) => {
+      callback(data);
+    });
+  }
+});
+
 // Also expose a minimal window API for basic functionality
 contextBridge.exposeInMainWorld("windowAPI", {
   close: () => ipcRenderer.invoke('chat-input-close'),

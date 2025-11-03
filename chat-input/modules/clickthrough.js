@@ -63,6 +63,16 @@ const UI_PATTERNS = {
  * This includes floating cards and any other iframes showing the frontend
  */
 function isOverFrontendUI(x, y) {
+    // Check WebView container first
+    const webViewContainer = document.getElementById('webview-container');
+    if (webViewContainer && webViewContainer.style.display !== 'none') {
+        const rect = webViewContainer.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            console.log('[ClickThrough] Cursor over WebView container');
+            return true;
+        }
+    }
+    
     // Get all visible iframes (floating cards contain the frontend React app)
     const iframes = document.querySelectorAll('iframe');
     
@@ -96,13 +106,39 @@ function startIframeMonitoring() {
         // Check if mouse is over any iframe using last known position
         const overIframe = isOverFrontendUI(lastMousePosition.x, lastMousePosition.y);
         
-        if (overIframe !== mouseOverIframe) {
-            mouseOverIframe = overIframe;
+        // Also check WebView container bounds (even though cursor is above it)
+        const webViewContainer = document.getElementById('webview-container');
+        let overWebView = false;
+        if (webViewContainer && webViewContainer.style.display !== 'none') {
+            const rect = webViewContainer.getBoundingClientRect();
+            overWebView = lastMousePosition.x >= rect.left && 
+                         lastMousePosition.x <= rect.right && 
+                         lastMousePosition.y >= rect.top && 
+                         lastMousePosition.y <= rect.bottom;
             
-            if (overIframe) {
-                // Mouse entered iframe - disable click-through
+            if (overWebView) {
+                console.log('[ClickThrough] Polling detected cursor over WebView');
+            }
+        }
+        
+        const isOverUI = overIframe || overWebView;
+        
+        if (isOverUI !== mouseOverIframe) {
+            mouseOverIframe = isOverUI;
+            
+            if (isOverUI) {
+                // Mouse entered iframe or WebView - disable click-through
                 if (isClickThroughEnabled) {
+                    console.log('[ClickThrough] Auto-disabling (over UI)');
                     disableClickThrough();
+                }
+            } else {
+                // Mouse left UI - re-enable click-through only if no other UI is under cursor
+                const target = document.elementFromPoint(lastMousePosition.x, lastMousePosition.y);
+                const isStillOverUI = isUIElement(target);
+                if (!isStillOverUI && !isClickThroughEnabled) {
+                    console.log('[ClickThrough] Auto-enabling (left UI)');
+                    enableClickThrough();
                 }
             }
         }
@@ -123,6 +159,11 @@ function stopIframeMonitoring() {
 function isUIElement(element) {
     if (!element || element === document.body || element === document.documentElement) {
         return false;
+    }
+    
+    // Check if element is the WebView container or inside it
+    if (element.id === 'webview-container' || element.closest('#webview-container')) {
+        return true;
     }
     
     // Check if element is an iframe (frontend UI)
@@ -246,7 +287,12 @@ function enableClickThrough() {
     if (window.chatInputAPI?.enableClickThrough) {
         window.chatInputAPI.enableClickThrough();
         isClickThroughEnabled = true;
+        sessionStorage.setItem('clickthrough-enabled', 'true');
         updateClickThroughButton();
+        // Emit event for other modules
+        document.dispatchEvent(new CustomEvent('clickthrough-changed', { 
+            detail: { enabled: true } 
+        }));
     }
 }
 
@@ -254,7 +300,12 @@ function disableClickThrough() {
     if (window.chatInputAPI?.disableClickThrough) {
         window.chatInputAPI.disableClickThrough();
         isClickThroughEnabled = false;
+        sessionStorage.setItem('clickthrough-enabled', 'false');
         updateClickThroughButton();
+        // Emit event for other modules
+        document.dispatchEvent(new CustomEvent('clickthrough-changed', { 
+            detail: { enabled: false } 
+        }));
     }
 }
 

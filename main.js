@@ -1,4 +1,6 @@
 const { app, ipcMain, globalShortcut } = require("electron");
+const { ElectronBlocker } = require('@ghostery/adblocker-electron');
+const fetch = require('cross-fetch');
 const path = require("path");
 const { spawn } = require("child_process");
 // Remove LaunchWindowManager import
@@ -38,6 +40,17 @@ function createChatInputWindow() {
 
 app.whenReady().then(async () => {
   try {
+    // Initialize ad blocker for all sessions (windows and WebContentsView)
+    try {
+      const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+      const { session } = require('electron');
+      blocker.enableBlockingInSession(session.defaultSession);
+      app.on('session-created', (ses) => blocker.enableBlockingInSession(ses));
+      console.log('Main: Ad blocker enabled for sessions');
+    } catch (adblockError) {
+      console.warn('Main: Ad blocker initialization failed:', adblockError?.message || adblockError);
+    }
+
     // Initialize auto-startup functionality
     autoStartupManager = new AutoStartupManager();
     

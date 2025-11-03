@@ -6,6 +6,7 @@ import { toggleTheme, toggleLighting } from './theme.js';
 import { toggleClickThrough } from './clickthrough.js';
 import { toggleContentProtection } from './content-protection.js';
 import { collapseUI } from './expand-collapse.js';
+import { toggleWebView } from './webview.js';
 
 let contentCard = null;
 let isContentCardVisible = false;
@@ -167,6 +168,11 @@ function handleContentCardAction(action) {
         case 'mcp-connections':
             // Open MCP connections management
             console.log('MCP Connections clicked - functionality to be implemented');
+            break;
+            
+        // Web View actions
+        case 'toggle-webview':
+            toggleWebView();
             break;
             
         // Window actions
