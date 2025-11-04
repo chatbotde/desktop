@@ -18,6 +18,7 @@ let dragOffset = { x: 0, y: 0 };
 let resizeStartBounds = null;
 let resizeHandle = null;
 let webViewContainer = null;
+let webViewControls = null;
 
 // Mobile view dimensions (iPhone-like)
 const MOBILE_WIDTH = 375;
@@ -33,6 +34,9 @@ const DESKTOP_HEADER_HEIGHT = 40;
 const MIN_WIDTH_FOR_HEADER = 200;
 const MIN_HEIGHT_FOR_HEADER = 150;
 const RESIZE_HANDLE_SIZE = 10;
+const CARD_PADDING = 12;
+const CONTROLS_HEIGHT = 36;
+const CONTROLS_GAP = 8;
 
 /**
  * Initialize WebView UI overlay
@@ -54,35 +58,26 @@ function initializeWebViewUI() {
         background: #1a1a1a;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         overflow: hidden;
+        padding: ${CARD_PADDING}px;
     `;
 
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'webview-header';
-    header.style.cssText = `
-        height: ${isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT}px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    // Floating controls (outside the card): URL input + Close button
+    webViewControls = document.createElement('div');
+    webViewControls.className = 'webview-controls';
+    webViewControls.style.cssText = `
+        position: fixed;
+        z-index: 100000;
+        display: none;
+        left: 0;
+        top: 0;
+        width: ${webViewBounds.width}px;
+        height: ${CONTROLS_HEIGHT}px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 0 12px;
-        cursor: move;
-        user-select: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        gap: 8px;
+        padding: 4px 0;
     `;
 
-    // Header title
-    const title = document.createElement('div');
-    title.className = 'webview-title';
-    title.textContent = 'Web View';
-    title.style.cssText = `
-        color: white;
-        font-size: 14px;
-        font-weight: 600;
-        flex: 1;
-    `;
-
-    // URL input
     const urlInput = document.createElement('input');
     urlInput.type = 'text';
     urlInput.placeholder = 'Enter URL...';
@@ -90,11 +85,10 @@ function initializeWebViewUI() {
     urlInput.className = 'webview-url-input';
     urlInput.style.cssText = `
         flex: 1;
-        margin: 0 12px;
         padding: 6px 12px;
         border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
         color: white;
         font-size: 12px;
         outline: none;
@@ -106,50 +100,29 @@ function initializeWebViewUI() {
         }
     });
 
-    // Header buttons
-    const headerButtons = document.createElement('div');
-    headerButtons.style.cssText = 'display: flex; gap: 8px; align-items: center;';
-
-    // Mobile/Desktop toggle button
-    const viewToggleBtn = createHeaderButton(isMobileView ? '🖥️' : '📱', 
-        isMobileView ? 'Switch to Desktop View' : 'Switch to Mobile View');
-    viewToggleBtn.addEventListener('click', () => toggleMobileView());
-
-    // Minimize button
-    const minBtn = createHeaderButton('_', 'Minimize');
-    minBtn.addEventListener('click', () => {
-        const smallWidth = isMobileView ? 320 : 320;
-        const smallHeight = isMobileView ? 480 : 180;
-        updateWebViewSize(smallWidth, smallHeight);
-    });
-
-    // Maximize button
-    const maxBtn = createHeaderButton('□', 'Maximize');
-    maxBtn.addEventListener('click', () => {
-        const largeWidth = isMobileView ? 414 : 800;
-        const largeHeight = isMobileView ? 736 : 600;
-        updateWebViewSize(largeWidth, largeHeight);
-    });
-
-    // Close button
     const closeBtn = createHeaderButton('×', 'Close');
     closeBtn.addEventListener('click', () => toggleWebView());
 
-    headerButtons.appendChild(viewToggleBtn);
-    headerButtons.appendChild(minBtn);
-    headerButtons.appendChild(maxBtn);
-    headerButtons.appendChild(closeBtn);
+    const dragBtn = createHeaderButton('⠿', 'Drag');
+    dragBtn.style.cursor = 'move';
+    dragBtn.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragOffset.x = e.clientX - webViewBounds.x;
+        dragOffset.y = e.clientY - webViewBounds.y;
+        e.preventDefault();
+        e.stopPropagation();
+    });
 
-    header.appendChild(title);
-    header.appendChild(urlInput);
-    header.appendChild(headerButtons);
+    webViewControls.appendChild(urlInput);
+    webViewControls.appendChild(closeBtn);
+    webViewControls.appendChild(dragBtn);
 
     // Create content area placeholder
     const content = document.createElement('div');
     content.className = 'webview-content';
     content.style.cssText = `
         width: 100%;
-        height: calc(100% - ${isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT}px);
+        height: 100%;
         background: #000;
         position: relative;
     `;
@@ -176,12 +149,11 @@ function initializeWebViewUI() {
         webViewContainer.appendChild(handle);
     });
 
-    webViewContainer.appendChild(header);
     webViewContainer.appendChild(content);
     document.body.appendChild(webViewContainer);
+    document.body.appendChild(webViewControls);
 
     // Setup event listeners
-    setupDragListeners(header);
     setupResizeListeners();
     setupClickthroughIntegration();
 }
@@ -374,38 +346,30 @@ function updateWebViewPosition() {
 
     // Update actual WebContentsView bounds
     if (activeWebViewId && window.webView) {
-        const header = webViewContainer.querySelector('.webview-header');
-        const headerVisible = header.style.display !== 'none';
-        const headerHeight = isMobileView ? MOBILE_HEADER_HEIGHT : 
-            (headerVisible ? DESKTOP_HEADER_HEIGHT : 0);
-        const contentY = headerVisible ? headerHeight : 0;
-        const contentHeight = headerVisible ? webViewBounds.height - headerHeight : webViewBounds.height;
+        const contentY = CARD_PADDING;
+        const contentHeight = webViewBounds.height - (CARD_PADDING * 2);
 
         window.webView.updateBounds(activeWebViewId, {
-            x: Math.round(webViewBounds.x),
+            x: Math.round(webViewBounds.x + CARD_PADDING),
             y: Math.round(webViewBounds.y + contentY),
-            width: Math.round(webViewBounds.width),
+            width: Math.round(webViewBounds.width - (CARD_PADDING * 2)),
             height: Math.round(contentHeight)
         });
+    }
+
+    // Position floating controls above the card, outside
+    if (webViewControls) {
+        webViewControls.style.left = webViewBounds.x + 'px';
+        webViewControls.style.top = Math.max(0, webViewBounds.y - CONTROLS_HEIGHT - CONTROLS_GAP) + 'px';
+        webViewControls.style.width = webViewBounds.width + 'px';
     }
 }
 
 function updateHeaderVisibility() {
     if (!webViewContainer) return;
 
-    const header = webViewContainer.querySelector('.webview-header');
     const content = webViewContainer.querySelector('.webview-content');
-    
-    const shouldShowHeader = webViewBounds.width >= MIN_WIDTH_FOR_HEADER && 
-                            webViewBounds.height >= MIN_HEIGHT_FOR_HEADER;
-
-    if (shouldShowHeader) {
-        header.style.display = 'flex';
-        const headerHeight = isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT;
-        content.style.height = `calc(100% - ${headerHeight}px)`;
-        header.style.height = `${headerHeight}px`;
-    } else {
-        header.style.display = 'none';
+    if (content) {
         content.style.height = '100%';
     }
 
@@ -424,25 +388,6 @@ async function updateWebViewSize(width, height) {
  */
 export async function toggleMobileView() {
     isMobileView = !isMobileView;
-    
-    // Update button appearance
-    const viewToggleBtn = webViewContainer?.querySelector('.webview-header button[title*="View"]');
-    if (viewToggleBtn) {
-        viewToggleBtn.textContent = isMobileView ? '🖥️' : '📱';
-        viewToggleBtn.title = isMobileView ? 'Switch to Desktop View' : 'Switch to Mobile View';
-    }
-    
-    // Update header height
-    const header = webViewContainer?.querySelector('.webview-header');
-    if (header) {
-        header.style.height = `${isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT}px`;
-    }
-    
-    // Update content height
-    const content = webViewContainer?.querySelector('.webview-content');
-    if (content) {
-        content.style.height = `calc(100% - ${isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT}px)`;
-    }
     
     // If we have an active WebView, update its user agent
     if (activeWebViewId && window.webView) {
@@ -489,7 +434,6 @@ export async function toggleWebView() {
             // Set initial dimensions based on view mode
             const width = isMobileView ? MOBILE_WIDTH : DESKTOP_WIDTH;
             const height = isMobileView ? MOBILE_HEIGHT : DESKTOP_HEIGHT;
-            const headerHeight = isMobileView ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT;
             
             webViewBounds = {
                 x: 100,
@@ -501,10 +445,10 @@ export async function toggleWebView() {
             const result = await window.webView.create({
                 url: 'https://www.youtube.com',
                 bounds: {
-                    x: Math.round(webViewBounds.x),
-                    y: Math.round(webViewBounds.y + headerHeight),
-                    width: Math.round(webViewBounds.width),
-                    height: Math.round(webViewBounds.height - headerHeight)
+                    x: Math.round(webViewBounds.x + CARD_PADDING),
+                    y: Math.round(webViewBounds.y + CARD_PADDING),
+                    width: Math.round(webViewBounds.width - (CARD_PADDING * 2)),
+                    height: Math.round(webViewBounds.height - (CARD_PADDING * 2))
                 },
                 isMobileView: isMobileView
             });
@@ -513,6 +457,9 @@ export async function toggleWebView() {
                 activeWebViewId = result.viewId;
                 isWebViewVisible = true;
                 webViewContainer.style.display = 'block';
+                if (webViewControls) {
+                    webViewControls.style.display = 'flex';
+                }
                 updateHeaderVisibility();
                 console.log('[WebView] Created:', activeWebViewId);
             } else {
@@ -526,6 +473,9 @@ export async function toggleWebView() {
             
             if (result.success) {
                 webViewContainer.style.display = isWebViewVisible ? 'block' : 'none';
+                if (webViewControls) {
+                    webViewControls.style.display = isWebViewVisible ? 'flex' : 'none';
+                }
                 console.log('[WebView] Toggled visibility:', isWebViewVisible);
             } else {
                 console.error('[WebView] Failed to toggle:', result.error);
@@ -550,6 +500,9 @@ export async function destroyWebView() {
             activeWebViewId = null;
             isWebViewVisible = false;
             isMobileView = false; // Reset to desktop view
+            if (webViewControls) {
+                webViewControls.style.display = 'none';
+            }
         } else {
             console.error('[WebView] Failed to destroy:', result.error);
         }
