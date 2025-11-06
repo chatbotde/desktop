@@ -10,9 +10,11 @@ class TextSelectionMonitor {
     this.isMonitoring = false;
     this.onSelectionCallbacks = [];
     this.lastSelection = null;
+    this.lastSelectionTime = 0;
     this.selectionHook = null;
     this.debounceTimer = null;
     this.debounceDelay = 300; // milliseconds
+    this.minTimeBetweenSameSelection = 1000; // Allow same text to trigger again after 1 second
   }
 
   /**
@@ -101,6 +103,7 @@ class TextSelectionMonitor {
       if (this.hasSelectionChanged(this.lastSelection, selectionData)) {
         console.log('Text Selection Monitor: Text selection changed', selectionData?.text?.substring(0, 50) + '...');
         this.lastSelection = selectionData;
+        this.lastSelectionTime = Date.now(); // Update timestamp
 
         // Notify all callbacks
         this.onSelectionCallbacks.forEach(callback => {
@@ -127,8 +130,21 @@ class TextSelectionMonitor {
     const oldText = oldSelection.text || '';
     const newText = newSelection.text || '';
     
-    // Only consider it changed if the text is different and not empty
-    return oldText !== newText && newText.trim().length > 0;
+    // If text is different, it's definitely a change
+    if (oldText !== newText && newText.trim().length > 0) {
+      return true;
+    }
+    
+    // If text is the same, allow it to trigger again if enough time has passed
+    // This allows users to select the same text again after the UI disappears
+    if (oldText === newText && newText.trim().length > 0) {
+      const timeSinceLastSelection = Date.now() - this.lastSelectionTime;
+      if (timeSinceLastSelection >= this.minTimeBetweenSameSelection) {
+        return true; // Allow same text to trigger again after delay
+      }
+    }
+    
+    return false;
   }
 
   /**

@@ -28,7 +28,11 @@ class TextSelectionUIManager {
     this.userInput = ''; // Store user's additional input
     this.showOriginX = this.lastMouseX;
     this.showOriginY = this.lastMouseY;
+    this.showTime = 0;
     this.distanceHideHandler = null;
+    this.recordingStateListener = null;
+    this.recordingStateCheckInterval = null;
+    this.autoHideTimer = null;
     // REMOVED: lastSignature - we want to show panel every time, even for duplicates
   }
 
@@ -59,117 +63,251 @@ class TextSelectionUIManager {
   }
 
   createMiniBar() {
-    if (this.miniBar) return this.miniBar;
+    if (this.miniBar) {
+      // Reset styles if already exists
+      this.miniBar.style.display = 'none';
+      this.miniBar.style.opacity = '1';
+      this.miniBar.style.transform = 'scale(1)';
+      return this.miniBar;
+    }
 
     const bar = document.createElement('div');
     bar.className = 'text-selection-mini';
     bar.style.display = 'none';
+    bar.style.opacity = '1';
+    bar.style.transform = 'scale(1)';
 
-    const btn = (cls, label, svg) => {
-      const b = document.createElement('button');
-      b.className = `mini-btn ${cls}`;
-      b.type = 'button';
-      b.setAttribute('aria-label', label);
-      b.innerHTML = svg;
-      return b;
-    };
+    // Create Google-style search bar container
+    const searchBar = document.createElement('div');
+    searchBar.className = 'google-search-bar';
 
-    const askBtn = btn('mini-ask', 'Ask', `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2v20M5 9l7-7 7 7"/>
+    // Search icon on the left
+    const searchIcon = document.createElement('div');
+    searchIcon.className = 'search-icon';
+    searchIcon.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
       </svg>
-    `);
-    const addBtn = btn('mini-add', 'Add', `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 5v14M5 12h14"/>
-      </svg>
-    `);
-    const shotBtn = btn('mini-shot', 'Screenshot area', `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2"/>
-        <path d="M8 5l2-2h4l2 2"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    `);
-    const makeBtn = btn('mini-make', 'Make card', `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="16" rx="2"/>
-        <path d="M3 10h18"/>
-      </svg>
-    `);
-    const closeBtn = btn('mini-close', 'Close', `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 6 6 18M6 6l12 12"/>
-      </svg>
-    `);
+    `;
 
-    // Inline textarea for extra notes
-    const notes = document.createElement('textarea');
-    notes.className = 'mini-notes';
-    notes.setAttribute('rows', '2');
-    notes.setAttribute('placeholder', 'Add notes…');
-    // Auto-grow height like Google input
+    // Text input in the middle
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'search-input-wrapper';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'search-input';
+    input.setAttribute('placeholder', 'Add text or ask about selection...');
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('spellcheck', 'false');
+    
+    // Auto-grow functionality for input (if needed for multi-line)
     const autoGrow = (el) => {
       el.style.height = 'auto';
-      const maxHeight = 96; // clamp ~3 lines
+      const maxHeight = 120; // clamp ~4 lines
       el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
     };
-    notes.addEventListener('input', (e) => {
+    
+    input.addEventListener('input', (e) => {
       this.userInput = e.target.value;
-      autoGrow(notes);
+      // If we want multi-line support, we can switch to textarea
     });
-    // Hide shortly after blur (unless refocused quickly)
-    notes.addEventListener('blur', () => {
-      if (this.hideTimer) clearTimeout(this.hideTimer);
-      this.hideTimer = setTimeout(() => {
-        // If focus returned to mini bar, don't hide
-        const active = document.activeElement;
-        if (this.miniBar && active && this.miniBar.contains(active)) return;
-        this.hide();
-      }, 800); // slight delay after focus loss
-    });
-    notes.addEventListener('focus', () => {
-      if (this.hideTimer) clearTimeout(this.hideTimer);
-    });
-    // Initialize height
-    setTimeout(() => autoGrow(notes), 0);
 
-    askBtn.addEventListener('click', (e) => { e.stopPropagation(); this.handleAsk(); });
-    addBtn.addEventListener('click', (e) => { e.stopPropagation(); this.handleAdd(); });
-    shotBtn.addEventListener('click', async (e) => {
+    // Enter key to send
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleAsk();
+      }
+    });
+
+    // Prevent panel from closing when typing
+    input.addEventListener('click', (e) => {
       e.stopPropagation();
+    });
+    input.addEventListener('focus', () => {
+      if (this.hideTimer) clearTimeout(this.hideTimer);
+      // Reset auto-hide timer when user focuses input
+      this.startAutoHideTimer();
+    });
+    input.addEventListener('input', () => {
+      // Reset auto-hide timer when user types
+      this.startAutoHideTimer();
+    });
+    input.addEventListener('blur', () => {
+      if (this.hideTimer) clearTimeout(this.hideTimer);
+      // Start auto-hide timer after blur
+      this.startAutoHideTimer();
+    });
+
+    inputWrapper.appendChild(input);
+
+    // Action buttons container
+    const actionsContainer = document.createElement('div');
+    actionsContainer.className = 'search-actions';
+
+    // Microphone button for voice input
+    const micBtn = document.createElement('button');
+    micBtn.className = 'search-action-btn mic-btn';
+    micBtn.type = 'button';
+    micBtn.setAttribute('aria-label', 'Voice input');
+    micBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10a7 7 0 0 1-14 0"/>
+        <path d="M12 17v6"/>
+        <path d="M8 23h8"/>
+      </svg>
+    `;
+    micBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      // Reset auto-hide timer on button click
+      this.startAutoHideTimer();
+      await this.handleVoiceInput();
+    });
+
+    // Camera/screenshot button
+    const cameraBtn = document.createElement('button');
+    cameraBtn.className = 'search-action-btn camera-btn';
+    cameraBtn.type = 'button';
+    cameraBtn.setAttribute('aria-label', 'Area screenshot');
+    cameraBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="2 2" opacity="0.5"/>
+        <path d="M12 19V5M5 12l7-7 7 7"/>
+      </svg>
+    `;
+    cameraBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      // Reset auto-hide timer on button click
+      this.startAutoHideTimer();
       try {
         await activateAreaScreenshot();
+        // Don't hide immediately - let user see the screenshot was triggered
+        setTimeout(() => this.hide(), 500);
       } catch (err) {
         console.error('Failed to start area screenshot', err);
       }
-      this.hide();
     });
-    makeBtn.addEventListener('click', (e) => {
+
+    // Send button
+    const sendBtn = document.createElement('button');
+    sendBtn.className = 'search-action-btn send-btn';
+    sendBtn.type = 'button';
+    sendBtn.setAttribute('aria-label', 'Send');
+    sendBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m22 2-7 20-4-9-9-4Z"/>
+        <path d="M22 2 11 13"/>
+      </svg>
+      <span>Send</span>
+    `;
+    sendBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!this.currentText) return;
-      createFloatingCard({ title: 'Selection', content: this.currentText });
-      this.hide();
+      // Don't reset timer here - we're about to hide anyway
+      this.handleAsk();
     });
-    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); this.hide(); });
 
-    const btnRow = document.createElement('div');
-    btnRow.className = 'mini-row';
-    btnRow.appendChild(askBtn);
-    btnRow.appendChild(addBtn);
-    btnRow.appendChild(shotBtn);
-    btnRow.appendChild(makeBtn);
-    btnRow.appendChild(closeBtn);
+    actionsContainer.appendChild(micBtn);
+    actionsContainer.appendChild(cameraBtn);
+    actionsContainer.appendChild(sendBtn);
 
-    // Place textarea above buttons
-    bar.appendChild(notes);
-    bar.appendChild(btnRow);
+    // Assemble the search bar
+    searchBar.appendChild(searchIcon);
+    searchBar.appendChild(inputWrapper);
+    searchBar.appendChild(actionsContainer);
 
+    bar.appendChild(searchBar);
     document.body.appendChild(bar);
     this.miniBar = bar;
-    // Expose for focusing later
-    this.elements.miniNotes = notes;
+    
+    // Add mouse hover detection to reset auto-hide timer
+    this.miniBar.addEventListener('mouseenter', () => {
+      this.startAutoHideTimer(); // Reset timer when mouse enters
+    });
+    this.miniBar.addEventListener('mouseleave', () => {
+      this.startAutoHideTimer(); // Reset timer when mouse leaves (starts countdown)
+    });
+    
+    // Expose input for focusing later
+    this.elements.miniNotes = input;
+    this.elements.searchInput = input;
+    this.elements.micBtn = micBtn;
+    this.elements.cameraBtn = cameraBtn;
+    this.elements.sendBtn = sendBtn;
+    
     return this.miniBar;
+  }
+
+  async handleVoiceInput() {
+    try {
+      // Check if already recording
+      if (window.__isRecording?.() && window.__getRecordingType?.() === 'audio') {
+        // Stop recording
+        const result = await window.stopCurrentRecording();
+        if (result.success && result.audio) {
+          // Update mic button state
+          if (this.elements.micBtn) {
+            this.elements.micBtn.classList.remove('recording');
+          }
+          // Add audio attachment and send
+          const { addMediaAttachment } = await import('./richmedia.js');
+          addMediaAttachment(result.audio);
+          // Combine with selected text and user input
+          this.handleAsk();
+        } else {
+          // Recording stopped but no audio (cancelled)
+          if (this.elements.micBtn) {
+            this.elements.micBtn.classList.remove('recording');
+          }
+        }
+      } else {
+        // Start recording using the existing audio capture handler
+        const { handleAudioCapture } = await import('./uploads-capture.js');
+        await handleAudioCapture();
+        // Update mic button to show recording state
+        if (this.elements.micBtn) {
+          this.elements.micBtn.classList.add('recording');
+        }
+        // Listen for recording state changes
+        this.setupRecordingStateListener();
+      }
+    } catch (error) {
+      console.error('Error handling voice input:', error);
+      if (this.elements.micBtn) {
+        this.elements.micBtn.classList.remove('recording');
+      }
+    }
+  }
+
+  setupRecordingStateListener() {
+    // Remove existing listener if any
+    if (this.recordingStateListener) {
+      document.removeEventListener('recording-state-changed', this.recordingStateListener);
+    }
+    
+    // Listen for recording state changes
+    this.recordingStateListener = () => {
+      const isRecording = window.__isRecording?.();
+      const recordingType = window.__getRecordingType?.();
+      
+      if (this.elements.micBtn) {
+        if (isRecording && recordingType === 'audio') {
+          this.elements.micBtn.classList.add('recording');
+        } else {
+          this.elements.micBtn.classList.remove('recording');
+        }
+      }
+    };
+    
+    // Check state periodically (since there might not be an event)
+    this.recordingStateCheckInterval = setInterval(() => {
+      this.recordingStateListener();
+    }, 500);
+    
+    // Also listen for custom events if they exist
+    document.addEventListener('recording-state-changed', this.recordingStateListener);
   }
 
   createPanel() {
@@ -256,12 +394,17 @@ class TextSelectionUIManager {
     // Close button - dismisses the panel
     this.elements.closeBtn.addEventListener('click', () => this.hide());
 
-    // Hide panel when clicking outside
+    // Hide panel when clicking outside (only for expanded panel, not mini bar)
     document.addEventListener('click', (e) => {
       // Don't close if clicking on the panel itself or its children
       if (!this.panel.contains(e.target) && this.isVisible) {
-        this.hide();
+        // Only hide if not recently shown (grace period)
+        const timeSinceShow = Date.now() - (this.showTime || 0);
+        if (timeSinceShow > 2000) { // Increased grace period
+          this.hide();
+        }
       }
+      // Don't hide mini bar on outside clicks - let distance handler handle it
     }, true);
 
     // Auto-hide after 8 seconds of inactivity
@@ -302,6 +445,15 @@ class TextSelectionUIManager {
     setTimeout(() => {
       sendMessage();
     }, 100);
+
+    // Clear the input field before hiding
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
+      this.userInput = '';
+    }
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+    }
 
     // Hide the panel
     this.hide();
@@ -393,18 +545,18 @@ class TextSelectionUIManager {
       this.fab.style.display = 'inline-flex';
     }
 
-    // Position mini toolbar near cursor/selection
+    // Position mini toolbar (Google search bar) near cursor/selection
     if (this.miniBar && this.isMiniVisible) {
       const gap = 8;
-      const barWidth = this.miniBar.offsetWidth || 148;
-      const barHeight = this.miniBar.offsetHeight || 32;
+      const barWidth = this.miniBar.offsetWidth || 500;
+      const barHeight = this.miniBar.offsetHeight || 52;
 
-      let topPos = this.lastMouseY - barHeight - 8;
+      let topPos = this.lastMouseY - barHeight - 12;
       let leftPos = this.lastMouseX - barWidth / 2;
 
       if (leftPos + barWidth > window.innerWidth - gap) leftPos = window.innerWidth - barWidth - gap;
       if (leftPos < gap) leftPos = gap;
-      if (topPos < gap) topPos = this.lastMouseY + 12;
+      if (topPos < gap) topPos = this.lastMouseY + 16;
       if (topPos + barHeight > window.innerHeight - gap) topPos = window.innerHeight - barHeight - gap;
 
       this.miniBar.style.position = 'fixed';
@@ -418,60 +570,188 @@ class TextSelectionUIManager {
   show(text, payload = null) {
     console.log('Text Selection UI: Showing selection controls with text length', text?.length || 0);
 
+    // Reset any state that might prevent showing the same text again
+    // Force show even if it's the same text as before
     this.createFab();
     this.createMiniBar();
     this.createPanel();
     this.currentText = text;
     this.currentPayload = payload;
+    this.showTime = Date.now(); // Reset show time
 
     const truncatedText = text ? String(text).slice(0, 150) : 'Text selected';
-    this.elements.previewText.textContent = truncatedText;
+    if (this.elements.previewText) {
+      this.elements.previewText.textContent = truncatedText;
+    }
 
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
       this.userInput = '';
     }
-
-    // Show minimalist mini toolbar by default
-    this.isMiniVisible = true;
-    this.miniBar.style.display = 'flex';
-    this.isFabVisible = false;
-    if (this.fab) this.fab.style.display = 'none';
-    this.isVisible = false;
-    this.panel.style.display = 'none';
-    this.panel.classList.remove('visible');
-    this.position();
-    // Focus notes like Google input when appearing
-    if (this.elements.miniNotes) {
-      this.elements.miniNotes.focus();
-      // Move caret to end
-      const val = this.elements.miniNotes.value;
-      this.elements.miniNotes.value = '';
-      this.elements.miniNotes.value = val;
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
+      this.userInput = '';
     }
+
+    // Show minimalist mini toolbar (Google search bar) by default
+    this.isMiniVisible = true;
+    this.isFabVisible = false;
+    this.isVisible = false;
+    
+    // Hide other UI elements first
+    if (this.fab) this.fab.style.display = 'none';
+    if (this.panel) {
+      this.panel.style.display = 'none';
+      this.panel.classList.remove('visible');
+    }
+
+    // Show the search bar immediately with initial position
+    if (this.miniBar) {
+      // Set initial position before showing to avoid layout shift
+      const gap = 8;
+      const barWidth = 500; // Default width
+      const barHeight = 52; // Default height
+      
+      let topPos = this.lastMouseY - barHeight - 12;
+      let leftPos = this.lastMouseX - barWidth / 2;
+      
+      // Ensure it's within viewport
+      if (leftPos + barWidth > window.innerWidth - gap) leftPos = window.innerWidth - barWidth - gap;
+      if (leftPos < gap) leftPos = gap;
+      if (topPos < gap) topPos = this.lastMouseY + 16;
+      if (topPos + barHeight > window.innerHeight - gap) topPos = window.innerHeight - barHeight - gap;
+      
+      this.miniBar.style.position = 'fixed';
+      this.miniBar.style.top = `${topPos}px`;
+      this.miniBar.style.left = `${leftPos}px`;
+      this.miniBar.style.zIndex = '50001';
+      this.miniBar.style.display = 'flex';
+      this.miniBar.style.opacity = '1';
+      this.miniBar.style.transform = 'scale(1)';
+    }
+
+    // Position accurately after a micro-delay to get actual dimensions
+    requestAnimationFrame(() => {
+      this.position();
+      // Focus input immediately after positioning
+      if (this.elements.searchInput) {
+        this.elements.searchInput.focus();
+        this.elements.searchInput.setSelectionRange(0, 0);
+      }
+    });
 
     window.addEventListener('resize', this.resizeHandler, { passive: true });
 
+    // Clear any existing hide timers
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
+      this.hideTimer = null;
     }
-    // Distance-based hide instead of timer
+    if (this.autoHideTimer) {
+      clearTimeout(this.autoHideTimer);
+      this.autoHideTimer = null;
+    }
+    
+    // Remove any existing distance handler
+    if (this.distanceHideHandler) {
+      window.removeEventListener('mousemove', this.distanceHideHandler);
+      this.distanceHideHandler = null;
+    }
+
+    // Set up auto-hide timer (2 seconds)
+    this.startAutoHideTimer();
+
+    // Set up distance-based hide with longer grace period
     this.showOriginX = this.lastMouseX;
     this.showOriginY = this.lastMouseY;
-    const thresholdPx = 220;
+    this.showTime = Date.now();
+    const thresholdPx = 500; // Much larger threshold - user needs to move mouse far away
+    const gracePeriodMs = 2000; // Don't hide for 2 seconds after showing
+    
     this.distanceHideHandler = () => {
       if (!this.isMiniVisible) return;
-      const active = document.activeElement;
-      if (active && this.miniBar && this.miniBar.contains(active) && active.classList.contains('mini-notes')) {
-        return; // don't hide while typing in notes
+      
+      // Grace period - don't hide immediately after showing
+      const timeSinceShow = Date.now() - this.showTime;
+      if (timeSinceShow < gracePeriodMs) {
+        return;
       }
+      
+      // Don't hide if user is interacting with the bar
+      const active = document.activeElement;
+      if (active && this.miniBar && this.miniBar.contains(active)) {
+        if (active.classList.contains('search-input') || 
+            active.classList.contains('mini-notes') ||
+            active.classList.contains('search-action-btn')) {
+          return; // don't hide while interacting
+        }
+      }
+      
+      // Don't hide if mouse is hovering over the bar
+      if (this.miniBar) {
+        const rect = this.miniBar.getBoundingClientRect();
+        const mouseX = this.lastMouseX;
+        const mouseY = this.lastMouseY;
+        if (mouseX >= rect.left && mouseX <= rect.right && 
+            mouseY >= rect.top && mouseY <= rect.bottom) {
+          return; // mouse is over the bar, don't hide
+        }
+      }
+      
+      // Check if mouse moved too far away
       const dx = this.lastMouseX - this.showOriginX;
       const dy = this.lastMouseY - this.showOriginY;
       if (Math.hypot(dx, dy) > thresholdPx) {
         this.hide();
       }
     };
-    window.addEventListener('mousemove', this.distanceHideHandler, { passive: true });
+    
+    // Start distance handler after grace period
+    setTimeout(() => {
+      if (this.isMiniVisible) {
+        window.addEventListener('mousemove', this.distanceHideHandler, { passive: true });
+      }
+    }, gracePeriodMs);
+  }
+
+  startAutoHideTimer() {
+    // Clear existing auto-hide timer
+    if (this.autoHideTimer) {
+      clearTimeout(this.autoHideTimer);
+      this.autoHideTimer = null;
+    }
+
+    // Only set timer if mini bar is visible
+    if (!this.isMiniVisible) return;
+
+    // Set new auto-hide timer (2 seconds)
+    this.autoHideTimer = setTimeout(() => {
+      // Only hide if user is not actively interacting
+      const active = document.activeElement;
+      if (active && this.miniBar && this.miniBar.contains(active)) {
+        // User is interacting, don't hide - restart timer
+        this.startAutoHideTimer();
+        return;
+      }
+
+      // Check if mouse is hovering over the bar
+      if (this.miniBar) {
+        const rect = this.miniBar.getBoundingClientRect();
+        const mouseX = this.lastMouseX;
+        const mouseY = this.lastMouseY;
+        if (mouseX >= rect.left && mouseX <= rect.right && 
+            mouseY >= rect.top && mouseY <= rect.bottom) {
+          // Mouse is over the bar, don't hide - restart timer
+          this.startAutoHideTimer();
+          return;
+        }
+      }
+
+      // No interaction detected, hide the bar
+      if (this.isMiniVisible) {
+        this.hide();
+      }
+    }, 2000); // 2 seconds
   }
 
   showPanel() {
@@ -489,7 +769,7 @@ class TextSelectionUIManager {
   }
 
   hide() {
-    if (!this.panel && !this.fab) return;
+    if (!this.panel && !this.fab && !this.miniBar) return;
 
     console.log('Text Selection UI: Hiding panel');
 
@@ -497,6 +777,16 @@ class TextSelectionUIManager {
     this.isVisible = false;
     this.isFabVisible = false;
     this.isMiniVisible = false;
+
+    // Clean up recording state listener
+    if (this.recordingStateCheckInterval) {
+      clearInterval(this.recordingStateCheckInterval);
+      this.recordingStateCheckInterval = null;
+    }
+    if (this.recordingStateListener) {
+      document.removeEventListener('recording-state-changed', this.recordingStateListener);
+      this.recordingStateListener = null;
+    }
 
     setTimeout(() => {
       if (this.panel && !this.isVisible) this.panel.style.display = 'none';
@@ -510,6 +800,11 @@ class TextSelectionUIManager {
 
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+    if (this.autoHideTimer) {
+      clearTimeout(this.autoHideTimer);
+      this.autoHideTimer = null;
     }
     if (this.distanceHideHandler) {
       window.removeEventListener('mousemove', this.distanceHideHandler);
@@ -522,6 +817,9 @@ class TextSelectionUIManager {
     
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
+    }
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
     }
   }
 }
