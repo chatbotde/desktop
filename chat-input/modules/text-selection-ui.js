@@ -2,6 +2,8 @@ import { dom } from './dom.js';
 import { appendToInput } from './clipboard-injector.js';
 import { sendMessage } from './messaging.js';
 import { addTextBadge } from './badges.js';
+import { createFloatingCard } from './floating-cards.js';
+import { activateAreaScreenshot } from './area-screenshot-cursor.js';
 
 /**
  * Text Selection UI Manager
@@ -10,17 +12,164 @@ import { addTextBadge } from './badges.js';
 class TextSelectionUIManager {
   constructor() {
     this.panel = null;
+    this.fab = null;
+    this.miniBar = null;
     this.elements = {};
     this.currentText = '';
     this.currentPayload = null;
     this.isVisible = false;
+    this.isFabVisible = false;
+    this.isMiniVisible = false;
     this.resizeHandler = null;
     this.debounceTimer = null;
     this.hideTimer = null;
     this.lastMouseX = window.innerWidth / 2;  // Track last mouse X
     this.lastMouseY = window.innerHeight / 2; // Track last mouse Y
     this.userInput = ''; // Store user's additional input
+    this.showOriginX = this.lastMouseX;
+    this.showOriginY = this.lastMouseY;
+    this.distanceHideHandler = null;
     // REMOVED: lastSignature - we want to show panel every time, even for duplicates
+  }
+
+  createFab() {
+    if (this.fab) return this.fab;
+
+    const fab = document.createElement('button');
+    fab.className = 'text-selection-fab';
+    fab.type = 'button';
+    fab.setAttribute('aria-label', 'Open actions');
+    fab.style.display = 'none';
+    fab.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+      </svg>
+    `;
+
+    fab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!this.currentText) return;
+      this.showPanel();
+    });
+
+    document.body.appendChild(fab);
+    this.fab = fab;
+    return this.fab;
+  }
+
+  createMiniBar() {
+    if (this.miniBar) return this.miniBar;
+
+    const bar = document.createElement('div');
+    bar.className = 'text-selection-mini';
+    bar.style.display = 'none';
+
+    const btn = (cls, label, svg) => {
+      const b = document.createElement('button');
+      b.className = `mini-btn ${cls}`;
+      b.type = 'button';
+      b.setAttribute('aria-label', label);
+      b.innerHTML = svg;
+      return b;
+    };
+
+    const askBtn = btn('mini-ask', 'Ask', `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v20M5 9l7-7 7 7"/>
+      </svg>
+    `);
+    const addBtn = btn('mini-add', 'Add', `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    `);
+    const shotBtn = btn('mini-shot', 'Screenshot area', `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <path d="M8 5l2-2h4l2 2"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    `);
+    const makeBtn = btn('mini-make', 'Make card', `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2"/>
+        <path d="M3 10h18"/>
+      </svg>
+    `);
+    const closeBtn = btn('mini-close', 'Close', `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    `);
+
+    // Inline textarea for extra notes
+    const notes = document.createElement('textarea');
+    notes.className = 'mini-notes';
+    notes.setAttribute('rows', '2');
+    notes.setAttribute('placeholder', 'Add notes…');
+    // Auto-grow height like Google input
+    const autoGrow = (el) => {
+      el.style.height = 'auto';
+      const maxHeight = 96; // clamp ~3 lines
+      el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    };
+    notes.addEventListener('input', (e) => {
+      this.userInput = e.target.value;
+      autoGrow(notes);
+    });
+    // Hide shortly after blur (unless refocused quickly)
+    notes.addEventListener('blur', () => {
+      if (this.hideTimer) clearTimeout(this.hideTimer);
+      this.hideTimer = setTimeout(() => {
+        // If focus returned to mini bar, don't hide
+        const active = document.activeElement;
+        if (this.miniBar && active && this.miniBar.contains(active)) return;
+        this.hide();
+      }, 800); // slight delay after focus loss
+    });
+    notes.addEventListener('focus', () => {
+      if (this.hideTimer) clearTimeout(this.hideTimer);
+    });
+    // Initialize height
+    setTimeout(() => autoGrow(notes), 0);
+
+    askBtn.addEventListener('click', (e) => { e.stopPropagation(); this.handleAsk(); });
+    addBtn.addEventListener('click', (e) => { e.stopPropagation(); this.handleAdd(); });
+    shotBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        await activateAreaScreenshot();
+      } catch (err) {
+        console.error('Failed to start area screenshot', err);
+      }
+      this.hide();
+    });
+    makeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!this.currentText) return;
+      createFloatingCard({ title: 'Selection', content: this.currentText });
+      this.hide();
+    });
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); this.hide(); });
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'mini-row';
+    btnRow.appendChild(askBtn);
+    btnRow.appendChild(addBtn);
+    btnRow.appendChild(shotBtn);
+    btnRow.appendChild(makeBtn);
+    btnRow.appendChild(closeBtn);
+
+    // Place textarea above buttons
+    bar.appendChild(notes);
+    bar.appendChild(btnRow);
+
+    document.body.appendChild(bar);
+    this.miniBar = bar;
+    // Expose for focusing later
+    this.elements.miniNotes = notes;
+    return this.miniBar;
   }
 
   createPanel() {
@@ -180,110 +329,179 @@ class TextSelectionUIManager {
   }
 
   position() {
-    if (!this.panel || !this.isVisible) return;
+    // Position the expanded panel if visible
+    if (this.panel && this.isVisible) {
+      const panelHeight = this.panel.offsetHeight || 140;
+      const panelWidth = this.panel.offsetWidth || 300;
+      const gap = 12;
+      const offset = 20; // Distance from cursor
 
-    const panelHeight = this.panel.offsetHeight || 140;
-    const panelWidth = this.panel.offsetWidth || 300;
-    const gap = 12;
-    const offset = 20; // Distance from cursor
+      let topPos = this.lastMouseY - (panelHeight / 2);
+      let leftPos = this.lastMouseX + offset;
 
-    // Start with cursor position
-    let topPos = this.lastMouseY - (panelHeight / 2); // Center vertically on cursor
-    let leftPos = this.lastMouseX + offset; // Slightly to the right of cursor
+      if (leftPos + panelWidth > window.innerWidth - gap) {
+        leftPos = this.lastMouseX - panelWidth - offset;
+      }
+      if (leftPos + panelWidth > window.innerWidth - gap) {
+        leftPos = window.innerWidth - panelWidth - gap;
+      }
+      if (leftPos < gap) {
+        leftPos = gap;
+      }
+      if (topPos + panelHeight > window.innerHeight - gap) {
+        topPos = this.lastMouseY - panelHeight - offset;
+      }
+      if (topPos < gap) {
+        topPos = this.lastMouseY + offset;
+      }
+      if (topPos + panelHeight > window.innerHeight - gap) {
+        topPos = window.innerHeight - panelHeight - gap;
+      }
 
-    // ===== Horizontal Boundary Checking =====
-    // If panel goes off right edge, position it to the left of cursor
-    if (leftPos + panelWidth > window.innerWidth - gap) {
-      leftPos = this.lastMouseX - panelWidth - offset;
+      this.panel.style.position = 'fixed';
+      this.panel.style.top = `${topPos}px`;
+      this.panel.style.left = `${leftPos}px`;
+      this.panel.style.width = 'auto';
+      this.panel.style.maxWidth = '350px';
+      this.panel.style.zIndex = '50000';
     }
 
-    // If panel still goes off right edge (cursor near right), center it
-    if (leftPos + panelWidth > window.innerWidth - gap) {
-      leftPos = window.innerWidth - panelWidth - gap;
+    // Position the compact FAB if visible
+    if (this.fab && this.isFabVisible) {
+      const gap = 8;
+      const size = 32;
+      let topPos = this.lastMouseY - size - 6;
+      let leftPos = this.lastMouseX + 10;
+
+      if (leftPos + size > window.innerWidth - gap) {
+        leftPos = this.lastMouseX - size - 10;
+      }
+      if (leftPos < gap) {
+        leftPos = gap;
+      }
+      if (topPos < gap) {
+        topPos = this.lastMouseY + 10;
+      }
+      if (topPos + size > window.innerHeight - gap) {
+        topPos = window.innerHeight - size - gap;
+      }
+
+      this.fab.style.position = 'fixed';
+      this.fab.style.top = `${topPos}px`;
+      this.fab.style.left = `${leftPos}px`;
+      this.fab.style.zIndex = '50001';
+      this.fab.style.display = 'inline-flex';
     }
 
-    // Keep minimum distance from left edge
-    if (leftPos < gap) {
-      leftPos = gap;
-    }
+    // Position mini toolbar near cursor/selection
+    if (this.miniBar && this.isMiniVisible) {
+      const gap = 8;
+      const barWidth = this.miniBar.offsetWidth || 148;
+      const barHeight = this.miniBar.offsetHeight || 32;
 
-    // ===== Vertical Boundary Checking =====
-    // If panel goes off bottom, position above cursor
-    if (topPos + panelHeight > window.innerHeight - gap) {
-      topPos = this.lastMouseY - panelHeight - offset;
-    }
+      let topPos = this.lastMouseY - barHeight - 8;
+      let leftPos = this.lastMouseX - barWidth / 2;
 
-    // If panel goes off top, position below cursor
-    if (topPos < gap) {
-      topPos = this.lastMouseY + offset;
-    }
+      if (leftPos + barWidth > window.innerWidth - gap) leftPos = window.innerWidth - barWidth - gap;
+      if (leftPos < gap) leftPos = gap;
+      if (topPos < gap) topPos = this.lastMouseY + 12;
+      if (topPos + barHeight > window.innerHeight - gap) topPos = window.innerHeight - barHeight - gap;
 
-    // Final boundary check for bottom
-    if (topPos + panelHeight > window.innerHeight - gap) {
-      topPos = window.innerHeight - panelHeight - gap;
+      this.miniBar.style.position = 'fixed';
+      this.miniBar.style.top = `${topPos}px`;
+      this.miniBar.style.left = `${leftPos}px`;
+      this.miniBar.style.zIndex = '50001';
+      this.miniBar.style.display = 'flex';
     }
-
-    // Apply positioning
-    this.panel.style.position = 'fixed';
-    this.panel.style.top = `${topPos}px`;
-    this.panel.style.left = `${leftPos}px`;
-    this.panel.style.width = 'auto';
-    this.panel.style.maxWidth = '350px';
-    this.panel.style.zIndex = '50000';
   }
 
   show(text, payload = null) {
-    console.log('Text Selection UI: Showing panel with text length', text?.length || 0);
+    console.log('Text Selection UI: Showing selection controls with text length', text?.length || 0);
 
+    this.createFab();
+    this.createMiniBar();
     this.createPanel();
     this.currentText = text;
     this.currentPayload = payload;
 
-    // Truncate preview text if too long
     const truncatedText = text ? String(text).slice(0, 150) : 'Text selected';
     this.elements.previewText.textContent = truncatedText;
 
-    // Clear textarea for new selection
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
       this.userInput = '';
     }
 
-    // Show panel with animation
-    this.panel.style.display = 'flex';
-    this.isVisible = true;
+    // Show minimalist mini toolbar by default
+    this.isMiniVisible = true;
+    this.miniBar.style.display = 'flex';
+    this.isFabVisible = false;
+    if (this.fab) this.fab.style.display = 'none';
+    this.isVisible = false;
+    this.panel.style.display = 'none';
+    this.panel.classList.remove('visible');
     this.position();
+    // Focus notes like Google input when appearing
+    if (this.elements.miniNotes) {
+      this.elements.miniNotes.focus();
+      // Move caret to end
+      const val = this.elements.miniNotes.value;
+      this.elements.miniNotes.value = '';
+      this.elements.miniNotes.value = val;
+    }
 
-    // Trigger entrance animation
-    setTimeout(() => {
-      this.panel.classList.add('visible');
-    }, 10);
-
-    // Add resize listener
     window.addEventListener('resize', this.resizeHandler, { passive: true });
 
-    // Auto-hide timer (longer duration due to textarea)
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
-    this.hideTimer = setTimeout(() => {
-      this.hide();
-    }, 15000); // Increased to 15 seconds to allow time for typing
+    // Distance-based hide instead of timer
+    this.showOriginX = this.lastMouseX;
+    this.showOriginY = this.lastMouseY;
+    const thresholdPx = 220;
+    this.distanceHideHandler = () => {
+      if (!this.isMiniVisible) return;
+      const active = document.activeElement;
+      if (active && this.miniBar && this.miniBar.contains(active) && active.classList.contains('mini-notes')) {
+        return; // don't hide while typing in notes
+      }
+      const dx = this.lastMouseX - this.showOriginX;
+      const dy = this.lastMouseY - this.showOriginY;
+      if (Math.hypot(dx, dy) > thresholdPx) {
+        this.hide();
+      }
+    };
+    window.addEventListener('mousemove', this.distanceHideHandler, { passive: true });
+  }
+
+  showPanel() {
+    if (!this.panel) this.createPanel();
+    if (this.fab) this.fab.style.display = 'none';
+    if (this.miniBar) this.miniBar.style.display = 'none';
+    this.isFabVisible = false;
+    this.isMiniVisible = false;
+    this.panel.style.display = 'flex';
+    this.isVisible = true;
+    this.position();
+    setTimeout(() => {
+      this.panel.classList.add('visible');
+    }, 10);
   }
 
   hide() {
-    if (!this.panel) return;
+    if (!this.panel && !this.fab) return;
 
     console.log('Text Selection UI: Hiding panel');
 
-    this.panel.classList.remove('visible');
+    if (this.panel) this.panel.classList.remove('visible');
     this.isVisible = false;
+    this.isFabVisible = false;
+    this.isMiniVisible = false;
 
-    // Wait for animation to complete before hiding
     setTimeout(() => {
-      if (this.panel && !this.isVisible) {
-        this.panel.style.display = 'none';
-      }
+      if (this.panel && !this.isVisible) this.panel.style.display = 'none';
+      if (this.fab) this.fab.style.display = 'none';
+      if (this.miniBar) this.miniBar.style.display = 'none';
     }, 300);
 
     if (this.resizeHandler) {
@@ -293,13 +511,15 @@ class TextSelectionUIManager {
     if (this.hideTimer) {
       clearTimeout(this.hideTimer);
     }
+    if (this.distanceHideHandler) {
+      window.removeEventListener('mousemove', this.distanceHideHandler);
+      this.distanceHideHandler = null;
+    }
 
-    // Reset state
     this.currentText = '';
     this.currentPayload = null;
     this.userInput = '';
     
-    // Clear textarea
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
     }

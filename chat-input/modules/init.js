@@ -335,16 +335,7 @@ export async function boot() {
         window.chatInputAPI.onClearInput(() => { dom.messageInput.value = ''; autoResize(); resetSendingState(); dom.messageInput.focus(); });
         window.chatInputAPI.onFocusInput(() => { dom.messageInput.focus(); });
         
-        // Listen for show chat input UI event (triggered when launch window is clicked)
-        if (window.chatInputAPI.onShowChatInputUI) {
-            window.chatInputAPI.onShowChatInputUI(() => {
-                console.log('Show chat input UI event received from launch window');
-                if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
-                    console.log('Chat input is hidden, showing it now');
-                    showChatInput();
-                }
-            });
-        }
+        // Removed onShowChatInputUI handler - chat input should only appear via persistent toggle (right side transparent element)
     }
     
     // Helper function to show chat input (centralized logic)
@@ -370,26 +361,8 @@ export async function boot() {
     // Expose globally for easy access
     window.showChatInput = showChatInput;
     
-    // Show chat input when clicking anywhere on the window (if it's hidden)
-    document.body.addEventListener('click', (e) => {
-        console.log('Body clicked, checking if chat input is hidden');
-        console.log('Chat input display:', dom.chatInputContainer?.style.display);
-        
-        // Check if chat input is hidden
-        if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
-            console.log('Chat input is hidden, showing it now');
-            showChatInput();
-        }
-    });
-    
-    // Also listen for window focus to show chat input (when launch window is clicked)
-    window.addEventListener('focus', () => {
-        console.log('Window focused');
-        if (dom.chatInputContainer && (dom.chatInputContainer.style.display === 'none' || sessionStorage.getItem('chatInputHidden') === 'true')) {
-            console.log('Chat input is hidden on focus, showing it');
-            showChatInput();
-        }
-    });
+    // Chat input should only appear when clicking the persistent toggle (right side transparent element)
+    // Removed body click and window focus handlers - only persistent toggle can show/hide chat input
     
     // Periodic check to ensure chat input is always restorable (runs every 5 seconds)
     // This is a safety net in case events fail
