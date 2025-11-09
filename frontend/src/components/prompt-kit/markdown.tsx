@@ -432,7 +432,7 @@ export function Markdown({ children, className }: MarkdownProps) {
           processedRest = processedRest.replace(/__(.*?)__/g, '<strong>$1</strong>')
           processedRest = processedRest.replace(/\*(.*?)\*/g, '<em>$1</em>')
           processedRest = processedRest.replace(/_(.*?)_/g, '<em>$1</em>')
-          processedRest = processedRest.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+          processedRest = processedRest.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-200 font-medium text-sm no-underline backdrop-blur-sm" target="_blank" rel="noopener noreferrer">$1</a>')
           nodes.push(
             <span
               key={`text-${index}-rest`}
@@ -454,8 +454,8 @@ export function Markdown({ children, className }: MarkdownProps) {
       processed = processed.replace(/\*(.*?)\*/g, '<em>$1</em>')
       processed = processed.replace(/_(.*?)_/g, '<em>$1</em>')
 
-      // Links [text](url)
-      processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      // Links [text](url) - Modern button-like styling
+      processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-200 font-medium text-sm no-underline backdrop-blur-sm" target="_blank" rel="noopener noreferrer">$1</a>')
 
       return (
         <span

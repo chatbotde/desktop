@@ -3,6 +3,7 @@ import { geminiService, isGeminiConfigured } from './gemini';
 import { openaiService, isOpenAIConfigured } from './openai';
 import { anthropicService, isAnthropicConfigured } from './anthropic';
 import { openRouterService, isOpenRouterConfigured } from './openrouter';
+import { cerebrasService, isCerebrasConfigured } from './cerebras';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 
@@ -52,6 +53,12 @@ export class UnifiedAIService {
         }
         return openRouterService.sendMessageWithMedia(message, attachments);
 
+      case 'cerebras':
+        if (!isCerebrasConfigured()) {
+          throw new Error('Cerebras API key not configured. Please add VITE_CEREBRAS_API_KEY to your .env file.');
+        }
+        return cerebrasService.sendMessageWithMedia(message, attachments);
+
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
     }
@@ -91,6 +98,9 @@ export class UnifiedAIService {
       case 'openrouter':
         openRouterService.clearHistory();
         break;
+      case 'cerebras':
+        cerebrasService.clearHistory();
+        break;
     }
   }
 
@@ -115,6 +125,9 @@ export class UnifiedAIService {
         break;
       case 'openrouter':
         openRouterService.addSystemContext(context);
+        break;
+      case 'cerebras':
+        cerebrasService.addSystemContext(context);
         break;
     }
   }
@@ -153,6 +166,8 @@ export class UnifiedAIService {
         return isAnthropicConfigured();
       case 'openrouter':
         return isOpenRouterConfigured();
+      case 'cerebras':
+        return isCerebrasConfigured();
       default:
         return false;
     }
@@ -202,6 +217,7 @@ export class UnifiedAIService {
     openaiService.addSystemContext(promptText);
     anthropicService.addSystemContext(promptText);
     openRouterService.addSystemContext(promptText);
+    cerebrasService.addSystemContext(promptText);
 
     console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
   }
@@ -229,6 +245,7 @@ export class UnifiedAIService {
     openaiService.addSystemContext(prompt);
     anthropicService.addSystemContext(prompt);
     openRouterService.addSystemContext(prompt);
+    cerebrasService.addSystemContext(prompt);
 
     console.log(`✅ Custom system prompt applied: ${name}`);
   }

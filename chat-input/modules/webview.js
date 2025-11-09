@@ -85,18 +85,75 @@ function initializeWebViewUI() {
     urlInput.className = 'webview-url-input';
     urlInput.style.cssText = `
         flex: 1;
-        padding: 6px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.08);
+        padding: 8px 14px;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        border-radius: 8px;
+        background: rgba(30, 41, 59, 0.95);
         color: white;
-        font-size: 12px;
+        font-size: 13px;
         outline: none;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
     `;
+    // Helper function to normalize URLs - automatically add https:// if missing
+    const normalizeUrl = (input) => {
+        if (!input || !input.trim()) return input;
+        
+        const trimmed = input.trim();
+        
+        // If it already has a protocol, return as is
+        if (/^https?:\/\//i.test(trimmed)) {
+            return trimmed;
+        }
+        
+        // If it starts with //, add https:
+        if (trimmed.startsWith('//')) {
+            return 'https:' + trimmed;
+        }
+        
+        // For localhost or IP addresses, add https://
+        if (/^(localhost|(\d{1,3}\.){3}\d{1,3})/i.test(trimmed)) {
+            return 'https://' + trimmed;
+        }
+        
+        // For domain-like strings (contains at least one dot or is a known TLD pattern)
+        // Add https:// prefix
+        if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed) || 
+            /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z0-9.-]+/.test(trimmed)) {
+            return 'https://' + trimmed;
+        }
+        
+        // For simple domain names without TLD (like "google"), add https://www. prefix
+        if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*$/.test(trimmed)) {
+            return 'https://www.' + trimmed + '.com';
+        }
+        
+        // Default: add https://
+        return 'https://' + trimmed;
+    };
+
+    urlInput.addEventListener('focus', () => {
+        urlInput.style.borderColor = 'rgba(59, 130, 246, 0.7)';
+        urlInput.style.background = 'rgba(30, 41, 59, 1)';
+        urlInput.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+    });
+
+    urlInput.addEventListener('blur', () => {
+        // Normalize URL on blur to show the corrected URL
+        if (urlInput.value && !urlInput.value.startsWith('http://') && !urlInput.value.startsWith('https://')) {
+            const normalizedUrl = normalizeUrl(urlInput.value);
+            urlInput.value = normalizedUrl;
+        }
+        urlInput.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+        urlInput.style.background = 'rgba(30, 41, 59, 0.95)';
+        urlInput.style.boxShadow = 'none';
+    });
 
     urlInput.addEventListener('keydown', async (e) => {
         if (e.key === 'Enter' && activeWebViewId) {
-            await navigateWebView(urlInput.value);
+            const normalizedUrl = normalizeUrl(urlInput.value);
+            urlInput.value = normalizedUrl; // Update input to show normalized URL
+            await navigateWebView(normalizedUrl);
         }
     });
 
@@ -163,25 +220,30 @@ function createHeaderButton(text, title) {
     btn.textContent = text;
     btn.title = title;
     btn.style.cssText = `
-        width: 24px;
-        height: 24px;
-        border: none;
-        background: rgba(255, 255, 255, 0.1);
+        width: 28px;
+        height: 28px;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        background: rgba(30, 41, 59, 0.95);
         color: white;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
         font-size: 16px;
         line-height: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background 0.2s;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
     `;
     btn.addEventListener('mouseenter', () => {
-        btn.style.background = 'rgba(255, 255, 255, 0.2)';
+        btn.style.background = 'rgba(59, 130, 246, 0.3)';
+        btn.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+        btn.style.transform = 'scale(1.05)';
     });
     btn.addEventListener('mouseleave', () => {
-        btn.style.background = 'rgba(255, 255, 255, 0.1)';
+        btn.style.background = 'rgba(30, 41, 59, 0.95)';
+        btn.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+        btn.style.transform = 'scale(1)';
     });
     return btn;
 }
@@ -512,6 +574,45 @@ export async function destroyWebView() {
 }
 
 /**
+ * Normalize URL - automatically add https:// if missing
+ */
+function normalizeUrl(input) {
+    if (!input || !input.trim()) return input;
+    
+    const trimmed = input.trim();
+    
+    // If it already has a protocol, return as is
+    if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+    
+    // If it starts with //, add https:
+    if (trimmed.startsWith('//')) {
+        return 'https:' + trimmed;
+    }
+    
+    // For localhost or IP addresses, add https://
+    if (/^(localhost|(\d{1,3}\.){3}\d{1,3})/i.test(trimmed)) {
+        return 'https://' + trimmed;
+    }
+    
+    // For domain-like strings (contains at least one dot or is a known TLD pattern)
+    // Add https:// prefix
+    if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed) || 
+        /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z0-9.-]+/.test(trimmed)) {
+        return 'https://' + trimmed;
+    }
+    
+    // For simple domain names without TLD (like "google"), add https://www. prefix
+    if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*$/.test(trimmed)) {
+        return 'https://www.' + trimmed + '.com';
+    }
+    
+    // Default: add https://
+    return 'https://' + trimmed;
+}
+
+/**
  * Navigate web view to URL
  */
 export async function navigateWebView(url) {
@@ -520,11 +621,14 @@ export async function navigateWebView(url) {
         return;
     }
 
+    // Normalize URL before navigating
+    const normalizedUrl = normalizeUrl(url);
+
     try {
-        const result = await window.webView.navigate(activeWebViewId, url);
+        const result = await window.webView.navigate(activeWebViewId, normalizedUrl);
         
         if (result.success) {
-            console.log('[WebView] Navigated to:', url);
+            console.log('[WebView] Navigated to:', normalizedUrl);
         } else {
             console.error('[WebView] Failed to navigate:', result.error);
         }

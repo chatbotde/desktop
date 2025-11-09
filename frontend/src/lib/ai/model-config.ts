@@ -28,6 +28,8 @@ export interface AIModel {
   capabilities: string[];
   contextWindow: number;
   isAvailable: boolean;
+  temperature?: number; // Default temperature for the model (0.0 to 2.0)
+  isReasoning?: boolean; // Whether this is a reasoning model
 }
 
 // Define available models
@@ -50,6 +52,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling', 'code-generation'],
     contextWindow: 1000000,
     isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
   {
     id: 'gemini-2.0-flash-exp',
@@ -67,6 +71,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling', 'code-generation'],
     contextWindow: 1000000,
     isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
   {
     id: 'gemini-1.5-flash',
@@ -84,6 +90,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling'],
     contextWindow: 1000000,
     isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
   {
     id: 'gemini-1.5-pro',
@@ -101,6 +109,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling', 'advanced-reasoning'],
     contextWindow: 2000000,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'models/gemini-2.5-flash-image',
@@ -118,6 +128,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images'],
     contextWindow: 32000,
     isAvailable: true,
+    temperature: 0.8,
+    isReasoning: false,
   },
   {
     id: 'models/gemini-flash-latest',
@@ -135,6 +147,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images'],
     contextWindow: 32000,
     isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
   {
     id : 'models/gemini-flash-lite-latest',
@@ -169,6 +183,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling', 'code-generation'],
     contextWindow: 1000000,
     isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
   // OpenAI Models
   {
@@ -187,6 +203,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'gpt-5-2025-08-07',
@@ -204,6 +222,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.8,
+    isReasoning: false,
   },
   {
     id: 'gpt-5-mini-2025-08-07',
@@ -221,6 +241,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.8,
+    isReasoning: false,
   },
   {
     id: 'gpt-5-nano-2025-08-07',
@@ -238,6 +260,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.8,
+    isReasoning: false,
   },
   {
     id: 'gpt-4-turbo',
@@ -255,6 +279,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.7,
+    isReasoning: true,
   },
   // Anthropic Models
   {
@@ -273,6 +299,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'advanced-reasoning', 'code-generation'],
     contextWindow: 200000,
     isAvailable: true, // Now implemented!
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'claude-sonnet-4-5-20250929',
@@ -290,6 +318,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true, // Now implemented!
+    temperature: 0.8,
+    isReasoning: false,
   },
   {
 
@@ -343,6 +373,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'advanced-reasoning', 'code-generation'],
     contextWindow: 200000,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'openrouter/openai/gpt-4o',
@@ -360,6 +392,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'function-calling', 'advanced-reasoning'],
     contextWindow: 128000,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'openrouter/google/gemini-pro-1.5',
@@ -377,6 +411,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'images', 'audio', 'video', 'function-calling', 'advanced-reasoning'],
     contextWindow: 2000000,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'openrouter/meta-llama/llama-3.1-405b-instruct',
@@ -394,6 +430,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'advanced-reasoning', 'code-generation'],
     contextWindow: 131072,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'openrouter/meta-llama/llama-3.1-70b-instruct',
@@ -411,6 +449,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'advanced-reasoning', 'code-generation'],
     contextWindow: 131072,
     isAvailable: true,
+    temperature: 0.7,
+    isReasoning: true,
   },
   {
     id: 'openrouter/mistralai/mistral-7b-instruct',
@@ -428,6 +468,8 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'code-generation'],
     contextWindow: 32768,
     isAvailable: true,
+    temperature: 0.4,
+    isReasoning: false,
   },
   {
     id: 'openrouter/teknium/openhermes-2.5-mistral-7b',
@@ -445,6 +487,28 @@ export const AVAILABLE_MODELS: AIModel[] = [
     capabilities: ['text', 'code-generation'],
     contextWindow: 32768,
     isAvailable: true,
+    temperature: 0.4,
+    isReasoning: false,
+  },
+  // Cerebras Models
+  {
+    id: 'cerebras/zai-glm-4.6',
+    name: 'zai-glm-4.6',
+    displayName: 'Zai GLM 4.6 (Cerebras)',
+    provider: 'cerebras',
+    description: 'Cerebras Zai GLM 4.6 model',
+    category: 'text',
+    maxTokens: 40960,
+    inputCost: 0.20,
+    outputCost: 0.20,
+    supportsImages: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'code-generation'],
+    contextWindow: 131072,
+    isAvailable: true,
+    temperature: 0.6,
+    isReasoning: false,
   },
 ];
 

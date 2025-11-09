@@ -2,7 +2,7 @@
  * Main entry point for the AI module
  * 
  * Multi-provider AI integration with automatic routing.
- * Supports: Google Gemini, OpenAI, Anthropic Claude, and OpenRouter.
+ * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, and Cerebras.
  * 
  * Quick Start:
  * ```typescript
@@ -77,6 +77,16 @@ export {
   isOpenRouterConfigured,
   getOpenRouterConfigStatus,
 } from './openrouter';
+
+// Export Cerebras service and utilities
+export {
+  CerebrasChatService,
+  cerebrasService,
+  sendToCerebras,
+  sendMediaToCerebras,
+  isCerebrasConfigured,
+  getCerebrasConfigStatus,
+} from './cerebras';
 
 // Export model configuration
 export {

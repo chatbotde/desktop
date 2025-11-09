@@ -52,7 +52,7 @@ export function initializeFloatingCards() {
         title: '', 
         centered: true, 
         visible: true,
-        width: 400,
+        width: 600,
         height: 400
     });
 

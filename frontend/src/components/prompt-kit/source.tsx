@@ -62,8 +62,8 @@ export function SourceTrigger({
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          "bg-muted text-muted-foreground hover:bg-muted-foreground/30 hover:text-primary inline-flex h-5 max-w-32 items-center gap-1 overflow-hidden rounded-full py-0 text-xs leading-none no-underline transition-colors duration-150",
-          showFavicon ? "pr-2 pl-1" : "px-1",
+          "bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-400/30 hover:border-blue-400/50 inline-flex h-6 max-w-32 items-center gap-1.5 overflow-hidden rounded-md px-2.5 py-1 text-xs leading-none no-underline transition-all duration-200 font-medium backdrop-blur-sm",
+          showFavicon ? "pr-2.5 pl-1.5" : "px-2.5",
           className
         )}
       >
