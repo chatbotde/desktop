@@ -65,6 +65,11 @@ class TextSelectionUIManager {
       this.miniBar.style.display = 'none';
       this.miniBar.style.opacity = '1';
       this.miniBar.style.transform = 'scale(1)';
+      // Clear input value if reusing existing element
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = '';
+      }
+      this.userInput = '';
       return this.miniBar;
     }
 
@@ -125,6 +130,10 @@ class TextSelectionUIManager {
     });
     input.addEventListener('focus', () => {
       if (this.hideTimer) clearTimeout(this.hideTimer);
+      // Clear input if it has stale value (safeguard)
+      if (input.value && !this.userInput) {
+        input.value = '';
+      }
       // Reset auto-hide timer when user focuses input
       this.startAutoHideTimer();
     });
@@ -226,7 +235,14 @@ class TextSelectionUIManager {
   }
 
   createPanel() {
-    if (this.panel) return this.panel;
+    if (this.panel) {
+      // Clear textarea value if reusing existing element
+      if (this.elements.textarea) {
+        this.elements.textarea.value = '';
+      }
+      this.userInput = '';
+      return this.panel;
+    }
 
     // Create main panel container
     this.panel = document.createElement('div');
@@ -369,14 +385,45 @@ class TextSelectionUIManager {
 
     console.log('Text Selection UI: Asking AI about selected text with user input');
 
+    // Get the current user input directly from DOM elements (most up-to-date)
+    let userInputText = '';
+    if (this.elements.searchInput) {
+      userInputText = this.elements.searchInput.value || '';
+    } else if (this.elements.textarea) {
+      userInputText = this.elements.textarea.value || '';
+    } else if (this.userInput) {
+      userInputText = this.userInput;
+    }
+
     // Combine selected text with user input
     let combinedText = this.currentText;
-    if (this.userInput && this.userInput.trim().length > 0) {
-      combinedText = `${this.currentText}\n\n---\n ${this.userInput.trim()}`;
+    if (userInputText && userInputText.trim().length > 0) {
+      combinedText = `${this.currentText}\n\n---\n ${userInputText.trim()}`;
     }
 
     // Add the combined text to input
     appendToInput(combinedText);
+
+    // Clear the textarea immediately after reading the value
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
+      this.elements.searchInput.blur(); // Remove focus to ensure value is cleared
+    }
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+      this.elements.textarea.blur(); // Remove focus to ensure value is cleared
+    }
+    this.userInput = '';
+
+    // Force a re-render by setting value again (ensures DOM is updated)
+    requestAnimationFrame(() => {
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = '';
+      }
+      if (this.elements.textarea) {
+        this.elements.textarea.value = '';
+      }
+    });
 
     // Focus the input
     dom.messageInput?.focus();
@@ -384,16 +431,15 @@ class TextSelectionUIManager {
     // Automatically send the message after a short delay
     setTimeout(() => {
       sendMessage();
-    }, 100);
-
-    // Clear the input field before hiding
-    if (this.elements.searchInput) {
-      this.elements.searchInput.value = '';
+      // Clear again after sending as a safeguard
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = '';
+      }
+      if (this.elements.textarea) {
+        this.elements.textarea.value = '';
+      }
       this.userInput = '';
-    }
-    if (this.elements.textarea) {
-      this.elements.textarea.value = '';
-    }
+    }, 100);
 
     // Hide the panel
     this.hide();
@@ -601,6 +647,9 @@ class TextSelectionUIManager {
   show(text, payload = null) {
     console.log('Text Selection UI: Showing selection controls with text length', text?.length || 0);
 
+    // Clear user input state first
+    this.userInput = '';
+
     // Reset any state that might prevent showing the same text again
     // Force show even if it's the same text as before
     this.createFab();
@@ -615,14 +664,15 @@ class TextSelectionUIManager {
       this.elements.previewText.textContent = truncatedText;
     }
 
+    // Clear textarea values immediately - do this after elements are created
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
-      this.userInput = '';
     }
     if (this.elements.searchInput) {
       this.elements.searchInput.value = '';
-      this.userInput = '';
     }
+    // Ensure state is cleared
+    this.userInput = '';
 
     // Show minimalist mini toolbar (Google search bar) by default
     this.isMiniVisible = true;
@@ -664,6 +714,14 @@ class TextSelectionUIManager {
     // Position accurately after a micro-delay to get actual dimensions
     requestAnimationFrame(() => {
       this.position();
+      // Clear textarea again after positioning to ensure it's empty
+      if (this.elements.textarea) {
+        this.elements.textarea.value = '';
+      }
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = '';
+      }
+      this.userInput = '';
       // Focus input immediately after positioning
       if (this.elements.searchInput) {
         this.elements.searchInput.focus();
@@ -804,6 +862,15 @@ class TextSelectionUIManager {
 
     console.log('Text Selection UI: Hiding panel');
 
+    // Clear textarea values immediately when hiding
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+    }
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
+    }
+    this.userInput = '';
+
     if (this.panel) this.panel.classList.remove('visible');
     this.isVisible = false;
     this.isFabVisible = false;
@@ -834,14 +901,6 @@ class TextSelectionUIManager {
 
     this.currentText = '';
     this.currentPayload = null;
-    this.userInput = '';
-    
-    if (this.elements.textarea) {
-      this.elements.textarea.value = '';
-    }
-    if (this.elements.searchInput) {
-      this.elements.searchInput.value = '';
-    }
   }
 }
 
