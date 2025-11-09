@@ -464,7 +464,9 @@
 
 .content-card {
     position: fixed;
-    width: 420px;
+    top: 10%;
+    left: 50%;
+    width: 300px;
     height: 500px;
     background: var(--bg-popover);
     border: 1px solid var(--border);
@@ -476,7 +478,8 @@
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0;
-    transform: translateY(10px) scale(0.95);
+    /* Center in viewport using translate */
+    transform: translate(-50%, -50%) scale(0.95);
     pointer-events: none;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -648,6 +651,35 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Action item active state for toggles */
+.action-item.active {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #22c55e;
+}
+
+.action-item.active:hover {
+    background: rgba(34, 197, 94, 0.25);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.action-item.active svg {
+    color: #22c55e;
+}
+
+/* Specific styling for protection button in content card */
+.action-item[data-action="protection"].active {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+}
+
+.action-item[data-action="protection"].active:hover {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
 }
 
 /* Responsive adjustments */

@@ -7,11 +7,39 @@ export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [showChat, setShowChat] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
   const messageCounterRef = useRef(0)
   const processedMessageIds = useRef(new Set<string>())
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const messageQueueRef = useRef<any[]>([])
+  const isProcessingRef = useRef(false)
 
-  const handleChatMessage = useCallback(async (messageData: any) => {
-    console.log('Main Window: Received message from chat input window:', messageData);
+  // Helper function to determine media type from MIME type
+  const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'audio' => {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    return 'image'; // fallback
+  };
+
+  // Process messages from queue sequentially
+  const processMessageQueue = useCallback(async () => {
+    // If already processing or queue is empty, return
+    if (isProcessingRef.current || messageQueueRef.current.length === 0) {
+      return
+    }
+
+    // Mark as processing
+    isProcessingRef.current = true
+
+    // Get the next message from queue
+    const messageData = messageQueueRef.current.shift()
+    if (!messageData) {
+      isProcessingRef.current = false
+      return
+    }
+
+    console.log('Main Window: Processing queued message:', messageData);
     
     // Sync the selected model from chat-input window to main window
     if (messageData.selectedModel) {
@@ -25,7 +53,10 @@ export function useChatManager() {
     // Prevent duplicate messages by checking if message with same ID already exists
     if (processedMessageIds.current.has(messageId)) {
       console.log('Main Window: Duplicate message detected, ignoring:', messageId);
-      return;
+      // Continue processing next message
+      isProcessingRef.current = false
+      processMessageQueue()
+      return
     }
     
     // Mark this message ID as processed
@@ -61,10 +92,14 @@ export function useChatManager() {
     setIsTyping(true)
 
     try {
+      // Create a new AbortController for this request
+      abortControllerRef.current = new AbortController();
+      
       // Send message with media to the selected AI provider (automatically routed)
       const responseStream = await sendMessage(messageData.content || '', mediaAttachments);
       
       setIsTyping(false);
+      setIsStreaming(true);
       
       // Create assistant message with empty content initially
       const assistantMessageId = `assistant_${Date.now()}_${++messageCounterRef.current}`;
@@ -80,20 +115,40 @@ export function useChatManager() {
       
       // Stream the response content
       let fullResponse = '';
-      for await (const chunk of responseStream) {
-        fullResponse += chunk;
-        
-        // Update the assistant message with accumulated content
-        setMessages(prev => prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: fullResponse }
-            : msg
-        ));
+      try {
+        for await (const chunk of responseStream) {
+          // Check if streaming was aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            console.log('Streaming aborted by user');
+            break;
+          }
+          
+          fullResponse += chunk;
+          
+          // Update the assistant message with accumulated content
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: fullResponse }
+              : msg
+          ));
+        }
+      } catch (streamError) {
+        if (abortControllerRef.current?.signal.aborted) {
+          console.log('Stream interrupted by abort');
+        } else {
+          throw streamError;
+        }
+      } finally {
+        setIsStreaming(false);
+        setIsTyping(false);
+        abortControllerRef.current = null;
       }
       
     } catch (error) {
       console.error('Error getting response from AI provider:', error);
       setIsTyping(false);
+      setIsStreaming(false);
+      abortControllerRef.current = null;
       
       // Add error message
       const errorMessage: ChatMessage = {
@@ -104,16 +159,28 @@ export function useChatManager() {
       };
       
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      // Mark processing as complete and process next message in queue
+      isProcessingRef.current = false
+      // Process next message if any
+      if (messageQueueRef.current.length > 0) {
+        processMessageQueue()
+      }
     }
   }, [])
 
-  // Helper function to determine media type from MIME type
-  const getMediaTypeFromMime = (mimeType: string): 'image' | 'video' | 'audio' => {
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
-    return 'image'; // fallback
-  };
+  const handleChatMessage = useCallback(async (messageData: any) => {
+    console.log('Main Window: Received message from chat input window:', messageData);
+    
+    // Add message to queue
+    messageQueueRef.current.push(messageData)
+    console.log('Main Window: Message queued. Queue length:', messageQueueRef.current.length);
+    
+    // If not currently processing, start processing the queue
+    if (!isProcessingRef.current) {
+      processMessageQueue()
+    }
+  }, [processMessageQueue])
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -145,12 +212,35 @@ export function useChatManager() {
     }
   }
 
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      console.log('Stopping stream...');
+      abortControllerRef.current.abort();
+      setIsStreaming(false);
+      setIsTyping(false);
+      // After stopping, process next message in queue if any
+      // The finally block in processMessageQueue will handle this, but we can also trigger it here
+      setTimeout(() => {
+        if (messageQueueRef.current.length > 0 && !isProcessingRef.current) {
+          processMessageQueue()
+        }
+      }, 100)
+    }
+  }, [processMessageQueue])
+
   const clearChat = () => {
     setMessages([])
     setShowChat(false)
     setIsTyping(false)
+    setIsStreaming(false)
     processedMessageIds.current.clear()
     messageCounterRef.current = 0
+    messageQueueRef.current = []
+    isProcessingRef.current = false
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
   }
 
   const handleModelChange = () => {
@@ -163,9 +253,11 @@ export function useChatManager() {
     messages,
     showChat,
     isTyping,
+    isStreaming,
     handleChatMessage,
     copyToClipboard,
     clearChat,
-    handleModelChange
+    handleModelChange,
+    stopStreaming
   }
 }

@@ -49,10 +49,10 @@ export function initializeFloatingCards() {
     
     // Spawn the primary card on init (centered, medium size, visible)
     primaryCard = createFloatingCard({ 
-        title: 'Display Card', 
+        title: '', 
         centered: true, 
         visible: true,
-        width: 600,
+        width: 400,
         height: 400
     });
 

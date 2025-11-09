@@ -70,14 +70,12 @@ function App() {
               <Messages
                 messages={chatManager.messages}
                 isTyping={chatManager.isTyping}
+                isStreaming={chatManager.isStreaming}
                 onCopyMessage={chatManager.copyToClipboard}
+                onStopStreaming={chatManager.stopStreaming}
                 messagesContainerRef={scrollManager.messagesContainerRef}
                 messagesEndRef={scrollManager.messagesEndRef}
                 onScroll={scrollManager.handleScroll}
-                scrollToBottom={scrollManager.scrollToBottom}
-                scrollToTop={scrollManager.scrollToTop}
-                showScrollToTop={scrollManager.showScrollToTop}
-                isNearBottom={scrollManager.isNearBottom}
               />
             </div>
           )}

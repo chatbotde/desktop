@@ -76,10 +76,38 @@ export function showContentCard() {
     isContentCardVisible = true;
     contentCard.style.display = 'block';
     
+    // Sync toggle button states when showing the card
+    syncToggleButtonStates();
+    
     // Trigger animation
     requestAnimationFrame(() => {
         contentCard.classList.add('visible');
     });
+}
+
+// Sync toggle button states in content card with current state
+function syncToggleButtonStates() {
+    if (!contentCard) return;
+    
+    // Sync protection button
+    const protectionButton = contentCard.querySelector('.action-item[data-action="protection"]');
+    if (protectionButton) {
+        if (state.contentProtectionEnabled) {
+            protectionButton.classList.add('active');
+            protectionButton.setAttribute('aria-pressed', 'true');
+            const span = protectionButton.querySelector('span');
+            if (span) {
+                span.textContent = 'Invisible Mode (On)';
+            }
+        } else {
+            protectionButton.classList.remove('active');
+            protectionButton.setAttribute('aria-pressed', 'false');
+            const span = protectionButton.querySelector('span');
+            if (span) {
+                span.textContent = 'Invisible Mode (Off)';
+            }
+        }
+    }
 }
 
 // Hide content card
@@ -148,6 +176,7 @@ function handleContentCardAction(action) {
             break;
         case 'protection':
             toggleContentProtection();
+            // Update will be handled by updateContentProtectionButton
             break;
             
         // MCP actions

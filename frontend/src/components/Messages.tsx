@@ -1,7 +1,6 @@
 import { SmartMessage } from './SmartMessage'
-import { ScrollToTopButton } from './ScrollToTopButton'
-import { ArrowUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Square } from 'lucide-react'
 
 export interface MediaAttachment {
   id: string
@@ -26,27 +25,23 @@ export interface ChatMessage {
 interface MessagesProps {
   messages: ChatMessage[]
   isTyping: boolean
+  isStreaming: boolean
   onCopyMessage: (text: string) => void
+  onStopStreaming: () => void
   messagesContainerRef: React.RefObject<HTMLDivElement | null>
   messagesEndRef: React.RefObject<HTMLDivElement | null>
   onScroll: () => void
-  scrollToBottom: () => void
-  scrollToTop: () => void
-  showScrollToTop: boolean
-  isNearBottom: boolean
 }
 
 export function Messages({ 
   messages, 
   isTyping, 
+  isStreaming,
   onCopyMessage,
+  onStopStreaming,
   messagesContainerRef,
   messagesEndRef,
-  onScroll,
-  scrollToBottom,
-  scrollToTop,
-  showScrollToTop,
-  isNearBottom
+  onScroll
 }: MessagesProps) {
   // Simplified helper to format file sizes
   const formatFileSize = (bytes: number): string => {
@@ -177,27 +172,21 @@ export function Messages({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Scroll Controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-30">
-        {/* Scroll to top */}
-        <ScrollToTopButton
-          isVisible={showScrollToTop}
-          onClick={scrollToTop}
-        />
-        
-        {/* Scroll to bottom */}
-        {!isNearBottom && messages.length > 0 && (
+      {/* Stop Streaming Button */}
+      {isStreaming && (
+        <div className="absolute bottom-4 right-4 z-30">
           <Button
             variant="ghost"
             size="sm"
-            className="h-10 w-10 bg-green-500/20 text-white rounded-full backdrop-blur-sm border border-white/20 hover:bg-green-500/30 transition-all"
-            onClick={scrollToBottom}
-            title="Scroll to bottom"
+            className="w-8 h-8 flex items-center justify-center bg-oklch(12.9% 0.042 264.695) from-red-500 via-red-600 to-rose-500 text-white rounded-full border-2 border-white/40 backdrop-blur-lg shadow-xl hover:scale-105 transition-transform duration-150 p-0"
+            onClick={onStopStreaming}
+            title="Stop streaming"
           >
-            <ArrowUp className="w-5 h-5 rotate-180" />
+            <Square className="w-4 h-4 mr-2 fill-current" />
+            
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
