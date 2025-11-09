@@ -7,11 +7,12 @@ export class AreaScreenshotCursor {
     constructor() {
         this.isActive = false;
         this.overlay = null;
-        this.selectionBox = null;
+        this.drawingPath = null; // SVG path for freehand drawing
+        this.drawingCanvas = null; // Canvas for drawing
         this.dimensionIndicator = null;
-        this.startX = 0;
-        this.startY = 0;
-        this.isDragging = false;
+        this.pathPoints = []; // Array of {x, y} points for the drawn path
+        this.isDrawing = false;
+        this.minPathLength = 20; // Minimum path length to capture
         
         // Bind methods
         this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -43,6 +44,13 @@ export class AreaScreenshotCursor {
         if (!this.isActive) return;
         
         this.isActive = false;
+        this.isDrawing = false;
+        
+        // Clear canvas
+        if (this.ctx && this.drawingCanvas) {
+            this.ctx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+        }
+        
         this.removeOverlay();
         this.detachEventListeners();
         
@@ -83,37 +91,33 @@ export class AreaScreenshotCursor {
             backdrop-filter: blur(1px);
         `;
         
-        // Selection box
-        this.selectionBox = document.createElement('div');
-        this.selectionBox.className = 'area-screenshot-selection';
-        this.selectionBox.style.cssText = `
-            position: absolute;
-            border: 2px dashed #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
-            display: none;
+        // Canvas for freehand drawing
+        this.drawingCanvas = document.createElement('canvas');
+        this.drawingCanvas.className = 'area-screenshot-drawing-canvas';
+        this.drawingCanvas.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             pointer-events: none;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4),
-                        inset 0 0 20px rgba(59, 130, 246, 0.2);
+            z-index: 999998;
         `;
+        this.drawingCanvas.width = window.innerWidth;
+        this.drawingCanvas.height = window.innerHeight;
+        this.ctx = this.drawingCanvas.getContext('2d');
         
-        // Dimension indicator
+        // Dimension indicator - CSS handles styling now
         this.dimensionIndicator = document.createElement('div');
         this.dimensionIndicator.className = 'area-screenshot-dimensions';
         this.dimensionIndicator.style.cssText = `
             position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-family: monospace;
             display: none;
             pointer-events: none;
             z-index: 1000000;
-            backdrop-filter: blur(10px);
         `;
         
-        // Instructions overlay
+        // Instructions overlay - CSS handles styling now
         const instructions = document.createElement('div');
         instructions.className = 'area-screenshot-instructions';
         instructions.style.cssText = `
@@ -121,14 +125,9 @@ export class AreaScreenshotCursor {
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
             padding: 12px 24px;
-            border-radius: 8px;
             font-size: 14px;
             z-index: 1000001;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             animation: fadeInDown 0.3s ease-out;
         `;
         instructions.innerHTML = `
@@ -145,14 +144,22 @@ export class AreaScreenshotCursor {
                     <path d="M405.6,414.6c-0.4,0-0.4,0-0.8,0c-2-0.4-3.6-2.4-3.2-4.8L444.4,183c0.4-2,2.4-3.6,4.8-3.2c2,0.4,3.6,2.4,3.2,4.8 l-42.8,226.8C409.2,413.4,407.6,414.6,405.6,414.6z"></path>
                   </g>
                 </svg>
-                <span><strong>Click and drag</strong> to select area • Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; font-family: monospace;">ESC</kbd> to cancel</span>
+                <span><strong>Draw any shape</strong> to select area • Release to capture • Press <kbd style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; font-family: monospace;">ESC</kbd> to cancel</span>
             </div>
         `;
         
-        this.overlay.appendChild(this.selectionBox);
+        this.overlay.appendChild(this.drawingCanvas);
         this.overlay.appendChild(this.dimensionIndicator);
         this.overlay.appendChild(instructions);
         document.body.appendChild(this.overlay);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (this.drawingCanvas) {
+                this.drawingCanvas.width = window.innerWidth;
+                this.drawingCanvas.height = window.innerHeight;
+            }
+        });
     }
 
     /**
@@ -162,8 +169,10 @@ export class AreaScreenshotCursor {
         if (this.overlay) {
             this.overlay.remove();
             this.overlay = null;
-            this.selectionBox = null;
+            this.drawingCanvas = null;
+            this.ctx = null;
             this.dimensionIndicator = null;
+            this.pathPoints = [];
         }
     }
 
@@ -190,76 +199,125 @@ export class AreaScreenshotCursor {
     }
 
     /**
-     * Handle mouse down - start selection
+     * Handle mouse down - start drawing
      */
     handleMouseDown(e) {
         e.preventDefault();
-        this.isDragging = true;
-        this.startX = e.clientX;
-        this.startY = e.clientY;
+        this.isDrawing = true;
+        this.pathPoints = [];
         
-        this.selectionBox.style.display = 'block';
-        this.selectionBox.style.left = `${this.startX}px`;
-        this.selectionBox.style.top = `${this.startY}px`;
-        this.selectionBox.style.width = '0px';
-        this.selectionBox.style.height = '0px';
+        // Start drawing path
+        const x = e.clientX;
+        const y = e.clientY;
+        this.pathPoints.push({ x, y });
+        
+        // Initialize canvas drawing
+        this.ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)';
+        this.ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+        this.ctx.lineWidth = 3;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowColor = 'rgba(59, 130, 246, 0.8)';
+        
+        // Start path
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        
+        // Show dimension indicator
+        this.dimensionIndicator.style.display = 'block';
+        this.dimensionIndicator.style.left = `${x}px`;
+        this.dimensionIndicator.style.top = `${y - 30}px`;
+        this.dimensionIndicator.textContent = 'Drawing...';
     }
 
     /**
-     * Handle mouse move - update selection
+     * Handle mouse move - continue drawing
      */
     handleMouseMove(e) {
-        if (!this.isDragging) return;
+        if (!this.isDrawing) return;
         
-        const currentX = e.clientX;
-        const currentY = e.clientY;
+        const x = e.clientX;
+        const y = e.clientY;
         
-        const width = Math.abs(currentX - this.startX);
-        const height = Math.abs(currentY - this.startY);
-        const left = Math.min(currentX, this.startX);
-        const top = Math.min(currentY, this.startY);
+        // Add point to path (only if moved significantly to reduce points)
+        const lastPoint = this.pathPoints[this.pathPoints.length - 1];
+        if (lastPoint) {
+            const distance = Math.sqrt(
+                Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2)
+            );
+            // Only add point if moved at least 2 pixels (smoother drawing)
+            if (distance < 2) return;
+        }
         
-        this.selectionBox.style.left = `${left}px`;
-        this.selectionBox.style.top = `${top}px`;
-        this.selectionBox.style.width = `${width}px`;
-        this.selectionBox.style.height = `${height}px`;
+        this.pathPoints.push({ x, y });
+        
+        // Redraw entire path for smooth appearance
+        this.ctx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+        this.ctx.beginPath();
+        
+        if (this.pathPoints.length > 0) {
+            const first = this.pathPoints[0];
+            this.ctx.moveTo(first.x, first.y);
+            
+            for (let i = 1; i < this.pathPoints.length; i++) {
+                this.ctx.lineTo(this.pathPoints[i].x, this.pathPoints[i].y);
+            }
+            
+            this.ctx.stroke();
+        }
         
         // Update dimension indicator
-        this.dimensionIndicator.style.display = 'block';
-        this.dimensionIndicator.style.left = `${left}px`;
-        this.dimensionIndicator.style.top = `${top - 30}px`;
-        this.dimensionIndicator.textContent = `${width} × ${height}`;
+        const pathLength = this.pathPoints.length;
+        this.dimensionIndicator.style.left = `${x}px`;
+        this.dimensionIndicator.style.top = `${y - 30}px`;
+        this.dimensionIndicator.textContent = `${pathLength} points`;
     }
 
     /**
-     * Handle mouse up - capture selection
+     * Handle mouse up - finish drawing and capture
      */
     async handleMouseUp(e) {
-        if (!this.isDragging) return;
+        if (!this.isDrawing) return;
         
-        this.isDragging = false;
+        this.isDrawing = false;
         
-        const currentX = e.clientX;
-        const currentY = e.clientY;
+        // Close the path
+        if (this.pathPoints.length > 0) {
+            const firstPoint = this.pathPoints[0];
+            this.ctx.lineTo(firstPoint.x, firstPoint.y);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.stroke();
+        }
         
-        const width = Math.abs(currentX - this.startX);
-        const height = Math.abs(currentY - this.startY);
-        
-        // Minimum selection size
-        if (width < 10 || height < 10) {
-            this.deactivate();
+        // Check if path is valid
+        if (this.pathPoints.length < this.minPathLength) {
+            // Clear canvas and reset
+            this.ctx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+            this.pathPoints = [];
+            this.dimensionIndicator.style.display = 'none';
             return;
         }
         
-        const left = Math.min(currentX, this.startX);
-        const top = Math.min(currentY, this.startY);
+        // Calculate bounding box from path points
+        const xs = this.pathPoints.map(p => p.x);
+        const ys = this.pathPoints.map(p => p.y);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
         
         const selectionArea = {
-            x: left,
-            y: top,
-            width: width,
-            height: height
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            path: this.pathPoints // Include path for potential future use
         };
+        
+        // Update dimension indicator
+        this.dimensionIndicator.textContent = `Capturing...`;
         
         // Capture the selected area
         await this.captureArea(selectionArea);
@@ -274,7 +332,18 @@ export class AreaScreenshotCursor {
     handleKeyDown(e) {
         if (e.key === 'Escape') {
             e.preventDefault();
-            this.deactivate();
+            if (this.isDrawing) {
+                // Clear current drawing
+                if (this.ctx && this.drawingCanvas) {
+                    this.ctx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+                }
+                this.pathPoints = [];
+                this.isDrawing = false;
+                this.dimensionIndicator.style.display = 'none';
+            } else {
+                // Deactivate completely
+                this.deactivate();
+            }
         }
     }
 
