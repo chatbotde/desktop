@@ -267,11 +267,9 @@ export class AreaScreenshotCursor {
             this.ctx.stroke();
         }
         
-        // Update dimension indicator
-        const pathLength = this.pathPoints.length;
+        // Update dimension indicator position (no text shown while drawing)
         this.dimensionIndicator.style.left = `${x}px`;
         this.dimensionIndicator.style.top = `${y - 30}px`;
-        this.dimensionIndicator.textContent = `${pathLength} points`;
     }
 
     /**
