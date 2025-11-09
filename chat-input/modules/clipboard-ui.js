@@ -3,12 +3,12 @@ import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipb
 import { appendToInput, getClipboardText } from './clipboard-injector.js';
 import { addTextBadge } from './badges.js';
 
-// Enhanced theme-aware styling with modern aesthetics
+// Minimal theme-aware styling with compact design
 const STYLES = {
   bar: {
     background: 'var(--bg-popover)',
     border: 'var(--border)',
-    shadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+    shadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
   },
   buttons: {
     add: { 
@@ -50,16 +50,16 @@ class ClipboardBarManager {
   createBar() {
     if (this.barEl) return this.barEl;
 
-    // Create main container with enhanced styling
+    // Create main container with minimal compact styling
     this.barEl = this.createElement('div', {
       id: 'clipboardPromptBar',
       styles: {
         position: 'fixed',
         display: 'none',
         alignItems: 'center',
-        gap: '12px',
-        padding: '12px 16px',
-        borderRadius: '16px',
+        gap: '6px',
+        padding: '6px 10px',
+        borderRadius: '8px',
         background: STYLES.bar.background,
         color: 'var(--text)',
         border: `1px solid ${STYLES.bar.border}`,
@@ -72,29 +72,31 @@ class ClipboardBarManager {
       }
     });
 
-    // Create elements with improved design
+    // Create elements with minimal compact design
     this.elements = {
       icon: this.createElement('div', {
         innerHTML: '📋',
         styles: {
-          fontSize: '20px',
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+          fontSize: '14px',
+          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+          lineHeight: '1',
+          flexShrink: '0'
         }
       }),
       
       text: this.createElement('div', {
         styles: {
           flex: '1',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          maxHeight: '4.5em',
+          fontSize: '11px',
+          lineHeight: '1.4',
+          maxHeight: '2.8em',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           display: '-webkit-box',
-          webkitLineClamp: '3',
+          webkitLineClamp: '2',
           webkitBoxOrient: 'vertical',
           color: 'var(--text-dim)',
-          fontWeight: '500'
+          fontWeight: '400'
         }
       }),
       
@@ -136,43 +138,45 @@ class ClipboardBarManager {
     return el;
   }
 
-  // Get enhanced button styles
+  // Get minimal compact button styles
   getButtonStyles({ bg, border, hover }, isClose = false) {
     const baseStyles = {
       border: `1px solid ${border}`,
       background: bg,
       color: '#fff',
       cursor: 'pointer',
-      fontWeight: '600',
-      fontSize: '13px',
-      transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+      fontWeight: '500',
+      fontSize: '10px',
+      transition: 'all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
       outline: 'none'
     };
 
     if (isClose) {
-      // Enhanced close button
+      // Minimal close button
       return {
         ...baseStyles,
-        padding: '8px',
+        padding: '4px',
         borderRadius: '50%',
-        width: '36px',
-        height: '36px',
+        width: '22px',
+        height: '22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: '36px',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)'
+        minWidth: '22px',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        fontSize: '11px'
       };
     } else {
-      // Enhanced action buttons
+      // Minimal action buttons
       return {
         ...baseStyles,
-        padding: '10px 18px',
-        borderRadius: '24px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        padding: '4px 10px',
+        borderRadius: '12px',
+        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.12)',
         position: 'relative',
         overflow: 'hidden',
-        transform: 'translateZ(0)' // Enable hardware acceleration
+        transform: 'translateZ(0)', // Enable hardware acceleration
+        whiteSpace: 'nowrap'
       };
     }
   }
@@ -186,22 +190,22 @@ class ClipboardBarManager {
     const addHoverEffect = (element, normalStyle, hoverStyle) => {
       element.addEventListener('mouseenter', () => {
         element.style.background = hoverStyle.bg || hoverStyle;
-        element.style.transform = 'translateY(-2px)';
-        element.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+        element.style.transform = 'translateY(-1px)';
+        element.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.15)';
       });
       
       element.addEventListener('mouseleave', () => {
         element.style.background = normalStyle.bg || normalStyle;
         element.style.transform = 'translateY(0)';
-        element.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+        element.style.boxShadow = '0 1px 4px rgba(0, 0, 0, 0.12)';
       });
       
       element.addEventListener('mousedown', () => {
-        element.style.transform = 'translateY(1px)';
+        element.style.transform = 'translateY(0px) scale(0.98)';
       });
       
       element.addEventListener('mouseup', () => {
-        element.style.transform = 'translateY(-2px)';
+        element.style.transform = 'translateY(-1px) scale(1)';
       });
     };
 
@@ -269,10 +273,10 @@ class ClipboardBarManager {
     // Validate that we have valid dimensions before positioning
     if (rect.width === 0 || rect.height === 0) return;
     
-    const gap = 16; // Increased gap for better visual separation
+    const gap = 12; // Reduced gap for minimal design
     
     // Calculate position ensuring it's within viewport bounds
-    const barHeight = this.barEl.offsetHeight || 60;
+    const barHeight = this.barEl.offsetHeight || 36;
     const topPos = Math.max(gap, Math.round(rect.top - barHeight - gap));
     const leftPos = Math.round(rect.left);
     const width = Math.round(Math.min(rect.width, window.innerWidth - gap * 2)); // Ensure it fits in viewport
@@ -292,8 +296,22 @@ class ClipboardBarManager {
     }
   }
 
+  // Check if chat-input container is visible
+  isChatInputVisible() {
+    const container = dom.chatInputContainer;
+    if (!container) return false;
+    const style = window.getComputedStyle(container);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  }
+
   // Show bar with content and entrance animation
   show(preview, signature, payload, isTextSelection = false) {
+    // Don't show clipboard UI if chat-input is not visible
+    if (!this.isChatInputVisible()) {
+      console.log('Clipboard UI: Chat-input not visible, skipping show');
+      return;
+    }
+    
     console.log('Clipboard UI: Showing bar with content', { preview, isTextSelection, signature });
     this.createBar();
     this.lastSignature = signature || '';
@@ -309,8 +327,8 @@ class ClipboardBarManager {
       console.log('Clipboard UI: Showing clipboard icon');
     }
     
-    // Truncate preview text if too long
-    const truncatedPreview = preview ? String(preview).slice(0, 200) : 'Content detected';
+    // Truncate preview text if too long (reduced for minimal UI)
+    const truncatedPreview = preview ? String(preview).slice(0, 120) : 'Content detected';
     this.elements.text.textContent = truncatedPreview;
     this.updateToggleButton();
     this.barEl.style.display = 'flex';
@@ -400,9 +418,34 @@ const clipboardBar = new ClipboardBarManager();
 export function initClipboardUI() {
   console.log('Clipboard UI: Initializing clipboard UI');
   
+  // Monitor chat-input container visibility changes
+  const container = dom.chatInputContainer;
+  if (container) {
+    const observer = new MutationObserver(() => {
+      // Hide clipboard UI if chat-input becomes hidden
+      if (!clipboardBar.isChatInputVisible()) {
+        clipboardBar.hide();
+      }
+    });
+    
+    // Observe style changes (display, visibility, opacity)
+    observer.observe(container, {
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      subtree: false
+    });
+  }
+  
   // Listen to clipboard detection events
   document.addEventListener('clipboard:detected', (e) => {
     console.log('Clipboard UI: Received clipboard:detected event', e.detail);
+    
+    // Check if chat-input is visible before processing
+    if (!clipboardBar.isChatInputVisible()) {
+      console.log('Clipboard UI: Chat-input not visible, ignoring clipboard event');
+      return;
+    }
+    
     const { payload, signature } = e.detail || {};
     if (!payload || !signature) {
       console.log('Clipboard UI: Invalid payload or signature');
@@ -455,8 +498,8 @@ export function initClipboardUI() {
       return;
     }
     
-    // Limit preview length for display
-    const maxLength = 200;
+    // Limit preview length for display (reduced for minimal UI)
+    const maxLength = 120;
     if (preview.length > maxLength) {
       preview = preview.substring(0, maxLength) + '...';
     }

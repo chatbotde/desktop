@@ -198,7 +198,28 @@ export function hideAttachmentLoading() {
     }
 }
 
+// Check if chat-input container is visible
+function isChatInputVisible() {
+    const container = dom.chatInputContainer;
+    if (!container) return false;
+    const style = window.getComputedStyle(container);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+}
+
 export function updateAttachmentsVisibility() {
+    // Don't show attachments if chat-input is not visible
+    if (!isChatInputVisible()) {
+        const attachmentsContainer = dom.attachmentsContainer;
+        if (attachmentsContainer) {
+            attachmentsContainer.style.display = 'none';
+            attachmentsContainer.classList.remove('visible', 'has-attachments');
+            if (dom.attachmentsSection) {
+                dom.attachmentsSection.style.display = 'none';
+            }
+        }
+        return;
+    }
+    
     const hasAttachments = state.imageAttachments.length > 0 || state.mediaAttachments.length > 0 || document.getElementById('attachment-loading');
     const attachmentsContainer = dom.attachmentsContainer;
 
@@ -266,7 +287,7 @@ function __stopDragTracking() {
     }
 }
 
-// Observe class changes for the dragging state
+// Observe class changes for the dragging state and visibility
 try {
     const observer = new MutationObserver((mutations) => {
         for (const m of mutations) {
@@ -275,10 +296,17 @@ try {
                 if (isDragging) __startDragTracking(); else __stopDragTracking();
                 positionAttachmentsContainer();
             }
+            // Check visibility when style or class changes
+            if (m.type === 'attributes' && (m.attributeName === 'style' || m.attributeName === 'class')) {
+                // Hide attachments if chat-input becomes hidden
+                if (!isChatInputVisible()) {
+                    updateAttachmentsVisibility();
+                }
+            }
         }
     });
     if (dom.chatInputContainer) {
-        observer.observe(dom.chatInputContainer, { attributes: true, attributeFilter: ['class'] });
+        observer.observe(dom.chatInputContainer, { attributes: true, attributeFilter: ['class', 'style'] });
     }
 } catch {}
 

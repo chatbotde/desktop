@@ -3,7 +3,6 @@ import { appendToInput } from './clipboard-injector.js';
 import { sendMessage } from './messaging.js';
 import { addTextBadge } from './badges.js';
 import { createFloatingCard } from './floating-cards.js';
-import { activateAreaScreenshot } from './area-screenshot-cursor.js';
 
 /**
  * Text Selection UI Manager
@@ -30,8 +29,6 @@ class TextSelectionUIManager {
     this.showOriginY = this.lastMouseY;
     this.showTime = 0;
     this.distanceHideHandler = null;
-    this.recordingStateListener = null;
-    this.recordingStateCheckInterval = null;
     this.autoHideTimer = null;
     // REMOVED: lastSignature - we want to show panel every time, even for duplicates
   }
@@ -143,53 +140,26 @@ class TextSelectionUIManager {
 
     inputWrapper.appendChild(input);
 
+    // Copy button (outside left)
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'search-action-btn copy-btn';
+    copyBtn.type = 'button';
+    copyBtn.setAttribute('aria-label', 'Copy');
+    copyBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+        <path d="M4 16c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h8c1.1 0 2 .9 2 2"/>
+      </svg>
+      <span>Copy</span>
+    `;
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.handleCopy();
+    });
+
     // Action buttons container
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'search-actions';
-
-    // Microphone button for voice input
-    const micBtn = document.createElement('button');
-    micBtn.className = 'search-action-btn mic-btn';
-    micBtn.type = 'button';
-    micBtn.setAttribute('aria-label', 'Voice input');
-    micBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3Z"/>
-        <path d="M19 10a7 7 0 0 1-14 0"/>
-        <path d="M12 17v6"/>
-        <path d="M8 23h8"/>
-      </svg>
-    `;
-    micBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      // Reset auto-hide timer on button click
-      this.startAutoHideTimer();
-      await this.handleVoiceInput();
-    });
-
-    // Camera/screenshot button
-    const cameraBtn = document.createElement('button');
-    cameraBtn.className = 'search-action-btn camera-btn';
-    cameraBtn.type = 'button';
-    cameraBtn.setAttribute('aria-label', 'Area screenshot');
-    cameraBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="2 2" opacity="0.5"/>
-        <path d="M12 19V5M5 12l7-7 7 7"/>
-      </svg>
-    `;
-    cameraBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      // Reset auto-hide timer on button click
-      this.startAutoHideTimer();
-      try {
-        await activateAreaScreenshot();
-        // Don't hide immediately - let user see the screenshot was triggered
-        setTimeout(() => this.hide(), 500);
-      } catch (err) {
-        console.error('Failed to start area screenshot', err);
-      }
-    });
 
     // Send button
     const sendBtn = document.createElement('button');
@@ -209,11 +179,26 @@ class TextSelectionUIManager {
       this.handleAsk();
     });
 
-    actionsContainer.appendChild(micBtn);
-    actionsContainer.appendChild(cameraBtn);
+    // Close button to hide the mini bar
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'search-action-btn close-btn';
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    `;
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hide();
+    });
+
+    actionsContainer.appendChild(closeBtn);
     actionsContainer.appendChild(sendBtn);
 
     // Assemble the search bar
+    searchBar.appendChild(copyBtn); // Copy button outside left
     searchBar.appendChild(searchIcon);
     searchBar.appendChild(inputWrapper);
     searchBar.appendChild(actionsContainer);
@@ -233,81 +218,11 @@ class TextSelectionUIManager {
     // Expose input for focusing later
     this.elements.miniNotes = input;
     this.elements.searchInput = input;
-    this.elements.micBtn = micBtn;
-    this.elements.cameraBtn = cameraBtn;
     this.elements.sendBtn = sendBtn;
+    this.elements.closeBtn = closeBtn;
+    this.elements.copyBtn = copyBtn;
     
     return this.miniBar;
-  }
-
-  async handleVoiceInput() {
-    try {
-      // Check if already recording
-      if (window.__isRecording?.() && window.__getRecordingType?.() === 'audio') {
-        // Stop recording
-        const result = await window.stopCurrentRecording();
-        if (result.success && result.audio) {
-          // Update mic button state
-          if (this.elements.micBtn) {
-            this.elements.micBtn.classList.remove('recording');
-          }
-          // Add audio attachment and send
-          const { addMediaAttachment } = await import('./richmedia.js');
-          addMediaAttachment(result.audio);
-          // Combine with selected text and user input
-          this.handleAsk();
-        } else {
-          // Recording stopped but no audio (cancelled)
-          if (this.elements.micBtn) {
-            this.elements.micBtn.classList.remove('recording');
-          }
-        }
-      } else {
-        // Start recording using the existing audio capture handler
-        const { handleAudioCapture } = await import('./uploads-capture.js');
-        await handleAudioCapture();
-        // Update mic button to show recording state
-        if (this.elements.micBtn) {
-          this.elements.micBtn.classList.add('recording');
-        }
-        // Listen for recording state changes
-        this.setupRecordingStateListener();
-      }
-    } catch (error) {
-      console.error('Error handling voice input:', error);
-      if (this.elements.micBtn) {
-        this.elements.micBtn.classList.remove('recording');
-      }
-    }
-  }
-
-  setupRecordingStateListener() {
-    // Remove existing listener if any
-    if (this.recordingStateListener) {
-      document.removeEventListener('recording-state-changed', this.recordingStateListener);
-    }
-    
-    // Listen for recording state changes
-    this.recordingStateListener = () => {
-      const isRecording = window.__isRecording?.();
-      const recordingType = window.__getRecordingType?.();
-      
-      if (this.elements.micBtn) {
-        if (isRecording && recordingType === 'audio') {
-          this.elements.micBtn.classList.add('recording');
-        } else {
-          this.elements.micBtn.classList.remove('recording');
-        }
-      }
-    };
-    
-    // Check state periodically (since there might not be an event)
-    this.recordingStateCheckInterval = setInterval(() => {
-      this.recordingStateListener();
-    }, 500);
-    
-    // Also listen for custom events if they exist
-    document.addEventListener('recording-state-changed', this.recordingStateListener);
   }
 
   createPanel() {
@@ -362,6 +277,29 @@ class TextSelectionUIManager {
       closeBtn: this.panel.querySelector('.close-btn')
     };
 
+    // Create copy button for panel (outside left - first in actions container)
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'text-selection-btn copy-btn';
+    copyBtn.type = 'button';
+    copyBtn.title = 'Copy selected text';
+    copyBtn.setAttribute('aria-label', 'Copy');
+    copyBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+        <path d="M4 16c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h8c1.1 0 2 .9 2 2"/>
+      </svg>
+      <span>Copy</span>
+    `;
+    copyBtn.addEventListener('click', () => this.handleCopy());
+    
+    // Insert copy button as the first button in the actions container (outside left)
+    const actionsContainer = this.panel.querySelector('.text-selection-actions');
+    if (actionsContainer) {
+      actionsContainer.insertBefore(copyBtn, actionsContainer.firstChild);
+    }
+    
+    this.elements.copyBtnPanel = copyBtn;
+
     document.body.appendChild(this.panel);
     this.bindEvents();
 
@@ -393,6 +331,8 @@ class TextSelectionUIManager {
 
     // Close button - dismisses the panel
     this.elements.closeBtn.addEventListener('click', () => this.hide());
+
+    // Copy button handler is already bound in createPanel
 
     // Hide panel when clicking outside (only for expanded panel, not mini bar)
     document.addEventListener('click', (e) => {
@@ -478,6 +418,97 @@ class TextSelectionUIManager {
 
     // Hide the panel
     this.hide();
+  }
+
+  handleCopy() {
+    if (!this.currentText) return;
+
+    console.log('Text Selection UI: Copying selected text to clipboard');
+
+    // Copy text to clipboard
+    const textToCopy = this.currentText;
+    
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        console.log('Text Selection UI: Text copied successfully');
+        // Visual feedback - briefly change button text
+        if (this.elements.copyBtn) {
+          const originalHTML = this.elements.copyBtn.innerHTML;
+          this.elements.copyBtn.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span>Copied!</span>
+          `;
+          setTimeout(() => {
+            this.elements.copyBtn.innerHTML = originalHTML;
+          }, 1500);
+        }
+        if (this.elements.copyBtnPanel) {
+          const originalHTML = this.elements.copyBtnPanel.innerHTML;
+          this.elements.copyBtnPanel.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <span>Copied!</span>
+          `;
+          setTimeout(() => {
+            this.elements.copyBtnPanel.innerHTML = originalHTML;
+          }, 1500);
+        }
+      }).catch((err) => {
+        console.error('Text Selection UI: Failed to copy text:', err);
+        // Fallback to execCommand
+        this.fallbackCopy(textToCopy);
+      });
+    } else {
+      // Fallback to execCommand
+      this.fallbackCopy(textToCopy);
+    }
+  }
+
+  fallbackCopy(text) {
+    // Fallback method using execCommand
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      console.log('Text Selection UI: Text copied using fallback method');
+      // Visual feedback
+      if (this.elements.copyBtn) {
+        const originalHTML = this.elements.copyBtn.innerHTML;
+        this.elements.copyBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span>Copied!</span>
+        `;
+        setTimeout(() => {
+          this.elements.copyBtn.innerHTML = originalHTML;
+        }, 1500);
+      }
+      if (this.elements.copyBtnPanel) {
+        const originalHTML = this.elements.copyBtnPanel.innerHTML;
+        this.elements.copyBtnPanel.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span>Copied!</span>
+        `;
+        setTimeout(() => {
+          this.elements.copyBtnPanel.innerHTML = originalHTML;
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Text Selection UI: Fallback copy failed:', err);
+    } finally {
+      document.body.removeChild(textArea);
+    }
   }
 
   position() {
@@ -777,16 +808,6 @@ class TextSelectionUIManager {
     this.isVisible = false;
     this.isFabVisible = false;
     this.isMiniVisible = false;
-
-    // Clean up recording state listener
-    if (this.recordingStateCheckInterval) {
-      clearInterval(this.recordingStateCheckInterval);
-      this.recordingStateCheckInterval = null;
-    }
-    if (this.recordingStateListener) {
-      document.removeEventListener('recording-state-changed', this.recordingStateListener);
-      this.recordingStateListener = null;
-    }
 
     setTimeout(() => {
       if (this.panel && !this.isVisible) this.panel.style.display = 'none';
