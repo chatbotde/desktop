@@ -261,30 +261,17 @@ window.removeBadge = removeBadge;
 /**
  * Get all badge content for sending
  * Returns { texts: string[], images: Array }
+ * NOTE: Images are no longer handled by badges - they use the attachments system
  */
 export function getBadgeContent() {
     const texts = [];
-    const images = [];
+    const images = []; // Always empty - images use attachments system
     
     state.badges.forEach(badge => {
         if (badge.type === 'text' && badge.content) {
             texts.push(badge.content);
-        } else if (badge.type === 'image' && badge.data) {
-            // Extract mime type from data URL
-            const mimeMatch = badge.data.match(/^data:([^;]+);base64,/);
-            const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-            const ext = (mime.split('/')[1] || 'png').toLowerCase();
-            
-            images.push({
-                id: badge.id,
-                name: badge.name || `badge-image-${badge.id}.${ext}`,
-                type: mime,
-                size: 0,
-                data: badge.data,
-                source: 'badge',
-                mediaType: 'image'
-            });
         }
+        // Image badges are disabled - images only appear as attachments
     });
     
     return { texts, images };
