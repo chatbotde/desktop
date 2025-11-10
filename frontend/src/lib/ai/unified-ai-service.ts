@@ -5,6 +5,7 @@ import { anthropicService, isAnthropicConfigured } from './anthropic';
 import { openRouterService, isOpenRouterConfigured } from './openrouter';
 import { cerebrasService, isCerebrasConfigured } from './cerebras';
 import { deepseekService, isDeepSeekConfigured } from './deepseek';
+import { kimiService, isKimiConfigured } from './kimi';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 
@@ -66,6 +67,12 @@ export class UnifiedAIService {
         }
         return deepseekService.sendMessageWithMedia(message, attachments);
 
+      case 'kimi':
+        if (!isKimiConfigured()) {
+          throw new Error('Kimi (Moonshot AI) API key not configured. Please add VITE_MOONSHOT_API_KEY to your .env file.');
+        }
+        return kimiService.sendMessageWithMedia(message, attachments);
+
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
     }
@@ -111,6 +118,9 @@ export class UnifiedAIService {
       case 'deepseek':
         deepseekService.clearHistory();
         break;
+      case 'kimi':
+        kimiService.clearHistory();
+        break;
     }
   }
 
@@ -141,6 +151,9 @@ export class UnifiedAIService {
         break;
       case 'deepseek':
         deepseekService.addSystemContext(context);
+        break;
+      case 'kimi':
+        kimiService.addSystemContext(context);
         break;
     }
   }
@@ -183,6 +196,8 @@ export class UnifiedAIService {
         return isCerebrasConfigured();
       case 'deepseek':
         return isDeepSeekConfigured();
+      case 'kimi':
+        return isKimiConfigured();
       default:
         return false;
     }
@@ -234,6 +249,7 @@ export class UnifiedAIService {
     openRouterService.addSystemContext(promptText);
     cerebrasService.addSystemContext(promptText);
     deepseekService.addSystemContext(promptText);
+    kimiService.addSystemContext(promptText);
 
     console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
   }
@@ -263,6 +279,7 @@ export class UnifiedAIService {
     openRouterService.addSystemContext(prompt);
     cerebrasService.addSystemContext(prompt);
     deepseekService.addSystemContext(prompt);
+    kimiService.addSystemContext(prompt);
 
     console.log(`✅ Custom system prompt applied: ${name}`);
   }

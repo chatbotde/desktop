@@ -2,7 +2,7 @@
  * Main entry point for the AI module
  * 
  * Multi-provider AI integration with automatic routing.
- * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, Cerebras, and DeepSeek.
+ * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, Cerebras, DeepSeek, and Kimi (Moonshot AI).
  * 
  * Quick Start:
  * ```typescript
@@ -97,6 +97,16 @@ export {
   isDeepSeekConfigured,
   getDeepSeekConfigStatus,
 } from './deepseek';
+
+// Export Kimi (Moonshot AI) service and utilities
+export {
+  KimiChatService,
+  kimiService,
+  sendToKimi,
+  sendMediaToKimi,
+  isKimiConfigured,
+  getKimiConfigStatus,
+} from './kimi';
 
 // Export model configuration
 export {
