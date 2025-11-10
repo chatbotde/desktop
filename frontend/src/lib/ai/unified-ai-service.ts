@@ -6,6 +6,7 @@ import { openRouterService, isOpenRouterConfigured } from './openrouter';
 import { cerebrasService, isCerebrasConfigured } from './cerebras';
 import { deepseekService, isDeepSeekConfigured } from './deepseek';
 import { kimiService, isKimiConfigured } from './kimi';
+import { xaiService, isXAIConfigured } from './xai';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 
@@ -73,6 +74,12 @@ export class UnifiedAIService {
         }
         return kimiService.sendMessageWithMedia(message, attachments);
 
+      case 'xai':
+        if (!isXAIConfigured()) {
+          throw new Error('xAI (Grok) API key not configured. Please add VITE_XAI_API_KEY to your .env file.');
+        }
+        return xaiService.sendMessageWithMedia(message, attachments);
+
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
     }
@@ -121,6 +128,9 @@ export class UnifiedAIService {
       case 'kimi':
         kimiService.clearHistory();
         break;
+      case 'xai':
+        xaiService.clearHistory();
+        break;
     }
   }
 
@@ -154,6 +164,9 @@ export class UnifiedAIService {
         break;
       case 'kimi':
         kimiService.addSystemContext(context);
+        break;
+      case 'xai':
+        xaiService.addSystemContext(context);
         break;
     }
   }
@@ -198,6 +211,8 @@ export class UnifiedAIService {
         return isDeepSeekConfigured();
       case 'kimi':
         return isKimiConfigured();
+      case 'xai':
+        return isXAIConfigured();
       default:
         return false;
     }
@@ -250,6 +265,7 @@ export class UnifiedAIService {
     cerebrasService.addSystemContext(promptText);
     deepseekService.addSystemContext(promptText);
     kimiService.addSystemContext(promptText);
+    xaiService.addSystemContext(promptText);
 
     console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
   }
@@ -280,6 +296,7 @@ export class UnifiedAIService {
     cerebrasService.addSystemContext(prompt);
     deepseekService.addSystemContext(prompt);
     kimiService.addSystemContext(prompt);
+    xaiService.addSystemContext(prompt);
 
     console.log(`✅ Custom system prompt applied: ${name}`);
   }
