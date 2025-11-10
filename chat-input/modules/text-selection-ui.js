@@ -161,10 +161,24 @@ class TextSelectionUIManager {
       </svg>
       <span>Copy</span>
     `;
-    copyBtn.addEventListener('click', (e) => {
+    // Add both click and mousedown handlers for better reliability
+    const handleCopyClick = (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
+      console.log('Copy button clicked in mini bar');
       this.handleCopy();
-    });
+      return false;
+    };
+    
+    copyBtn.addEventListener('click', handleCopyClick, true);
+    copyBtn.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    }, true);
+    
+    // Ensure button is clickable
+    copyBtn.style.cursor = 'pointer';
+    copyBtn.style.pointerEvents = 'auto';
 
     // Action buttons container
     const actionsContainer = document.createElement('div');
@@ -306,7 +320,24 @@ class TextSelectionUIManager {
       </svg>
       <span>Copy</span>
     `;
-    copyBtn.addEventListener('click', () => this.handleCopy());
+    // Add both click and mousedown handlers for better reliability
+    const handleCopyClick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      console.log('Copy button clicked in panel');
+      this.handleCopy();
+      return false;
+    };
+    
+    copyBtn.addEventListener('click', handleCopyClick, true);
+    copyBtn.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    }, true);
+    
+    // Ensure button is clickable
+    copyBtn.style.cursor = 'pointer';
+    copyBtn.style.pointerEvents = 'auto';
     
     // Insert copy button as the first button in the actions container (outside left)
     const actionsContainer = this.panel.querySelector('.text-selection-actions');
@@ -467,93 +498,133 @@ class TextSelectionUIManager {
   }
 
   handleCopy() {
-    if (!this.currentText) return;
+    if (!this.currentText) {
+      console.warn('Text Selection UI: No text to copy, currentText is empty');
+      return;
+    }
 
-    console.log('Text Selection UI: Copying selected text to clipboard');
+    console.log('Text Selection UI: Copying selected text to clipboard, length:', this.currentText.length);
 
     // Copy text to clipboard
     const textToCopy = this.currentText;
     
+    // Helper function to show visual feedback
+    const showCopyFeedback = (button, isMiniBar = false) => {
+      if (!button) {
+        console.warn('Text Selection UI: Button element not found for feedback');
+        return;
+      }
+      
+      const originalHTML = button.innerHTML;
+      
+      // Change button content
+      const checkmarkSVG = isMiniBar 
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M20 6 9 17l-5-5"/>
+           </svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M20 6 9 17l-5-5"/>
+           </svg>`;
+      
+      button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
+      button.style.color = '#86efac';
+      button.style.background = 'rgba(34, 197, 94, 0.2)';
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.style.color = '';
+        button.style.background = '';
+      }, 2000);
+    };
+    
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
+      console.log('Text Selection UI: Using navigator.clipboard API');
       navigator.clipboard.writeText(textToCopy).then(() => {
-        console.log('Text Selection UI: Text copied successfully');
-        // Visual feedback - briefly change button text
-        if (this.elements.copyBtn) {
-          const originalHTML = this.elements.copyBtn.innerHTML;
-          this.elements.copyBtn.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
-            <span>Copied!</span>
-          `;
-          setTimeout(() => {
-            this.elements.copyBtn.innerHTML = originalHTML;
-          }, 1500);
-        }
-        if (this.elements.copyBtnPanel) {
-          const originalHTML = this.elements.copyBtnPanel.innerHTML;
-          this.elements.copyBtnPanel.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
-            <span>Copied!</span>
-          `;
-          setTimeout(() => {
-            this.elements.copyBtnPanel.innerHTML = originalHTML;
-          }, 1500);
-        }
+        console.log('Text Selection UI: Text copied successfully via clipboard API');
+        // Show visual feedback on both buttons
+        showCopyFeedback(this.elements.copyBtn, true);
+        showCopyFeedback(this.elements.copyBtnPanel, false);
       }).catch((err) => {
-        console.error('Text Selection UI: Failed to copy text:', err);
+        console.error('Text Selection UI: Clipboard API failed:', err);
         // Fallback to execCommand
         this.fallbackCopy(textToCopy);
       });
     } else {
+      console.log('Text Selection UI: Clipboard API not available, using fallback');
       // Fallback to execCommand
       this.fallbackCopy(textToCopy);
     }
   }
 
   fallbackCopy(text) {
+    console.log('Text Selection UI: Using fallback copy method');
     // Fallback method using execCommand
     const textArea = document.createElement('textarea');
     textArea.value = text;
-    textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+    textArea.setAttribute('readonly', '');
     document.body.appendChild(textArea);
+    
+    // Select the text
+    textArea.focus();
     textArea.select();
+    textArea.setSelectionRange(0, text.length);
     
     try {
-      document.execCommand('copy');
-      console.log('Text Selection UI: Text copied using fallback method');
-      // Visual feedback
-      if (this.elements.copyBtn) {
-        const originalHTML = this.elements.copyBtn.innerHTML;
-        this.elements.copyBtn.innerHTML = `
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-          <span>Copied!</span>
-        `;
-        setTimeout(() => {
-          this.elements.copyBtn.innerHTML = originalHTML;
-        }, 1500);
-      }
-      if (this.elements.copyBtnPanel) {
-        const originalHTML = this.elements.copyBtnPanel.innerHTML;
-        this.elements.copyBtnPanel.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-          <span>Copied!</span>
-        `;
-        setTimeout(() => {
-          this.elements.copyBtnPanel.innerHTML = originalHTML;
-        }, 1500);
+      const success = document.execCommand('copy');
+      if (success) {
+        console.log('Text Selection UI: Text copied successfully using fallback method');
+        
+        // Helper function to show visual feedback
+        const showCopyFeedback = (button, isMiniBar = false) => {
+          if (!button) return;
+          
+          const originalHTML = button.innerHTML;
+          
+          const checkmarkSVG = isMiniBar 
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M20 6 9 17l-5-5"/>
+               </svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M20 6 9 17l-5-5"/>
+               </svg>`;
+          
+          button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
+          button.style.color = '#86efac';
+          button.style.background = 'rgba(34, 197, 94, 0.2)';
+          
+          setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.style.color = '';
+            button.style.background = '';
+          }, 2000);
+        };
+        
+        // Show visual feedback on both buttons
+        showCopyFeedback(this.elements.copyBtn, true);
+        showCopyFeedback(this.elements.copyBtnPanel, false);
+      } else {
+        throw new Error('execCommand copy returned false');
       }
     } catch (err) {
       console.error('Text Selection UI: Fallback copy failed:', err);
+      // Show error feedback
+      if (this.elements.copyBtn) {
+        const originalHTML = this.elements.copyBtn.innerHTML;
+        this.elements.copyBtn.innerHTML = `<span>Failed</span>`;
+        this.elements.copyBtn.style.color = '#fca5a5';
+        setTimeout(() => {
+          this.elements.copyBtn.innerHTML = originalHTML;
+          this.elements.copyBtn.style.color = '';
+        }, 2000);
+      }
     } finally {
-      document.body.removeChild(textArea);
+      // Clean up
+      if (textArea.parentNode) {
+        document.body.removeChild(textArea);
+      }
     }
   }
 
