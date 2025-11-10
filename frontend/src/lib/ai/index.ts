@@ -2,7 +2,7 @@
  * Main entry point for the AI module
  * 
  * Multi-provider AI integration with automatic routing.
- * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, and Cerebras.
+ * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, Cerebras, and DeepSeek.
  * 
  * Quick Start:
  * ```typescript
@@ -87,6 +87,16 @@ export {
   isCerebrasConfigured,
   getCerebrasConfigStatus,
 } from './cerebras';
+
+// Export DeepSeek service and utilities
+export {
+  DeepSeekChatService,
+  deepseekService,
+  sendToDeepSeek,
+  sendMediaToDeepSeek,
+  isDeepSeekConfigured,
+  getDeepSeekConfigStatus,
+} from './deepseek';
 
 // Export model configuration
 export {
