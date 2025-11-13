@@ -417,20 +417,30 @@ class TextSelectionUIManager {
     console.log('Text Selection UI: Asking AI about selected text with user input');
 
     // Get the current user input directly from DOM elements (most up-to-date)
+    // Check both searchInput (mini bar) and textarea (panel) to ensure we get the latest value
     let userInputText = '';
-    if (this.elements.searchInput) {
-      userInputText = this.elements.searchInput.value || '';
-    } else if (this.elements.textarea) {
-      userInputText = this.elements.textarea.value || '';
+    
+    // Priority: searchInput (mini bar) > textarea (panel) > stored userInput
+    if (this.elements.searchInput && this.elements.searchInput.value) {
+      userInputText = this.elements.searchInput.value.trim();
+    } else if (this.elements.textarea && this.elements.textarea.value) {
+      userInputText = this.elements.textarea.value.trim();
     } else if (this.userInput) {
-      userInputText = this.userInput;
+      userInputText = this.userInput.trim();
     }
 
-    // Combine selected text with user input
-    let combinedText = this.currentText;
-    if (userInputText && userInputText.trim().length > 0) {
-      combinedText = `${this.currentText}\n\n---\n ${userInputText.trim()}`;
+    // Always combine selected text with user input (even if user input is empty, format it clearly)
+    let combinedText = '';
+    
+    if (userInputText && userInputText.length > 0) {
+      // Both selected text and user input provided - combine them clearly
+      combinedText = `${userInputText}\n\n-\n\n${this.currentText}`;
+    } else {
+      // Only selected text - send it as is
+      combinedText = this.currentText;
     }
+
+    console.log('Text Selection UI: Combined text length:', combinedText.length, 'User input length:', userInputText.length);
 
     // Add the combined text to input
     appendToInput(combinedText);
@@ -481,14 +491,43 @@ class TextSelectionUIManager {
 
     console.log('Text Selection UI: Adding selected text as badge with user input');
 
-    // Combine selected text with user input for badge
-    let badgeText = this.currentText;
-    if (this.userInput && this.userInput.trim().length > 0) {
-      badgeText = `${this.currentText}\n\n---\n${this.userInput.trim()}`;
+    // Get the current user input directly from DOM elements (most up-to-date)
+    // Check both searchInput (mini bar) and textarea (panel) to ensure we get the latest value
+    let userInputText = '';
+    
+    // Priority: searchInput (mini bar) > textarea (panel) > stored userInput
+    if (this.elements.searchInput && this.elements.searchInput.value) {
+      userInputText = this.elements.searchInput.value.trim();
+    } else if (this.elements.textarea && this.elements.textarea.value) {
+      userInputText = this.elements.textarea.value.trim();
+    } else if (this.userInput) {
+      userInputText = this.userInput.trim();
     }
+
+    // Combine selected text with user input for badge
+    let badgeText = '';
+    
+    if (userInputText && userInputText.length > 0) {
+      // Both selected text and user input provided - combine them clearly
+      badgeText = `${userInputText}\n\n---\n\n${this.currentText}`;
+    } else {
+      // Only selected text - use it as is
+      badgeText = this.currentText;
+    }
+
+    console.log('Text Selection UI: Badge text length:', badgeText.length, 'User input length:', userInputText.length);
 
     // Add the combined text as a badge
     addTextBadge(badgeText);
+
+    // Clear the textarea after adding
+    if (this.elements.searchInput) {
+      this.elements.searchInput.value = '';
+    }
+    if (this.elements.textarea) {
+      this.elements.textarea.value = '';
+    }
+    this.userInput = '';
 
     // Focus the input
     dom.messageInput?.focus();

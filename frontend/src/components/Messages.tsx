@@ -273,7 +273,7 @@ export function Messages({
                 const containerHeight = container.clientHeight
                 
                 // Scroll to show the message but leave some space at bottom (10% of viewport)
-                const targetScroll = relativeTop - (containerHeight * 0.1)
+                const targetScroll = relativeTop - (containerHeight * 0.3)
                 container.scrollTo({
                   top: Math.max(0, targetScroll),
                   behavior: 'smooth'
