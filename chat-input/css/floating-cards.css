@@ -140,7 +140,7 @@
     max-height: calc(100vh - 40px);
 }
 
-/* Liquid glass overlays - no changes here, it's already great */
+/* Liquid glass overlays - static background (animation removed) */
 .floating-card::before {
     content: "";
     position: absolute;
@@ -155,7 +155,8 @@
     filter: blur(22px) saturate(140%);
     opacity: 0.5;
     mix-blend-mode: screen;
-    animation: spLiquidDrift 22s ease-in-out infinite alternate;
+    /* Animation removed - static background */
+    animation: none;
 }
 
 @keyframes spLiquidDrift {
