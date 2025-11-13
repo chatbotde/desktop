@@ -644,11 +644,11 @@
 
 /* Per-card accent colors */
 .floating-card[data-card-number="1"] { 
-    --sp-accent: #60a5fa; 
-    --sp-accent-strong: #3b82f6; 
+    --sp-accent: oklch(26.8% 0.007 34.298); 
+    --sp-accent-strong: oklch(26.8% 0.007 34.298); 
 }
 .floating-card[data-card-number="2"] { 
-    --sp-accent:oklch(0.44 0.01 74);; 
+    --sp-accent:oklch(0.44 0.01 74); 
     --sp-accent-strong: oklch(0.44 0.01 74); 
 }
 .floating-card[data-card-number="3"] { 

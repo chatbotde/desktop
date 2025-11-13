@@ -219,6 +219,80 @@ export function Messages({
   messagesEndRef,
   onScroll
 }: MessagesProps) {
+  // Auto-scroll to end when new message is sent (especially user messages)
+  // Using container.scrollTo instead of scrollIntoView to avoid affecting fixed positioned elements
+  useEffect(() => {
+    let adjustTimeout: NodeJS.Timeout | null = null
+    
+    if (messages.length > 0 && messagesContainerRef.current) {
+      const lastMessage = messages[messages.length - 1]
+      
+      // Use setTimeout to ensure DOM has updated
+      const scrollTimeout = setTimeout(() => {
+        const container = messagesContainerRef.current
+        if (!container) return
+
+        if (lastMessage.role === 'user') {
+          // For user messages: scroll to the end of the user message specifically
+          const userMessages = container.querySelectorAll('[data-message-type="user"]')
+          if (userMessages.length > 0) {
+            const lastUserMessage = userMessages[userMessages.length - 1] as HTMLElement
+            if (lastUserMessage) {
+              // Use requestAnimationFrame to ensure layout is stable before calculating
+              requestAnimationFrame(() => {
+                // Calculate scroll position relative to container only (not viewport)
+                // This prevents affecting fixed positioned elements like floating cards
+                const containerRect = container.getBoundingClientRect()
+                const messageRect = lastUserMessage.getBoundingClientRect()
+                const relativeTop = messageRect.top - containerRect.top + container.scrollTop
+                const messageHeight = messageRect.height
+                const containerHeight = container.clientHeight
+                
+                // Scroll to show the bottom of the message
+                const targetScroll = relativeTop + messageHeight - containerHeight + 20 // 20px padding
+                container.scrollTo({
+                  top: Math.max(0, targetScroll),
+                  behavior: 'smooth'
+                })
+              })
+            }
+          }
+        } else if (lastMessage.role === 'assistant' && (isStreaming || isTyping)) {
+          // For assistant messages during streaming: scroll to show the message but not all the way to the end
+          const assistantMessages = container.querySelectorAll('[data-message-type="assistant"]')
+          if (assistantMessages.length > 0) {
+            const lastAssistantMessage = assistantMessages[assistantMessages.length - 1] as HTMLElement
+            if (lastAssistantMessage) {
+              // Use requestAnimationFrame to ensure layout is stable
+              requestAnimationFrame(() => {
+                // Calculate scroll position relative to container only
+                // This prevents affecting fixed positioned elements like floating cards
+                const containerRect = container.getBoundingClientRect()
+                const messageRect = lastAssistantMessage.getBoundingClientRect()
+                const relativeTop = messageRect.top - containerRect.top + container.scrollTop
+                const containerHeight = container.clientHeight
+                
+                // Scroll to show the message but leave some space at bottom (10% of viewport)
+                const targetScroll = relativeTop - (containerHeight * 0.1)
+                container.scrollTo({
+                  top: Math.max(0, targetScroll),
+                  behavior: 'smooth'
+                })
+              })
+            }
+          }
+        }
+      }, 100)
+      
+      return () => {
+        clearTimeout(scrollTimeout)
+        if (adjustTimeout) {
+          clearTimeout(adjustTimeout)
+        }
+      }
+    }
+  }, [messages, isStreaming, isTyping, messagesContainerRef])
+
   // Extracted media attachment renderer
   const renderMediaAttachment = (attachment: MediaAttachment) => {
     const { mediaType, data, name, dimensions, duration, type } = attachment

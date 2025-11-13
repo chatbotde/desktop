@@ -184,7 +184,7 @@ export function updatePlaceholder() {
     if (isCollapsed) {
         dom.messageInput.placeholder = 'Ask Anything...';
     } else {
-        dom.messageInput.placeholder = 'Type your message... (Shift+Enter to send)';
+        dom.messageInput.placeholder = 'Type your message... ';
     }
 }
 
