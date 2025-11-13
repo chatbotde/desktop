@@ -508,7 +508,7 @@ class TextSelectionUIManager {
     // Copy text to clipboard
     const textToCopy = this.currentText;
     
-    // Helper function to show visual feedback
+    // Helper function to show visual feedback with checkmark
     const showCopyFeedback = (button, isMiniBar = false) => {
       if (!button) {
         console.warn('Text Selection UI: Button element not found for feedback');
@@ -516,25 +516,34 @@ class TextSelectionUIManager {
       }
       
       const originalHTML = button.innerHTML;
+      const originalColor = button.style.color;
+      const originalBackground = button.style.background;
       
-      // Change button content
+      // Change button content to checkmark with animation
       const checkmarkSVG = isMiniBar 
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
              <path d="M20 6 9 17l-5-5"/>
            </svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
              <path d="M20 6 9 17l-5-5"/>
            </svg>`;
       
-      button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
+      button.innerHTML = `${checkmarkSVG}<span style="animation: checkmark-appear 0.3s ease-out;">Copied!</span>`;
       button.style.color = '#86efac';
-      button.style.background = 'rgba(34, 197, 94, 0.2)';
+      button.style.background = 'rgba(34, 197, 94, 0.3)';
+      button.style.borderColor = 'rgba(34, 197, 94, 0.5)';
+      button.style.transform = 'scale(1.05)';
+      button.style.transition = 'all 0.2s ease';
       
-      // Reset after 2 seconds
+      // Reset after 2 seconds with smooth transition
       setTimeout(() => {
-        button.innerHTML = originalHTML;
-        button.style.color = '';
-        button.style.background = '';
+        button.style.transform = 'scale(1)';
+        setTimeout(() => {
+          button.innerHTML = originalHTML;
+          button.style.color = originalColor;
+          button.style.background = originalBackground;
+          button.style.borderColor = '';
+        }, 200);
       }, 2000);
     };
     
@@ -577,28 +586,37 @@ class TextSelectionUIManager {
       if (success) {
         console.log('Text Selection UI: Text copied successfully using fallback method');
         
-        // Helper function to show visual feedback
+        // Helper function to show visual feedback with checkmark
         const showCopyFeedback = (button, isMiniBar = false) => {
           if (!button) return;
           
           const originalHTML = button.innerHTML;
+          const originalColor = button.style.color;
+          const originalBackground = button.style.background;
           
           const checkmarkSVG = isMiniBar 
-            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
                  <path d="M20 6 9 17l-5-5"/>
                </svg>`
-            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
                  <path d="M20 6 9 17l-5-5"/>
                </svg>`;
           
-          button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
+          button.innerHTML = `${checkmarkSVG}<span style="animation: checkmark-appear 0.3s ease-out;">Copied!</span>`;
           button.style.color = '#86efac';
-          button.style.background = 'rgba(34, 197, 94, 0.2)';
+          button.style.background = 'rgba(34, 197, 94, 0.3)';
+          button.style.borderColor = 'rgba(34, 197, 94, 0.5)';
+          button.style.transform = 'scale(1.05)';
+          button.style.transition = 'all 0.2s ease';
           
           setTimeout(() => {
-            button.innerHTML = originalHTML;
-            button.style.color = '';
-            button.style.background = '';
+            button.style.transform = 'scale(1)';
+            setTimeout(() => {
+              button.innerHTML = originalHTML;
+              button.style.color = originalColor;
+              button.style.background = originalBackground;
+              button.style.borderColor = '';
+            }, 200);
           }, 2000);
         };
         
@@ -634,26 +652,36 @@ class TextSelectionUIManager {
       const panelHeight = this.panel.offsetHeight || 140;
       const panelWidth = this.panel.offsetWidth || 300;
       const gap = 12;
-      const offset = 20; // Distance from cursor
+      const offset = 15; // Closer to cursor
 
-      let topPos = this.lastMouseY - (panelHeight / 2);
+      // Try to position above and to the right of cursor first
+      let topPos = this.lastMouseY - panelHeight - offset;
       let leftPos = this.lastMouseX + offset;
 
+      // If doesn't fit on right, try left
       if (leftPos + panelWidth > window.innerWidth - gap) {
         leftPos = this.lastMouseX - panelWidth - offset;
       }
+      
+      // If doesn't fit on left either, center it
+      if (leftPos < gap) {
+        leftPos = this.lastMouseX - (panelWidth / 2);
+      }
+      
+      // Clamp to viewport width
       if (leftPos + panelWidth > window.innerWidth - gap) {
         leftPos = window.innerWidth - panelWidth - gap;
       }
       if (leftPos < gap) {
         leftPos = gap;
       }
-      if (topPos + panelHeight > window.innerHeight - gap) {
-        topPos = this.lastMouseY - panelHeight - offset;
-      }
+      
+      // If doesn't fit above, position below
       if (topPos < gap) {
         topPos = this.lastMouseY + offset;
       }
+      
+      // Clamp to viewport height
       if (topPos + panelHeight > window.innerHeight - gap) {
         topPos = window.innerHeight - panelHeight - gap;
       }
@@ -670,17 +698,17 @@ class TextSelectionUIManager {
     if (this.fab && this.isFabVisible) {
       const gap = 8;
       const size = 32;
-      let topPos = this.lastMouseY - size - 6;
-      let leftPos = this.lastMouseX + 10;
+      let topPos = this.lastMouseY - size - 8;
+      let leftPos = this.lastMouseX + 8;
 
       if (leftPos + size > window.innerWidth - gap) {
-        leftPos = this.lastMouseX - size - 10;
+        leftPos = this.lastMouseX - size - 8;
       }
       if (leftPos < gap) {
         leftPos = gap;
       }
       if (topPos < gap) {
-        topPos = this.lastMouseY + 10;
+        topPos = this.lastMouseY + 8;
       }
       if (topPos + size > window.innerHeight - gap) {
         topPos = window.innerHeight - size - gap;
@@ -693,19 +721,33 @@ class TextSelectionUIManager {
       this.fab.style.display = 'inline-flex';
     }
 
-    // Position mini toolbar (Google search bar) near cursor/selection
+    // Position mini toolbar (Google search bar) near cursor/selection - centered above cursor
     if (this.miniBar && this.isMiniVisible) {
-      const gap = 8;
+      const gap = 12;
       const barWidth = this.miniBar.offsetWidth || 500;
       const barHeight = this.miniBar.offsetHeight || 52;
 
-      let topPos = this.lastMouseY - barHeight - 12;
-      let leftPos = this.lastMouseX - barWidth / 2;
+      // Position centered above cursor with small offset
+      let topPos = this.lastMouseY - barHeight - 16;
+      let leftPos = this.lastMouseX - (barWidth / 2);
 
-      if (leftPos + barWidth > window.innerWidth - gap) leftPos = window.innerWidth - barWidth - gap;
-      if (leftPos < gap) leftPos = gap;
-      if (topPos < gap) topPos = this.lastMouseY + 16;
-      if (topPos + barHeight > window.innerHeight - gap) topPos = window.innerHeight - barHeight - gap;
+      // Ensure it stays within viewport horizontally
+      if (leftPos + barWidth > window.innerWidth - gap) {
+        leftPos = window.innerWidth - barWidth - gap;
+      }
+      if (leftPos < gap) {
+        leftPos = gap;
+      }
+      
+      // If doesn't fit above cursor, position below
+      if (topPos < gap) {
+        topPos = this.lastMouseY + 20;
+      }
+      
+      // Ensure it stays within viewport vertically
+      if (topPos + barHeight > window.innerHeight - gap) {
+        topPos = window.innerHeight - barHeight - gap;
+      }
 
       this.miniBar.style.position = 'fixed';
       this.miniBar.style.top = `${topPos}px`;
@@ -757,21 +799,34 @@ class TextSelectionUIManager {
       this.panel.classList.remove('visible');
     }
 
-    // Show the search bar immediately with initial position
+    // Show the search bar immediately with initial position - centered above cursor
     if (this.miniBar) {
       // Set initial position before showing to avoid layout shift
-      const gap = 8;
+      const gap = 12;
       const barWidth = 500; // Default width
       const barHeight = 52; // Default height
       
-      let topPos = this.lastMouseY - barHeight - 12;
-      let leftPos = this.lastMouseX - barWidth / 2;
+      // Position centered above cursor with small offset
+      let topPos = this.lastMouseY - barHeight - 16;
+      let leftPos = this.lastMouseX - (barWidth / 2);
       
-      // Ensure it's within viewport
-      if (leftPos + barWidth > window.innerWidth - gap) leftPos = window.innerWidth - barWidth - gap;
-      if (leftPos < gap) leftPos = gap;
-      if (topPos < gap) topPos = this.lastMouseY + 16;
-      if (topPos + barHeight > window.innerHeight - gap) topPos = window.innerHeight - barHeight - gap;
+      // Ensure it stays within viewport horizontally
+      if (leftPos + barWidth > window.innerWidth - gap) {
+        leftPos = window.innerWidth - barWidth - gap;
+      }
+      if (leftPos < gap) {
+        leftPos = gap;
+      }
+      
+      // If doesn't fit above cursor, position below
+      if (topPos < gap) {
+        topPos = this.lastMouseY + 20;
+      }
+      
+      // Ensure it stays within viewport vertically
+      if (topPos + barHeight > window.innerHeight - gap) {
+        topPos = window.innerHeight - barHeight - gap;
+      }
       
       this.miniBar.style.position = 'fixed';
       this.miniBar.style.top = `${topPos}px`;

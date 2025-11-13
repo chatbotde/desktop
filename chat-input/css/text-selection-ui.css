@@ -1,411 +1,4 @@
-/* ==================== TEXT SELECTION UI PANEL ==================== */
-
-#textSelectionPanel {
-  position: fixed;
-  display: none;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--bg-popover, rgba(14, 18, 26, 0.98));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border, rgba(148, 163, 184, 0.35));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  z-index: 50000;
-  pointer-events: auto;
-  user-select: none;
-  opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  min-width: 280px;
-  max-width: 350px;
-  will-change: transform, opacity;
-}
-
-#textSelectionPanel.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-.text-selection-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 12px;
-  width: 100%;
-}
-
-/* Preview Section */
-.text-selection-preview {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.preview-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-  line-height: 1.4;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.preview-text {
-  flex: 1;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-dim, rgba(255, 255, 255, 0.7));
-  word-break: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  text-overflow: ellipsis;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-}
-
-/* Input Area Section */
-.text-selection-input-area {
-  margin-bottom: 12px;
-  width: 100%;
-}
-
-.text-selection-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary, rgba(255, 255, 255, 0.9));
-  font-size: 13px;
-  font-family: inherit;
-  line-height: 1.5;
-  resize: vertical;
-  min-height: 50px;
-  max-height: 150px;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.text-selection-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-  font-style: italic;
-}
-
-.text-selection-textarea:focus {
-  border-color: rgba(59, 130, 246, 0.5);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.text-selection-textarea:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.07);
-}
-
-/* Actions Section */
-.text-selection-actions {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-}
-
-/* Button Styles */
-.text-selection-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-  outline: none;
-  white-space: nowrap;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.text-selection-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.18);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.text-selection-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.text-selection-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(59, 130, 246, 0.5);
-}
-
-/* Button SVG Styling */
-.text-selection-btn svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  stroke-width: 2.5;
-  opacity: 0.95;
-}
-
-/* Ask Button - Primary Action */
-.ask-btn {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15));
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-}
-
-.ask-btn:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.25));
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-}
-
-.ask-btn:active {
-  background: rgba(59, 130, 246, 0.3);
-}
-
-/* Add Button - Secondary Action */
-.add-btn {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.08));
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #86efac;
-}
-
-.add-btn:hover {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.15));
-  border-color: rgba(34, 197, 94, 0.5);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
-}
-
-.add-btn:active {
-  background: rgba(34, 197, 94, 0.2);
-}
-
-/* Copy Button - Copy Action */
-.copy-btn {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
-  border-color: rgba(139, 92, 246, 0.3);
-  color: #a78bfa;
-}
-
-.copy-btn:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15));
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-}
-
-.copy-btn:active {
-  background: rgba(139, 92, 246, 0.2);
-}
-
-/* Close Button - Dismiss Action */
-.close-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  flex-basis: auto;
-  min-width: 40px;
-  padding: 10px 8px;
-  border-radius: 8px;
-}
-
-.close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
-}
-
-.close-btn:active {
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.close-btn span {
-  font-size: 16px;
-  line-height: 1;
-}
-
-/* Responsive Design */
-@media (max-width: 640px) {
-  #textSelectionPanel {
-    min-width: 240px;
-    max-width: 280px;
-  }
-
-  .text-selection-preview {
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-  }
-
-  .preview-text {
-    font-size: 12px;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-
-  .text-selection-actions {
-    gap: 6px;
-  }
-
-  .text-selection-btn {
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-
-  .text-selection-btn svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .text-selection-textarea {
-    font-size: 12px;
-    padding: 8px 10px;
-    min-height: 45px;
-  }
-}
-
-/* Dark Theme Support */
-@media (prefers-color-scheme: dark) {
-  #textSelectionPanel {
-    background: rgba(14, 18, 26, 0.98);
-    border-color: rgba(148, 163, 184, 0.35);
-  }
-
-  .preview-text {
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  .text-selection-textarea {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(148, 163, 184, 0.35);
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  .text-selection-textarea::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-}
-
-/* Light Theme Support */
-@media (prefers-color-scheme: light) {
-  #textSelectionPanel {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(200, 210, 220, 0.5);
-  }
-
-  .text-selection-btn {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.1);
-    color: #333;
-  }
-
-  .text-selection-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
-    border-color: rgba(0, 0, 0, 0.2);
-  }
-
-  .ask-btn {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
-    color: #1d4ed8;
-  }
-
-  .ask-btn:hover {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.5);
-  }
-
-  .add-btn {
-    background: rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.3);
-    color: #15803d;
-  }
-
-  .add-btn:hover {
-    background: rgba(34, 197, 94, 0.15);
-    border-color: rgba(34, 197, 94, 0.5);
-  }
-
-  .copy-btn {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: #7c3aed;
-  }
-
-  .copy-btn:hover {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.5);
-  }
-
-  .close-btn {
-    background: rgba(0, 0, 0, 0.03);
-    border-color: rgba(0, 0, 0, 0.1);
-    color: rgba(0, 0, 0, 0.6);
-  }
-
-  .close-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #dc2626;
-  }
-
-  .preview-text {
-    color: rgba(0, 0, 0, 0.65);
-  }
-
-  .text-selection-textarea {
-    background: rgba(0, 0, 0, 0.03);
-    border-color: rgba(0, 0, 0, 0.15);
-    color: rgba(0, 0, 0, 0.9);
-  }
-
-  .text-selection-textarea::placeholder {
-    color: rgba(0, 0, 0, 0.4);
-  }
-
-  .text-selection-textarea:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    background: rgba(59, 130, 246, 0.05);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-  }
-
-  .text-selection-textarea:hover {
-    border-color: rgba(0, 0, 0, 0.2);
-    background: rgba(0, 0, 0, 0.05);
-  }
-}
-
-/* Animations - Reduce motion preference */
-@media (prefers-reduced-motion: reduce) {
-  #textSelectionPanel {
-    transition: none;
-  }
-
-  .text-selection-btn {
-    transition: none;
-  }
-}
-
-/* ==================== GOOGLE-STYLE SEARCH BAR ==================== */
+/* ==================== TEXT SELECTION UI - MINI BAR (PRIMARY) ==================== */
 
 .text-selection-mini {
   position: fixed;
@@ -420,19 +13,16 @@
 .google-search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px;
   background: var(--bg-popover, rgba(60, 64, 67, 0.95));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
-  min-width: 400px;
-  max-width: 600px;
-  opacity: 1;
-  transform: scale(1);
-  /* No transition on initial appearance - instant show */
+  border-radius: 20px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3), 0 1px 6px rgba(0, 0, 0, 0.2);
+  min-width: 320px;
+  max-width: 500px;
 }
 
 .google-search-bar:hover {
@@ -445,8 +35,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   color: rgba(255, 255, 255, 0.6);
   pointer-events: none;
 }
@@ -470,10 +60,10 @@
   border: none;
   outline: none;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
-  line-height: 1.5;
-  padding: 4px 0;
+  line-height: 1.4;
+  padding: 3px 0;
   user-select: text;
 }
 
@@ -493,13 +83,13 @@
   flex-shrink: 0;
 }
 
-/* Action Buttons */
+/* Action Buttons - Base Styles */
 .search-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: transparent;
   border: none;
@@ -522,75 +112,61 @@
 }
 
 .search-action-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   stroke-width: 2;
 }
 
-/* Microphone Button */
-.mic-btn.recording {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
-  animation: pulse-recording 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse-recording {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-/* Camera Button */
-.camera-btn:hover {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-}
-
-/* Copy Button (Mini Bar) */
-.copy-btn {
+/* Copy Button */
+.search-action-btn.copy-btn {
   width: auto;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: 16px;
   background: rgba(139, 92, 246, 0.2);
   color: #a78bfa;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  gap: 6px;
-  margin-right: 4px;
+  gap: 5px;
+  margin-right: 3px;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.copy-btn:hover {
+.search-action-btn.copy-btn:hover {
   background: rgba(139, 92, 246, 0.3);
   color: #c4b5fd;
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
-.copy-btn:active {
+.search-action-btn.copy-btn:active {
   background: rgba(139, 92, 246, 0.25);
 }
 
-.copy-btn span {
+.search-action-btn.copy-btn.copied {
+  background: rgba(34, 197, 94, 0.3) !important;
+  color: #86efac !important;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3) !important;
+  transform: scale(1.05);
+}
+
+.search-action-btn.copy-btn span {
   white-space: nowrap;
 }
 
-.copy-btn svg {
-  width: 16px;
-  height: 16px;
+.search-action-btn.copy-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Send Button */
 .send-btn {
   width: auto;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: 16px;
   background: rgba(59, 130, 246, 0.2);
   color: #60a5fa;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  gap: 6px;
+  gap: 5px;
 }
 
 .send-btn:hover {
@@ -608,43 +184,269 @@
 }
 
 .send-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
-/* Responsive Design */
+/* Checkmark Animation */
+@keyframes checkmark-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* ==================== EXPANDED PANEL (FALLBACK) ==================== */
+
+#textSelectionPanel {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-radius: 10px;
+  background: var(--bg-popover, rgba(14, 18, 26, 0.98));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.35));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 50000;
+  pointer-events: auto;
+  user-select: none;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  min-width: 240px;
+  max-width: 300px;
+}
+
+#textSelectionPanel.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.text-selection-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px;
+  width: 100%;
+}
+
+.text-selection-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.preview-text {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-dim, rgba(255, 255, 255, 0.7));
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.text-selection-input-area {
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.text-selection-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, rgba(255, 255, 255, 0.9));
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 40px;
+  max-height: 120px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.text-selection-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.text-selection-textarea:focus {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.text-selection-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.text-selection-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  outline: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.text-selection-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.text-selection-btn:active {
+  transform: translateY(0);
+}
+
+.text-selection-btn svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  stroke-width: 2.5;
+}
+
+/* Panel Button Variants */
+.ask-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15));
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #60a5fa;
+}
+
+.ask-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(59, 130, 246, 0.25));
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.add-btn {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.08));
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.15));
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.text-selection-btn.copy-btn {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.text-selection-btn.copy-btn:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15));
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.text-selection-btn.copy-btn.copied {
+  background: rgba(34, 197, 94, 0.3) !important;
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  color: #86efac !important;
+  transform: scale(1.05);
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  flex-basis: auto;
+  min-width: 32px;
+}
+
+.close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
 @media (max-width: 640px) {
   .google-search-bar {
-    min-width: 320px;
+    min-width: 280px;
     max-width: 90vw;
-    padding: 6px 10px;
+    padding: 5px 8px;
   }
 
   .search-input {
-    font-size: 13px;
-  }
-
-  .search-action-btn {
-    width: 32px;
-    height: 32px;
-  }
-
-  .search-action-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .send-btn {
-    padding: 6px 12px;
     font-size: 12px;
   }
 
-  .send-btn span {
+  .search-action-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .search-action-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .send-btn span,
+  .copy-btn span {
     display: none;
+  }
+
+  #textSelectionPanel {
+    min-width: 200px;
+    max-width: 240px;
+  }
+
+  .text-selection-btn {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .text-selection-btn svg {
+    width: 10px;
+    height: 10px;
   }
 }
 
-/* Light Theme Support */
+/* ==================== THEME SUPPORT ==================== */
+
 @media (prefers-color-scheme: light) {
   .google-search-bar {
     background: rgba(255, 255, 255, 0.95);
@@ -673,22 +475,12 @@
     color: rgba(0, 0, 0, 0.9);
   }
 
-  .mic-btn.recording {
-    background: rgba(239, 68, 68, 0.15);
-    color: #dc2626;
-  }
-
-  .camera-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
-    color: #1d4ed8;
-  }
-
-  .copy-btn {
+  .search-action-btn.copy-btn {
     background: rgba(139, 92, 246, 0.1);
     color: #7c3aed;
   }
 
-  .copy-btn:hover {
+  .search-action-btn.copy-btn:hover {
     background: rgba(139, 92, 246, 0.15);
     color: #6d28d9;
   }
@@ -701,5 +493,58 @@
   .send-btn:hover {
     background: rgba(59, 130, 246, 0.15);
     color: #2563eb;
+  }
+
+  #textSelectionPanel {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(200, 210, 220, 0.5);
+  }
+
+  .text-selection-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+
+  .text-selection-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .preview-text {
+    color: rgba(0, 0, 0, 0.65);
+  }
+
+  .text-selection-textarea {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .text-selection-textarea::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .text-selection-textarea:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.05);
+  }
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+  #textSelectionPanel,
+  .text-selection-btn,
+  .search-action-btn,
+  .text-selection-mini {
+    transition: none;
+  }
+  
+  @keyframes checkmark-appear {
+    0%, 100% {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
