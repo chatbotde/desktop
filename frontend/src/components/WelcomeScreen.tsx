@@ -1,4 +1,4 @@
-import { Rocket, AlertCircle, CheckCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 import { 
   isGeminiConfigured, 
   isOpenAIConfigured, 
@@ -19,12 +19,71 @@ export function WelcomeScreen() {
     <div className="min-h-full flex items-start justify-center py-8">
       <div className="text-center space-y-8 max-w-2xl mx-auto p-8 w-full">
         <div className="space-y-4">
-          <div className="text-6xl text-white/30">
-            <Rocket className="w-16 h-16 mx-auto mb-4" />
+          <div className="relative flex items-center justify-center text-6xl text-white/30">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 64 64"
+              className="w-16 h-16 mx-auto mb-4"
+              fill="none"
+            >
+              {/* Black & white minimalist rocket launch sketch */}
+              {/* Rocket body */}
+              <path
+                d="M32 10C28 16 27 38 32 52C37 38 36 16 32 10Z"
+                stroke="white"
+                strokeWidth="2"
+                fill="transparent"
+              />
+              {/* Window */}
+              <circle
+                cx="32"
+                cy="25"
+                r="4"
+                stroke="white"
+                strokeWidth="1.5"
+                fill="none"
+              />
+              {/* Left fin */}
+              <path
+                d="M28 45L20 53L31 49"
+                stroke="white"
+                strokeWidth="1.5"
+                fill="none"
+              />
+              {/* Right fin */}
+              <path
+                d="M36 45L44 53L33 49"
+                stroke="white"
+                strokeWidth="1.5"
+                fill="none"
+              />
+              {/* Flame */}
+              <path
+                d="M30 55 Q32 62 34 55 Q32 59 30 55Z"
+                stroke="white"
+                strokeWidth="1.3"
+                fill="none"
+              />
+              {/* Simple launch smoke/sketch lines below */}
+              <path
+                d="M26 61 Q28 62 32 61 Q36 60 38 61"
+                stroke="#fff"
+                strokeWidth="0.9"
+                fill="none"
+                opacity="0.6"
+              />
+              <path
+                d="M29 64 Q32 63 35 64"
+                stroke="#fff"
+                strokeWidth="0.8"
+                fill="none"
+                opacity="0.4"
+              />
+            </svg>
           </div>
           
-          <h1 className="text-2xl font-bold text-white/90">Welcome to Buddy</h1>
-          <p className="text-sm text-white/60">Multi-provider AI chat assistant</p>
+          <h1 className="text-2xl font-bold text-white/90">Buddy</h1>
+          
           
           {/* Current Provider Status */}
           <div className={`p-4 rounded-lg border ${
@@ -82,16 +141,8 @@ export function WelcomeScreen() {
             </div>
           </div>
 
-          {/* Setup Instructions */}
-          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/30 text-left">
-            <h3 className="text-sm font-medium text-blue-400 mb-2">Setup Instructions</h3>
-            <div className="text-xs text-white/60 space-y-1">
-              <p>1. Create a <code className="bg-white/10 px-1 rounded">.env</code> file in the frontend folder</p>
-              <p>2. Add API keys for the providers you want to use</p>
-              <p>3. See <code className="bg-white/10 px-1 rounded">API_KEYS_SETUP.md</code> for detailed instructions</p>
-              <p>4. Restart the development server</p>
-            </div>
-          </div>
+          
+          
         </div>
       </div>
     </div>

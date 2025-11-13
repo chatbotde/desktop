@@ -2,7 +2,6 @@
 export { WelcomeScreen } from './WelcomeScreen'
 export { ScreenCaptureModal } from './ScreenCaptureModal'
 export { ScrollToTopButton } from './ScrollToTopButton'
-export { SmartMessage } from './SmartMessage'
 export { PromptInputWithActions } from './prompt-input'
 export { ModelSelector } from './ModelSelector'
 

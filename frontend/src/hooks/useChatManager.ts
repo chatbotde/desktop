@@ -39,11 +39,8 @@ export function useChatManager() {
       return
     }
 
-    console.log('Main Window: Processing queued message:', messageData);
-    
     // Sync the selected model from chat-input window to main window
     if (messageData.selectedModel) {
-      console.log('Main Window: Syncing selected model:', messageData.selectedModel);
       setSelectedModel(messageData.selectedModel);
     }
     
@@ -52,7 +49,6 @@ export function useChatManager() {
     
     // Prevent duplicate messages by checking if message with same ID already exists
     if (processedMessageIds.current.has(messageId)) {
-      console.log('Main Window: Duplicate message detected, ignoring:', messageId);
       // Continue processing next message
       isProcessingRef.current = false
       processMessageQueue()
