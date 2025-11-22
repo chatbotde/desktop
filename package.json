@@ -9,12 +9,17 @@
     "url": "https://github.com/sonicthinking/buddy.git"
   },
   "scripts": {
-    "start": "electron-forge start",
+    "start": "electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
     "build:all": "npm run build && node build-frontend.js",
-    "build:electron": "npm run build && electron-builder",
+    "dist": "npm run build:all && electron-builder",
+    "dist:win": "npm run build:all && electron-builder --win",
+    "dist:mac": "npm run build:all && electron-builder --mac",
+    "dist:linux": "npm run build:all && electron-builder --linux",
+    "dist:all": "npm run build:all && electron-builder -mwl",
+    "pack": "npm run build:all && electron-builder --dir",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test-chat": "electron test-chat-input.js",
     "test-capture": "electron chat-input/test-capture-runner.js",
@@ -22,9 +27,7 @@
     "debug-text-selection": "node debug-text-selection.js",
     "test-selection-hook": "electron test-selection-hook.js",
     "test-simple-selection": "node simple-selection-test.js",
-    "debug-text-selection-monitor": "node debug-text-selection-monitor.js",
-    "package": "npm run build:all && electron-forge package",
-    "make": "npm run build:all && electron-forge make"
+    "debug-text-selection-monitor": "node debug-text-selection-monitor.js"
   },
   "keywords": [
     "desktop",
@@ -35,18 +38,104 @@
   "author": "sonicthinking",
   "license": "ISC",
   "description": "A desktop companion app built with Electron",
+  "build": {
+    "appId": "com.sonicthinking.buddy",
+    "productName": "Buddy",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "app-frontend/**/*",
+      "chat-input/**/*",
+      "startup/**/*",
+      "utils/**/*",
+      "icons/**/*",
+      "clipboard-monitor.js",
+      "node_modules/**/*",
+      "!node_modules/**/test/**",
+      "!node_modules/**/.bin/**",
+      "!frontend/**",
+      "!**/*.md"
+    ],
+    "asarUnpack": [
+      "node_modules/ffi-napi/**/*",
+      "node_modules/ref-napi/**/*",
+      "node_modules/ref-struct-napi/**/*",
+      "node_modules/ref-union-napi/**/*",
+      "node_modules/selection-hook/**/*",
+      "node_modules/**/*.node"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icons/icon.ico",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Buddy",
+      "installerIcon": "icons/icon.ico",
+      "uninstallerIcon": "icons/icon.ico",
+      "installerHeaderIcon": "icons/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.productivity",
+      "icon": "icons/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "category": "Utility",
+      "icon": "icons/icon.png",
+      "maintainer": "sonicthinking"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "sonicthinking",
+      "repo": "buddy"
+    }
+  },
   "devDependencies": {
-    "@electron-forge/cli": "^7.8.3",
-    "@electron-forge/maker-deb": "^7.8.3",
-    "@electron-forge/maker-rpm": "^7.8.3",
-    "@electron-forge/maker-squirrel": "^7.8.3",
-    "@electron-forge/maker-zip": "^7.8.3",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.8.3",
-    "@electron-forge/plugin-fuses": "^7.8.3",
-    "@electron/fuses": "^1.8.0",
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
     "electron": "^37.7.1",
+    "electron-builder": "^26.0.12",
     "wait-on": "^8.0.4"
   },
   "dependencies": {
