@@ -5,6 +5,7 @@ const { ClickThroughHandlers } = require("./click-through-handlers");
 const { FilePickerHandlers } = require("./file-picker-handlers");
 const { CaptureApiHandlers } = require("./capture-api-handlers");
 const { TextSelectionHandlers } = require("./text-selection-handlers");
+const { TsfHandlers } = require("./tsf-handlers");
 const { setupWebViewHandlers } = require("../../web-view/handlers/web-view-handlers");
 
 /**
@@ -30,10 +31,11 @@ class IpcHandlerRegistry {
     FilePickerHandlers.registerHandlers();
     CaptureApiHandlers.registerHandlers();
     TextSelectionHandlers.registerHandlers();
+    TsfHandlers.registerHandlers();
     setupWebViewHandlers();
 
     IpcHandlerRegistry.ipcHandlersRegistered = true;
-    console.log("IPC: Chat input handlers registered (including new capture API and WebView)");
+    console.log("IPC: Chat input handlers registered (including TSF, capture API and WebView)");
   }
 
   /**

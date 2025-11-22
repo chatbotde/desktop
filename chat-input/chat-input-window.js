@@ -7,6 +7,7 @@ const { WindowConfig } = require("./window/utils/window-config");
 const { WindowBehavior } = require("./window/utils/window-behavior");
 const { SecurityManager } = require("./window/security/security-manager");
 const { IpcHandlerRegistry } = require("./window/handlers/ipc-handler-registry");
+const { TsfHandlers } = require("./window/handlers/tsf-handlers");
 
 class ChatInputWindow {
   constructor() {
@@ -37,6 +38,9 @@ class ChatInputWindow {
 
     // Setup window behavior using the behavior manager
     this.setupChatInputBehavior();
+
+    // Setup TSF event forwarding
+    TsfHandlers.setupEventForwarding(this.chatInputWindow);
 
     return this.chatInputWindow;
   }

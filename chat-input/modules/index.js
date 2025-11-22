@@ -5,6 +5,7 @@ import { initMCPManager } from './mcp-manager.js';
 import { initializeTextSelection } from './text-selection.js';
 import { initClipboardUI } from './clipboard-ui.js';
 import { initBadgesIntegration } from './badges-integration.js';
+import tsfInsertManager from './tsf-insert-manager.js';
 
 function start() {
     try { 
@@ -37,6 +38,11 @@ function start() {
       initBadgesIntegration(); 
     } catch (e) { console.error('Badges integration init failed', e); }
     
+    try { 
+      console.log('Modules: Initializing TSF insert manager');
+      tsfInsertManager.init(); 
+    } catch (e) { console.error('TSF insert manager init failed', e); }
+    
     console.log('Modules: All initialization completed');
 }
 
@@ -48,3 +54,6 @@ if (document.readyState === 'loading') {
     console.log('Modules: DOM already ready, starting immediately');
     start();
 }
+
+// Export TSF insert manager for other modules to use
+export { tsfInsertManager };

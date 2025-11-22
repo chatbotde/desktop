@@ -271,3 +271,78 @@
     flex-shrink: 0;
 }
 
+/* Insert button - for TSF text insertion */
+.action-btn.insert-btn {
+    position: relative;
+    background: rgba(147, 51, 234, 0.1);
+    border-color: rgba(147, 51, 234, 0.3);
+    color: #9333ea;
+}
+
+.action-btn.insert-btn:hover {
+    background: rgba(147, 51, 234, 0.2);
+    border-color: rgba(147, 51, 234, 0.4);
+    box-shadow: 0 0 12px rgba(147, 51, 234, 0.25);
+}
+
+.action-btn.insert-btn:active {
+    background: rgba(147, 51, 234, 0.3);
+    transform: scale(0.96);
+}
+
+.action-btn.insert-btn.has-target {
+    background: rgba(147, 51, 234, 0.15);
+    border-color: rgba(147, 51, 234, 0.4);
+    animation: insertPulse 2s ease-in-out infinite;
+}
+
+.action-btn.insert-btn.inserting {
+    pointer-events: none;
+    animation: insertSending 0.6s ease-in-out;
+}
+
+/* Insert badge - shows target app name */
+.insert-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: #9333ea;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 8px;
+    border: 1.5px solid var(--bg-primary);
+    line-height: 1;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+@keyframes insertPulse {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(147, 51, 234, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(147, 51, 234, 0.4);
+    }
+}
+
+@keyframes insertSending {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-4px);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+

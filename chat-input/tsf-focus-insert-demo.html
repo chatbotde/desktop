@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSF Focus and Insert Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tracked-app {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .tracked-app h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .app-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .app-title {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 5px 0;
+        }
+        .no-app {
+            opacity: 0.7;
+            font-style: italic;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #856404;
+            font-size: 16px;
+        }
+        .instructions ol {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+            color: #856404;
+        }
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+            display: none;
+        }
+        .status.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge.editable {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge.not-editable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            🎯 Focus & Insert Demo
+        </h1>
+        
+        <div class="instructions">
+            <h3>📋 How to Use:</h3>
+            <ol>
+                <li>Click on a text editor (Notepad, browser, Word, VS Code, etc.)</li>
+                <li>The app will track where you were</li>
+                <li>Come back here and type a message</li>
+                <li>Click "Send to Last App" button</li>
+                <li>Watch it automatically go back and insert your text!</li>
+            </ol>
+        </div>
+
+        <div id="statusMessage" class="status"></div>
+
+        <div class="tracked-app">
+            <h3>📍 Last Focused Application</h3>
+            <div id="trackedAppInfo" class="no-app">
+                No external application tracked yet.<br>
+                Click on a text editor to track it!
+            </div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 600;">
+                Your Message:
+            </label>
+            <textarea id="messageInput" placeholder="Type your message here...">Hello from SonicPlane! 🚀
+
+This message was automatically inserted into your application.
+No manual pasting needed!
+
+Time: ${new Date().toLocaleTimeString()}</textarea>
+        </div>
+
+        <div class="button-group">
+            <button id="sendButton" class="btn-primary" onclick="sendToLastApp()">
+                🚀 Send to Last App
+            </button>
+            <button class="btn-secondary" onclick="refreshTracking()">
+                🔄 Refresh Tracking
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let lastTrackedApp = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await window.tsfAPI.initialize();
+                showStatus('✅ TSF Ready! Click on an external app to start.', 'success');
+                
+                // Start monitoring
+                startMonitoring();
+            } catch (err) {
+                showStatus('❌ Error: ' + err.message, 'error');
+            }
+        });
+
+        // Monitor for external app focus changes
+        window.tsfAPI.onExternalFocusChanged((focusInfo) => {
+            console.log('External app focused:', focusInfo);
+            lastTrackedApp = focusInfo;
+            updateTrackedAppDisplay(focusInfo);
+            showStatus(`📍 Tracked: ${focusInfo.processName}`, 'info');
+        });
+
+        // Listen for successful insertions
+        window.tsfAPI.onTextInserted((data) => {
+            console.log('✅ Text inserted:', data);
+            showStatus(`✅ Message sent to ${data.focusInfo.processName}!`, 'success');
+        });
+
+        window.tsfAPI.onInsertFailed((data) => {
+            showStatus('❌ Failed to insert text. Try clicking on the app again.', 'error');
+        });
+
+        async function sendToLastApp() {
+            const textarea = document.getElementById('messageInput');
+            const message = textarea.value.trim();
+
+            if (!message) {
+                showStatus('⚠️ Please type a message first', 'error');
+                return;
+            }
+
+            // Show loading state
+            const btn = document.getElementById('sendButton');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Sending...';
+            btn.disabled = true;
+
+            try {
+                // This is the magic function!
+                const success = await window.tsfAPI.focusAndInsertText(message);
+
+                if (success) {
+                    showStatus('✅ Message sent successfully!', 'success');
+                    // Optionally clear the textarea
+                    // textarea.value = '';
+                } else {
+                    showStatus('❌ Failed to send. Make sure you clicked on an app first.', 'error');
+                }
+            } catch (err) {
+                showStatus('❌ Error: ' + err.message, 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function refreshTracking() {
+            try {
+                const focusInfo = await window.tsfAPI.getLastFocusedWindow();
+                if (focusInfo && focusInfo.processName) {
+                    lastTrackedApp = focusInfo;
+                    updateTrackedAppDisplay(focusInfo);
+                    showStatus('🔄 Tracking refreshed', 'info');
+                } else {
+                    showStatus('⚠️ No app is currently tracked', 'error');
+                }
+            } catch (err) {
+                showStatus('❌ Error: ' + err.message, 'error');
+            }
+        }
+
+        async function startMonitoring() {
+            // Poll for updates every 2 seconds
+            setInterval(async () => {
+                try {
+                    const current = await window.tsfAPI.getLastExternalFocus();
+                    if (current && current.processName) {
+                        if (!lastTrackedApp || lastTrackedApp.processId !== current.processId) {
+                            lastTrackedApp = current;
+                            updateTrackedAppDisplay(current);
+                        }
+                    }
+                } catch (err) {
+                    // Silently ignore
+                }
+            }, 2000);
+        }
+
+        function updateTrackedAppDisplay(focusInfo) {
+            const container = document.getElementById('trackedAppInfo');
+            
+            if (!focusInfo || !focusInfo.processName) {
+                container.className = 'no-app';
+                container.innerHTML = 'No external application tracked yet.<br>Click on a text editor to track it!';
+                return;
+            }
+
+            const editableBadge = focusInfo.isEditable 
+                ? '<span class="badge editable">✓ Text Input</span>'
+                : '<span class="badge not-editable">⚠ May Not Be Editable</span>';
+
+            container.className = '';
+            container.innerHTML = `
+                <div class="app-name">
+                    ${focusInfo.processName}
+                    ${editableBadge}
+                </div>
+                <div class="app-title">${focusInfo.windowTitle || 'No title'}</div>
+            `;
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type} show`;
+
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

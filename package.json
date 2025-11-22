@@ -55,6 +55,10 @@
     "@ghostery/adblocker-electron": "^2.12.5",
     "cross-fetch": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3",
+    "ref-struct-napi": "^1.1.1",
+    "ref-union-napi": "^1.0.2",
     "selection-hook": "^1.0.12",
     "tesseract.js": "^5.1.1"
   }

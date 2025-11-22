@@ -13,10 +13,15 @@ module.exports = {
       /^\/frontend\/node_modules/,
       /^\/frontend\/src/,
       /^\/frontend\/public/,
-      /^\/node_modules/
+      // Don't ignore root node_modules - Electron Forge needs dependencies
+      // The plugin-auto-unpack-natives will handle native modules correctly
     ],
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    // Rebuild all native modules for Electron
+    // This ensures native modules like selection-hook work in production
+    force: true,
+  },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
@@ -60,7 +65,10 @@ module.exports = {
   plugins: [
     {
       name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {},
+      config: {
+        // Automatically unpack native modules from ASAR
+        // Native modules cannot run from inside ASAR archives
+      },
     },
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application

@@ -1,6 +1,27 @@
 const { app, ipcMain, globalShortcut } = require("electron");
-const { ElectronBlocker } = require('@ghostery/adblocker-electron');
-const fetch = require('cross-fetch');
+
+// Conditionally require adblocker - it may not be available in packaged builds
+let ElectronBlocker = null;
+try {
+  ElectronBlocker = require('@ghostery/adblocker-electron').ElectronBlocker;
+} catch (e) {
+  console.warn('Main: @ghostery/adblocker-electron not available:', e.message);
+}
+
+// Conditionally require cross-fetch, fallback to global fetch if available
+let fetch = null;
+try {
+  fetch = require('cross-fetch');
+} catch (e) {
+  console.warn('Main: cross-fetch not available, trying global fetch:', e.message);
+  // Use global fetch if available (Electron 20+ has native fetch)
+  if (typeof globalThis.fetch !== 'undefined') {
+    fetch = globalThis.fetch;
+    console.log('Main: Using global fetch');
+  } else {
+    console.warn('Main: No fetch implementation available');
+  }
+}
 const path = require("path");
 const { spawn } = require("child_process");
 // Remove LaunchWindowManager import
@@ -39,16 +60,36 @@ function createChatInputWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Log environment information for debugging
+  console.log('Main: App starting...');
+  console.log('Main: Environment info:', {
+    isPackaged: app.isPackaged,
+    NODE_ENV: process.env.NODE_ENV,
+    platform: process.platform,
+    arch: process.arch,
+    electronVersion: process.versions.electron,
+    nodeVersion: process.versions.node
+  });
+  
   try {
     // Initialize ad blocker for all sessions (windows and WebContentsView)
-    try {
-      const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
-      const { session } = require('electron');
-      blocker.enableBlockingInSession(session.defaultSession);
-      app.on('session-created', (ses) => blocker.enableBlockingInSession(ses));
-      console.log('Main: Ad blocker enabled for sessions');
-    } catch (adblockError) {
-      console.warn('Main: Ad blocker initialization failed:', adblockError?.message || adblockError);
+    if (ElectronBlocker && fetch) {
+      try {
+        const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+        const { session } = require('electron');
+        blocker.enableBlockingInSession(session.defaultSession);
+        app.on('session-created', (ses) => blocker.enableBlockingInSession(ses));
+        console.log('Main: Ad blocker enabled for sessions');
+      } catch (adblockError) {
+        console.warn('Main: Ad blocker initialization failed:', adblockError?.message || adblockError);
+      }
+    } else {
+      if (!ElectronBlocker) {
+        console.warn('Main: Ad blocker module not available, skipping initialization');
+      }
+      if (!fetch) {
+        console.warn('Main: Fetch implementation not available, skipping ad blocker initialization');
+      }
     }
 
     // Initialize auto-startup functionality

@@ -830,3 +830,104 @@ contextBridge.exposeInMainWorld("windowAPI", {
   close: () => ipcRenderer.invoke('chat-input-close'),
   hide: () => ipcRenderer.invoke('chat-input-hide')
 });
+
+// Text Services Framework API for inserting text into any application
+contextBridge.exposeInMainWorld("tsfAPI", {
+  /**
+   * Initialize TSF system
+   */
+  initialize: () => ipcRenderer.invoke('tsf:initialize'),
+
+  /**
+   * Insert text into focused application
+   * @param {string} text - Text to insert
+   * @param {Object} options - Insertion options
+   * @returns {Promise<boolean>} Success status
+   */
+  insertText: (text, options) => ipcRenderer.invoke('tsf:insert-text', text, options),
+
+  /**
+   * Insert text using clipboard fallback method
+   * @param {string} text - Text to insert
+   * @returns {Promise<boolean>} Success status
+   */
+  insertTextFallback: (text) => ipcRenderer.invoke('tsf:insert-text-fallback', text),
+
+  /**
+   * Get information about focused window
+   * @returns {Promise<Object>} Focus info
+   */
+  getFocusInfo: () => ipcRenderer.invoke('tsf:get-focus-info'),
+
+  /**
+   * Check if TSF is available for current window
+   * @returns {Promise<boolean>} Availability status
+   */
+  isTsfAvailable: () => ipcRenderer.invoke('tsf:is-tsf-available'),
+
+  /**
+   * Check if focused window is editable
+   * @returns {Promise<boolean>} Editable status
+   */
+  isEditableWindow: () => ipcRenderer.invoke('tsf:is-editable-window'),
+
+  /**
+   * Enable or disable text insertion
+   * @param {boolean} enabled - Enable status
+   */
+  setEnabled: (enabled) => ipcRenderer.send('tsf:set-enabled', enabled),
+
+  /**
+   * Check if TSF is enabled
+   * @returns {Promise<boolean>} Enabled status
+   */
+  isEnabled: () => ipcRenderer.invoke('tsf:is-enabled'),
+
+  // Event listeners
+  onFocusChanged: (callback) => {
+    ipcRenderer.on('tsf:focus-changed', (event, focusInfo) => callback(focusInfo));
+  },
+
+  onTextInserted: (callback) => {
+    ipcRenderer.on('tsf:text-inserted', (event, data) => callback(data));
+  },
+
+  onInsertFailed: (callback) => {
+    ipcRenderer.on('tsf:insert-failed', (event, data) => callback(data));
+  },
+
+  onWarning: (callback) => {
+    ipcRenderer.on('tsf:warning', (event, data) => callback(data));
+  },
+
+  /**
+   * Get last external (non-Electron) focused application
+   * @returns {Promise<Object>} Last external focus info
+   */
+  getLastExternalFocus: () => ipcRenderer.invoke('tsf:get-last-external-focus'),
+
+  /**
+   * Get last focused window from native tracker
+   * @returns {Promise<Object>} Last focused window info
+   */
+  getLastFocusedWindow: () => ipcRenderer.invoke('tsf:get-last-focused-window'),
+
+  /**
+   * Focus the last tracked external application
+   * @returns {Promise<boolean>} Success status
+   */
+  focusLastWindow: () => ipcRenderer.invoke('tsf:focus-last-window'),
+
+  /**
+   * Focus last window and insert text at caret position
+   * Perfect for button that sends AI response back to where user was typing
+   * @param {string} text - Text to insert
+   * @returns {Promise<boolean>} Success status
+   */
+  focusAndInsertText: (text) => ipcRenderer.invoke('tsf:focus-and-insert-text', text),
+
+  // Event for external app focus changes
+  onExternalFocusChanged: (callback) => {
+    ipcRenderer.on('tsf:external-focus-changed', (event, focusInfo) => callback(focusInfo));
+  }
+});

@@ -1,5 +1,19 @@
 const { ipcMain, BrowserWindow } = require('electron');
-const SelectionHook = require('selection-hook');
+// Conditionally require selection-hook - it may not be available in packaged builds
+let SelectionHook = null;
+try {
+  SelectionHook = require('selection-hook');
+  console.log('Text Selection Monitor: selection-hook module loaded successfully');
+} catch (e) {
+  const { app } = require('electron');
+  const isPackaged = app ? app.isPackaged : false;
+  console.error('Text Selection Monitor: selection-hook not available:', e.message);
+  console.error('Text Selection Monitor: Error details:', {
+    isPackaged,
+    errorCode: e.code,
+    errorStack: e.stack?.split('\n').slice(0, 3).join('\n')
+  });
+}
 
 /**
  * Text Selection Monitor
@@ -24,6 +38,20 @@ class TextSelectionMonitor {
     if (this.isMonitoring) return;
 
     console.log('Text Selection Monitor: Starting text selection monitoring');
+    
+    // Check if SelectionHook is available
+    if (!SelectionHook) {
+      const { app } = require('electron');
+      const isPackaged = app ? app.isPackaged : false;
+      console.error('Text Selection Monitor: selection-hook module not available, cannot start monitoring');
+      console.error('Text Selection Monitor: This is likely a packaging issue. Check:');
+      console.error('  1. Is selection-hook in package.json dependencies?');
+      console.error('  2. Was the app rebuilt with: npm rebuild');
+      console.error('  3. Is the native module unpacked from ASAR?');
+      console.error(`  4. App is packaged: ${isPackaged}`);
+      return;
+    }
+
     this.isMonitoring = true;
 
     try {
