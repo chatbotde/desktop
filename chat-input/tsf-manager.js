@@ -21,8 +21,9 @@ class ChatInputTsfManager extends EventEmitter {
 
     /**
      * Initialize the TSF system
+     * @param {boolean} startMonitoring - Whether to start focus monitoring immediately (default: true)
      */
-    async initialize() {
+    async initialize(startMonitoring = true) {
         if (this.initialized) {
             return true;
         }
@@ -39,9 +40,14 @@ class ChatInputTsfManager extends EventEmitter {
 
             if (success) {
                 console.log('✅ TSF initialized successfully');
-                console.log('🔍 Starting focus monitoring...');
                 this.emit('initialized');
-                this.startFocusMonitoring();
+                
+                if (startMonitoring) {
+                    console.log('🔍 Starting focus monitoring...');
+                    this.startFocusMonitoring();
+                } else {
+                    console.log('⏸️  Focus monitoring not started (will start on first use)');
+                }
             } else {
                 console.error('❌ Failed to initialize TSF');
                 this.emit('error', new Error('TSF initialization failed'));

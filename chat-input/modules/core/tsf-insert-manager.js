@@ -28,14 +28,33 @@ class TsfInsertManager {
             return;
         }
 
-        // Initialize TSF
+        // Initialize TSF with monitoring (if not already initialized from main process)
         try {
             await window.tsfAPI.initialize();
-            console.log('✅ TSF initialized for insert button');
+            console.log('✅ TSF ready for insert button');
+            
+            // Ensure focus monitoring is started
+            if (!this.focusMonitoringStarted) {
+                this.startFocusMonitoringIfNeeded();
+            }
+            
             this.setupEventListeners();
             this.initialized = true;
         } catch (err) {
             console.error('Failed to initialize TSF:', err);
+        }
+    }
+    
+    /**
+     * Ensure focus monitoring is started
+     */
+    async startFocusMonitoringIfNeeded() {
+        try {
+            // This will be handled by the TSF manager
+            // Just mark that we've requested it
+            this.focusMonitoringStarted = true;
+        } catch (err) {
+            console.error('Error starting focus monitoring:', err);
         }
     }
 

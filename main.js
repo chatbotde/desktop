@@ -30,6 +30,7 @@ const { AutoStartupManager } = require("./startup");
 const { clipboardMonitor } = require("./clipboard-monitor");
 const { textSelectionMonitor } = require("./chat-input/electron-api/text-selection");
 const { environmentConfig } = require("./utils/environment");
+const { initializeTsf } = require("./chat-input/tsf-ipc-handlers");
 
 // Set app icon
 if (process.platform === 'win32') {
@@ -109,6 +110,20 @@ app.whenReady().then(async () => {
     
     // Start text selection monitoring
     setupTextSelectionMonitoring();
+    
+    // Initialize TSF automatically after a short delay to ensure window is ready
+    setTimeout(() => {
+      console.log('Main: Initializing TSF...');
+      initializeTsf().then(success => {
+        if (success) {
+          console.log('Main: TSF initialized successfully on startup');
+        } else {
+          console.warn('Main: TSF initialization failed on startup');
+        }
+      }).catch(err => {
+        console.error('Main: TSF initialization error on startup:', err);
+      });
+    }, 1000);
   } catch (error) {
     console.error('Main: Error during app initialization:', error);
     // Continue with basic functionality even if auto-startup fails
