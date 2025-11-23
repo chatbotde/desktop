@@ -1,19 +1,19 @@
 /* ==================== MAIN CSS FILE - IMPORTS ALL MODULES ==================== */
 
 /* Import all CSS modules in the correct order */
-@import url('./base.css');
-@import url('./themes.css');
-@import url('./animations.css');
-@import url('./buttons.css');
-@import url('./chat-input.css');
-@import url('./dropdowns.css');
-@import url('./attachments.css');
-@import url('./badges.css');
-@import url('./recording.css');
-@import url('./floating-cards.css');
-@import url('./mcp.css');
-@import url('./keyboard-ux.css');
-@import url('./text-selection-ui.css');
+@import url('./core/base.css');
+@import url('./core/themes.css');
+@import url('./core/animations.css');
+@import url('./ui/buttons.css');
+@import url('./ui/chat-input.css');
+@import url('./ui/dropdowns.css');
+@import url('./media/attachments.css');
+@import url('./ui/badges.css');
+@import url('./capture/recording.css');
+@import url('./ui/floating-cards.css');
+@import url('./core/mcp.css');
+@import url('./input/keyboard-ux.css');
+@import url('./input/text-selection-ui.css');
 
 /* ==================== ADDITIONAL UTILITY STYLES ==================== */
 
