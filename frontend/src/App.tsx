@@ -19,6 +19,16 @@ function App() {
   const scrollManager = useScrollManager()
 
   useEffect(() => {
+    // Initialize TSF if available
+    if ((window as any).tsfAPI) {
+      console.log('App: Initializing TSF...');
+      (window as any).tsfAPI.initialize()
+        .then((success: boolean) => console.log('App: TSF initialized:', success))
+        .catch((err: any) => console.error('App: TSF initialization failed:', err));
+    }
+  }, []);
+
+  useEffect(() => {
     // Set up the message listener using the exposed API
     if (window.api?.onChatMessage) {
       console.log('Main Window: Setting up chat message listener');

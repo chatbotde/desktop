@@ -39,6 +39,7 @@ class ChatInputTsfManager extends EventEmitter {
 
             if (success) {
                 console.log('✅ TSF initialized successfully');
+                console.log('🔍 Starting focus monitoring...');
                 this.emit('initialized');
                 this.startFocusMonitoring();
             } else {
@@ -144,6 +145,7 @@ class ChatInputTsfManager extends EventEmitter {
                     focusInfo.processId !== this.lastFocusInfo.processId ||
                     focusInfo.windowTitle !== this.lastFocusInfo.windowTitle) {
                     
+                    console.log(`🔄 Focus changed to: ${focusInfo.processName} (PID: ${focusInfo.processId})`);
                     this.emit('focus-changed', focusInfo);
                     this.lastFocusInfo = focusInfo;
                     
@@ -159,9 +161,17 @@ class ChatInputTsfManager extends EventEmitter {
                             this.lastExternalFocusInfo.processId !== focusInfo.processId) {
                             
                             this.lastExternalFocusInfo = focusInfo;
-                            await tsf.setLastFocusedWindow();
+                            console.log(`📍 Tracking external app: ${focusInfo.processName} (${focusInfo.windowTitle})`);
+                            
+                            // Capture this window as the target for insertion
+                            try {
+                                await tsf.setLastFocusedWindow();
+                                console.log(`✅ Captured window handle for: ${focusInfo.processName}`);
+                            } catch (e) {
+                                console.error('❌ Failed to set last focused window:', e);
+                            }
+
                             this.emit('external-focus-changed', focusInfo);
-                            console.log(`📍 Tracked external app: ${focusInfo.processName}`);
                         }
                     }
                 }
@@ -306,33 +316,110 @@ class ChatInputTsfManager extends EventEmitter {
         }
 
         try {
+            console.log('🔍 Getting last tracked application...');
             const lastFocus = this.lastExternalFocusInfo || await this.getLastFocusedWindow();
             
             if (!lastFocus || !lastFocus.processName) {
-                console.warn('No external application tracked');
+                console.warn('⚠️  No external application tracked yet!');
+                console.log('💡 Please click on a text editor (Notepad, Word, etc.) before using Insert');
                 this.emit('warning', {
                     message: 'No application to insert text into. Please click on an application first.'
                 });
                 return false;
             }
 
-            console.log(`📍 Focusing ${lastFocus.processName} and inserting text...`);
+            console.log(`📍 Target app: ${lastFocus.processName} (${lastFocus.windowTitle || 'No title'})`);
+            console.log(`📝 Text to insert (${text.length} chars): ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
             this.emit('before-insert', { text, focusInfo: lastFocus });
 
             // Focus and insert in one operation
+            console.log('🚀 Calling native focusAndInsertText...');
             const success = await tsf.focusAndInsertText(text);
 
             if (success) {
-                console.log(`✅ Text inserted into ${lastFocus.processName}`);
+                console.log(`✅ Successfully inserted text into ${lastFocus.processName}`);
                 this.emit('text-inserted', { text, focusInfo: lastFocus, method: 'focus-and-insert' });
+                return true;
             } else {
-                console.error('❌ Failed to insert text');
-                this.emit('insert-failed', { text, focusInfo: lastFocus });
+                console.warn(`⚠️  TSF insertion failed, trying clipboard fallback...`);
+                
+                // Try clipboard fallback
+                const fallbackSuccess = await this.pasteAtCaretPosition(text);
+                
+                if (!fallbackSuccess) {
+                    console.error(`❌ All insertion methods failed for ${lastFocus.processName}`);
+                    this.emit('insert-failed', { text, focusInfo: lastFocus });
+                }
+                
+                return fallbackSuccess;
             }
-
-            return success;
         } catch (err) {
             console.error('Error in focusAndInsertText:', err);
+            this.emit('error', err);
+            return false;
+        }
+    }
+
+    /**
+     * Fallback: Copy text to clipboard and simulate paste at caret position
+     * Used when TSF insertion fails
+     * @param {string} text - The text to paste
+     * @returns {Promise<boolean>} Success status
+     */
+    async pasteAtCaretPosition(text) {
+        if (!text || typeof text !== 'string') {
+            console.error('Invalid text provided for clipboard paste');
+            return false;
+        }
+
+        try {
+            console.log('📋 Using clipboard fallback method');
+            
+            // Get the focused window info
+            const lastFocus = this.lastExternalFocusInfo || await this.getLastFocusedWindow();
+            
+            if (!lastFocus || !lastFocus.processName) {
+                console.warn('⚠️  No application focused');
+                return false;
+            }
+
+            console.log(`📍 Target: ${lastFocus.processName}`);
+            console.log(`📝 Copying to clipboard: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
+
+            // Copy to clipboard using electron clipboard
+            const { clipboard } = require('electron');
+            clipboard.writeText(text);
+            console.log('✅ Text copied to clipboard');
+
+            // Small delay to ensure clipboard is updated
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Focus the last window
+            console.log('🎯 Focusing target window...');
+            const focused = await tsf.focusLastWindow();
+            
+            if (!focused) {
+                console.warn('⚠️  Could not focus target window');
+            }
+
+            // Another small delay for window to receive focus
+            await new Promise(resolve => setTimeout(resolve, 150));
+
+            // Simulate Ctrl+V paste using Windows SendInput API
+            console.log('⌨️  Simulating Ctrl+V...');
+            const success = await tsf.simulateCtrlV();
+            
+            if (success) {
+                console.log('✅ Clipboard paste completed');
+                this.emit('text-inserted', { text, focusInfo: lastFocus, method: 'clipboard-fallback' });
+                return true;
+            } else {
+                console.warn('⚠️  Failed to simulate Ctrl+V');
+                return false;
+            }
+
+        } catch (err) {
+            console.error('❌ Clipboard fallback failed:', err);
             this.emit('error', err);
             return false;
         }

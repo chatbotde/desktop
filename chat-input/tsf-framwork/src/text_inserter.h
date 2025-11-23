@@ -26,6 +26,9 @@ public:
     // Check if TSF is available in the focused application
     bool IsTsfAvailable();
     
+    // Simulate Ctrl+V keystroke
+    void SimulatePaste();
+    
     // Cleanup
     void Cleanup();
 
@@ -38,5 +41,4 @@ private:
     bool InitializeCOM();
     bool CreateThreadManager();
     void SendKeystroke(WORD vkKey, bool shift = false);
-    void SimulatePaste();
 };

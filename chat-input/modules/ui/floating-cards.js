@@ -155,10 +155,13 @@ export function createFloatingCard(options = {}) {
         window.electronAPI.getFrontendURL().then(url => {
             console.log(`Setting card ${cardNumber} iframe to:`, url);
             iframe.src = url;
+            // Setup TSF API bridge after iframe loads
+            iframe.onload = () => setupTsfApiBridge(iframe);
         }).catch(err => {
             console.error(`Failed to get frontend URL for card ${cardNumber}:`, err);
             // Fallback to development URL
             iframe.src = 'http://localhost:5173';
+            iframe.onload = () => setupTsfApiBridge(iframe);
         });
     }
 
@@ -1241,5 +1244,74 @@ function createCardPreview(card, number) {
     }
 
     return preview;
+}
+
+/**
+ * Setup TSF API bridge for iframe
+ * Allows the frontend iframe to use tsfAPI by proxying calls to parent window
+ */
+function setupTsfApiBridge(iframe) {
+    if (!iframe || !window.tsfAPI) {
+        console.warn('Cannot setup TSF bridge: iframe or tsfAPI not available');
+        return;
+    }
+
+    console.log('🌉 Setting up TSF API bridge for iframe');
+
+    // Listen for messages from iframe requesting TSF operations
+    window.addEventListener('message', async (event) => {
+        // Security: Only accept messages from our iframe
+        if (event.source !== iframe.contentWindow) return;
+
+        const { type, method, args, callId } = event.data;
+
+        if (type !== 'tsf-api-call') return;
+
+        console.log(`🌉 Bridge: Received ${method} call from iframe`);
+
+        try {
+            let result;
+            
+            // Call the appropriate tsfAPI method
+            switch (method) {
+                case 'initialize':
+                    result = await window.tsfAPI.initialize();
+                    break;
+                case 'focusAndInsertText':
+                    result = await window.tsfAPI.focusAndInsertText(args[0]);
+                    break;
+                case 'insertText':
+                    result = await window.tsfAPI.insertText(args[0], args[1]);
+                    break;
+                case 'getLastExternalFocus':
+                    result = await window.tsfAPI.getLastExternalFocus();
+                    break;
+                default:
+                    throw new Error(`Unknown tsfAPI method: ${method}`);
+            }
+
+            console.log(`🌉 Bridge: ${method} returned:`, result);
+
+            // Send result back to iframe
+            iframe.contentWindow.postMessage({
+                type: 'tsf-api-response',
+                callId,
+                success: true,
+                result
+            }, '*');
+        } catch (error) {
+            console.error(`🌉 Bridge: ${method} failed:`, error);
+
+            // Send error back to iframe
+            iframe.contentWindow.postMessage({
+                type: 'tsf-api-response',
+                callId,
+                success: false,
+                error: error.message
+            }, '*');
+        }
+    });
+
+    console.log('✅ TSF API bridge setup complete');
 }
 

@@ -222,6 +222,21 @@ Napi::Value FocusAndInsertText(const Napi::CallbackInfo& info) {
     return Napi::Boolean::New(env, insertSuccess);
 }
 
+// Simulate Ctrl+V (for clipboard fallback)
+Napi::Value SimulateCtrlV(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (!g_textInserter) {
+        Napi::Error::New(env, "TextInserter not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    // Just simulate the keystrokes (clipboard should already be set)
+    g_textInserter->SimulatePaste();
+    
+    return Napi::Boolean::New(env, true);
+}
+
 // Cleanup
 Napi::Value Cleanup(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
@@ -248,6 +263,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set("getLastFocusedWindow", Napi::Function::New(env, GetLastFocusedWindow));
     exports.Set("focusLastWindow", Napi::Function::New(env, FocusLastWindow));
     exports.Set("focusAndInsertText", Napi::Function::New(env, FocusAndInsertText));
+    exports.Set("simulateCtrlV", Napi::Function::New(env, SimulateCtrlV));
     exports.Set("cleanup", Napi::Function::New(env, Cleanup));
     
     return exports;

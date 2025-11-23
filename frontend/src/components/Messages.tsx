@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Square, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Square, Copy, Check, ChevronDown, ChevronUp, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MessageContent } from './prompt-kit/message'
 
@@ -54,6 +54,78 @@ function SmartMessage({ content, role, onCopy }: { content: string; role: 'user'
       setShouldShowToggle(needsToggle)
     }
   }, [content, role])
+
+  const handleInsert = async () => {
+    console.log('🔘 Insert button clicked');
+    
+    // Check if we have direct access to tsfAPI (electron window)
+    const directApi = (window as any).tsfAPI;
+    
+    if (directApi) {
+      console.log('📍 Using direct tsfAPI');
+      try {
+        const result = await directApi.focusAndInsertText(content);
+        if (result) {
+          console.log('✅ Text insertion successful!');
+        } else {
+          console.warn('⚠️  Insert returned false');
+          alert('Failed to insert text. Make sure you clicked on a text editor first.');
+        }
+      } catch (err) {
+        console.error('❌ Error during text insertion:', err);
+        alert('Error inserting text: ' + (err as Error).message);
+      }
+      return;
+    }
+    
+    // If no direct API, use postMessage bridge to parent window
+    console.log('🌉 Using postMessage bridge to parent window');
+    
+    try {
+      const callId = Date.now() + Math.random();
+      
+      // Send message to parent window
+      window.parent.postMessage({
+        type: 'tsf-api-call',
+        method: 'focusAndInsertText',
+        args: [content],
+        callId
+      }, '*');
+      
+      // Wait for response
+      const response = await new Promise<any>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          window.removeEventListener('message', handler);
+          reject(new Error('Timeout waiting for TSF response'));
+        }, 10000);
+        
+        const handler = (event: MessageEvent) => {
+          if (event.data.type === 'tsf-api-response' && event.data.callId === callId) {
+            clearTimeout(timeout);
+            window.removeEventListener('message', handler);
+            resolve(event.data);
+          }
+        };
+        
+        window.addEventListener('message', handler);
+      });
+      
+      if (response.success) {
+        if (response.result) {
+          console.log('✅ Text insertion successful via bridge!');
+        } else {
+          console.warn('⚠️  Insertion failed, check console for details');
+          alert('Failed to insert text. Make sure you clicked on a text editor first.');
+        }
+      } else {
+        console.error('❌ Bridge returned error:', response.error);
+        alert('Failed to insert text: ' + response.error);
+      }
+    } catch (err) {
+      console.error('❌ Error using bridge:', err);
+      alert('Error inserting text: ' + (err as Error).message);
+    }
+  }
 
   const handleCopy = async () => {
     try {
@@ -204,6 +276,23 @@ function SmartMessage({ content, role, onCopy }: { content: string; role: 'user'
         >
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
         </Button>
+
+        {/* Insert Button - Only for assistant messages */}
+        {role === 'assistant' && (
+           <Button
+             variant="ghost"
+             size="sm"
+             className={cn(
+               "h-9 w-9 p-0 rounded-full transition-all duration-200 backdrop-blur-md ml-2",
+               "shadow-sm hover:shadow-md",
+               "bg-black/40 text-white/70 hover:text-white hover:bg-black/50 border border-white/10 hover:border-white/20"
+             )}
+             onClick={handleInsert}
+             title="Insert to last active window"
+           >
+             <CornerDownLeft className="w-4 h-4" />
+           </Button>
+        )}
       </div>
     </div>
   )

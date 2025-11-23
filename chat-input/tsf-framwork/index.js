@@ -262,6 +262,27 @@ async function focusAndInsertText(text) {
 }
 
 /**
+ * Simulate Ctrl+V keystroke (expects clipboard to already be set)
+ * @returns {Promise<boolean>} Success status
+ */
+async function simulateCtrlV() {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    
+    if (!initialized) {
+        await initialize();
+    }
+    
+    try {
+        return native.simulateCtrlV();
+    } catch (err) {
+        console.error('Failed to simulate Ctrl+V:', err);
+        return false;
+    }
+}
+
+/**
  * Check if the native module is loaded and available
  * @returns {boolean} Module availability status
  */
@@ -280,6 +301,7 @@ module.exports = {
     getLastFocusedWindow,
     focusLastWindow,
     focusAndInsertText,
+    simulateCtrlV,
     cleanup,
     isAvailable
 };
