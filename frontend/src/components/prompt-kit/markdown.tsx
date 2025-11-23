@@ -4,9 +4,53 @@ import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import 'katex/dist/katex.min.css'
 import { InlineMath, BlockMath } from 'react-katex'
-import { codeToHtml } from 'shiki'
+import { createHighlighter } from 'shiki'
 import '../../styles/syntax-highlighting.css'
 import type { JSX } from 'react/jsx-runtime'
+
+// Only bundle 30 most common languages to reduce bundle size from 64MB to ~15MB
+const SUPPORTED_LANGUAGES = [
+  'javascript', 'typescript', 'jsx', 'tsx', 'python', 'java', 'cpp', 'c', 'csharp',
+  'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'scala', 'html', 'css', 'scss',
+  'json', 'yaml', 'xml', 'markdown', 'sql', 'bash', 'shell', 'powershell',
+  'dockerfile', 'nginx', 'plaintext'
+] as const
+
+// Cache for the highlighter instance
+let highlighterInstance: Awaited<ReturnType<typeof createHighlighter>> | null = null
+
+// Get or create highlighter instance
+async function getHighlighter() {
+  if (!highlighterInstance) {
+    highlighterInstance = await createHighlighter({
+      themes: ['github-dark'],
+      langs: [...SUPPORTED_LANGUAGES]
+    })
+  }
+  return highlighterInstance
+}
+
+// Map common aliases and check if language is supported
+function normalizeLanguage(lang: string): string {
+  const langLower = lang.toLowerCase()
+  
+  // Common aliases
+  const aliases: Record<string, string> = {
+    'js': 'javascript',
+    'ts': 'typescript',
+    'py': 'python',
+    'sh': 'bash',
+    'cs': 'csharp',
+    'c++': 'cpp',
+    'yml': 'yaml',
+    'md': 'markdown',
+    'docker': 'dockerfile',
+    'ps1': 'powershell'
+  }
+  
+  const normalized = aliases[langLower] || langLower
+  return SUPPORTED_LANGUAGES.includes(normalized as any) ? normalized : 'plaintext'
+}
 
 interface MarkdownProps {
   children: string
@@ -27,11 +71,14 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
   useEffect(() => {
     const highlight = async () => {
       try {
-        // Default to plaintext if no language is specified
-        const lang = language || 'plaintext'
+        // Normalize and validate language
+        const lang = normalizeLanguage(language || 'plaintext')
+        
+        // Get highlighter instance
+        const highlighter = await getHighlighter()
         
         // Generate highlighted HTML using Shiki
-        const highlighted = await codeToHtml(code, {
+        const highlighted = highlighter.codeToHtml(code, {
           lang,
           theme: 'github-dark'
         })

@@ -1,9 +1,41 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { codeToHtml } from 'shiki';
+import { createHighlighter } from 'shiki';
 import { Copy, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+// Only bundle 30 most common languages
+const SUPPORTED_LANGUAGES = [
+  'javascript', 'typescript', 'jsx', 'tsx', 'python', 'java', 'cpp', 'c', 'csharp',
+  'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'scala', 'html', 'css', 'scss',
+  'json', 'yaml', 'xml', 'markdown', 'sql', 'bash', 'shell', 'powershell',
+  'dockerfile', 'nginx', 'plaintext'
+] as const;
+
+// Shared highlighter instance
+let highlighterInstance: Awaited<ReturnType<typeof createHighlighter>> | null = null;
+
+async function getHighlighter() {
+  if (!highlighterInstance) {
+    highlighterInstance = await createHighlighter({
+      themes: ['github-dark', 'github-light'],
+      langs: [...SUPPORTED_LANGUAGES]
+    });
+  }
+  return highlighterInstance;
+}
+
+function normalizeLanguage(lang: string): string {
+  const langLower = lang.toLowerCase();
+  const aliases: Record<string, string> = {
+    'js': 'javascript', 'ts': 'typescript', 'py': 'python',
+    'sh': 'bash', 'cs': 'csharp', 'c++': 'cpp',
+    'yml': 'yaml', 'md': 'markdown', 'docker': 'dockerfile', 'ps1': 'powershell'
+  };
+  const normalized = aliases[langLower] || langLower;
+  return SUPPORTED_LANGUAGES.includes(normalized as any) ? normalized : 'plaintext';
+}
 
 interface CodeEditorProps {
   code: string;
@@ -30,8 +62,11 @@ export function CodeEditor({
   useEffect(() => {
     const highlight = async () => {
       try {
-        const highlighted = await codeToHtml(code, {
-          lang: language,
+        const lang = normalizeLanguage(language);
+        const highlighter = await getHighlighter();
+        
+        const highlighted = highlighter.codeToHtml(code, {
+          lang,
           theme: theme === 'dark' ? 'github-dark' : 'github-light'
         });
         setHtml(highlighted);
