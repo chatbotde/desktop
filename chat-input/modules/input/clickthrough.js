@@ -59,35 +59,63 @@ const UI_PATTERNS = {
 };
 
 /**
- * Check if mouse is over any frontend UI area (iframes containing the React app)
- * This includes floating cards and any other iframes showing the frontend
+ * Check if mouse is over any iframe (general - works with any iframe structure)
+ * This is a general implementation that works with any UI structure
+ * Works even when there are no iframes (returns false gracefully)
  */
 function isOverFrontendUI(x, y) {
-    // Check WebView container first
-    const webViewContainer = document.getElementById('webview-container');
-    if (webViewContainer && webViewContainer.style.display !== 'none') {
-        const rect = webViewContainer.getBoundingClientRect();
-        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-            console.log('[ClickThrough] Cursor over WebView container');
-            return true;
-        }
-    }
-    
-    // Get all visible iframes (floating cards contain the frontend React app)
+    // Get all iframes in the document
     const iframes = document.querySelectorAll('iframe');
     
+    // If no iframes exist, that's fine - just return false (works without iframes)
+    if (iframes.length === 0) {
+        // Still check WebView container if it exists (for backward compatibility)
+        const webViewContainer = document.getElementById('webview-container');
+        if (webViewContainer && webViewContainer.style.display !== 'none') {
+            const rect = webViewContainer.getBoundingClientRect();
+            if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     for (const iframe of iframes) {
-        // Skip hidden iframes
-        const parent = iframe.closest('.floating-card');
-        if (parent && parent.style.display === 'none') continue;
+        // Skip if iframe is not visible
+        const style = window.getComputedStyle(iframe);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+            continue;
+        }
         
-        const rect = iframe.getBoundingClientRect();
+        // Check if parent container is hidden (general check)
+        let parent = iframe.parentElement;
+        let isParentHidden = false;
+        while (parent && parent !== document.body) {
+            const parentStyle = window.getComputedStyle(parent);
+            if (parentStyle.display === 'none' || parentStyle.visibility === 'hidden') {
+                isParentHidden = true;
+                break;
+            }
+            parent = parent.parentElement;
+        }
+        
+        if (isParentHidden) continue;
         
         // Check if mouse coordinates are within iframe bounds
+        const rect = iframe.getBoundingClientRect();
         if (x >= rect.left && 
             x <= rect.right && 
             y >= rect.top && 
             y <= rect.bottom) {
+            return true;
+        }
+    }
+    
+    // Also check WebView container if it exists (for backward compatibility)
+    const webViewContainer = document.getElementById('webview-container');
+    if (webViewContainer && webViewContainer.style.display !== 'none') {
+        const rect = webViewContainer.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
             return true;
         }
     }
@@ -277,9 +305,35 @@ function isUIElement(element) {
 }
 
 /**
- * Check if any card is currently being interacted with
+ * Check if any iframe container is currently being interacted with
+ * General implementation - works with any container structure
+ * Works even when there are no iframes (returns false gracefully)
  */
 function isCardInteracting() {
+    // Check for any element containing an iframe that has interaction classes
+    const iframes = document.querySelectorAll('iframe');
+    
+    // If no iframes, still check for interaction classes (works without iframes)
+    if (iframes.length === 0) {
+        // Check for specific floating-card classes (backward compatibility)
+        return document.querySelector('.floating-card.interacting, .floating-card.dragging, .floating-card.resizing') !== null;
+    }
+    
+    for (const iframe of iframes) {
+        let container = iframe.parentElement;
+        // Check up to 3 levels up for interaction classes
+        for (let i = 0; i < 3 && container; i++) {
+            if (container.classList && 
+                (container.classList.contains('interacting') || 
+                 container.classList.contains('dragging') || 
+                 container.classList.contains('resizing'))) {
+                return true;
+            }
+            container = container.parentElement;
+        }
+    }
+    
+    // Also check for specific floating-card classes (backward compatibility)
     return document.querySelector('.floating-card.interacting, .floating-card.dragging, .floating-card.resizing') !== null;
 }
 
@@ -337,10 +391,102 @@ function updateClickThroughButton() {
     }
 }
 
+/**
+ * Handle messages from any iframe for click-through control
+ * General implementation - works with any iframe structure
+ */
+function handleFrontendMessage(event) {
+    // Accept messages from any iframe (general approach)
+    if (event.data && event.data.type === 'clickthrough-control') {
+        const { action, data } = event.data;
+        
+        console.log('[ClickThrough] Received message from iframe:', action);
+        
+        switch (action) {
+            case 'enable':
+                enableClickThrough();
+                // Send state update back to all iframes
+                sendStateToAllIframes();
+                break;
+            case 'disable':
+                disableClickThrough();
+                // Send state update back to all iframes
+                sendStateToAllIframes();
+                break;
+            case 'toggle':
+                toggleClickThrough();
+                // Send state update back to all iframes
+                sendStateToAllIframes();
+                break;
+            case 'get-state':
+                // Send current state to the requesting iframe
+                sendStateToIframe(event.source);
+                // Also broadcast to all iframes for consistency
+                sendStateToAllIframes();
+                break;
+            default:
+                console.warn('[ClickThrough] Unknown action from iframe:', action);
+        }
+    }
+}
+
+/**
+ * Send current click-through state to a specific iframe window
+ */
+function sendStateToIframe(targetWindow) {
+    if (!targetWindow) return;
+    
+    const state = {
+        type: 'clickthrough-state',
+        enabled: isClickThroughEnabled
+    };
+    
+    try {
+        targetWindow.postMessage(state, '*');
+    } catch (error) {
+        console.debug('[ClickThrough] Could not send state to iframe:', error);
+    }
+}
+
+/**
+ * Send current click-through state to all iframes (general broadcast)
+ * Works with any iframe structure - no assumptions about containers
+ * Works even when there are no iframes (gracefully does nothing)
+ */
+function sendStateToAllIframes() {
+    const iframes = document.querySelectorAll('iframe');
+    
+    // If no iframes, that's fine - just return (works without iframes)
+    if (iframes.length === 0) {
+        return;
+    }
+    
+    const state = {
+        type: 'clickthrough-state',
+        enabled: isClickThroughEnabled
+    };
+    
+    iframes.forEach(iframe => {
+        try {
+            // Only send to iframes that have loaded content
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage(state, '*');
+            }
+        } catch (error) {
+            // Ignore cross-origin errors silently
+            console.debug('[ClickThrough] Could not send state to iframe:', error);
+        }
+    });
+}
+
 export function initializeClickThrough() {
     // Start disabled so UI remains clickable by default
     // Users can enable via Ctrl+T or the toolbar button
     document.addEventListener('click', handleSmartClickThrough);
+    
+    // Listen for messages from frontend iframes (if any exist)
+    // This works even when there are no iframes - listener just won't receive messages
+    window.addEventListener('message', handleFrontendMessage);
     
     // Track mouse position continuously
     document.addEventListener('mousemove', (event) => {
@@ -417,9 +563,15 @@ export function initializeClickThrough() {
         }
     });
     
+    // Send state updates when click-through changes (broadcast to all iframes)
+    document.addEventListener('clickthrough-changed', () => {
+        sendStateToAllIframes();
+    });
+    
     // Cleanup on window unload
     window.addEventListener('beforeunload', () => {
         stopIframeMonitoring();
+        window.removeEventListener('message', handleFrontendMessage);
     });
 }
 

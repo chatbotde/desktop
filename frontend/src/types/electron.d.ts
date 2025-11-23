@@ -25,6 +25,14 @@ export interface ElectronAPI {
   mcpDisconnect?: (serverId: string) => Promise<void>;
   
   onMcpMessage?: (serverId: string, callback: (message: any) => void) => () => void;
+
+  // Click-through APIs (for direct access if available)
+  clickThrough?: {
+    enable?: () => void;
+    disable?: () => void;
+    toggle?: () => void;
+    getState?: () => Promise<boolean>;
+  };
 }
 
 declare global {
