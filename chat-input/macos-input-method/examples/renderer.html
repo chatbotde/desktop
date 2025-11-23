@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>macOS Input Method Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background: #007aff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0051d5;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖥️ macOS Input Method Demo</h1>
+    
+    <div class="section">
+        <h2>1. Insert Text</h2>
+        <p>Click on any text field in any application, then click this button:</p>
+        <input type="text" id="insertText" placeholder="Enter text to insert" value="Hello from macOS!">
+        <button onclick="insertText()">Insert Text</button>
+        <button onclick="insertTextTyping()">Insert with Typing Effect</button>
+        <div id="insertResult" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Selected Text Operations</h2>
+        <p>Select text in any application, then:</p>
+        <button onclick="getSelectedText()">Get Selected Text</button>
+        <button onclick="uppercaseSelected()">Convert to Uppercase</button>
+        <button onclick="lowercaseSelected()">Convert to Lowercase</button>
+        <div id="selectedResult" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Application Info</h2>
+        <button onclick="getActiveApp()">Get Active Application</button>
+        <button onclick="checkTextInput()">Check Text Input Status</button>
+        <button onclick="getCursorPos()">Get Cursor Position</button>
+        <div id="appResult" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Keyboard Shortcuts</h2>
+        <p>Send keyboard shortcuts to the active application:</p>
+        <button onclick="sendShortcut('c', {command: true})">Cmd+C (Copy)</button>
+        <button onclick="sendShortcut('v', {command: true})">Cmd+V (Paste)</button>
+        <button onclick="sendShortcut('s', {command: true})">Cmd+S (Save)</button>
+        <div id="shortcutResult" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Event Monitoring</h2>
+        <p>Monitor keyboard events system-wide:</p>
+        <button onclick="startMonitoring()">Start Monitoring</button>
+        <button onclick="stopMonitoring()">Stop Monitoring</button>
+        <div id="monitoringStatus"></div>
+        <textarea id="eventLog" readonly placeholder="Event log will appear here..."></textarea>
+    </div>
+
+    <div class="section">
+        <h2>6. Test Area</h2>
+        <p>Test the input methods in this text area:</p>
+        <textarea id="testArea" placeholder="Click here and try the buttons above..."></textarea>
+    </div>
+
+    <script>
+        let eventLog = [];
+        let isMonitoring = false;
+
+        async function insertText() {
+            const text = document.getElementById('insertText').value;
+            const result = await window.inputMethod.insertText(text);
+            showResult('insertResult', `Insert result: ${result ? '✓ Success' : '✗ Failed'}`);
+        }
+
+        async function insertTextTyping() {
+            const text = document.getElementById('insertText').value;
+            const result = await window.inputMethod.insertTextWithTyping(text, 50);
+            showResult('insertResult', `Typing result: ${result ? '✓ Success' : '✗ Failed'}`);
+        }
+
+        async function getSelectedText() {
+            const text = await window.inputMethod.getSelectedText();
+            showResult('selectedResult', `Selected text: "${text}"`);
+        }
+
+        async function uppercaseSelected() {
+            const text = await window.inputMethod.getSelectedText();
+            if (text) {
+                const result = await window.inputMethod.replaceSelectedText(text.toUpperCase());
+                showResult('selectedResult', `Uppercase result: ${result ? '✓ Success' : '✗ Failed'}`);
+            } else {
+                showResult('selectedResult', 'No text selected');
+            }
+        }
+
+        async function lowercaseSelected() {
+            const text = await window.inputMethod.getSelectedText();
+            if (text) {
+                const result = await window.inputMethod.replaceSelectedText(text.toLowerCase());
+                showResult('selectedResult', `Lowercase result: ${result ? '✓ Success' : '✗ Failed'}`);
+            } else {
+                showResult('selectedResult', 'No text selected');
+            }
+        }
+
+        async function getActiveApp() {
+            const appInfo = await window.inputMethod.getActiveApplication();
+            showResult('appResult', `Active App:\nName: ${appInfo.name}\nBundle ID: ${appInfo.bundleId}\nPID: ${appInfo.pid}`);
+        }
+
+        async function checkTextInput() {
+            const isActive = await window.inputMethod.isTextInputActive();
+            showResult('appResult', `Text input active: ${isActive ? 'Yes' : 'No'}`);
+        }
+
+        async function getCursorPos() {
+            const pos = await window.inputMethod.getCursorPosition();
+            if (pos) {
+                showResult('appResult', `Cursor position: (${pos.x}, ${pos.y})`);
+            } else {
+                showResult('appResult', 'Cursor position not available');
+            }
+        }
+
+        async function sendShortcut(key, modifiers) {
+            const result = await window.inputMethod.sendKeyboardShortcut(key, modifiers);
+            showResult('shortcutResult', `Shortcut result: ${result ? '✓ Success' : '✗ Failed'}`);
+        }
+
+        function startMonitoring() {
+            if (isMonitoring) return;
+            
+            isMonitoring = true;
+            eventLog = [];
+            document.getElementById('monitoringStatus').innerHTML = '<span class="status success">Monitoring Active</span>';
+            
+            window.inputMethod.startMonitoring();
+            window.inputMethod.onEvent((eventData) => {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${eventData.type}: ${eventData.characters} (keyCode: ${eventData.keyCode})`;
+                eventLog.unshift(logEntry);
+                
+                if (eventLog.length > 20) eventLog.pop();
+                
+                document.getElementById('eventLog').value = eventLog.join('\n');
+            });
+        }
+
+        function stopMonitoring() {
+            if (!isMonitoring) return;
+            
+            isMonitoring = false;
+            document.getElementById('monitoringStatus').innerHTML = '<span class="status error">Monitoring Stopped</span>';
+            window.inputMethod.stopMonitoring();
+        }
+
+        function showResult(elementId, message) {
+            document.getElementById(elementId).textContent = message;
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', async () => {
+            const appInfo = await window.inputMethod.getActiveApplication();
+            console.log('Input Method initialized', appInfo);
+        });
+    </script>
+</body>
+</html>

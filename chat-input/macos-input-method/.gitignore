@@ -1,0 +1,44 @@
+# .gitignore for macOS Input Method
+
+# Build outputs
+build/
+*.node
+*.o
+*.obj
+*.a
+*.lib
+
+# node-gyp
+.node-gyp/
+node_modules/
+
+# npm
+npm-debug.log*
+package-lock.json
+yarn.lock
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
