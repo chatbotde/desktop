@@ -1,11 +1,11 @@
 // Entry point for modular chat input
-import { boot } from './init.js';
-import { initAutoClipboardImages } from './auto-clipboard-images.js';
-import { initMCPManager } from './mcp-manager.js';
-import { initializeTextSelection } from './text-selection.js';
-import { initClipboardUI } from './clipboard-ui.js';
-import { initBadgesIntegration } from './badges-integration.js';
-import tsfInsertManager from './tsf-insert-manager.js';
+import { boot } from './core/init.js';
+import { initAutoClipboardImages } from './clipboard/auto-clipboard-images.js';
+import { initMCPManager } from './core/mcp-manager.js';
+import { initializeTextSelection } from './input/text-selection.js';
+import { initClipboardUI } from './clipboard/clipboard-ui.js';
+import { initBadgesIntegration } from './ui/badges-integration.js';
+import tsfInsertManager from './core/tsf-insert-manager.js';
 
 function start() {
     try { 

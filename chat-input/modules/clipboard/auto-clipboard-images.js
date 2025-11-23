@@ -1,4 +1,4 @@
-import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from './attachments.js';
+import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from '../media/attachments.js';
 
 function extractDataUrl(content) {
   if (!content) return null;

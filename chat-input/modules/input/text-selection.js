@@ -1,4 +1,4 @@
-import { getClipboardText } from './clipboard-injector.js';
+import { getClipboardText } from '../clipboard/clipboard-injector.js';
 
 /**
  * Text Selection Handler
@@ -60,7 +60,7 @@ export function handleTextSelection() {
       if (text && typeof text === 'string') {
         try {
           // Import the appendToInput function dynamically to avoid circular dependencies
-          import('./clipboard-injector.js').then(module => {
+          import('../clipboard/clipboard-injector.js').then(module => {
             module.appendToInput(text);
           });
         } catch (error) {

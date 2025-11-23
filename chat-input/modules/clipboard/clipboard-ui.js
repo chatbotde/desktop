@@ -1,7 +1,7 @@
-import { dom } from './dom.js';
+import { dom } from '../core/dom.js';
 import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
 import { appendToInput, getClipboardText } from './clipboard-injector.js';
-import { addTextBadge } from './badges.js';
+import { addTextBadge } from '../ui/badges.js';
 
 // Minimal theme-aware styling with compact design
 const STYLES = {

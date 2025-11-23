@@ -1,5 +1,5 @@
-import { dom } from './dom.js';
-import { geometryController } from './geometry.js';
+import { dom } from '../core/dom.js';
+import { geometryController } from '../core/geometry.js';
 
 export function hideDropdown(id) {
     const dropdown = document.getElementById(id);
@@ -174,7 +174,7 @@ export function wireDropdownButtons() {
             const sub = e.target.closest('.submenu-item');
             if (!sub) return; e.stopPropagation();
             const subaction = sub.getAttribute('data-subaction');
-            import('./uploads-capture.js').then(m => {
+            import('../capture/uploads-capture.js').then(m => {
                 switch (subaction) {
                     case 'upload-image': m.handleImageUpload(); break;
                     case 'upload-video': m.handleVideoUpload(); break;

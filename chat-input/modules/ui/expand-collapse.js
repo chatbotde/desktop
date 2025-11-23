@@ -1,6 +1,6 @@
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { updateAttachmentsVisibility } from './attachments.js';
+import { dom } from '../core/dom.js';
+import { state } from '../core/state.js';
+import { updateAttachmentsVisibility } from '../media/attachments.js';
 
 // Helper to update hide button position (imported from container-drag conceptually)
 function updateHideButtonPosition() {

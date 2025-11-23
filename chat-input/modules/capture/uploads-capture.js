@@ -1,5 +1,5 @@
-import { showAttachmentLoading, hideAttachmentLoading, addImageAttachment } from './attachments.js';
-import { addMediaAttachment } from './richmedia.js';
+import { showAttachmentLoading, hideAttachmentLoading, addImageAttachment } from '../media/attachments.js';
+import { addMediaAttachment } from '../media/richmedia.js';
 import { showRecordingState, hideRecordingState } from './recording.js';
 import { activateAreaScreenshot } from './area-screenshot-cursor.js';
 import { recordingControlPanel } from './recording-control-panel.js';

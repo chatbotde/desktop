@@ -3,7 +3,7 @@
  * Provides a floating, feature-rich UI for controlling audio/video recordings
  */
 
-import { addMediaAttachment } from './richmedia.js';
+import { addMediaAttachment } from '../media/richmedia.js';
 
 class RecordingControlPanel {
     constructor() {

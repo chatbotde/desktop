@@ -364,7 +364,7 @@ export class AreaScreenshotCursor {
                 
                 if (result.success && result.screenshot) {
                     // Import and use the attachment handler
-                    const { addImageAttachment } = await import('./attachments.js');
+                    const { addImageAttachment } = await import('../media/attachments.js');
                     addImageAttachment({
                         name: result.screenshot.name,
                         type: result.screenshot.type,

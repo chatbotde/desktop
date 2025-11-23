@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { dom } from './dom.js';
+import { state } from '../core/state.js';
+import { dom } from '../core/dom.js';
 import { showDropdownAdvanced, hideAllDropdowns } from './dropdowns.js';
 
 // Fetch all available models dynamically from AI providers

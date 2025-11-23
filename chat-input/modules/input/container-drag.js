@@ -1,5 +1,5 @@
-import { dom } from './dom.js';
-import { state } from './state.js';
+import { dom } from '../core/dom.js';
+import { state } from '../core/state.js';
 
 // Expose updateHideButtonPosition globally so other modules can use it
 function updateHideButtonPosition() {

@@ -1,12 +1,12 @@
 // Content Card Module - Shows list of available actions when speed-dial is opened
-import { dom } from './dom.js';
-import { state } from './state.js';
-import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from './uploads-capture.js';
+import { dom } from '../core/dom.js';
+import { state } from '../core/state.js';
+import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from '../capture/uploads-capture.js';
 import { toggleTheme, toggleLighting } from './theme.js';
-import { toggleClickThrough } from './clickthrough.js';
-import { toggleContentProtection } from './content-protection.js';
+import { toggleClickThrough } from '../input/clickthrough.js';
+import { toggleContentProtection } from '../core/content-protection.js';
 import { collapseUI } from './expand-collapse.js';
-import { toggleWebView } from './webview.js';
+import { toggleWebView } from '../webview/webview.js';
 
 let contentCard = null;
 let isContentCardVisible = false;

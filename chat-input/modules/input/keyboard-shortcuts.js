@@ -3,13 +3,13 @@
  * Provides comprehensive keyboard shortcuts for better UX
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
+import { dom } from '../core/dom.js';
+import { state } from '../core/state.js';
 import { undo, redo, recordState } from './undo-redo.js';
-import { clearAllMediaAttachments } from './attachments.js';
-import { expandUI, collapseUI } from './expand-collapse.js';
-import { toggleTheme } from './theme.js';
-import { sendMessage } from './messaging.js';
+import { clearAllMediaAttachments } from '../media/attachments.js';
+import { expandUI, collapseUI, autoResize, updateSendButton } from '../ui/expand-collapse.js';
+import { toggleTheme } from '../ui/theme.js';
+import { sendMessage } from '../core/messaging.js';
 
 const shortcuts = {
     // Text editing shortcuts
@@ -143,7 +143,7 @@ function deleteWord(e) {
     
     // Record state and update UI
     recordState(true);
-    const { autoResize, updateSendButton } = require('./expand-collapse.js');
+    const { autoResize, updateSendButton } = require('../ui/expand-collapse.js');
     autoResize();
     updateSendButton();
     
@@ -189,7 +189,7 @@ function deleteWordForward(e) {
     
     // Record state and update UI
     recordState(true);
-    const { autoResize, updateSendButton } = require('./expand-collapse.js');
+    const { autoResize, updateSendButton } = require('../ui/expand-collapse.js');
     autoResize();
     updateSendButton();
     
@@ -209,7 +209,6 @@ function clearInput(e) {
         dom.messageInput.value = '';
         dom.messageInput.focus();
         
-        const { autoResize, updateSendButton } = require('./expand-collapse.js');
         autoResize();
         updateSendButton();
         

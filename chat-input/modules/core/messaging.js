@@ -1,7 +1,7 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
-import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryCard, centerCardSmooth } from './floating-cards.js';
-import { getBadgeContent, clearBadgesAfterSend } from './badges.js';
+import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryCard, centerCardSmooth } from '../ui/floating-cards.js';
+import { getBadgeContent, clearBadgesAfterSend } from '../ui/badges.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {

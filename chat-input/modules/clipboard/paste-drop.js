@@ -1,4 +1,4 @@
-import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from './attachments.js';
+import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from '../media/attachments.js';
 
 export async function handlePasteContent() {
     try {
@@ -104,7 +104,7 @@ function appendToInput(content) {
     }
     
     // Trigger resize and update send button
-    import('./expand-collapse.js').then(({ autoResize, updateSendButton }) => {
+    import('../ui/expand-collapse.js').then(({ autoResize, updateSendButton }) => {
         autoResize();
         updateSendButton();
     });

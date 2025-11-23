@@ -1,7 +1,7 @@
-import { dom } from './dom.js';
-import { state, getNextAttachmentId } from './state.js';
-import { recordAttachmentChange } from './undo-redo.js';
-import { updateSendButton } from './expand-collapse.js';
+import { dom } from '../core/dom.js';
+import { state, getNextAttachmentId } from '../core/state.js';
+import { recordAttachmentChange } from '../input/undo-redo.js';
+import { updateSendButton } from '../ui/expand-collapse.js';
 
 function positionAttachmentsContainer() {
     const container = dom.attachmentsContainer;

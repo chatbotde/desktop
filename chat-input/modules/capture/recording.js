@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { addMediaAttachment } from './richmedia.js';
+import { state } from '../core/state.js';
+import { addMediaAttachment } from '../media/richmedia.js';
 
 export function showRecordingState(recordingType) {
     state.isRecording = true;

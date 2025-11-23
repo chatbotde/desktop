@@ -1,4 +1,4 @@
-import { dom } from './dom.js';
+import { dom } from '../core/dom.js';
 
 let isClickThroughEnabled = false;
 let clickThroughTimeout = null;

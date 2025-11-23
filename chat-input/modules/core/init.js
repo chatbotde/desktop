@@ -1,28 +1,28 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { initializeContentProtection, toggleContentProtection } from './content-protection.js';
-import { toggleTheme, initializeTheme, toggleLighting } from './theme.js';
-import { addImageAttachment, updateAttachmentsVisibility, clearAllMediaAttachments, showAttachmentLoading, hideAttachmentLoading } from './attachments.js';
-import { addMediaAttachment, removeMediaAttachment } from './richmedia.js';
-import { showDropdownAdvanced, hideAllDropdowns, wireDropdownButtons } from './dropdowns.js';
-import { expandUI, collapseUI, autoResize, updateSendButton, adjustWindowHeightSmooth } from './expand-collapse.js';
-import { initializeClickThrough, toggleClickThrough } from './clickthrough.js';
-import { initializeFloatingCards } from './floating-cards.js';
-import { initializeContentCard, showContentCard, hideContentCard, isContentCardOpen } from './content-card.js';
-import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from './model-selection.js';
+import { toggleTheme, initializeTheme, toggleLighting } from '../ui/theme.js';
+import { addImageAttachment, updateAttachmentsVisibility, clearAllMediaAttachments, showAttachmentLoading, hideAttachmentLoading } from '../media/attachments.js';
+import { addMediaAttachment, removeMediaAttachment } from '../media/richmedia.js';
+import { showDropdownAdvanced, hideAllDropdowns, wireDropdownButtons } from '../ui/dropdowns.js';
+import { expandUI, collapseUI, autoResize, updateSendButton, adjustWindowHeightSmooth } from '../ui/expand-collapse.js';
+import { initializeClickThrough, toggleClickThrough } from '../input/clickthrough.js';
+import { initializeFloatingCards } from '../ui/floating-cards.js';
+import { initializeContentCard, showContentCard, hideContentCard, isContentCardOpen } from '../ui/content-card.js';
+import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from '../ui/model-selection.js';
 import { sendMessage, resetSendingState } from './messaging.js';
-import { handlePasteContent } from './paste-drop.js';
-import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from './uploads-capture.js';
+import { handlePasteContent } from '../clipboard/paste-drop.js';
+import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from '../capture/uploads-capture.js';
 import { geometryController } from './geometry.js';
-import { stopCurrentRecording, updateVolumeIndicator } from './recording.js';
-import { initializeContainerDrag } from './container-drag.js';
-import { initializeClipboardInjection } from './clipboard-injector.js';
-import { initClipboardUI } from './clipboard-ui.js';
-import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
-import { initializeUndoRedo, recordState } from './undo-redo.js';
-import { handleKeyboardShortcut, initializeKeyboardShortcuts } from './keyboard-shortcuts.js';
-import { initializeInputEnhancements } from './input-enhancements.js';
-import { initTextSelectionUI } from './text-selection-ui.js';
+import { stopCurrentRecording, updateVolumeIndicator } from '../capture/recording.js';
+import { initializeContainerDrag } from '../input/container-drag.js';
+import { initializeClipboardInjection } from '../clipboard/clipboard-injector.js';
+import { initClipboardUI } from '../clipboard/clipboard-ui.js';
+import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from '../clipboard/auto-clipboard-state.js';
+import { initializeUndoRedo, recordState } from '../input/undo-redo.js';
+import { handleKeyboardShortcut, initializeKeyboardShortcuts } from '../input/keyboard-shortcuts.js';
+import { initializeInputEnhancements } from '../input/input-enhancements.js';
+import { initTextSelectionUI } from '../input/text-selection-ui.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {

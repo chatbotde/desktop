@@ -1,4 +1,4 @@
-import { dom } from './dom.js';
+import { dom } from '../core/dom.js';
 import { isAutoClipboardEnabled } from './auto-clipboard-state.js';
 
 function stripHtml(html) {
@@ -48,7 +48,7 @@ export function appendToInput(content) {
     input.value = input.value.replace(/[\r\n]+/g, ' ');
   }
 
-  import('./expand-collapse.js').then(({ autoResize, updateSendButton }) => {
+  import('../ui/expand-collapse.js').then(({ autoResize, updateSendButton }) => {
     autoResize();
     updateSendButton();
   });

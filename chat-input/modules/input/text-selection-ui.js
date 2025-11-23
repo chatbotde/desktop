@@ -1,8 +1,8 @@
-import { dom } from './dom.js';
-import { appendToInput } from './clipboard-injector.js';
-import { sendMessage } from './messaging.js';
-import { addTextBadge } from './badges.js';
-import { createFloatingCard } from './floating-cards.js';
+import { dom } from '../core/dom.js';
+import { appendToInput } from '../clipboard/clipboard-injector.js';
+import { sendMessage } from '../core/messaging.js';
+import { addTextBadge } from '../ui/badges.js';
+import { createFloatingCard } from '../ui/floating-cards.js';
 
 /**
  * Text Selection UI Manager

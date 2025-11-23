@@ -1,5 +1,5 @@
-import { dom } from './dom.js';
-import { state, getNextBadgeId } from './state.js';
+import { dom } from '../core/dom.js';
+import { state, getNextBadgeId } from '../core/state.js';
 
 function positionBadgesContainer() {
     const container = dom.badgesContainer;

@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { dom } from './dom.js';
+import { state } from '../core/state.js';
+import { dom } from '../core/dom.js';
 import { updateAttachmentsVisibility } from './attachments.js';
 
 export function addMediaAttachment(mediaFile) {

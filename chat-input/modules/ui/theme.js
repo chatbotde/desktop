@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { dom } from './dom.js';
+import { state } from '../core/state.js';
+import { dom } from '../core/dom.js';
 
 export function toggleTheme() {
     state.currentTheme = state.currentTheme === 'dark' ? 'paper' : 'dark';

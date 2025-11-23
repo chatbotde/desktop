@@ -3,10 +3,10 @@
  * Provides better text selection, cursor positioning, and input handling
  */
 
-import { dom } from './dom.js';
-import { state } from './state.js';
+import { dom } from '../core/dom.js';
+import { state } from '../core/state.js';
 import { recordState } from './undo-redo.js';
-import { autoResize, updateSendButton } from './expand-collapse.js';
+import { autoResize, updateSendButton } from '../ui/expand-collapse.js';
 
 /**
  * Smart text insertion at cursor position

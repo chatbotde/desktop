@@ -3,10 +3,10 @@
  * Manages history for text input and attachments with Ctrl+Z/Ctrl+Y support
  */
 
-import { state } from './state.js';
-import { dom } from './dom.js';
-import { addImageAttachment, removeImageAttachment, clearAllMediaAttachments, updateAttachmentsVisibility } from './attachments.js';
-import { autoResize, updateSendButton } from './expand-collapse.js';
+import { state } from '../core/state.js';
+import { dom } from '../core/dom.js';
+import { addImageAttachment, removeImageAttachment, clearAllMediaAttachments, updateAttachmentsVisibility } from '../media/attachments.js';
+import { autoResize, updateSendButton } from '../ui/expand-collapse.js';
 
 // History state
 const historyState = {
@@ -130,7 +130,7 @@ function restoreSnapshot(snapshot) {
             dom.attachmentsGrid.innerHTML = '';
             // Import dynamically to avoid circular dependency
             snapshot.imageAttachments.forEach(att => {
-                import('./attachments.js').then(({ renderImageAttachment }) => {
+                import('../media/attachments.js').then(({ renderImageAttachment }) => {
                     renderImageAttachment(att);
                 });
             });
