@@ -129,25 +129,42 @@ class TextSelectionUIManager {
       e.stopPropagation();
     });
     input.addEventListener('focus', () => {
-      if (this.hideTimer) clearTimeout(this.hideTimer);
-      // Clear input if it has stale value (safeguard)
-      if (input.value && !this.userInput) {
-        input.value = '';
+      // Cancel all auto-hide timers when user focuses input
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer);
+        this.hideTimer = null;
       }
-      // Reset auto-hide timer when user focuses input
-      this.startAutoHideTimer();
+      if (this.autoHideTimer) {
+        clearTimeout(this.autoHideTimer);
+        this.autoHideTimer = null;
+      }
+      if (this.distanceHideHandler) {
+        window.removeEventListener('mousemove', this.distanceHideHandler);
+        this.distanceHideHandler = null;
+      }
     });
     input.addEventListener('input', () => {
-      // Reset auto-hide timer when user types
-      this.startAutoHideTimer();
+      this.userInput = input.value;
+      // Cancel auto-hide while typing
+      if (this.autoHideTimer) {
+        clearTimeout(this.autoHideTimer);
+        this.autoHideTimer = null;
+      }
     });
     input.addEventListener('blur', () => {
-      if (this.hideTimer) clearTimeout(this.hideTimer);
-      // Start auto-hide timer after blur
-      this.startAutoHideTimer();
+      // Don't auto-hide - let the selection cleared event handle hiding
+      // UI stays visible as long as text is selected
     });
 
     inputWrapper.appendChild(input);
+    
+    // Make wrapper clickable to focus input
+    inputWrapper.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === inputWrapper) {
+        input.focus();
+      }
+    });
 
     // Copy button (outside left)
     const copyBtn = document.createElement('button');
@@ -359,6 +376,12 @@ class TextSelectionUIManager {
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
     }, { passive: true });
+
+    // Listen for selection cleared event
+    document.addEventListener('text-selection:cleared', () => {
+      console.log('Text Selection UI: Selection cleared, hiding UI');
+      this.hide();
+    });
 
     // Textarea input handler
     this.elements.textarea.addEventListener('input', (e) => {
@@ -871,12 +894,18 @@ class TextSelectionUIManager {
       this.miniBar.style.top = `${topPos}px`;
       this.miniBar.style.left = `${leftPos}px`;
       this.miniBar.style.zIndex = '50001';
-      this.miniBar.style.display = 'flex';
-      this.miniBar.style.opacity = '1';
-      this.miniBar.style.transform = 'scale(1)';
+      this.miniBar.style.display = 'block';
+      
+      // Remove visible class first to reset animation
+      this.miniBar.classList.remove('visible');
+      
+      // Trigger entrance animation
+      requestAnimationFrame(() => {
+        this.miniBar.classList.add('visible');
+      });
     }
 
-    // Position accurately after a micro-delay to get actual dimensions
+    // Position accurately and focus input after animation starts
     requestAnimationFrame(() => {
       this.position();
       // Clear textarea again after positioning to ensure it's empty
@@ -887,11 +916,14 @@ class TextSelectionUIManager {
         this.elements.searchInput.value = '';
       }
       this.userInput = '';
-      // Focus input immediately after positioning
-      if (this.elements.searchInput) {
-        this.elements.searchInput.focus();
-        this.elements.searchInput.setSelectionRange(0, 0);
-      }
+      
+      // Focus input after a brief delay for smooth appearance
+      setTimeout(() => {
+        if (this.elements.searchInput && this.isMiniVisible) {
+          this.elements.searchInput.focus();
+          this.elements.searchInput.setSelectionRange(0, 0);
+        }
+      }, 250);
     });
 
     window.addEventListener('resize', this.resizeHandler, { passive: true });
@@ -912,15 +944,11 @@ class TextSelectionUIManager {
       this.distanceHideHandler = null;
     }
 
-    // Set up auto-hide timer (2 seconds)
-    this.startAutoHideTimer();
-
-    // Set up distance-based hide with longer grace period
+    // Don't set up auto-hide timers - UI will stay visible until selection is cleared
+    // Users can manually close with the X button if needed
     this.showOriginX = this.lastMouseX;
     this.showOriginY = this.lastMouseY;
     this.showTime = Date.now();
-    const thresholdPx = 500; // Much larger threshold - user needs to move mouse far away
-    const gracePeriodMs = 2000; // Don't hide for 2 seconds after showing
     
     this.distanceHideHandler = () => {
       if (!this.isMiniVisible) return;
@@ -1036,16 +1064,24 @@ class TextSelectionUIManager {
     }
     this.userInput = '';
 
-    if (this.panel) this.panel.classList.remove('visible');
+    // Trigger fade-out animation
+    if (this.miniBar) {
+      this.miniBar.classList.remove('visible');
+    }
+    if (this.panel) {
+      this.panel.classList.remove('visible');
+    }
+    
     this.isVisible = false;
     this.isFabVisible = false;
     this.isMiniVisible = false;
 
+    // Hide elements after animation completes (250ms to match CSS transition)
     setTimeout(() => {
       if (this.panel && !this.isVisible) this.panel.style.display = 'none';
       if (this.fab) this.fab.style.display = 'none';
       if (this.miniBar) this.miniBar.style.display = 'none';
-    }, 300);
+    }, 250);
 
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);

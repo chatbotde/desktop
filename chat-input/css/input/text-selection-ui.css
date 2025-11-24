@@ -5,9 +5,16 @@
   z-index: 50001;
   pointer-events: auto;
   user-select: none;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.text-selection-mini.visible {
   opacity: 1;
-  transform: scale(1);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateY(0) scale(1);
 }
 
 .google-search-bar {
@@ -23,6 +30,7 @@
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3), 0 1px 6px rgba(0, 0, 0, 0.2);
   min-width: 320px;
   max-width: 500px;
+  transition: box-shadow 0.2s ease;
 }
 
 .google-search-bar:hover {
@@ -52,6 +60,8 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  cursor: text;
+  pointer-events: auto;
 }
 
 .search-input {
@@ -65,6 +75,8 @@
   line-height: 1.4;
   padding: 3px 0;
   user-select: text;
+  pointer-events: auto;
+  cursor: text;
 }
 
 .search-input::placeholder {
@@ -96,7 +108,7 @@
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
   flex-shrink: 0;
 }
@@ -104,6 +116,7 @@
 .search-action-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
 }
 
 .search-action-btn:active {

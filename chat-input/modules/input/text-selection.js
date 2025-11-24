@@ -44,7 +44,13 @@ export function handleTextSelection() {
           console.error('Text Selection: Error dispatching text-selection:detected event', error);
         }
       } else {
-        console.log('Text Selection: Ignoring empty selection');
+        console.log('Text Selection: Selection cleared, hiding UI');
+        // Dispatch event to hide UI when selection is cleared
+        try {
+          document.dispatchEvent(new CustomEvent('text-selection:cleared'));
+        } catch (error) {
+          console.error('Text Selection: Error dispatching text-selection:cleared event', error);
+        }
       }
     });
   } else {
