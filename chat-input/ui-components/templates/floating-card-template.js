@@ -55,9 +55,7 @@ export const floatingCardTemplateHTML = `
                      -->
                     <button class="floating-card-hide-btn" aria-label="Hide card" title="Hide Card">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 6h18l-2-2H5l-2 2z"/>
-                            <path d="M21 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6"/>
-                            <path d="m8 10 4 4 4-4"/>
+                            <path d="M18 6 6 18M6 6l12 12"/>
                         </svg> 
                     </button>
                     <button class="floating-card-close" aria-label="Close card" title="Close (Esc)" data-hide-for-card="1">
