@@ -47,6 +47,7 @@ const { clipboardMonitor } = require("./clipboard-monitor");
 const { textSelectionMonitor } = require("./chat-input/electron-api/text-selection");
 const { environmentConfig } = require("./utils/environment");
 const { initializeTsf } = require("./chat-input/tsf-ipc-handlers");
+const { MinimalModeManager } = require("./global-shortcut");
 
 // Set app icon
 if (process.platform === 'win32') {
@@ -128,6 +129,8 @@ function createChatInputWindow() {
     chatInputWindow.createChatInputWindow();
     // Show the window immediately
     chatInputWindow.show();
+    // Initialize minimal mode manager with the chat input window
+    MinimalModeManager.initialize(chatInputWindow);
   }
   return chatInputWindow.getChatInputWindow();
 }
@@ -425,6 +428,18 @@ function registerGlobalShortcuts() {
     console.log('Main: Failed to register global shortcut Ctrl+H');
   } else {
     console.log('Main: Global shortcut Ctrl+H registered successfully');
+  }
+
+  // Register Ctrl+M for minimal mode toggle (hide all UI except persistent toggle)
+  const retMinimal = globalShortcut.register('CommandOrControl+M', () => {
+    console.log('Main: Global shortcut Ctrl+M pressed - toggling minimal mode');
+    MinimalModeManager.toggleMinimalMode();
+  });
+
+  if (!retMinimal) {
+    console.log('Main: Failed to register global shortcut Ctrl+M');
+  } else {
+    console.log('Main: Global shortcut Ctrl+M registered successfully');
   }
 }
 

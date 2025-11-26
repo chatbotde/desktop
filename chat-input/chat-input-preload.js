@@ -291,6 +291,39 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
   onClearInput: (callback) => ipcRenderer.on('clear-input', callback),
   onFocusInput: (callback) => ipcRenderer.on('focus-input', callback),
   
+  // ==================== MINIMAL MODE METHODS ====================
+  
+  // Toggle minimal mode (hide all UI except persistent toggle)
+  toggleMinimalMode: () => {
+    console.log('Preload: Toggling minimal mode');
+    ipcRenderer.send('minimal-mode-toggle');
+  },
+  
+  // Enable minimal mode
+  enableMinimalMode: () => {
+    console.log('Preload: Enabling minimal mode');
+    ipcRenderer.send('minimal-mode-enable');
+  },
+  
+  // Disable minimal mode
+  disableMinimalMode: () => {
+    console.log('Preload: Disabling minimal mode');
+    ipcRenderer.send('minimal-mode-disable');
+  },
+  
+  // Get minimal mode status
+  getMinimalModeStatus: () => {
+    return ipcRenderer.invoke('minimal-mode-get-status');
+  },
+  
+  // Listen for minimal mode changes
+  onMinimalModeChanged: (callback) => {
+    ipcRenderer.on('minimal-mode-changed', (event, isMinimal) => {
+      console.log('Preload: Minimal mode changed to', isMinimal);
+      callback(isMinimal);
+    });
+  },
+  
   // Listen for recording events
   onRecordingProgress: (callback) => ipcRenderer.on('recording-progress', callback),
   onVolumeChange: (callback) => ipcRenderer.on('recording-volume', callback),

@@ -6,6 +6,7 @@ import { initializeTextSelection } from './input/text-selection.js';
 import { initClipboardUI } from './clipboard/clipboard-ui.js';
 import { initBadgesIntegration } from './ui/badges-integration.js';
 import tsfInsertManager from './core/tsf-insert-manager.js';
+import minimalModeUI from './ui/minimal-mode.js';
 
 function start() {
     try { 
@@ -43,6 +44,11 @@ function start() {
       tsfInsertManager.init(); 
     } catch (e) { console.error('TSF insert manager init failed', e); }
     
+    try { 
+      console.log('Modules: Initializing minimal mode UI');
+      minimalModeUI.initialize(); 
+    } catch (e) { console.error('Minimal mode UI init failed', e); }
+    
     console.log('Modules: All initialization completed');
 }
 
@@ -56,4 +62,4 @@ if (document.readyState === 'loading') {
 }
 
 // Export TSF insert manager for other modules to use
-export { tsfInsertManager };
+export { tsfInsertManager, minimalModeUI };
