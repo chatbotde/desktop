@@ -259,26 +259,27 @@
 
 /* Model Selection Dropdown Styles - POSITIONED ABOVE CHAT INPUT */
 #modelSelectDropdown {
-    min-width: 280px;
+    min-width: 200px;
     max-width: 360px;
-    max-height: 50vh;
+    max-height: 500px;
     overflow: hidden;
-    /* Position above chat input */
+    /* Position in center of screen */
     position: fixed !important;
-    bottom: calc(10% + 80px) !important; /* Above the chat input */
+    top: 40% !important;
     left: 50% !important;
-    transform: translateX(-50%) translateY(10px) scale(0.95) !important;
-    transform-origin: bottom center !important;
-    opacity: 0;
+    bottom: 3% !important;
+    transform: translate(-50%, -50%) scale(0.95) !important;
+    transform-origin: center center !important;
+    opacity: 1;
     visibility: hidden;
-    z-index: 99999 !important;
+    z-index: 50001;
     transition: 
         opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
         visibility 0.25s ease !important;
     box-shadow: 
-        0 -8px 32px rgba(0, 0, 0, 0.4),
-        0 -4px 16px rgba(0, 0, 0, 0.3),
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(255, 255, 255, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
     border-radius: 14px !important;
@@ -292,7 +293,7 @@
 #modelSelectDropdown.open {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0) scale(1) !important;
+    transform: translate(-50%, -50%) scale(1) !important;
 }
 
 /* Remove focus outlines - slick appearance */

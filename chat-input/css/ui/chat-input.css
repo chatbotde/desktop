@@ -10,7 +10,7 @@
     
     max-width: 800px;
     margin: 0;
-    z-index: 1;/* Maximum z-index to stay above WebContentsView */
+    z-index:10000;/**/
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     bottom: 10%;
@@ -499,7 +499,7 @@
     border-bottom: 1px solid var(--border);
     background: var(--bg-popover);
     flex-shrink: 0;
-    height: 20px;
+    height: 30px;
 }
 
 .content-card-title {
