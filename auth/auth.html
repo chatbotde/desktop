@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
-  <title>Buddy - Sign In</title>
+  <title>Buddy</title>
   <style>
     * {
       margin: 0;
@@ -13,178 +13,183 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
-      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #7dd3fc 100%);
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      color: #fff;
+      color: #0c4a6e;
       -webkit-app-region: drag;
+      overflow: hidden;
     }
 
-    /* Title bar for frameless window */
     .title-bar {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: rgba(0, 0, 0, 0.2);
+      justify-content: flex-end;
+      padding: 8px 12px;
       -webkit-app-region: drag;
-    }
-
-    .title-bar-text {
-      font-size: 13px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
     }
 
     .window-controls {
       display: flex;
-      gap: 8px;
+      gap: 4px;
       -webkit-app-region: no-drag;
     }
 
     .window-btn {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       border: none;
       cursor: pointer;
-      transition: opacity 0.2s;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
     }
 
     .window-btn:hover {
-      opacity: 0.8;
+      background: rgba(255,255,255,0.3);
     }
 
-    .window-btn.close { background: #ff5f57; }
-    .window-btn.minimize { background: #febc2e; }
-    .window-btn.maximize { background: #28c840; }
+    .window-btn.close:hover {
+      background: #ef4444;
+    }
 
-    /* Main content */
     .auth-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 24px;
+      padding: 16px 24px 20px;
       -webkit-app-region: no-drag;
     }
 
-    /* Logo */
     .logo {
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 24px;
-      font-size: 36px;
-      font-weight: bold;
-      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-    }
-
-    .app-name {
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #fff 0%, #a0aec0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      margin-bottom: 4px;
+      letter-spacing: -1px;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    .app-tagline {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 40px;
-      text-align: center;
+    .tagline {
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 24px;
     }
 
-    /* Auth views */
     .auth-view {
       display: none;
       width: 100%;
-      max-width: 320px;
+      max-width: 280px;
     }
 
     .auth-view.active {
       display: block;
     }
 
-    /* Initial view - Login/Signup buttons */
-    .auth-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-    }
-
     .btn {
-      padding: 14px 24px;
-      font-size: 15px;
-      font-weight: 600;
+      width: 100%;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
       border: none;
-      border-radius: 12px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      transition: all 0.15s;
       -webkit-app-region: no-drag;
     }
 
     .btn:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+      background: #fff;
+      color: #0369a1;
+      font-weight: 600;
     }
 
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      background: #f0f9ff;
     }
 
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
+    .btn-ghost {
+      background: rgba(255,255,255,0.2);
       color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-top: 8px;
     }
 
-    .btn-secondary:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-2px);
+    .btn-ghost:hover:not(:disabled) {
+      background: rgba(255,255,255,0.3);
     }
 
     .btn-danger {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: rgba(255,255,255,0.2);
+      color: #fee2e2;
+      margin-top: 6px;
     }
 
     .btn-danger:hover:not(:disabled) {
       background: rgba(239, 68, 68, 0.3);
+      color: #fff;
     }
 
-    /* Loading view */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      color: rgba(255,255,255,0.7);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.3);
+    }
+
+    .token-input {
+      width: 100%;
+      padding: 10px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 6px;
+      color: #0c4a6e;
+      outline: none;
+      font-family: monospace;
+    }
+
+    .token-input:focus {
+      border-color: #fff;
+      background: #fff;
+    }
+
+    .token-input::placeholder {
+      color: #64748b;
+    }
+
     .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255, 255, 255, 0.1);
-      border-top-color: #667eea;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
     }
 
     @keyframes spin {
@@ -193,26 +198,26 @@
 
     .loading-text {
       text-align: center;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 14px;
+      color: #fff;
+      font-size: 12px;
     }
 
-    /* Authenticated view */
-    .user-profile {
+    .user-info {
       text-align: center;
     }
 
     .user-avatar {
-      width: 64px;
-      height: 64px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #fff;
+      color: #0369a1;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      margin: 0 auto 16px;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 auto 10px;
       overflow: hidden;
     }
 
@@ -223,288 +228,105 @@
     }
 
     .user-name {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
+      color: #fff;
     }
 
     .user-email {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 24px;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: rgba(34, 197, 94, 0.2);
-      border-radius: 20px;
       font-size: 12px;
-      color: #22c55e;
-      margin-bottom: 24px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 16px;
     }
 
-    .status-badge.error {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    /* Error view */
-    .error-icon {
-      width: 64px;
-      height: 64px;
-      background: rgba(239, 68, 68, 0.2);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px;
-      font-size: 32px;
-    }
-
-    .error-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
+    .error-view {
       text-align: center;
     }
 
-    .error-message {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      text-align: center;
-      margin-bottom: 24px;
-    }
-
-    /* Divider */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin: 24px 0;
-      color: rgba(255, 255, 255, 0.4);
+    .error-msg {
+      color: #fff;
+      background: rgba(239, 68, 68, 0.8);
+      padding: 8px 12px;
+      border-radius: 6px;
       font-size: 12px;
+      margin-bottom: 16px;
     }
 
-    .divider::before,
-    .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Footer text */
-    .footer-text {
-      margin-top: 32px;
+    .footer {
       text-align: center;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
+      font-size: 10px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 20px;
     }
 
-    .footer-text a {
-      color: #667eea;
+    .footer a {
+      color: rgba(255,255,255,0.8);
       text-decoration: none;
     }
 
-    .footer-text a:hover {
-      text-decoration: underline;
-    }
-
-    /* Icons */
-    .icon {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* Manual token input */
-    .token-input-section {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .token-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 13px;
-      cursor: pointer;
-      transition: color 0.2s;
-      background: none;
-      border: none;
-      width: 100%;
-      padding: 8px;
-    }
-
-    .token-toggle:hover {
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .token-form {
-      display: block;
-      margin-top: 16px;
-    }
-
-    .token-form.hidden {
-      display: none;
-    }
-
-    .token-input {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
+    .footer a:hover {
       color: #fff;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s;
-      font-family: 'SF Mono', Monaco, Consolas, monospace;
-    }
-
-    .token-input:focus {
-      border-color: #667eea;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .token-input::placeholder {
-      color: rgba(255, 255, 255, 0.3);
-    }
-
-    .token-help {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
-      margin-top: 8px;
-      margin-bottom: 16px;
     }
   </style>
 </head>
 <body>
-  <!-- Title bar -->
   <div class="title-bar">
-    <span class="title-bar-text">Buddy</span>
     <div class="window-controls">
-      <button class="window-btn minimize" id="minimizeBtn" title="Minimize"></button>
-      <button class="window-btn maximize" id="maximizeBtn" title="Maximize"></button>
-      <button class="window-btn close" id="closeBtn" title="Close"></button>
+      <button class="window-btn minimize" id="minimizeBtn">−</button>
+      <button class="window-btn maximize" id="maximizeBtn">□</button>
+      <button class="window-btn close" id="closeBtn">×</button>
     </div>
   </div>
 
-  <!-- Main content -->
   <div class="auth-container">
-    <!-- Logo and branding -->
-    <div class="logo">B</div>
-    <h1 class="app-name">Buddy</h1>
-    <p class="app-tagline">Your intelligent desktop companion</p>
+    <div class="logo">Buddy</div>
+    <p class="tagline">Your desktop companion</p>
 
-    <!-- Initial View - Login/Signup -->
+    <!-- Initial View -->
     <div class="auth-view active" id="initialView">
-      <div class="auth-buttons">
-        <button class="btn btn-primary" id="loginBtn">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
-          </svg>
-          Sign In
-        </button>
-        <button class="btn btn-secondary" id="signupBtn">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-          </svg>
-          Create Account
-        </button>
-      </div>
+      <button class="btn btn-primary" id="loginBtn">Sign in</button>
+      <button class="btn btn-ghost" id="signupBtn">Create account</button>
       
-      <!-- Divider -->
-      <div class="divider">or</div>
+      <div class="divider">or paste token</div>
       
-      <!-- Manual Token Input Section -->
-      <div class="token-input-section" style="margin-top: 0; padding-top: 0; border-top: none;">
-        <p class="token-section-title" style="text-align: center; color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 12px;">
-          Have a token from the web?
-        </p>
-        <div class="token-form" id="tokenForm">
-          <input 
-            type="text" 
-            class="token-input" 
-            id="tokenInput" 
-            placeholder="Paste your authentication token here"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <p class="token-help">If browser redirect didn't work, copy the token from the web and paste it here</p>
-          <button class="btn btn-secondary" id="submitTokenBtn" style="margin-top: 8px;">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Login with Token
-          </button>
-        </div>
-      </div>
+      <input type="text" class="token-input" id="tokenInput" placeholder="Paste token here" autocomplete="off" spellcheck="false">
+      <button class="btn btn-ghost" id="submitTokenBtn">Submit token</button>
       
-      <p class="footer-text">
-        By continuing, you agree to our<br>
-        <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+      <p class="footer">
+        <a href="#">Terms</a> · <a href="#">Privacy</a>
       </p>
     </div>
 
     <!-- Loading View -->
     <div class="auth-view" id="loadingView">
       <div class="loading-spinner"></div>
-      <p class="loading-text" id="loadingText">Opening browser for authentication...</p>
-      <p class="loading-subtext" id="loadingSubtext" style="text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 16px;">Complete sign in on the web browser</p>
-      <div class="auth-buttons" style="margin-top: 24px;">
-        <button class="btn btn-secondary" id="cancelLoadingBtn">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-          Cancel & Enter Token Manually
-        </button>
-      </div>
+      <p class="loading-text" id="loadingText">Opening browser...</p>
+      <button class="btn btn-ghost" id="cancelLoadingBtn" style="margin-top: 16px;">Cancel</button>
     </div>
 
     <!-- Authenticated View -->
     <div class="auth-view" id="authenticatedView">
-      <div class="user-profile">
+      <div class="user-info">
         <div class="user-avatar" id="userAvatar">U</div>
-        <h2 class="user-name" id="userName">User Name</h2>
+        <h2 class="user-name" id="userName">User</h2>
         <p class="user-email" id="userEmail">user@example.com</p>
-        <div class="status-badge" id="statusBadge">
-          <span class="status-dot"></span>
-          <span>Authenticated</span>
-        </div>
-        <div class="auth-buttons">
-          <button class="btn btn-secondary" id="continueBtn">Continue to App</button>
-          <button class="btn btn-danger" id="logoutBtn">Sign Out</button>
-        </div>
+        <button class="btn btn-primary" id="continueBtn">Continue</button>
+        <button class="btn btn-danger" id="logoutBtn">Sign out</button>
       </div>
     </div>
 
     <!-- Error View -->
     <div class="auth-view" id="errorView">
-      <div class="error-icon">⚠️</div>
-      <h2 class="error-title">Authentication Failed</h2>
-      <p class="error-message" id="errorMessage">An error occurred during authentication.</p>
-      <div class="auth-buttons">
-        <button class="btn btn-primary" id="retryBtn">Try Again</button>
-        <button class="btn btn-secondary" id="backBtn">Back</button>
+      <div class="error-view">
+        <p class="error-msg" id="errorMessage">Something went wrong</p>
+        <button class="btn btn-primary" id="retryBtn">Try again</button>
+        <button class="btn btn-ghost" id="backBtn">Back</button>
       </div>
     </div>
   </div>
 
   <script>
-    // DOM elements
     const views = {
       initial: document.getElementById('initialView'),
       loading: document.getElementById('loadingView'),
@@ -512,223 +334,90 @@
       error: document.getElementById('errorView'),
     };
 
-    const elements = {
-      loginBtn: document.getElementById('loginBtn'),
-      signupBtn: document.getElementById('signupBtn'),
-      logoutBtn: document.getElementById('logoutBtn'),
-      continueBtn: document.getElementById('continueBtn'),
-      retryBtn: document.getElementById('retryBtn'),
-      backBtn: document.getElementById('backBtn'),
-      closeBtn: document.getElementById('closeBtn'),
-      minimizeBtn: document.getElementById('minimizeBtn'),
-      maximizeBtn: document.getElementById('maximizeBtn'),
-      loadingText: document.getElementById('loadingText'),
-      loadingSubtext: document.getElementById('loadingSubtext'),
-      cancelLoadingBtn: document.getElementById('cancelLoadingBtn'),
-      errorMessage: document.getElementById('errorMessage'),
-      userName: document.getElementById('userName'),
-      userEmail: document.getElementById('userEmail'),
-      userAvatar: document.getElementById('userAvatar'),
-      statusBadge: document.getElementById('statusBadge'),
-      tokenForm: document.getElementById('tokenForm'),
-      tokenInput: document.getElementById('tokenInput'),
-      submitTokenBtn: document.getElementById('submitTokenBtn'),
-    };
+    const $ = id => document.getElementById(id);
 
-    // Loading timeout - auto return to initial view
-    let loadingTimeout = null;
-
-    // View management
-    function showView(viewName) {
-      Object.values(views).forEach(view => view.classList.remove('active'));
-      if (views[viewName]) {
-        views[viewName].classList.add('active');
-      }
+    function showView(name) {
+      Object.values(views).forEach(v => v.classList.remove('active'));
+      if (views[name]) views[name].classList.add('active');
     }
 
-    function showLoading(text = 'Loading...', subtext = 'Complete sign in on the web browser') {
-      elements.loadingText.textContent = text;
-      elements.loadingSubtext.textContent = subtext;
+    function showLoading(text = 'Loading...') {
+      $('loadingText').textContent = text;
       showView('loading');
-      
-      // Clear any existing timeout
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-      
-      // Auto-update subtext after 5 seconds to show manual option hint
-      loadingTimeout = setTimeout(() => {
-        elements.loadingSubtext.innerHTML = 'Taking too long? Click "Cancel" below to enter your token manually.';
-      }, 5000);
-    }
-    
-    function cancelLoading() {
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-        loadingTimeout = null;
-      }
-      showView('initial');
-      // Focus on token input for convenience
-      setTimeout(() => elements.tokenInput.focus(), 100);
     }
 
-    function showError(message) {
-      elements.errorMessage.textContent = message;
+    function showError(msg) {
+      $('errorMessage').textContent = msg;
       showView('error');
     }
 
     function showAuthenticated(user) {
       if (user) {
-        elements.userName.textContent = user.name || user.displayName || 'User';
-        elements.userEmail.textContent = user.email || '';
-        
-        // Set avatar
+        $('userName').textContent = user.name || user.displayName || 'User';
+        $('userEmail').textContent = user.email || '';
         if (user.image || user.avatar) {
-          elements.userAvatar.innerHTML = `<img src="${user.image || user.avatar}" alt="Avatar">`;
+          $('userAvatar').innerHTML = `<img src="${user.image || user.avatar}" alt="">`;
         } else {
-          const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
-          elements.userAvatar.textContent = initial;
+          $('userAvatar').textContent = (user.name || user.email || 'U').charAt(0).toUpperCase();
         }
       }
       showView('authenticated');
     }
 
-    // Event handlers
-    elements.loginBtn.addEventListener('click', () => {
-      if (window.authAPI) {
-        showLoading('Opening browser for sign in...');
-        window.authAPI.login();
+    // Events
+    $('loginBtn').onclick = () => {
+      if (window.authAPI) { showLoading('Opening browser...'); window.authAPI.login(); }
+    };
+
+    $('signupBtn').onclick = () => {
+      if (window.authAPI) { showLoading('Opening browser...'); window.authAPI.signup(); }
+    };
+
+    $('logoutBtn').onclick = () => {
+      if (window.authAPI) { showLoading('Signing out...'); window.authAPI.logout(); }
+    };
+
+    $('continueBtn').onclick = () => {
+      if (window.windowAPI) window.windowAPI.close();
+    };
+
+    $('retryBtn').onclick = () => showView('initial');
+    $('backBtn').onclick = () => showView('initial');
+    $('cancelLoadingBtn').onclick = () => { showView('initial'); $('tokenInput').focus(); };
+
+    $('submitTokenBtn').onclick = async () => {
+      const token = $('tokenInput').value.trim();
+      if (!token) { showError('Please enter a token'); return; }
+      if (window.authAPI?.submitManualToken) {
+        showLoading('Verifying...');
+        try { await window.authAPI.submitManualToken(token); }
+        catch (e) { showError(e.message || 'Invalid token'); }
       }
-    });
+    };
 
-    elements.signupBtn.addEventListener('click', () => {
-      if (window.authAPI) {
-        showLoading('Opening browser for registration...');
-        window.authAPI.signup();
-      }
-    });
-
-    elements.logoutBtn.addEventListener('click', async () => {
-      if (window.authAPI) {
-        showLoading('Signing out...');
-        window.authAPI.logout();
-      }
-    });
-
-    elements.continueBtn.addEventListener('click', () => {
-      // Close auth window - app will continue to main window
-      if (window.windowAPI) {
-        window.windowAPI.close();
-      }
-    });
-
-    elements.retryBtn.addEventListener('click', () => {
-      showView('initial');
-    });
-
-    elements.backBtn.addEventListener('click', () => {
-      showView('initial');
-    });
-
-    // Cancel loading button
-    elements.cancelLoadingBtn.addEventListener('click', () => {
-      cancelLoading();
-    });
-
-    // Token toggle is removed - form is always visible now
-
-    // Manual token submission
-    elements.submitTokenBtn.addEventListener('click', async () => {
-      const token = elements.tokenInput.value.trim();
-      if (!token) {
-        showError('Please enter a valid token');
-        return;
-      }
-      
-      if (window.authAPI && window.authAPI.submitManualToken) {
-        showLoading('Verifying token...');
-        try {
-          await window.authAPI.submitManualToken(token);
-        } catch (err) {
-          showError(err.message || 'Invalid token. Please try again.');
-        }
-      } else {
-        showError('Token submission not available');
-      }
-    });
-
-    // Allow Enter key to submit token
-    elements.tokenInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        elements.submitTokenBtn.click();
-      }
-    });
+    $('tokenInput').onkeydown = e => { if (e.key === 'Enter') $('submitTokenBtn').click(); };
 
     // Window controls
-    elements.closeBtn.addEventListener('click', () => {
-      if (window.windowAPI) window.windowAPI.close();
-    });
+    $('closeBtn').onclick = () => window.windowAPI?.close();
+    $('minimizeBtn').onclick = () => window.windowAPI?.minimize();
+    $('maximizeBtn').onclick = () => window.windowAPI?.maximize();
 
-    elements.minimizeBtn.addEventListener('click', () => {
-      if (window.windowAPI) window.windowAPI.minimize();
-    });
-
-    elements.maximizeBtn.addEventListener('click', () => {
-      if (window.windowAPI) window.windowAPI.maximize();
-    });
-
-    // Auth event listeners
+    // Auth listeners
     if (window.authAPI) {
-      // Subscribe to auth state changes
       window.authAPI.subscribe();
-
-      // Handle auth success
-      window.authAPI.onAuthSuccess((user) => {
-        console.log('Auth success:', user);
-        showAuthenticated(user);
+      window.authAPI.onAuthSuccess(user => showAuthenticated(user));
+      window.authAPI.onAuthError(err => showError(err.message || 'Authentication failed'));
+      window.authAPI.onLogout(() => showView('initial'));
+      window.authAPI.onSessionExpired(() => showError('Session expired. Please sign in again.'));
+      window.authAPI.onStateChange(state => {
+        if (state.isAuthenticated && state.user) showAuthenticated(state.user);
+        else showView('initial');
       });
-
-      // Handle auth errors
-      window.authAPI.onAuthError((error) => {
-        console.error('Auth error:', error);
-        showError(error.message || 'Authentication failed. Please try again.');
-      });
-
-      // Handle logout
-      window.authAPI.onLogout(() => {
-        console.log('Logged out');
-        showView('initial');
-      });
-
-      // Handle session expired
-      window.authAPI.onSessionExpired(() => {
-        console.log('Session expired');
-        showError('Your session has expired. Please sign in again.');
-      });
-
-      // Handle auth state changes
-      window.authAPI.onStateChange((state) => {
-        console.log('Auth state changed:', state);
-        if (state.isAuthenticated && state.user) {
-          showAuthenticated(state.user);
-        } else {
-          showView('initial');
-        }
-      });
-
-      // Handle session restored
-      window.authAPI.onSessionRestored((user) => {
-        console.log('Session restored:', user);
-        showAuthenticated(user);
-      });
-
-      // Check initial auth state
-      window.authAPI.isAuthenticated().then(async (isAuth) => {
+      window.authAPI.onSessionRestored(user => showAuthenticated(user));
+      window.authAPI.isAuthenticated().then(async isAuth => {
         if (isAuth) {
           const user = await window.authAPI.getUser();
-          if (user) {
-            showAuthenticated(user);
-          }
+          if (user) showAuthenticated(user);
         }
       });
     }

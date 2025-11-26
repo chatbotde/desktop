@@ -34,7 +34,7 @@ class AuthWindow {
       resizable: config.AUTH_WINDOW.RESIZABLE,
       frame: false,
       transparent: false,
-      backgroundColor: '#0f0f0f',
+      backgroundColor: '#0ea5e9',
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
       show: false,

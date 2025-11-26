@@ -100,11 +100,11 @@ const config = {
    * Auth window dimensions and settings
    */
   AUTH_WINDOW: {
-    WIDTH: 400,
-    HEIGHT: 600,
-    MIN_WIDTH: 360,
-    MIN_HEIGHT: 500,
-    RESIZABLE: true,
+    WIDTH: 320,
+    HEIGHT: 380,
+    MIN_WIDTH: 300,
+    MIN_HEIGHT: 350,
+    RESIZABLE: false,
   },
   
   /**
