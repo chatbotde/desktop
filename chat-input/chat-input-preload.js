@@ -324,6 +324,14 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     });
   },
   
+  // Listen for set collapsed state command (Ctrl+Shift+L shortcut)
+  onSetCollapsedState: (callback) => {
+    ipcRenderer.on('set-collapsed-state', (event, shouldCollapse) => {
+      console.log('Preload: Set collapsed state to', shouldCollapse);
+      callback(shouldCollapse);
+    });
+  },
+  
   // Listen for recording events
   onRecordingProgress: (callback) => ipcRenderer.on('recording-progress', callback),
   onVolumeChange: (callback) => ipcRenderer.on('recording-volume', callback),

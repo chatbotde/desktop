@@ -1,6 +1,25 @@
 # Global Shortcut Module
 
-This module manages global keyboard shortcuts for the Buddy app, including the **Minimal Mode** feature.
+This module manages global keyboard shortcuts for the Buddy app.
+
+## Global Shortcuts
+
+### Ctrl+H - Toggle Window Visibility
+Show or hide the entire chat input window.
+
+### Ctrl+M - Minimal Mode
+Hide all UI elements except the persistent toggle (right side transparent strip). This creates a distraction-free overlay experience.
+
+- **Enable**: Press `Ctrl+M` to hide all UI
+- **Restore**: Click the persistent toggle OR press `Ctrl+M` again
+
+### Ctrl+Shift+L - Show Collapsed Chat Input
+Show the chat input in its collapsed (compact) state. This is useful for quick access to the chat input without the expanded view.
+
+- Shows the chat input window if hidden
+- Ensures the input is in collapsed state
+- Disables minimal mode if active
+- Focuses the input field for immediate typing
 
 ## Features
 

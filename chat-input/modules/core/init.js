@@ -330,14 +330,6 @@ export async function boot() {
         }
     });
 
-    // IPC
-    if (window.chatInputAPI) {
-        window.chatInputAPI.onClearInput(() => { dom.messageInput.value = ''; autoResize(); resetSendingState(); dom.messageInput.focus(); });
-        window.chatInputAPI.onFocusInput(() => { dom.messageInput.focus(); });
-        
-        // Removed onShowChatInputUI handler - chat input should only appear via persistent toggle (right side transparent element)
-    }
-    
     // Helper function to show chat input (centralized logic)
     const showChatInput = () => {
         console.log('Showing chat input');
@@ -360,6 +352,35 @@ export async function boot() {
     
     // Expose globally for easy access
     window.showChatInput = showChatInput;
+
+    // IPC
+    if (window.chatInputAPI) {
+        window.chatInputAPI.onClearInput(() => { dom.messageInput.value = ''; autoResize(); resetSendingState(); dom.messageInput.focus(); });
+        window.chatInputAPI.onFocusInput(() => { dom.messageInput.focus(); });
+        
+        // Listen for Ctrl+Shift+L shortcut - show chat input in collapsed state
+        window.chatInputAPI.onSetCollapsedState?.((shouldCollapse) => {
+            console.log('Received set-collapsed-state:', shouldCollapse);
+            // Show the chat input if hidden
+            showChatInput();
+            
+            // Ensure collapsed state
+            if (shouldCollapse) {
+                // Force collapse
+                dom.promptInput.classList.remove('expanded');
+                dom.chatInputContainer.classList.remove('expanded');
+                autoResize();
+                updateSendButton();
+                
+                // Focus the input
+                setTimeout(() => {
+                    dom.messageInput.focus();
+                }, 100);
+            }
+        });
+        
+        // Removed onShowChatInputUI handler - chat input should only appear via persistent toggle (right side transparent element)
+    }
     
     // Chat input should only appear when clicking the persistent toggle (right side transparent element)
     // Removed body click and window focus handlers - only persistent toggle can show/hide chat input

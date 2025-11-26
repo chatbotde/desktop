@@ -441,6 +441,39 @@ function registerGlobalShortcuts() {
   } else {
     console.log('Main: Global shortcut Ctrl+M registered successfully');
   }
+
+  // Register Ctrl+Shift+L to show chat input in collapsed state
+  const retCollapsed = globalShortcut.register('CommandOrControl+Shift+L', () => {
+    console.log('Main: Global shortcut Ctrl+Shift+L pressed - showing collapsed chat input');
+    
+    // First disable minimal mode if active
+    if (MinimalModeManager.getStatus()) {
+      MinimalModeManager.disableMinimalMode();
+    }
+    
+    if (!chatInputWindow) {
+      console.log('Main: Creating new chat input window in collapsed state');
+      chatInputWindow = new ChatInputWindow();
+      chatInputWindow.createChatInputWindow();
+      MinimalModeManager.initialize(chatInputWindow);
+    }
+    
+    // Show the window
+    chatInputWindow.show();
+    
+    // Send message to renderer to ensure collapsed state
+    const window = chatInputWindow.getChatInputWindow();
+    if (window && !window.isDestroyed()) {
+      window.webContents.send('set-collapsed-state', true);
+      console.log('Main: Sent set-collapsed-state to renderer');
+    }
+  });
+
+  if (!retCollapsed) {
+    console.log('Main: Failed to register global shortcut Ctrl+Shift+L');
+  } else {
+    console.log('Main: Global shortcut Ctrl+Shift+L registered successfully');
+  }
 }
 
 function setupClipboardMonitoring() {
