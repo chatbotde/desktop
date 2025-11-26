@@ -137,6 +137,12 @@
       "icon": "icons/icon.png",
       "maintainer": "sonicthinking"
     },
+    "protocols": [
+      {
+        "name": "Buddy Protocol",
+        "schemes": ["buddy"]
+      }
+    ],
     "publish": {
       "provider": "github",
       "owner": "sonicthinking",
@@ -156,10 +162,12 @@
     "cross-fetch": "^4.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "ffi-napi": "^4.0.3",
+    "keytar": "^7.9.0",
     "ref-napi": "^3.0.3",
     "ref-struct-napi": "^1.1.1",
     "ref-union-napi": "^1.0.2",
     "selection-hook": "^1.0.12",
-    "tesseract.js": "^5.1.1"
+    "tesseract.js": "^5.1.1",
+    "uuid": "^13.0.0"
   }
 }

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <title>Buddy - Sign In</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #fff;
+      -webkit-app-region: drag;
+    }
+
+    /* Title bar for frameless window */
+    .title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.2);
+      -webkit-app-region: drag;
+    }
+
+    .title-bar-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .window-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .window-btn:hover {
+      opacity: 0.8;
+    }
+
+    .window-btn.close { background: #ff5f57; }
+    .window-btn.minimize { background: #febc2e; }
+    .window-btn.maximize { background: #28c840; }
+
+    /* Main content */
+    .auth-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      -webkit-app-region: no-drag;
+    }
+
+    /* Logo */
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 36px;
+      font-weight: bold;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    }
+
+    .app-name {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #fff 0%, #a0aec0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .app-tagline {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    /* Auth views */
+    .auth-view {
+      display: none;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .auth-view.active {
+      display: block;
+    }
+
+    /* Initial view - Login/Signup buttons */
+    .auth-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .btn {
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Loading view */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+    }
+
+    /* Authenticated view */
+    .user-profile {
+      text-align: center;
+    }
+
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 auto 16px;
+      overflow: hidden;
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .user-email {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(34, 197, 94, 0.2);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #22c55e;
+      margin-bottom: 24px;
+    }
+
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Error view */
+    .error-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(239, 68, 68, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 32px;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 24px 0;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 12px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Footer text */
+    .footer-text {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .footer-text a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .footer-text a:hover {
+      text-decoration: underline;
+    }
+
+    /* Icons */
+    .icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Manual token input */
+    .token-input-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .token-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+      width: 100%;
+      padding: 8px;
+    }
+
+    .token-toggle:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .token-form {
+      display: block;
+      margin-top: 16px;
+    }
+
+    .token-form.hidden {
+      display: none;
+    }
+
+    .token-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+    }
+
+    .token-input:focus {
+      border-color: #667eea;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .token-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .token-help {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Title bar -->
+  <div class="title-bar">
+    <span class="title-bar-text">Buddy</span>
+    <div class="window-controls">
+      <button class="window-btn minimize" id="minimizeBtn" title="Minimize"></button>
+      <button class="window-btn maximize" id="maximizeBtn" title="Maximize"></button>
+      <button class="window-btn close" id="closeBtn" title="Close"></button>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="auth-container">
+    <!-- Logo and branding -->
+    <div class="logo">B</div>
+    <h1 class="app-name">Buddy</h1>
+    <p class="app-tagline">Your intelligent desktop companion</p>
+
+    <!-- Initial View - Login/Signup -->
+    <div class="auth-view active" id="initialView">
+      <div class="auth-buttons">
+        <button class="btn btn-primary" id="loginBtn">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+          </svg>
+          Sign In
+        </button>
+        <button class="btn btn-secondary" id="signupBtn">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+          </svg>
+          Create Account
+        </button>
+      </div>
+      
+      <!-- Divider -->
+      <div class="divider">or</div>
+      
+      <!-- Manual Token Input Section -->
+      <div class="token-input-section" style="margin-top: 0; padding-top: 0; border-top: none;">
+        <p class="token-section-title" style="text-align: center; color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 12px;">
+          Have a token from the web?
+        </p>
+        <div class="token-form" id="tokenForm">
+          <input 
+            type="text" 
+            class="token-input" 
+            id="tokenInput" 
+            placeholder="Paste your authentication token here"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="token-help">If browser redirect didn't work, copy the token from the web and paste it here</p>
+          <button class="btn btn-secondary" id="submitTokenBtn" style="margin-top: 8px;">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Login with Token
+          </button>
+        </div>
+      </div>
+      
+      <p class="footer-text">
+        By continuing, you agree to our<br>
+        <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+      </p>
+    </div>
+
+    <!-- Loading View -->
+    <div class="auth-view" id="loadingView">
+      <div class="loading-spinner"></div>
+      <p class="loading-text" id="loadingText">Opening browser for authentication...</p>
+      <p class="loading-subtext" id="loadingSubtext" style="text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 16px;">Complete sign in on the web browser</p>
+      <div class="auth-buttons" style="margin-top: 24px;">
+        <button class="btn btn-secondary" id="cancelLoadingBtn">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          Cancel & Enter Token Manually
+        </button>
+      </div>
+    </div>
+
+    <!-- Authenticated View -->
+    <div class="auth-view" id="authenticatedView">
+      <div class="user-profile">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <h2 class="user-name" id="userName">User Name</h2>
+        <p class="user-email" id="userEmail">user@example.com</p>
+        <div class="status-badge" id="statusBadge">
+          <span class="status-dot"></span>
+          <span>Authenticated</span>
+        </div>
+        <div class="auth-buttons">
+          <button class="btn btn-secondary" id="continueBtn">Continue to App</button>
+          <button class="btn btn-danger" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error View -->
+    <div class="auth-view" id="errorView">
+      <div class="error-icon">⚠️</div>
+      <h2 class="error-title">Authentication Failed</h2>
+      <p class="error-message" id="errorMessage">An error occurred during authentication.</p>
+      <div class="auth-buttons">
+        <button class="btn btn-primary" id="retryBtn">Try Again</button>
+        <button class="btn btn-secondary" id="backBtn">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM elements
+    const views = {
+      initial: document.getElementById('initialView'),
+      loading: document.getElementById('loadingView'),
+      authenticated: document.getElementById('authenticatedView'),
+      error: document.getElementById('errorView'),
+    };
+
+    const elements = {
+      loginBtn: document.getElementById('loginBtn'),
+      signupBtn: document.getElementById('signupBtn'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      continueBtn: document.getElementById('continueBtn'),
+      retryBtn: document.getElementById('retryBtn'),
+      backBtn: document.getElementById('backBtn'),
+      closeBtn: document.getElementById('closeBtn'),
+      minimizeBtn: document.getElementById('minimizeBtn'),
+      maximizeBtn: document.getElementById('maximizeBtn'),
+      loadingText: document.getElementById('loadingText'),
+      loadingSubtext: document.getElementById('loadingSubtext'),
+      cancelLoadingBtn: document.getElementById('cancelLoadingBtn'),
+      errorMessage: document.getElementById('errorMessage'),
+      userName: document.getElementById('userName'),
+      userEmail: document.getElementById('userEmail'),
+      userAvatar: document.getElementById('userAvatar'),
+      statusBadge: document.getElementById('statusBadge'),
+      tokenForm: document.getElementById('tokenForm'),
+      tokenInput: document.getElementById('tokenInput'),
+      submitTokenBtn: document.getElementById('submitTokenBtn'),
+    };
+
+    // Loading timeout - auto return to initial view
+    let loadingTimeout = null;
+
+    // View management
+    function showView(viewName) {
+      Object.values(views).forEach(view => view.classList.remove('active'));
+      if (views[viewName]) {
+        views[viewName].classList.add('active');
+      }
+    }
+
+    function showLoading(text = 'Loading...', subtext = 'Complete sign in on the web browser') {
+      elements.loadingText.textContent = text;
+      elements.loadingSubtext.textContent = subtext;
+      showView('loading');
+      
+      // Clear any existing timeout
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      
+      // Auto-update subtext after 5 seconds to show manual option hint
+      loadingTimeout = setTimeout(() => {
+        elements.loadingSubtext.innerHTML = 'Taking too long? Click "Cancel" below to enter your token manually.';
+      }, 5000);
+    }
+    
+    function cancelLoading() {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
+      showView('initial');
+      // Focus on token input for convenience
+      setTimeout(() => elements.tokenInput.focus(), 100);
+    }
+
+    function showError(message) {
+      elements.errorMessage.textContent = message;
+      showView('error');
+    }
+
+    function showAuthenticated(user) {
+      if (user) {
+        elements.userName.textContent = user.name || user.displayName || 'User';
+        elements.userEmail.textContent = user.email || '';
+        
+        // Set avatar
+        if (user.image || user.avatar) {
+          elements.userAvatar.innerHTML = `<img src="${user.image || user.avatar}" alt="Avatar">`;
+        } else {
+          const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
+          elements.userAvatar.textContent = initial;
+        }
+      }
+      showView('authenticated');
+    }
+
+    // Event handlers
+    elements.loginBtn.addEventListener('click', () => {
+      if (window.authAPI) {
+        showLoading('Opening browser for sign in...');
+        window.authAPI.login();
+      }
+    });
+
+    elements.signupBtn.addEventListener('click', () => {
+      if (window.authAPI) {
+        showLoading('Opening browser for registration...');
+        window.authAPI.signup();
+      }
+    });
+
+    elements.logoutBtn.addEventListener('click', async () => {
+      if (window.authAPI) {
+        showLoading('Signing out...');
+        window.authAPI.logout();
+      }
+    });
+
+    elements.continueBtn.addEventListener('click', () => {
+      // Close auth window - app will continue to main window
+      if (window.windowAPI) {
+        window.windowAPI.close();
+      }
+    });
+
+    elements.retryBtn.addEventListener('click', () => {
+      showView('initial');
+    });
+
+    elements.backBtn.addEventListener('click', () => {
+      showView('initial');
+    });
+
+    // Cancel loading button
+    elements.cancelLoadingBtn.addEventListener('click', () => {
+      cancelLoading();
+    });
+
+    // Token toggle is removed - form is always visible now
+
+    // Manual token submission
+    elements.submitTokenBtn.addEventListener('click', async () => {
+      const token = elements.tokenInput.value.trim();
+      if (!token) {
+        showError('Please enter a valid token');
+        return;
+      }
+      
+      if (window.authAPI && window.authAPI.submitManualToken) {
+        showLoading('Verifying token...');
+        try {
+          await window.authAPI.submitManualToken(token);
+        } catch (err) {
+          showError(err.message || 'Invalid token. Please try again.');
+        }
+      } else {
+        showError('Token submission not available');
+      }
+    });
+
+    // Allow Enter key to submit token
+    elements.tokenInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        elements.submitTokenBtn.click();
+      }
+    });
+
+    // Window controls
+    elements.closeBtn.addEventListener('click', () => {
+      if (window.windowAPI) window.windowAPI.close();
+    });
+
+    elements.minimizeBtn.addEventListener('click', () => {
+      if (window.windowAPI) window.windowAPI.minimize();
+    });
+
+    elements.maximizeBtn.addEventListener('click', () => {
+      if (window.windowAPI) window.windowAPI.maximize();
+    });
+
+    // Auth event listeners
+    if (window.authAPI) {
+      // Subscribe to auth state changes
+      window.authAPI.subscribe();
+
+      // Handle auth success
+      window.authAPI.onAuthSuccess((user) => {
+        console.log('Auth success:', user);
+        showAuthenticated(user);
+      });
+
+      // Handle auth errors
+      window.authAPI.onAuthError((error) => {
+        console.error('Auth error:', error);
+        showError(error.message || 'Authentication failed. Please try again.');
+      });
+
+      // Handle logout
+      window.authAPI.onLogout(() => {
+        console.log('Logged out');
+        showView('initial');
+      });
+
+      // Handle session expired
+      window.authAPI.onSessionExpired(() => {
+        console.log('Session expired');
+        showError('Your session has expired. Please sign in again.');
+      });
+
+      // Handle auth state changes
+      window.authAPI.onStateChange((state) => {
+        console.log('Auth state changed:', state);
+        if (state.isAuthenticated && state.user) {
+          showAuthenticated(state.user);
+        } else {
+          showView('initial');
+        }
+      });
+
+      // Handle session restored
+      window.authAPI.onSessionRestored((user) => {
+        console.log('Session restored:', user);
+        showAuthenticated(user);
+      });
+
+      // Check initial auth state
+      window.authAPI.isAuthenticated().then(async (isAuth) => {
+        if (isAuth) {
+          const user = await window.authAPI.getUser();
+          if (user) {
+            showAuthenticated(user);
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

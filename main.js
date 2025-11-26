@@ -1,5 +1,20 @@
 const { app, ipcMain, globalShortcut } = require("electron");
 
+// Handle deep link URLs from command line arguments FIRST (before any other code)
+// This prevents Electron from trying to load the URL as a module
+// Filter out deep link URLs from argv to prevent Electron from treating them as files
+let pendingDeepLinkUrl = null;
+const deepLinkArg = process.argv.find(arg => arg.startsWith('buddy://') || arg.startsWith('buddy:'));
+if (deepLinkArg) {
+  console.log('Main: Deep link detected in args:', deepLinkArg);
+  pendingDeepLinkUrl = deepLinkArg;
+  // Remove the deep link from argv so Electron doesn't try to load it as a file
+  const deepLinkIndex = process.argv.indexOf(deepLinkArg);
+  if (deepLinkIndex > -1) {
+    process.argv.splice(deepLinkIndex, 1);
+  }
+}
+
 // Conditionally require adblocker - it may not be available in packaged builds
 let ElectronBlocker = null;
 try {
@@ -26,6 +41,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 // Remove LaunchWindowManager import
 const { ChatInputWindow } = require("./chat-input/chat-input-window");
+const { initializeAuth, authService, AuthWindow } = require("./auth");
 const { AutoStartupManager } = require("./startup");
 const { clipboardMonitor } = require("./clipboard-monitor");
 const { textSelectionMonitor } = require("./chat-input/electron-api/text-selection");
@@ -41,12 +57,68 @@ if (process.platform === 'win32') {
 // Remove launchWindowManager
 let autoStartupManager = null;
 let chatInputWindow = null;
+let authWindow = null;
 let ipcHandlersRegistered = false;
 let chatInputIpcHandlersRegistered = false;
 
 // MCP Server Management
 const mcpProcesses = new Map();
 const mcpListeners = new Map();
+
+// Initialize auth system early (for deep links to work)
+// This must be called before app.whenReady()
+initializeAuth().then((user) => {
+  if (user) {
+    console.log('Main: User already authenticated:', user.email || user.id);
+  } else {
+    console.log('Main: No authenticated user, will show auth window');
+  }
+  
+  // Process pending deep link URL if we have one
+  if (pendingDeepLinkUrl) {
+    console.log('Main: Processing pending deep link URL:', pendingDeepLinkUrl);
+    const { deepLinkHandler } = require('./auth');
+    deepLinkHandler.handleUrl(pendingDeepLinkUrl);
+    pendingDeepLinkUrl = null;
+  }
+}).catch((error) => {
+  console.error('Main: Auth initialization error:', error);
+});
+
+// Listen for auth events
+authService.on('auth:success', (user) => {
+  console.log('Main: Auth success:', user.email || user.id);
+  // Close auth window if open
+  if (authWindow) {
+    authWindow.close();
+  }
+  // Show chat input window
+  if (chatInputWindow) {
+    chatInputWindow.show();
+  }
+});
+
+authService.on('auth:logout', () => {
+  console.log('Main: User logged out');
+  // Show auth window
+  if (!authWindow) {
+    authWindow = new AuthWindow();
+  }
+  authWindow.create();
+});
+
+authService.on('auth:expired', () => {
+  console.log('Main: Session expired');
+  // Show auth window for re-login
+  if (!authWindow) {
+    authWindow = new AuthWindow();
+  }
+  authWindow.create();
+});
+
+authService.on('auth:error', (error) => {
+  console.error('Main: Auth error:', error.message);
+});
 
 // Remove createLaunchWindow function and replace with direct chat input window creation
 function createChatInputWindow() {
@@ -98,6 +170,18 @@ app.whenReady().then(async () => {
     
     // Setup auto-startup on first run or after installation
     await autoStartupManager.setupAutoStartup();
+    
+    // Check if user is authenticated
+    const isAuthenticated = authService.isLoggedIn();
+    
+    if (!isAuthenticated) {
+      // Show auth window first if not authenticated
+      authWindow = new AuthWindow();
+      authWindow.create();
+      console.log('Main: Showing auth window (user not authenticated)');
+    } else {
+      console.log('Main: User is authenticated, skipping auth window');
+    }
     
     // Create and show chat input window directly instead of launch window
     createChatInputWindow();

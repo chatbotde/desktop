@@ -98,6 +98,12 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('hide-chat-input');
   },
   
+  // Sign out from the app
+  signOut: () => {
+    console.log('Preload: Signing out');
+    ipcRenderer.send('auth:logout');
+  },
+  
   // Listen for show chat input UI event (from launch window click)
   onShowChatInputUI: (callback) => {
     ipcRenderer.on('show-chat-input-ui', callback);

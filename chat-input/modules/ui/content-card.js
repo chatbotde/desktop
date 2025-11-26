@@ -204,6 +204,16 @@ function handleContentCardAction(action) {
             toggleWebView();
             break;
             
+        // Account actions
+        case 'sign-out':
+            // Call the auth logout via IPC
+            if (window.chatInputAPI?.signOut) {
+                window.chatInputAPI.signOut();
+            } else {
+                console.warn('Sign out API not available');
+            }
+            break;
+            
         // Window actions
         case 'hide':
             window.chatInputAPI?.hideWindow?.();
