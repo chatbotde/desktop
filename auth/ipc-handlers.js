@@ -87,6 +87,13 @@ function registerAuthIpcHandlers() {
   });
 
   /**
+   * Get user info (alias for get-user)
+   */
+  ipcMain.handle('auth:get-user-info', async () => {
+    return authService.getUser();
+  });
+
+  /**
    * Get access token for API calls
    */
   ipcMain.handle('auth:get-token', async () => {
@@ -235,6 +242,7 @@ function unregisterAuthIpcHandlers() {
   // Remove all handlers
   ipcMain.removeHandler('auth:is-authenticated');
   ipcMain.removeHandler('auth:get-user');
+  ipcMain.removeHandler('auth:get-user-info');
   ipcMain.removeHandler('auth:get-token');
   ipcMain.removeHandler('auth:validate-session');
   ipcMain.removeHandler('auth:refresh-tokens');

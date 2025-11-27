@@ -143,3 +143,18 @@ export {
   getDefaultSystemPrompt,
   applySystemPrompt,
 } from './system-prompts';
+
+// Export usage tracking
+export {
+  usageTracker,
+  logUsage,
+  checkRateLimit,
+  getRateLimitStatus,
+  getDashboard,
+  getProfile,
+  type UsageLogRequest,
+  type UsageLogResponse,
+  type RateLimitStatus,
+  type UserQuotas,
+  type DashboardData,
+} from './usage-tracker';

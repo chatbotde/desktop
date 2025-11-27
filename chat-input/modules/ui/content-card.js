@@ -108,6 +108,20 @@ function syncToggleButtonStates() {
             }
         }
     }
+    
+    // Sync theme button
+    const themeButton = contentCard.querySelector('.action-item[data-action="theme"]');
+    if (themeButton) {
+        const span = themeButton.querySelector('span');
+        if (span) {
+            span.textContent = state.currentTheme === 'light' ? 'Dark Theme' : 'Light Theme';
+        }
+        if (state.currentTheme === 'light') {
+            themeButton.classList.add('active');
+        } else {
+            themeButton.classList.remove('active');
+        }
+    }
 }
 
 // Hide content card

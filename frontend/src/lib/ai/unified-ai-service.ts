@@ -9,13 +9,27 @@ import { kimiService, isKimiConfigured } from './kimi';
 import { xaiService, isXAIConfigured } from './xai';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
+import { usageTracker, checkRateLimit, logUsage } from './usage-tracker';
+
+// Simple token estimation (approximately 4 characters per token)
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
 
 export class UnifiedAIService {
   private currentSystemPrompt: SystemPrompt | null = null;
+  private usageTrackingEnabled: boolean = true;
 
   constructor() {
     // Initialize with default learning assistant prompt
     this.setSystemPrompt('learning');
+  }
+
+  /**
+   * Enable or disable usage tracking
+   */
+  setUsageTracking(enabled: boolean) {
+    this.usageTrackingEnabled = enabled;
   }
   /**
    * Send a message with optional media attachments to the currently selected AI provider
@@ -29,6 +43,54 @@ export class UnifiedAIService {
     }
 
     const provider = selectedModel.provider.toLowerCase();
+    const modelName = selectedModel.name || selectedModel.displayName;
+    
+    // Estimate input tokens for rate limit check
+    const estimatedInputTokens = estimateTokens(message);
+    
+    // Check rate limit before making request (if tracking enabled)
+    if (this.usageTrackingEnabled) {
+      const rateLimitStatus = await checkRateLimit(estimatedInputTokens);
+      if (!rateLimitStatus.allowed) {
+        throw new Error(
+          rateLimitStatus.error || 
+          `Rate limit exceeded. Please wait ${rateLimitStatus.resetIn} seconds before trying again.`
+        );
+      }
+    }
+
+    // Create a wrapper generator that tracks usage
+    const self = this;
+    async function* trackedGenerator(
+      originalGenerator: AsyncGenerator<string, void, unknown>
+    ): AsyncGenerator<string, void, unknown> {
+      let outputText = '';
+      
+      try {
+        for await (const chunk of originalGenerator) {
+          outputText += chunk;
+          yield chunk;
+        }
+      } finally {
+        // Log usage after stream completes
+        if (self.usageTrackingEnabled) {
+          const inputTokens = estimateTokens(message);
+          const outputTokens = estimateTokens(outputText);
+          
+          logUsage({
+            model: modelName,
+            inputTokens,
+            outputTokens,
+            metadata: {
+              provider,
+              feature: 'chat',
+            },
+          }).catch((err) => {
+            console.warn('[UnifiedAIService] Failed to log usage:', err);
+          });
+        }
+      }
+    }
 
     // Route to appropriate provider based on selected model
     switch (provider) {
@@ -36,49 +98,49 @@ export class UnifiedAIService {
         if (!isGeminiConfigured()) {
           throw new Error('Gemini API key not configured. Please add VITE_GOOGLE_API_KEY to your .env file.');
         }
-        return geminiService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await geminiService.sendMessageWithMedia(message, attachments));
 
       case 'openai':
         if (!isOpenAIConfigured()) {
           throw new Error('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file.');
         }
-        return openaiService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await openaiService.sendMessageWithMedia(message, attachments));
 
       case 'anthropic':
         if (!isAnthropicConfigured()) {
           throw new Error('Anthropic API key not configured. Please add VITE_ANTHROPIC_API_KEY to your .env file.');
         }
-        return anthropicService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await anthropicService.sendMessageWithMedia(message, attachments));
 
       case 'openrouter':
         if (!isOpenRouterConfigured()) {
           throw new Error('OpenRouter API key not configured. Please add VITE_OPENROUTER_API_KEY to your .env file.');
         }
-        return openRouterService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await openRouterService.sendMessageWithMedia(message, attachments));
 
       case 'cerebras':
         if (!isCerebrasConfigured()) {
           throw new Error('Cerebras API key not configured. Please add VITE_CEREBRAS_API_KEY to your .env file.');
         }
-        return cerebrasService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await cerebrasService.sendMessageWithMedia(message, attachments));
 
       case 'deepseek':
         if (!isDeepSeekConfigured()) {
           throw new Error('DeepSeek API key not configured. Please add VITE_DEEPSEEK_API_KEY to your .env file.');
         }
-        return deepseekService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await deepseekService.sendMessageWithMedia(message, attachments));
 
       case 'kimi':
         if (!isKimiConfigured()) {
           throw new Error('Kimi (Moonshot AI) API key not configured. Please add VITE_MOONSHOT_API_KEY to your .env file.');
         }
-        return kimiService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await kimiService.sendMessageWithMedia(message, attachments));
 
       case 'xai':
         if (!isXAIConfigured()) {
           throw new Error('xAI (Grok) API key not configured. Please add VITE_XAI_API_KEY to your .env file.');
         }
-        return xaiService.sendMessageWithMedia(message, attachments);
+        return trackedGenerator(await xaiService.sendMessageWithMedia(message, attachments));
 
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);

@@ -8,14 +8,6 @@ export function hideDropdown(id) {
     dropdown.style.display = 'none';
     dropdown.setAttribute('aria-hidden', 'true');
     
-    // Hide backdrop if closing model selector
-    if (id === 'modelSelectDropdown') {
-        const backdrop = document.getElementById('modelSelectBackdrop');
-        if (backdrop) {
-            backdrop.classList.remove('show');
-            setTimeout(() => backdrop.style.display = 'none', 300);
-        }
-    }
 }
 
 export function hideAllDropdowns() {
@@ -32,23 +24,11 @@ export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
     if (!dropdown || !triggerButton) return;
     hideAllDropdowns();
     
-    // Special handling for model selector - center it like a modal
+    // Special handling for model selector - position above chat input
     if (dropdownId === 'modelSelectDropdown') {
-        // Show backdrop
-        const backdrop = document.getElementById('modelSelectBackdrop');
-        if (backdrop) {
-            backdrop.style.display = 'block';
-            backdrop.style.zIndex = '99998';
-            requestAnimationFrame(() => backdrop.classList.add('show'));
-        }
-        
-        // Position modal in center - no scale animation
+        // Position dropdown - no backdrop needed
         dropdown.style.display = 'block';
         dropdown.setAttribute('aria-hidden', 'false');
-        dropdown.style.position = 'fixed';
-        dropdown.style.top = '50%';
-        dropdown.style.left = '50%';
-        dropdown.style.transform = 'translate(-50%, -50%)';
     } else {
         // Normal dropdown positioning for others
         dropdown.style.display = 'block';
@@ -73,15 +53,6 @@ export function showDropdownAdvanced(dropdownId, triggerButton, options = {}) {
 }
 
 function handleClickOutside(event) {
-    // Check if clicking on backdrop
-    const backdrop = document.getElementById('modelSelectBackdrop');
-    if (backdrop && event.target === backdrop) {
-        hideAllDropdowns();
-        document.removeEventListener('click', handleClickOutside);
-        document.removeEventListener('keydown', handleEscapeKey);
-        return;
-    }
-    
     const dropdowns = document.querySelectorAll('.dropdown-menu.open');
     if (dropdowns.length === 0) {
         document.removeEventListener('click', handleClickOutside);

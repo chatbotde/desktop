@@ -354,6 +354,32 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
 
 // Expose MCP API separately for MCP server management
 contextBridge.exposeInMainWorld("electronAPI", {
+  // ==================== AUTH METHODS ====================
+  
+  /**
+   * Get the current auth token for API requests
+   * @returns {Promise<string|null>} Auth token
+   */
+  getAuthToken: () => {
+    return ipcRenderer.invoke('auth:get-token');
+  },
+
+  /**
+   * Get the current user info
+   * @returns {Promise<Object|null>} User info
+   */
+  getUserInfo: () => {
+    return ipcRenderer.invoke('auth:get-user-info');
+  },
+
+  /**
+   * Check if user is authenticated
+   * @returns {Promise<boolean>} Is authenticated
+   */
+  isAuthenticated: () => {
+    return ipcRenderer.invoke('auth:is-authenticated');
+  },
+
   // ==================== MCP METHODS ====================
   
   /**
