@@ -7,7 +7,7 @@ import { addMediaAttachment, removeMediaAttachment } from '../media/richmedia.js
 import { showDropdownAdvanced, hideAllDropdowns, wireDropdownButtons } from '../ui/dropdowns.js';
 import { expandUI, collapseUI, autoResize, updateSendButton, adjustWindowHeightSmooth } from '../ui/expand-collapse.js';
 import { initializeClickThrough, toggleClickThrough } from '../input/clickthrough.js';
-import { initializeFloatingCards } from '../ui/floating-cards.js';
+import { initializeFloatingCards, hideAllCards } from '../ui/floating-cards.js';
 import { initializeContentCard, showContentCard, hideContentCard, isContentCardOpen } from '../ui/content-card.js';
 import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from '../ui/model-selection.js';
 import { sendMessage, resetSendingState } from './messaging.js';
@@ -358,7 +358,7 @@ export async function boot() {
         window.chatInputAPI.onClearInput(() => { dom.messageInput.value = ''; autoResize(); resetSendingState(); dom.messageInput.focus(); });
         window.chatInputAPI.onFocusInput(() => { dom.messageInput.focus(); });
         
-        // Listen for Ctrl+Shift+L shortcut - show chat input in collapsed state
+        // Listen for Ctrl+Shift+L shortcut - show chat input in collapsed state and hide all other UI
         window.chatInputAPI.onSetCollapsedState?.((shouldCollapse) => {
             console.log('Received set-collapsed-state:', shouldCollapse);
             // Show the chat input if hidden
@@ -375,6 +375,18 @@ export async function boot() {
                 dom.chatInputContainer.classList.remove('expanded');
                 autoResize();
                 updateSendButton();
+                
+                // Hide all other UI elements (floating cards, dropdowns, modals)
+                hideAllCards();  // Hides all floating cards and cards manager
+                hideAllDropdowns();  // Hides any open dropdowns
+                hideContentCard();  // Hides content card if open
+                
+                // Hide model settings modal if open
+                const modelSettingsModal = document.getElementById('modelSettingsModal');
+                if (modelSettingsModal && modelSettingsModal.style.display === 'flex') {
+                    modelSettingsModal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                }
                 
                 // Focus the input
                 setTimeout(() => {

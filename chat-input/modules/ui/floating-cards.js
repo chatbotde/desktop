@@ -936,6 +936,18 @@ export function hideCard(card, cardNumber) {
     updateCardsManager();
 }
 
+/**
+ * Hide all floating cards
+ * Used by Ctrl+Shift+L to hide all UI except chat-input
+ */
+export function hideAllCards() {
+    cardRegistry.forEach((card, number) => {
+        hideCard(card, number);
+    });
+    // Also hide the cards manager
+    hideCardsManager();
+}
+
 export function showCard(card, cardNumber) {
     if (!card) return;
     card.style.display = 'flex';
