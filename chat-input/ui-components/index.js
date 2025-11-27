@@ -13,6 +13,7 @@ import { modelSelectDropdownHTML } from './dropdowns/model-select-dropdown.js';
 import { contentCardTemplateHTML } from './templates/content-card-template.js';
 import { floatingCardTemplateHTML } from './templates/floating-card-template.js';
 import { mcpSettingsModalHTML } from './modals/mcp-settings-modal.js';
+import { modelSettingsModalHTML } from './modals/model-settings-modal.js';
 
 /**
  * Combines all UI components into a single HTML string
@@ -32,6 +33,7 @@ export function getUIContent() {
         ${contentCardTemplateHTML}
         ${floatingCardTemplateHTML}
         ${mcpSettingsModalHTML}
+        ${modelSettingsModalHTML}
     `;
 }
 
@@ -48,6 +50,7 @@ export {
     modelSelectDropdownHTML,
     contentCardTemplateHTML,
     floatingCardTemplateHTML,
-    mcpSettingsModalHTML
+    mcpSettingsModalHTML,
+    modelSettingsModalHTML
 };
 

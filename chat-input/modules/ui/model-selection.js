@@ -1,6 +1,11 @@
 import { state } from '../core/state.js';
 import { dom } from '../core/dom.js';
 import { showDropdownAdvanced, hideAllDropdowns } from './dropdowns.js';
+import { initializeModelSettings, isModelEnabled } from './model-settings/model-settings-manager.js';
+import { openModelSettingsModal, wireModelSettingsInteractions } from './model-settings/model-settings-ui.js';
+
+// Store all models (unfiltered)
+let allModelsCache = [];
 
 // Fetch all available models dynamically from AI providers
 async function fetchAvailableModels() {
@@ -12,21 +17,14 @@ async function fetchAvailableModels() {
         
         if (allModels && Array.isArray(allModels) && allModels.length > 0) {
             console.log(`✅ Found ${allModels.length} models`);
-            // Convert array to object format for backward compatibility
-            const modelsObj = {};
-            allModels.forEach(model => {
-                modelsObj[model.id] = {
-                    name: model.displayName,
-                    description: model.description,
-                    provider: model.provider,
-                    cost: model.inputCost ? `$${model.inputCost}/1K in, $${model.outputCost}/1K out` : 'N/A',
-                    features: getModelFeatures(model),
-                    category: model.category,
-                    isAvailable: model.isAvailable
-                };
-            });
-            state.availableModels = modelsObj;
-            console.log('✅ Models loaded into state:', Object.keys(modelsObj));
+            allModelsCache = allModels;
+            
+            // Initialize model settings (loads enabled/disabled states)
+            await initializeModelSettings();
+            
+            // Convert array to object format, filtering by enabled status
+            updateAvailableModelsState();
+            
             return allModels;
         } else {
             console.warn('⚠️ No models received or empty array');
@@ -35,6 +33,27 @@ async function fetchAvailableModels() {
         console.error('❌ Error fetching AI models:', error);
     }
     return null;
+}
+
+// Update available models state based on enabled status
+function updateAvailableModelsState() {
+    const modelsObj = {};
+    allModelsCache.forEach(model => {
+        // Only include enabled models in the dropdown
+        if (isModelEnabled(model.id)) {
+            modelsObj[model.id] = {
+                name: model.displayName,
+                description: model.description,
+                provider: model.provider,
+                cost: model.inputCost ? `$${model.inputCost}/1K in, $${model.outputCost}/1K out` : 'N/A',
+                features: getModelFeatures(model),
+                category: model.category,
+                isAvailable: model.isAvailable
+            };
+        }
+    });
+    state.availableModels = modelsObj;
+    console.log('✅ Enabled models loaded into state:', Object.keys(modelsObj).length, 'of', allModelsCache.length);
 }
 
 function getModelFeatures(model) {
@@ -64,6 +83,17 @@ export async function initializeModelSelection() {
     renderModelDropdown();
     updateModelButtonState();
     updateModelDropdownSelection();
+    
+    // Wire up model settings modal interactions
+    wireModelSettingsInteractions();
+    
+    // Listen for model settings changes to refresh dropdown
+    window.addEventListener('modelSettingsChanged', () => {
+        console.log('🔄 Model settings changed, refreshing dropdown...');
+        updateAvailableModelsState();
+        renderModelDropdown();
+        updateModelDropdownSelection();
+    });
     
     console.log('✅ Model selection initialized');
 }
@@ -178,6 +208,14 @@ export function wireModelDropdownInteractions() {
         if (!button || button.disabled) return;
         const modelId = button.getAttribute('data-model');
         if (modelId && state.availableModels[modelId]) selectModel(modelId);
+    });
+    
+    // Wire up model settings button
+    const settingsBtn = document.getElementById('openModelSettingsBtn');
+    settingsBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideAllDropdowns();
+        openModelSettingsModal();
     });
 }
 

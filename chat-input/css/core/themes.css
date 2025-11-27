@@ -432,6 +432,86 @@
     color: #6b7280;
 }
 
+/* ==================== MODEL SETTINGS MODAL - LIGHT THEME ==================== */
+
+.light-theme .model-settings-modal,
+[data-theme="light"] .model-settings-modal {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.light-theme .model-settings-modal-content,
+[data-theme="light"] .model-settings-modal-content {
+    background: var(--bg-popover);
+    border-color: var(--border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.light-theme .model-settings-modal-header,
+[data-theme="light"] .model-settings-modal-header {
+    background: var(--bg-alt);
+    border-bottom-color: var(--border);
+}
+
+.light-theme .model-settings-modal-title,
+[data-theme="light"] .model-settings-modal-title {
+    color: var(--text);
+}
+
+.light-theme .model-settings-enabled-count,
+[data-theme="light"] .model-settings-enabled-count {
+    background: var(--bg-hover);
+    color: var(--text-dim);
+}
+
+.light-theme .model-settings-search-container,
+[data-theme="light"] .model-settings-search-container {
+    background: var(--bg-alt);
+    border-color: var(--border);
+}
+
+.light-theme .model-settings-search,
+[data-theme="light"] .model-settings-search {
+    color: var(--text);
+}
+
+.light-theme .model-settings-item,
+[data-theme="light"] .model-settings-item {
+    background: var(--bg-alt);
+}
+
+.light-theme .model-settings-item:hover,
+[data-theme="light"] .model-settings-item:hover {
+    background: var(--bg-hover);
+}
+
+.light-theme .model-settings-item-name,
+[data-theme="light"] .model-settings-item-name {
+    color: var(--text);
+}
+
+.light-theme .model-settings-toggle-slider,
+[data-theme="light"] .model-settings-toggle-slider {
+    background-color: var(--border);
+}
+
+.light-theme .model-settings-toggle input:checked + .model-settings-toggle-slider,
+[data-theme="light"] .model-settings-toggle input:checked + .model-settings-toggle-slider {
+    background-color: var(--accent);
+}
+
+.light-theme .model-settings-btn.secondary,
+[data-theme="light"] .model-settings-btn.secondary {
+    background: var(--bg-alt);
+    border-color: var(--border);
+    color: var(--text-dim);
+}
+
+.light-theme .model-settings-btn.secondary:hover,
+[data-theme="light"] .model-settings-btn.secondary:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+
 /* ==================== SCROLLBAR - LIGHT THEME ==================== */
 
 .light-theme ::-webkit-scrollbar-track,

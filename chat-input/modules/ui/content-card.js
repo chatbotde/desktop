@@ -204,6 +204,18 @@ function handleContentCardAction(action) {
                 if (firstInput) firstInput.focus();
             }
             break;
+        case 'model-settings':
+            // Open Model settings modal
+            const modelModal = document.getElementById('modelSettingsModal');
+            if (modelModal) {
+                modelModal.style.display = 'flex';
+                // Import and render the settings list
+                import('./model-settings/model-settings-ui.js').then(({ renderModelSettingsList, wireModelSettingsInteractions }) => {
+                    renderModelSettingsList();
+                    wireModelSettingsInteractions();
+                });
+            }
+            break;
         case 'mcp-servers':
             // Open MCP servers management
             console.log('MCP Servers clicked - functionality to be implemented');

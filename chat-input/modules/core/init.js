@@ -366,7 +366,11 @@ export async function boot() {
             
             // Ensure collapsed state
             if (shouldCollapse) {
-                // Force collapse
+                // Force collapse - update state first to ensure expandUI can work later
+                state.isTransitioning = false;
+                state.expansionState = 'collapsed';
+                
+                // Remove expanded classes
                 dom.promptInput.classList.remove('expanded');
                 dom.chatInputContainer.classList.remove('expanded');
                 autoResize();
