@@ -1,113 +1,443 @@
 /* ==================== AUDIO RECORDING TABLET STYLES ==================== */
+/* Compact, draggable, theme-aware audio recording UI */
 
-.audio-recording-tablet {
+/* ==================== WRAPPER & LAYOUT ==================== */
+
+.audio-recording-tablet-wrapper {
     position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 15, 20, 0.95);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 16px 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    bottom: 20px;
+    right: 20px;
+    left: auto;
+    transform: none;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
     z-index: 10001;
-    min-width: 320px;
-    animation: artSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: artSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Smooth movement when not dragging */
+    transition: left 0.15s ease-out, top 0.15s ease-out, right 0.15s ease-out, bottom 0.15s ease-out;
+    will-change: left, top;
 }
 
-@keyframes artSlideUp {
+.audio-recording-tablet-wrapper.dragging {
+    cursor: grabbing;
+    user-select: none;
+    animation: none;
+    /* Disable transition during drag for responsive movement */
+    transition: none;
+}
+
+/* Minimized/Hidden state - small button group to reopen */
+.audio-recording-tablet-wrapper.minimized {
+    animation: artMinimize 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.audio-recording-tablet-wrapper.minimized .audio-recording-tablet {
+    display: none;
+}
+
+/* Hide main external controls, show minimized controls */
+.audio-recording-tablet-wrapper.minimized .art-external-controls {
+    display: none;
+}
+
+.audio-recording-tablet-wrapper.minimized .art-minimized-controls {
+    display: flex;
+}
+
+.audio-recording-tablet-wrapper.minimized .art-restore-btn {
+    display: flex;
+}
+
+/* Minimized controls container (hidden by default) */
+.art-minimized-controls {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 6px;
+}
+
+/* Restore button (shown when minimized) */
+.art-restore-btn {
+    display: none;
+    width: 44px;
+    height: 44px;
+    background: rgba(30, 30, 35, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    color: #3b82f6;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.art-restore-btn:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.25);
+}
+
+.art-restore-btn:active {
+    transform: scale(0.98);
+}
+
+/* Minimized drag handle */
+.art-minimized-drag {
+    width: 24px;
+    height: 24px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.art-minimized-drag:hover {
+    background: rgba(40, 40, 50, 0.95);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+}
+
+.art-minimized-drag:active {
+    cursor: grabbing;
+}
+
+/* Minimized minimize button */
+.art-minimized-minimize {
+    width: 24px;
+    height: 24px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.art-minimized-minimize:hover {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #fbbf24;
+}
+
+/* Minimized close button */
+.art-minimized-close {
+    width: 24px;
+    height: 24px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.art-minimized-close:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+/* Main tablet container - compact by default */
+.audio-recording-tablet {
+    background: rgba(20, 20, 25, 0.95);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 10px 14px;
+    box-shadow: 
+        0 4px 24px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    min-width: 260px;
+    max-width: 320px;
+    position: relative;
+}
+
+@keyframes artSlideIn {
     from {
         opacity: 0;
-        transform: translateX(-50%) translateY(20px);
+        transform: translateX(20px);
     }
     to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateX(0);
+    }
+}
+
+@keyframes artMinimize {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
 .audio-recording-tablet.recording {
-    border-color: rgba(239, 68, 68, 0.4);
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.35);
+    box-shadow: 
+        0 4px 24px rgba(239, 68, 68, 0.2),
+        0 0 0 1px rgba(239, 68, 68, 0.1) inset;
 }
 
 .audio-recording-tablet.paused {
-    border-color: rgba(251, 191, 36, 0.4);
-    box-shadow: 0 8px 32px rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.35);
+    box-shadow: 
+        0 4px 24px rgba(251, 191, 36, 0.15),
+        0 0 0 1px rgba(251, 191, 36, 0.08) inset;
 }
 
-/* Content */
-.art-content {
+/* ==================== EXTERNAL CONTROLS (DRAG & CLOSE) ==================== */
+
+.art-external-controls {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    position: relative;
+    gap: 6px;
+    margin-left: 8px;
 }
 
-/* Header */
-.art-header {
+.art-drag-handle {
+    width: 28px;
+    height: 28px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: grab;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-/* Source Selection */
-.art-source-selection {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.art-source-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.art-source-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.art-source-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 10px 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 500;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.art-source-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.9);
+.art-drag-handle:hover {
+    background: rgba(40, 40, 50, 0.95);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2);
 }
 
-.art-source-btn.active {
+.art-drag-handle:active {
+    cursor: grabbing;
     background: rgba(59, 130, 246, 0.2);
     border-color: rgba(59, 130, 246, 0.5);
     color: #3b82f6;
 }
 
+.art-close-external {
+    width: 28px;
+    height: 28px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.art-close-external:hover {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #fbbf24;
+    box-shadow: 0 2px 12px rgba(251, 191, 36, 0.2);
+}
+
+/* Actual close button (X) */
+.art-close-btn-external {
+    width: 28px;
+    height: 28px;
+    background: rgba(30, 30, 35, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.art-close-btn-external:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    box-shadow: 0 2px 12px rgba(239, 68, 68, 0.2);
+}
+
+.art-close-btn-external:active {
+    transform: scale(0.95);
+}
+
+/* ==================== CONTENT ==================== */
+
+.art-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+/* ==================== HEADER - COMPACT ==================== */
+
+.art-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 24px;
+}
+
+.art-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.audio-recording-tablet.recording .art-indicator,
+.audio-recording-tablet.paused .art-indicator {
+    opacity: 1;
+}
+
+.art-pulse {
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    animation: artPulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.audio-recording-tablet.paused .art-pulse {
+    background: #fbbf24;
+    animation: none;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+@keyframes artPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.15);
+    }
+}
+
+.art-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.audio-recording-tablet.paused .art-label {
+    color: #fbbf24;
+}
+
+.audio-recording-tablet.paused .art-label::after {
+    content: ' (Paused)';
+    font-weight: 500;
+}
+
+/* Timer - Compact */
+.art-timer {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace;
+    letter-spacing: 1.5px;
+    margin-left: auto;
+}
+
+/* ==================== SOURCE SELECTION - COMPACT ==================== */
+
+.art-source-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.art-source-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.art-source-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.art-source-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.art-source-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.art-source-btn.active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+}
+
 .art-source-btn.active:hover {
-    background: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.22);
 }
 
 .art-source-btn svg {
-    opacity: 0.8;
+    width: 14px;
+    height: 14px;
+    opacity: 0.75;
 }
 
 .art-source-btn.active svg {
@@ -120,12 +450,13 @@
     display: none;
 }
 
-/* Show source indicator when recording */
+/* Source indicator shown during recording */
 .art-source-indicator {
     display: none;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
     text-align: center;
+    letter-spacing: 0.3px;
 }
 
 .audio-recording-tablet.recording .art-source-indicator,
@@ -133,82 +464,21 @@
     display: block;
 }
 
-.art-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
+/* ==================== WAVEFORM - COMPACT ==================== */
 
-.audio-recording-tablet.recording .art-indicator,
-.audio-recording-tablet.paused .art-indicator {
-    opacity: 1;
-}
-
-.art-pulse {
-    width: 10px;
-    height: 10px;
-    background: #ef4444;
-    border-radius: 50%;
-    animation: artPulse 1.5s ease-in-out infinite;
-}
-
-.audio-recording-tablet.paused .art-pulse {
-    background: #fbbf24;
-    animation: none;
-}
-
-@keyframes artPulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.5;
-        transform: scale(1.2);
-    }
-}
-
-.art-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #ef4444;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.audio-recording-tablet.paused .art-label {
-    color: #fbbf24;
-}
-
-.audio-recording-tablet.paused .art-label::after {
-    content: ' (Paused)';
-}
-
-/* Timer */
-.art-timer {
-    font-size: 24px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.95);
-    font-family: 'SF Mono', 'Courier New', monospace;
-    letter-spacing: 2px;
-}
-
-/* Waveform visualization */
 .art-waveform {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    height: 40px;
-    padding: 8px 0;
+    gap: 3px;
+    height: 28px;
+    padding: 4px 0;
 }
 
 .art-wave-bar {
-    width: 4px;
-    height: 8px;
-    background: rgba(59, 130, 246, 0.5);
+    width: 3px;
+    height: 6px;
+    background: rgba(59, 130, 246, 0.4);
     border-radius: 2px;
     transition: height 0.1s ease, background 0.3s ease;
 }
@@ -231,41 +501,42 @@
 
 @keyframes artWave {
     0%, 100% {
-        height: 8px;
+        height: 6px;
     }
     50% {
-        height: 32px;
+        height: 22px;
     }
 }
 
 .audio-recording-tablet.paused .art-wave-bar {
-    background: rgba(251, 191, 36, 0.5);
+    background: rgba(251, 191, 36, 0.45);
     animation: none;
-    height: 16px;
+    height: 12px;
 }
 
-/* Controls */
+/* ==================== CONTROLS - COMPACT ==================== */
+
 .art-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding-top: 4px;
+    gap: 8px;
+    padding-top: 2px;
 }
 
 .art-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px 16px;
+    gap: 5px;
+    padding: 8px 12px;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     transition: all 0.2s ease;
-    min-width: 90px;
+    min-width: 70px;
 }
 
 .art-btn span {
@@ -273,6 +544,8 @@
 }
 
 .art-btn svg {
+    width: 16px;
+    height: 16px;
     pointer-events: none;
     flex-shrink: 0;
 }
@@ -281,96 +554,81 @@
 .art-btn-start {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .art-btn-start:hover {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.art-btn-start:active {
+    transform: translateY(0);
 }
 
 /* Stop button */
 .art-btn-stop {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .art-btn-stop:hover {
     background: linear-gradient(135deg, #dc2626, #b91c1c);
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 /* Pause button */
 .art-btn-pause {
-    background: rgba(251, 191, 36, 0.2);
+    background: rgba(251, 191, 36, 0.15);
     color: #fbbf24;
-    border: 1px solid rgba(251, 191, 36, 0.3);
+    border: 1px solid rgba(251, 191, 36, 0.25);
 }
 
 .art-btn-pause:hover {
-    background: rgba(251, 191, 36, 0.3);
-    transform: scale(1.05);
+    background: rgba(251, 191, 36, 0.25);
+    transform: translateY(-1px);
 }
 
 /* Resume button */
 .art-btn-resume {
-    background: rgba(34, 197, 94, 0.2);
+    background: rgba(34, 197, 94, 0.15);
     color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
 .art-btn-resume:hover {
-    background: rgba(34, 197, 94, 0.3);
-    transform: scale(1.05);
+    background: rgba(34, 197, 94, 0.25);
+    transform: translateY(-1px);
 }
 
 /* Send button */
 .art-btn-send {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
 }
 
 .art-btn-send:hover {
     background: linear-gradient(135deg, #16a34a, #15803d);
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
 }
 
-/* Close button */
+/* Old close button - now hidden, using external */
 .art-close {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+    display: none;
 }
 
-.art-close:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: #ef4444;
-    transform: scale(1.1);
-}
+/* ==================== AUDIO PREVIEW - COMPACT ==================== */
 
-/* Audio Preview Section */
 .art-preview {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
     margin-top: 4px;
 }
 
@@ -378,33 +636,33 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .art-preview-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .art-preview-duration {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    font-family: 'SF Mono', 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace;
 }
 
 .art-preview-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .art-preview-play {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -419,7 +677,7 @@
 
 .art-preview-play:hover {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    transform: scale(1.08);
+    transform: scale(1.06);
 }
 
 .art-preview-play.playing {
@@ -434,48 +692,49 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .art-preview-progress {
     flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
     overflow: hidden;
     cursor: pointer;
     position: relative;
+    transition: height 0.15s ease;
 }
 
 .art-preview-progress:hover {
-    height: 8px;
+    height: 6px;
 }
 
 .art-preview-progress-bar {
     height: 100%;
     background: linear-gradient(90deg, #3b82f6, #60a5fa);
-    border-radius: 3px;
+    border-radius: 2px;
     width: 0%;
     transition: width 0.1s linear;
 }
 
 .art-preview-time {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
-    font-family: 'SF Mono', 'Courier New', monospace;
-    min-width: 40px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace;
+    min-width: 36px;
     text-align: right;
 }
 
 .art-preview-rerecord {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 6px;
     color: #ef4444;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -483,30 +742,307 @@
 }
 
 .art-preview-rerecord:hover {
-    background: rgba(239, 68, 68, 0.25);
-    border-color: rgba(239, 68, 68, 0.5);
-    transform: scale(1.05);
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.45);
+    transform: translateY(-1px);
 }
 
-/* Responsive */
+/* ==================== RESPONSIVE ==================== */
+
 @media (max-width: 480px) {
+    .audio-recording-tablet-wrapper {
+        bottom: 15px;
+        right: 15px;
+    }
+    
     .audio-recording-tablet {
-        min-width: 280px;
-        padding: 12px 16px;
-        bottom: 80px;
+        min-width: 240px;
+        padding: 8px 12px;
     }
     
     .art-timer {
-        font-size: 20px;
+        font-size: 16px;
     }
     
     .art-btn {
-        padding: 8px 12px;
-        min-width: 75px;
-        font-size: 12px;
+        padding: 6px 10px;
+        min-width: 60px;
+        font-size: 10px;
     }
     
     .art-controls {
-        gap: 8px;
+        gap: 6px;
     }
+    
+    .art-external-controls {
+        margin-left: 6px;
+    }
+    
+    .art-drag-handle,
+    .art-close-external,
+    .art-close-btn-external {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .art-restore-btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ==================== LIGHT THEME ==================== */
+
+/* Restore button - Light */
+.light-theme .art-restore-btn,
+[data-theme="light"] .art-restore-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #3b82f6;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .art-restore-btn:hover,
+[data-theme="light"] .art-restore-btn:hover {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #2563eb;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+/* Minimized controls - Light */
+.light-theme .art-minimized-drag,
+.light-theme .art-minimized-minimize,
+.light-theme .art-minimized-close,
+[data-theme="light"] .art-minimized-drag,
+[data-theme="light"] .art-minimized-minimize,
+[data-theme="light"] .art-minimized-close {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-minimized-drag:hover,
+[data-theme="light"] .art-minimized-drag:hover {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+}
+
+.light-theme .art-minimized-minimize:hover,
+[data-theme="light"] .art-minimized-minimize:hover {
+    background: #fffbeb;
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #d97706;
+}
+
+.light-theme .art-minimized-close:hover,
+[data-theme="light"] .art-minimized-close:hover {
+    background: #fef2f2;
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+.light-theme .audio-recording-tablet,
+[data-theme="light"] .audio-recording-tablet {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        0 4px 24px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+}
+
+.light-theme .audio-recording-tablet.recording,
+[data-theme="light"] .audio-recording-tablet.recording {
+    border-color: rgba(239, 68, 68, 0.35);
+    box-shadow: 
+        0 4px 24px rgba(239, 68, 68, 0.15),
+        0 0 0 1px rgba(239, 68, 68, 0.08) inset;
+}
+
+.light-theme .audio-recording-tablet.paused,
+[data-theme="light"] .audio-recording-tablet.paused {
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 
+        0 4px 24px rgba(251, 191, 36, 0.12),
+        0 0 0 1px rgba(251, 191, 36, 0.06) inset;
+}
+
+/* External controls - Light */
+.light-theme .art-drag-handle,
+[data-theme="light"] .art-drag-handle {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-drag-handle:hover,
+[data-theme="light"] .art-drag-handle:hover {
+    background: #ffffff;
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+}
+
+.light-theme .art-drag-handle:active,
+[data-theme="light"] .art-drag-handle:active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #2563eb;
+}
+
+.light-theme .art-close-external,
+[data-theme="light"] .art-close-external {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-close-external:hover,
+[data-theme="light"] .art-close-external:hover {
+    background: #fffbeb;
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #d97706;
+    box-shadow: 0 2px 12px rgba(251, 191, 36, 0.15);
+}
+
+/* Close button (X) - Light */
+.light-theme .art-close-btn-external,
+[data-theme="light"] .art-close-btn-external {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-close-btn-external:hover,
+[data-theme="light"] .art-close-btn-external:hover {
+    background: #fef2f2;
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    box-shadow: 0 2px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Timer - Light */
+.light-theme .art-timer,
+[data-theme="light"] .art-timer {
+    color: #1f2937;
+}
+
+/* Source label - Light */
+.light-theme .art-source-label,
+[data-theme="light"] .art-source-label {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+/* Source buttons - Light */
+.light-theme .art-source-btn,
+[data-theme="light"] .art-source-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .art-source-btn:hover,
+[data-theme="light"] .art-source-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.light-theme .art-source-btn.active,
+[data-theme="light"] .art-source-btn.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #2563eb;
+}
+
+/* Source indicator - Light */
+.light-theme .art-source-indicator,
+[data-theme="light"] .art-source-indicator {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+/* Waveform - Light */
+.light-theme .art-wave-bar,
+[data-theme="light"] .art-wave-bar {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.light-theme .audio-recording-tablet.recording .art-wave-bar,
+[data-theme="light"] .audio-recording-tablet.recording .art-wave-bar {
+    background: #3b82f6;
+}
+
+.light-theme .audio-recording-tablet.paused .art-wave-bar,
+[data-theme="light"] .audio-recording-tablet.paused .art-wave-bar {
+    background: rgba(251, 191, 36, 0.5);
+}
+
+/* Preview - Light */
+.light-theme .art-preview,
+[data-theme="light"] .art-preview {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-preview-label,
+[data-theme="light"] .art-preview-label {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.light-theme .art-preview-duration,
+[data-theme="light"] .art-preview-duration {
+    color: #374151;
+}
+
+.light-theme .art-preview-progress,
+[data-theme="light"] .art-preview-progress {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .art-preview-time,
+[data-theme="light"] .art-preview-time {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .art-preview-rerecord,
+[data-theme="light"] .art-preview-rerecord {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.light-theme .art-preview-rerecord:hover,
+[data-theme="light"] .art-preview-rerecord:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Pause button - Light */
+.light-theme .art-btn-pause,
+[data-theme="light"] .art-btn-pause {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: #d97706;
+}
+
+.light-theme .art-btn-pause:hover,
+[data-theme="light"] .art-btn-pause:hover {
+    background: rgba(251, 191, 36, 0.18);
+}
+
+/* Resume button - Light */
+.light-theme .art-btn-resume,
+[data-theme="light"] .art-btn-resume {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #16a34a;
+}
+
+.light-theme .art-btn-resume:hover,
+[data-theme="light"] .art-btn-resume:hover {
+    background: rgba(34, 197, 94, 0.18);
 }

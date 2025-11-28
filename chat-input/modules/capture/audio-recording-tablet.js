@@ -8,6 +8,7 @@ import { addMediaAttachment } from '../media/richmedia.js';
 
 class AudioRecordingTablet {
     constructor() {
+        this.wrapper = null;
         this.tablet = null;
         this.recordingId = null;
         this.startTime = null;
@@ -15,11 +16,19 @@ class AudioRecordingTablet {
         this.isPaused = false;
         this.isRecording = false;
         this.isPreviewPlaying = false;
+        this.isMinimized = false;
         this.timerInterval = null;
         this.pendingAudio = null;
         this.filePath = null;
         this.audioSource = 'microphone'; // 'microphone', 'system', 'both'
         this.rendererAPI = null;
+        
+        // Drag state
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.initialX = 0;
+        this.initialY = 0;
     }
 
     /**
@@ -36,28 +45,116 @@ class AudioRecordingTablet {
      * Show the audio recording tablet
      */
     show() {
+        this.wrapper = document.getElementById('audioRecordingTabletWrapper');
         this.tablet = document.getElementById('audioRecordingTablet');
-        if (!this.tablet) {
-            console.error('Audio recording tablet element not found');
+        
+        if (!this.wrapper || !this.tablet) {
+            console.error('Audio recording tablet elements not found');
             return;
         }
 
-        this.tablet.style.display = 'block';
+        this.wrapper.style.display = 'flex';
+        this.wrapper.classList.remove('minimized');
+        this.isMinimized = false;
         this.resetState();
         this.bindEvents();
+        this.initDrag();
     }
 
     /**
-     * Hide the audio recording tablet
+     * Hide the audio recording tablet completely
      */
     hide() {
         // Stop preview if playing
         this.hidePreview();
         
-        if (this.tablet) {
-            this.tablet.style.display = 'none';
+        if (this.wrapper) {
+            this.wrapper.style.display = 'none';
+            this.wrapper.classList.remove('minimized');
         }
+        this.isMinimized = false;
         this.cleanup();
+    }
+
+    /**
+     * Minimize the tablet to a small button
+     */
+    minimize() {
+        if (!this.wrapper) return;
+        
+        // Stop preview if playing
+        const previewAudio = document.getElementById('artPreviewAudio');
+        if (previewAudio) {
+            previewAudio.pause();
+        }
+        
+        this.wrapper.classList.add('minimized');
+        this.isMinimized = true;
+        console.log('Audio recording tablet minimized');
+    }
+
+    /**
+     * Restore the tablet from minimized state
+     */
+    restore() {
+        if (!this.wrapper) return;
+        
+        this.wrapper.classList.remove('minimized');
+        this.isMinimized = false;
+        
+        // Re-bind drag for minimized controls after restore
+        this.initDrag();
+        
+        // Ensure tablet stays within screen bounds after restore
+        // Wait a frame for the full tablet to render
+        requestAnimationFrame(() => {
+            this.ensureWithinBounds();
+        });
+        
+        console.log('Audio recording tablet restored');
+    }
+
+    /**
+     * Ensure the tablet stays within screen bounds
+     */
+    ensureWithinBounds() {
+        if (!this.wrapper) return;
+        
+        const rect = this.wrapper.getBoundingClientRect();
+        let needsAdjustment = false;
+        let newX = rect.left;
+        let newY = rect.top;
+        
+        // Check right edge
+        if (rect.right > window.innerWidth) {
+            newX = window.innerWidth - rect.width - 10;
+            needsAdjustment = true;
+        }
+        
+        // Check bottom edge
+        if (rect.bottom > window.innerHeight) {
+            newY = window.innerHeight - rect.height - 10;
+            needsAdjustment = true;
+        }
+        
+        // Check left edge
+        if (rect.left < 0) {
+            newX = 10;
+            needsAdjustment = true;
+        }
+        
+        // Check top edge
+        if (rect.top < 0) {
+            newY = 10;
+            needsAdjustment = true;
+        }
+        
+        if (needsAdjustment) {
+            this.wrapper.style.right = 'auto';
+            this.wrapper.style.bottom = 'auto';
+            this.wrapper.style.left = Math.max(0, newX) + 'px';
+            this.wrapper.style.top = Math.max(0, newY) + 'px';
+        }
     }
 
     /**
@@ -99,6 +196,9 @@ class AudioRecordingTablet {
         const resumeBtn = document.getElementById('artResumeBtn');
         const sendBtn = document.getElementById('artSendBtn');
         const closeBtn = document.getElementById('artCloseBtn');
+        const closeExternalBtn = document.getElementById('artCloseExternalBtn');
+        const minimizeExternalBtn = document.getElementById('artMinimizeExternalBtn');
+        const restoreBtn = document.getElementById('artRestoreBtn');
 
         // Source selection buttons
         const sourceBtns = document.querySelectorAll('.art-source-btn');
@@ -144,10 +244,40 @@ class AudioRecordingTablet {
             newSendBtn.addEventListener('click', () => this.sendRecording());
         }
 
+        // Handle both close buttons - now they minimize instead of close
         if (closeBtn) {
             const newCloseBtn = closeBtn.cloneNode(true);
             closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-            newCloseBtn.addEventListener('click', () => this.close());
+            newCloseBtn.addEventListener('click', () => this.minimize());
+        }
+
+        // Minimize button (horizontal line)
+        if (minimizeExternalBtn) {
+            const newMinimizeBtn = minimizeExternalBtn.cloneNode(true);
+            minimizeExternalBtn.parentNode.replaceChild(newMinimizeBtn, minimizeExternalBtn);
+            newMinimizeBtn.addEventListener('click', () => this.minimize());
+        }
+
+        // Close button (X) - actually closes/hides the tablet
+        if (closeExternalBtn) {
+            const newCloseExternalBtn = closeExternalBtn.cloneNode(true);
+            closeExternalBtn.parentNode.replaceChild(newCloseExternalBtn, closeExternalBtn);
+            newCloseExternalBtn.addEventListener('click', () => this.close());
+        }
+
+        // Restore button - shows the full tablet again
+        if (restoreBtn) {
+            const newRestoreBtn = restoreBtn.cloneNode(true);
+            restoreBtn.parentNode.replaceChild(newRestoreBtn, restoreBtn);
+            newRestoreBtn.addEventListener('click', () => this.restore());
+        }
+
+        // Minimized close button
+        const minimizedClose = document.getElementById('artMinimizedClose');
+        if (minimizedClose) {
+            const newMinimizedClose = minimizedClose.cloneNode(true);
+            minimizedClose.parentNode.replaceChild(newMinimizedClose, minimizedClose);
+            newMinimizedClose.addEventListener('click', () => this.close());
         }
 
         // Preview controls
@@ -175,6 +305,109 @@ class AudioRecordingTablet {
         if (previewAudio) {
             previewAudio.addEventListener('timeupdate', () => this.updatePreviewProgress());
             previewAudio.addEventListener('ended', () => this.onPreviewEnded());
+        }
+    }
+
+    /**
+     * Initialize drag functionality
+     */
+    initDrag() {
+        const dragHandle = document.getElementById('artDragHandle');
+        const minimizedDrag = document.getElementById('artMinimizedDrag');
+        if (!this.wrapper) return;
+
+        // Bind methods to preserve context
+        this._boundDragMove = (e) => this.onDragMove(e);
+        this._boundDragEnd = (e) => this.onDragEnd(e);
+
+        // Setup main drag handle
+        if (dragHandle) {
+            const newDragHandle = dragHandle.cloneNode(true);
+            dragHandle.parentNode.replaceChild(newDragHandle, dragHandle);
+            newDragHandle.addEventListener('mousedown', (e) => this.onDragStart(e));
+        }
+
+        // Setup minimized drag handle
+        if (minimizedDrag) {
+            const newMinimizedDrag = minimizedDrag.cloneNode(true);
+            minimizedDrag.parentNode.replaceChild(newMinimizedDrag, minimizedDrag);
+            newMinimizedDrag.addEventListener('mousedown', (e) => this.onDragStart(e));
+        }
+    }
+
+    /**
+     * Handle drag start
+     */
+    onDragStart(e) {
+        if (!this.wrapper) return;
+        
+        this.isDragging = true;
+        this.wrapper.classList.add('dragging');
+        
+        // Get current position
+        const rect = this.wrapper.getBoundingClientRect();
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        this.initialX = rect.left;
+        this.initialY = rect.top;
+        
+        // Switch to left/top positioning for dragging
+        this.wrapper.style.right = 'auto';
+        this.wrapper.style.left = rect.left + 'px';
+        this.wrapper.style.top = rect.top + 'px';
+        this.wrapper.style.bottom = 'auto';
+        
+        // Add listeners to document for smooth tracking
+        document.addEventListener('mousemove', this._boundDragMove);
+        document.addEventListener('mouseup', this._boundDragEnd);
+        
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    /**
+     * Handle drag move
+     */
+    onDragMove(e) {
+        if (!this.isDragging || !this.wrapper) return;
+        
+        const deltaX = e.clientX - this.dragStartX;
+        const deltaY = e.clientY - this.dragStartY;
+        
+        let newX = this.initialX + deltaX;
+        let newY = this.initialY + deltaY;
+        
+        // Keep within viewport bounds
+        const rect = this.wrapper.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        this.wrapper.style.left = newX + 'px';
+        this.wrapper.style.top = newY + 'px';
+        
+        e.preventDefault();
+    }
+
+    /**
+     * Handle drag end
+     */
+    onDragEnd(e) {
+        if (!this.wrapper) return;
+        
+        // Remove document listeners
+        document.removeEventListener('mousemove', this._boundDragMove);
+        document.removeEventListener('mouseup', this._boundDragEnd);
+        
+        this.isDragging = false;
+        this.wrapper.classList.remove('dragging');
+        
+        // Store final position for smooth feel
+        if (this.wrapper.style.left) {
+            this.lastX = parseInt(this.wrapper.style.left, 10);
+            this.lastY = parseInt(this.wrapper.style.top, 10);
         }
     }
 
@@ -937,9 +1170,27 @@ class AudioRecordingTablet {
         this.pausedTime = 0;
         this.isPaused = false;
         this.isRecording = false;
+        this.isMinimized = false;
         this.pendingAudio = null;
         this.filePath = null;
         this.recordingTime = 0;
+        this.isDragging = false;
+        
+        // Remove drag listeners
+        if (this._boundDragMove) {
+            document.removeEventListener('mousemove', this._boundDragMove);
+        }
+        if (this._boundDragEnd) {
+            document.removeEventListener('mouseup', this._boundDragEnd);
+        }
+        
+        // Reset position on cleanup so it appears at right bottom next time
+        if (this.wrapper) {
+            this.wrapper.style.left = 'auto';
+            this.wrapper.style.right = '20px';
+            this.wrapper.style.bottom = '20px';
+            this.wrapper.style.top = 'auto';
+        }
     }
 }
 
