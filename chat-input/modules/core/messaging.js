@@ -2,6 +2,8 @@ import { dom } from './dom.js';
 import { state } from './state.js';
 import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryCard, centerCardSmooth } from '../ui/floating-cards.js';
 import { getBadgeContent, clearBadgesAfterSend } from '../ui/badges.js';
+import { isAutoScreenEnabled } from '../capture/auto-screen-state.js';
+import { addImageAttachment } from '../media/attachments.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {
@@ -13,9 +15,28 @@ export function updateSendButtonVisual() {
     }
 }
 
-export function sendMessage() {
+export async function sendMessage() {
     const raw = dom.messageInput.value;
     let message = raw.trim();
+    
+    // If auto-screen is enabled, take a screenshot first
+    if (isAutoScreenEnabled() && window.CaptureAPI) {
+        try {
+            const result = await window.CaptureAPI.quickScreenshot();
+            if (result.success && result.screenshot) {
+                addImageAttachment({ 
+                    name: result.screenshot.name, 
+                    type: result.screenshot.type, 
+                    size: result.screenshot.size, 
+                    data: result.screenshot.data, 
+                    source: 'auto-screenshot' 
+                });
+            }
+        } catch (error) {
+            console.error('Auto-screen capture failed:', error);
+        }
+    }
+    
     const hasImages = window.__getImageAttachments?.().length > 0;
     const hasMedia = window.__getMediaAttachments?.().length > 0;
     const hasAny = hasImages || hasMedia;

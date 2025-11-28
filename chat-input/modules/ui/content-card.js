@@ -6,6 +6,7 @@ import { toggleTheme, toggleLighting } from './theme.js';
 import { toggleClickThrough } from '../input/clickthrough.js';
 import { toggleContentProtection } from '../core/content-protection.js';
 import { collapseUI } from './expand-collapse.js';
+import { isAutoScreenEnabled, toggleAutoScreenEnabled } from '../capture/auto-screen-state.js';
 import { toggleWebView } from '../webview/webview.js';
 
 let contentCard = null;
@@ -109,6 +110,23 @@ function syncToggleButtonStates() {
         }
     }
     
+    // Sync auto-screen button
+    const autoScreenButton = contentCard.querySelector('.action-item[data-action="auto-screen"]');
+    if (autoScreenButton) {
+        const enabled = isAutoScreenEnabled();
+        if (enabled) {
+            autoScreenButton.classList.add('active');
+            autoScreenButton.setAttribute('aria-pressed', 'true');
+        } else {
+            autoScreenButton.classList.remove('active');
+            autoScreenButton.setAttribute('aria-pressed', 'false');
+        }
+        const statusSpan = autoScreenButton.querySelector('.toggle-status');
+        if (statusSpan) {
+            statusSpan.textContent = enabled ? '(ON)' : '(OFF)';
+        }
+    }
+    
     // Sync theme button
     const themeButton = contentCard.querySelector('.action-item[data-action="theme"]');
     if (themeButton) {
@@ -177,6 +195,25 @@ function handleContentCardAction(action) {
         case 'capture-video':
             handleVideoCapture();
             break;
+        case 'auto-screen':
+            // Toggle auto-screen state and update UI
+            const newAutoScreenState = toggleAutoScreenEnabled();
+            const autoScreenBtn = contentCard?.querySelector('.action-item[data-action="auto-screen"]');
+            if (autoScreenBtn) {
+                if (newAutoScreenState) {
+                    autoScreenBtn.classList.add('active');
+                    autoScreenBtn.setAttribute('aria-pressed', 'true');
+                } else {
+                    autoScreenBtn.classList.remove('active');
+                    autoScreenBtn.setAttribute('aria-pressed', 'false');
+                }
+                const statusSpan = autoScreenBtn.querySelector('.toggle-status');
+                if (statusSpan) {
+                    statusSpan.textContent = newAutoScreenState ? '(ON)' : '(OFF)';
+                }
+            }
+            // Don't hide card for toggle actions
+            return;
             
         // Settings actions
         case 'theme':
