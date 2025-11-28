@@ -69,6 +69,12 @@ class TextSelectionUIManager {
       if (this.elements.searchInput) {
         this.elements.searchInput.value = '';
       }
+      // Reset expanded state
+      const searchBar = this.miniBar.querySelector('.google-search-bar');
+      if (searchBar) {
+        searchBar.classList.remove('expanded');
+        searchBar.classList.remove('expanded-more');
+      }
       this.userInput = '';
       return this.miniBar;
     }
@@ -102,18 +108,6 @@ class TextSelectionUIManager {
     input.setAttribute('placeholder', 'Add text or ask about selection...');
     input.setAttribute('autocomplete', 'off');
     input.setAttribute('spellcheck', 'false');
-    
-    // Auto-grow functionality for input (if needed for multi-line)
-    const autoGrow = (el) => {
-      el.style.height = 'auto';
-      const maxHeight = 120; // clamp ~4 lines
-      el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
-    };
-    
-    input.addEventListener('input', (e) => {
-      this.userInput = e.target.value;
-      // If we want multi-line support, we can switch to textarea
-    });
 
     // Enter key to send
     input.addEventListener('keydown', (e) => {
@@ -152,8 +146,8 @@ class TextSelectionUIManager {
       }
     });
     input.addEventListener('blur', () => {
-      // Don't auto-hide - let the selection cleared event handle hiding
-      // UI stays visible as long as text is selected
+      // Start auto-hide timer when input loses focus
+      this.startAutoHideTimer();
     });
 
     inputWrapper.appendChild(input);
@@ -201,6 +195,55 @@ class TextSelectionUIManager {
     const actionsContainer = document.createElement('div');
     actionsContainer.className = 'search-actions';
 
+    // Clear button to clear the text input (inside the bar)
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'search-action-btn clear-btn';
+    clearBtn.type = 'button';
+    clearBtn.setAttribute('aria-label', 'Clear');
+    clearBtn.style.display = 'none'; // Hidden by default, shown when input has text
+    clearBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    `;
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Clear the input
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      this.userInput = '';
+      // Reset expanded state
+      searchBar.classList.remove('expanded');
+      searchBar.classList.remove('expanded-more');
+      // Hide clear button
+      clearBtn.style.display = 'none';
+    });
+
+    // Show/hide clear button based on input content
+    input.addEventListener('input', (e) => {
+      this.userInput = e.target.value;
+      // Show clear button if there's text
+      if (e.target.value.length > 0) {
+        clearBtn.style.display = 'flex';
+      } else {
+        clearBtn.style.display = 'none';
+      }
+      // Expand the search bar horizontally when text exceeds a threshold
+      const textLen = e.target.value.length;
+      if (textLen > 40) {
+        searchBar.classList.remove('expanded');
+        searchBar.classList.add('expanded-more');
+      } else if (textLen > 15) {
+        searchBar.classList.remove('expanded-more');
+        searchBar.classList.add('expanded');
+      } else {
+        searchBar.classList.remove('expanded');
+        searchBar.classList.remove('expanded-more');
+      }
+    });
+
     // Send button
     const sendBtn = document.createElement('button');
     sendBtn.className = 'search-action-btn send-btn';
@@ -219,22 +262,27 @@ class TextSelectionUIManager {
       this.handleAsk();
     });
 
-    // Close button to hide the mini bar
+    // Close button to hide the mini bar (will be placed OUTSIDE the search bar)
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'search-action-btn close-btn';
+    closeBtn.className = 'text-selection-close-btn';
     closeBtn.type = 'button';
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 6 6 18M6 6l12 12"/>
       </svg>
     `;
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Clear input before hiding
+      if (this.elements.searchInput) {
+        this.elements.searchInput.value = '';
+      }
+      this.userInput = '';
       this.hide();
     });
 
-    actionsContainer.appendChild(closeBtn);
+    actionsContainer.appendChild(clearBtn);
     actionsContainer.appendChild(sendBtn);
 
     // Assemble the search bar
@@ -243,7 +291,9 @@ class TextSelectionUIManager {
     searchBar.appendChild(inputWrapper);
     searchBar.appendChild(actionsContainer);
 
+    // Add search bar and close button to the container
     bar.appendChild(searchBar);
+    bar.appendChild(closeBtn); // Close button OUTSIDE the search bar on the right
     document.body.appendChild(bar);
     this.miniBar = bar;
     
@@ -261,6 +311,7 @@ class TextSelectionUIManager {
     this.elements.sendBtn = sendBtn;
     this.elements.closeBtn = closeBtn;
     this.elements.copyBtn = copyBtn;
+    this.elements.clearBtn = clearBtn;
     
     return this.miniBar;
   }
@@ -570,43 +621,38 @@ class TextSelectionUIManager {
     // Copy text to clipboard
     const textToCopy = this.currentText;
     
-    // Helper function to show visual feedback with checkmark
+    // Helper function to show visual feedback with checkmark icon change
     const showCopyFeedback = (button, isMiniBar = false) => {
       if (!button) {
         console.warn('Text Selection UI: Button element not found for feedback');
         return;
       }
       
+      // Store original content
       const originalHTML = button.innerHTML;
-      const originalColor = button.style.color;
-      const originalBackground = button.style.background;
       
-      // Change button content to checkmark with animation
+      // Add copied class for CSS styling
+      button.classList.add('copied');
+      
+      // Change to checkmark icon with "Copied!" text
       const checkmarkSVG = isMiniBar 
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
              <path d="M20 6 9 17l-5-5"/>
            </svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
              <path d="M20 6 9 17l-5-5"/>
            </svg>`;
       
-      button.innerHTML = `${checkmarkSVG}<span style="animation: checkmark-appear 0.3s ease-out;">Copied!</span>`;
-      button.style.color = '#86efac';
-      button.style.background = 'rgba(34, 197, 94, 0.3)';
-      button.style.borderColor = 'rgba(34, 197, 94, 0.5)';
-      button.style.transform = 'scale(1.05)';
-      button.style.transition = 'all 0.2s ease';
+      button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
       
-      // Reset after 2 seconds with smooth transition
+      // Reset after 1.5 seconds with smooth transition
       setTimeout(() => {
-        button.style.transform = 'scale(1)';
+        button.classList.remove('copied');
+        // Small delay before restoring original icon for smooth transition
         setTimeout(() => {
           button.innerHTML = originalHTML;
-          button.style.color = originalColor;
-          button.style.background = originalBackground;
-          button.style.borderColor = '';
-        }, 200);
-      }, 2000);
+        }, 150);
+      }, 1500);
     };
     
     // Try modern clipboard API first
@@ -648,38 +694,34 @@ class TextSelectionUIManager {
       if (success) {
         console.log('Text Selection UI: Text copied successfully using fallback method');
         
-        // Helper function to show visual feedback with checkmark
+        // Helper function to show visual feedback with checkmark icon change
         const showCopyFeedback = (button, isMiniBar = false) => {
           if (!button) return;
           
+          // Store original content
           const originalHTML = button.innerHTML;
-          const originalColor = button.style.color;
-          const originalBackground = button.style.background;
           
+          // Add copied class for CSS styling
+          button.classList.add('copied');
+          
+          // Change to checkmark icon with "Copied!" text
           const checkmarkSVG = isMiniBar 
-            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                  <path d="M20 6 9 17l-5-5"/>
                </svg>`
-            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: checkmark-appear 0.3s ease-out;">
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                  <path d="M20 6 9 17l-5-5"/>
                </svg>`;
           
-          button.innerHTML = `${checkmarkSVG}<span style="animation: checkmark-appear 0.3s ease-out;">Copied!</span>`;
-          button.style.color = '#86efac';
-          button.style.background = 'rgba(34, 197, 94, 0.3)';
-          button.style.borderColor = 'rgba(34, 197, 94, 0.5)';
-          button.style.transform = 'scale(1.05)';
-          button.style.transition = 'all 0.2s ease';
+          button.innerHTML = `${checkmarkSVG}<span>Copied!</span>`;
           
+          // Reset after 1.5 seconds with smooth transition
           setTimeout(() => {
-            button.style.transform = 'scale(1)';
+            button.classList.remove('copied');
             setTimeout(() => {
               button.innerHTML = originalHTML;
-              button.style.color = originalColor;
-              button.style.background = originalBackground;
-              button.style.borderColor = '';
-            }, 200);
-          }, 2000);
+            }, 150);
+          }, 1500);
         };
         
         // Show visual feedback on both buttons
@@ -693,12 +735,12 @@ class TextSelectionUIManager {
       // Show error feedback
       if (this.elements.copyBtn) {
         const originalHTML = this.elements.copyBtn.innerHTML;
-        this.elements.copyBtn.innerHTML = `<span>Failed</span>`;
+        this.elements.copyBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Failed</span>`;
         this.elements.copyBtn.style.color = '#fca5a5';
         setTimeout(() => {
           this.elements.copyBtn.innerHTML = originalHTML;
           this.elements.copyBtn.style.color = '';
-        }, 2000);
+        }, 1500);
       }
     } finally {
       // Clean up
@@ -845,6 +887,14 @@ class TextSelectionUIManager {
     }
     if (this.elements.searchInput) {
       this.elements.searchInput.value = '';
+    }
+    // Reset expanded state on the search bar
+    if (this.miniBar) {
+      const searchBar = this.miniBar.querySelector('.google-search-bar');
+      if (searchBar) {
+        searchBar.classList.remove('expanded');
+        searchBar.classList.remove('expanded-more');
+      }
     }
     // Ensure state is cleared
     this.userInput = '';
@@ -1006,7 +1056,7 @@ class TextSelectionUIManager {
     // Only set timer if mini bar is visible
     if (!this.isMiniVisible) return;
 
-    // Set new auto-hide timer (2 seconds)
+    // Set new auto-hide timer (3 seconds)
     this.autoHideTimer = setTimeout(() => {
       // Only hide if user is not actively interacting
       const active = document.activeElement;
@@ -1033,7 +1083,7 @@ class TextSelectionUIManager {
       if (this.isMiniVisible) {
         this.hide();
       }
-    }, 2000); // 2 seconds
+    }, 3000); // 3 seconds
   }
 
   showPanel() {
@@ -1058,11 +1108,22 @@ class TextSelectionUIManager {
     // Clear textarea values immediately when hiding
     if (this.elements.textarea) {
       this.elements.textarea.value = '';
+      this.elements.textarea.blur();
     }
     if (this.elements.searchInput) {
       this.elements.searchInput.value = '';
+      this.elements.searchInput.blur();
     }
     this.userInput = '';
+
+    // Reset expanded state on the search bar
+    if (this.miniBar) {
+      const searchBar = this.miniBar.querySelector('.google-search-bar');
+      if (searchBar) {
+        searchBar.classList.remove('expanded');
+        searchBar.classList.remove('expanded-more');
+      }
+    }
 
     // Trigger fade-out animation
     if (this.miniBar) {
