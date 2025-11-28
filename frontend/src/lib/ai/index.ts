@@ -158,3 +158,22 @@ export {
   type UserQuotas,
   type DashboardData,
 } from './usage-tracker';
+
+// Export capability validation utilities
+export {
+  validateMessage,
+  validateAttachments,
+  getCapabilitySummary,
+  getModelCapabilities,
+  getCapabilityBadges,
+  getCapabilityIcons,
+  formatValidationErrors,
+  formatValidationMessage,
+  willAttachmentBeSupported,
+  type ModelCapabilities,
+  type CapabilityValidationResult,
+  type CapabilityError,
+  type CapabilityWarning,
+  type CapabilityErrorCode,
+  type CapabilitySummary,
+} from './capabilities';

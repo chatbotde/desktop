@@ -23,6 +23,14 @@ import { initializeUndoRedo, recordState } from '../input/undo-redo.js';
 import { handleKeyboardShortcut, initializeKeyboardShortcuts } from '../input/keyboard-shortcuts.js';
 import { initializeInputEnhancements } from '../input/input-enhancements.js';
 import { initTextSelectionUI } from '../input/text-selection-ui.js';
+import { 
+    validateBeforeSend, 
+    willAttachmentBeSupported, 
+    getCapabilitySummary, 
+    getCurrentModelCapabilities,
+    showCapabilityWarning,
+    hideNotification
+} from '../ui/capability-validator.js';
 
 // expose minimal globals used by inline HTML event handlers
 window.removeImageAttachment = (id) => {
@@ -40,6 +48,14 @@ window.__clearAllAttachments = clearAllMediaAttachments;
 window.__isSending = () => state.isSending;
 window.__isRecording = () => state.isRecording;
 window.__getRecordingType = () => state.currentRecordingType;
+
+// expose capability validation functions for UI components
+window.__validateBeforeSend = validateBeforeSend;
+window.__willAttachmentBeSupported = willAttachmentBeSupported;
+window.__getCapabilitySummary = getCapabilitySummary;
+window.__getCurrentModelCapabilities = getCurrentModelCapabilities;
+window.__showCapabilityWarning = showCapabilityWarning;
+window.__hideCapabilityNotification = hideNotification;
 
 export async function boot() {
     await geometryController.init();

@@ -9,7 +9,18 @@ import { kimiService, isKimiConfigured } from './kimi';
 import { xaiService, isXAIConfigured } from './xai';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
-import { usageTracker, checkRateLimit, logUsage } from './usage-tracker';
+import { checkRateLimit, logUsage } from './usage-tracker';
+import { 
+  validateMessage, 
+  validateAttachments,
+  getCapabilitySummary,
+  getCapabilityBadges,
+  getCapabilityIcons,
+  formatValidationMessage,
+  willAttachmentBeSupported,
+  type CapabilityValidationResult,
+  type CapabilitySummary,
+} from './capabilities';
 
 // Simple token estimation (approximately 4 characters per token)
 function estimateTokens(text: string): number {
@@ -32,6 +43,54 @@ export class UnifiedAIService {
     this.usageTrackingEnabled = enabled;
   }
   /**
+   * Validate message and attachments before sending
+   * Use this to check capabilities and show user-friendly errors
+   */
+  validateBeforeSend(message: string, attachments?: MediaAttachment[]): CapabilityValidationResult {
+    return validateMessage(message, attachments);
+  }
+
+  /**
+   * Get capability summary for the current model
+   */
+  getModelCapabilities(): CapabilitySummary {
+    return getCapabilitySummary();
+  }
+
+  /**
+   * Get capability badges for UI display
+   */
+  getCapabilityBadges(): string[] {
+    return getCapabilityBadges();
+  }
+
+  /**
+   * Get capability icons for compact UI display
+   */
+  getCapabilityIcons(): { icon: string; label: string; supported: boolean }[] {
+    return getCapabilityIcons();
+  }
+
+  /**
+   * Check if an attachment type will be supported before adding it
+   */
+  willAttachmentBeSupported(mediaType: 'image' | 'audio' | 'video'): { supported: boolean; message: string } {
+    return willAttachmentBeSupported(mediaType);
+  }
+
+  /**
+   * Format validation result for user display
+   */
+  formatValidationMessage(result: CapabilityValidationResult): {
+    type: 'success' | 'error' | 'warning';
+    title: string;
+    message: string;
+    suggestions: string[];
+  } {
+    return formatValidationMessage(result);
+  }
+
+  /**
    * Send a message with optional media attachments to the currently selected AI provider
    * Returns a streaming async generator for real-time response
    */
@@ -40,6 +99,19 @@ export class UnifiedAIService {
     
     if (!selectedModel) {
       throw new Error('No AI model selected. Please select a model from the model selector.');
+    }
+
+    // Validate attachments against model capabilities
+    const validation = validateAttachments(attachments, selectedModel);
+    if (!validation.isValid) {
+      const formatted = formatValidationMessage(validation);
+      const errorDetails = validation.errors
+        .map(e => `• ${e.message}`)
+        .join('\n');
+      const suggestion = formatted.suggestions.length > 0 
+        ? `\n\nSuggestion: ${formatted.suggestions[0]}`
+        : '';
+      throw new Error(`${formatted.title}\n\n${errorDetails}${suggestion}`);
     }
 
     const provider = selectedModel.provider.toLowerCase();
@@ -374,3 +446,6 @@ export const sendMessage = (message: string, attachments?: MediaAttachment[]) =>
 export const sendMessageComplete = (message: string, attachments?: MediaAttachment[]) =>
   unifiedAIService.sendMessageComplete(message, attachments);
 
+// Re-export capability types and functions for convenience
+export type { CapabilityValidationResult, CapabilitySummary } from './capabilities';
+export { validateMessage, validateAttachments, getCapabilitySummary as getModelCapabilitySummary } from './capabilities';

@@ -3,6 +3,7 @@ import { dom } from '../core/dom.js';
 import { showDropdownAdvanced, hideAllDropdowns } from './dropdowns.js';
 import { initializeModelSettings, isModelEnabled } from './model-settings/model-settings-manager.js';
 import { openModelSettingsModal, wireModelSettingsInteractions } from './model-settings/model-settings-ui.js';
+import { updateCapabilitiesCache, updateCapabilityIndicators } from './capability-validator.js';
 
 // Store all models (unfiltered)
 let allModelsCache = [];
@@ -18,6 +19,9 @@ async function fetchAvailableModels() {
         if (allModels && Array.isArray(allModels) && allModels.length > 0) {
             console.log(`✅ Found ${allModels.length} models`);
             allModelsCache = allModels;
+            
+            // Update capability cache with all models
+            updateCapabilitiesCache(allModels);
             
             // Initialize model settings (loads enabled/disabled states)
             await initializeModelSettings();
@@ -133,10 +137,15 @@ export function renderModelDropdown() {
         'google': 'Google',
         'openai': 'OpenAI',
         'anthropic': 'Anthropic',
+        'openrouter': 'OpenRouter',
+        'cerebras': 'Cerebras',
+        'deepseek': 'DeepSeek',
+        'kimi': 'Kimi',
+        'xai': 'xAI',
         'other': 'Other'
     };
     
-    // Render grouped models in clean compact style
+    // Render grouped models with capability indicators
     Object.entries(modelsByProvider).forEach(([provider, models], index) => {
         // Add provider label with separator
         if (index > 0) {
@@ -150,26 +159,64 @@ export function renderModelDropdown() {
         label.textContent = providerNames[provider.toLowerCase()] || provider;
         container.appendChild(label);
         
-        // Add models for this provider - CLEAN & SIMPLE
+        // Add models for this provider with capability icons
         models.forEach(model => {
             const btn = document.createElement('button');
-            btn.className = 'dropdown-item-simple';
+            btn.className = 'dropdown-item-with-caps';
             btn.dataset.model = model.id;
             btn.setAttribute('role', 'menuitem');
             btn.setAttribute('tabindex', '-1');
             
-            // Only show the model name - no description, no features, no cost
-            btn.textContent = model.name || model.id;
+            // Create model name span
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'model-name';
+            nameSpan.textContent = model.name || model.id;
+            
+            // Create capability icons
+            const capsSpan = document.createElement('span');
+            capsSpan.className = 'model-caps';
+            capsSpan.innerHTML = getModelCapabilityIcons(model);
+            
+            btn.appendChild(nameSpan);
+            btn.appendChild(capsSpan);
             
             container.appendChild(btn);
         });
     });
 }
 
+/**
+ * Get capability icons for a model in the dropdown
+ */
+function getModelCapabilityIcons(model) {
+    const features = model.features || [];
+    const icons = [];
+    
+    // Check each capability
+    const hasImages = features.some(f => f.includes('Images'));
+    const hasAudio = features.some(f => f.includes('Audio'));
+    const hasVideo = features.some(f => f.includes('Video'));
+    
+    // Only show icons for capabilities the model has
+    if (hasImages) icons.push('<span class="cap-dot cap-dot--image" title="Images">🖼️</span>');
+    if (hasAudio) icons.push('<span class="cap-dot cap-dot--audio" title="Audio">🎵</span>');
+    if (hasVideo) icons.push('<span class="cap-dot cap-dot--video" title="Video">🎬</span>');
+    
+    // If text-only model, show text indicator
+    if (icons.length === 0) {
+        icons.push('<span class="cap-dot cap-dot--text" title="Text only">📝</span>');
+    }
+    
+    return icons.join('');
+}
+
 export function updateModelButtonState() {
     const currentModel = state.availableModels[state.selectedModel];
     if (currentModel && dom.modelSelectButton) {
-        dom.modelSelectButton.title = `Current: ${currentModel.name}`;
+        // Build tooltip with capabilities info
+        const features = currentModel.features || [];
+        const supportedFeatures = features.length > 0 ? features.join(', ') : 'Text only';
+        dom.modelSelectButton.title = `${currentModel.name}\nSupports: ${supportedFeatures}`;
         dom.modelSelectButton.classList.add('has-selection');
         
         // Update the displayed model name in the button
@@ -177,11 +224,59 @@ export function updateModelButtonState() {
         if (modelNameSpan) {
             modelNameSpan.textContent = currentModel.name;
         }
+        
+        // Update or create capability indicator next to button
+        updateModelButtonCapabilities(currentModel);
     }
 }
 
+/**
+ * Update capability indicators next to the model button
+ */
+function updateModelButtonCapabilities(model) {
+    // Find or create capability indicator container
+    let capsContainer = document.getElementById('modelButtonCapabilities');
+    
+    if (!capsContainer) {
+        // Create container if it doesn't exist
+        capsContainer = document.createElement('span');
+        capsContainer.id = 'modelButtonCapabilities';
+        capsContainer.className = 'model-button-caps';
+        
+        // Insert after the model name span
+        const modelNameSpan = document.getElementById('selectedModelName');
+        if (modelNameSpan && modelNameSpan.parentNode) {
+            modelNameSpan.parentNode.insertBefore(capsContainer, modelNameSpan.nextSibling);
+        }
+    }
+    
+    if (!model) {
+        capsContainer.innerHTML = '';
+        return;
+    }
+    
+    // Get capabilities from features
+    const features = model.features || [];
+    const hasImages = features.some(f => f.includes('Images'));
+    const hasAudio = features.some(f => f.includes('Audio'));
+    const hasVideo = features.some(f => f.includes('Video'));
+    
+    // Build compact capability indicators
+    const icons = [];
+    if (hasImages) icons.push('<span class="btn-cap" title="Images">🖼️</span>');
+    if (hasAudio) icons.push('<span class="btn-cap" title="Audio">🎵</span>');
+    if (hasVideo) icons.push('<span class="btn-cap" title="Video">🎬</span>');
+    
+    // If no multimodal capabilities, show text-only indicator
+    if (icons.length === 0) {
+        icons.push('<span class="btn-cap btn-cap--text-only" title="Text only">📝</span>');
+    }
+    
+    capsContainer.innerHTML = icons.join('');
+}
+
 export function updateModelDropdownSelection() {
-    const items = dom.modelSelectDropdown?.querySelectorAll('.dropdown-item, .dropdown-item-simple') || [];
+    const items = dom.modelSelectDropdown?.querySelectorAll('.dropdown-item, .dropdown-item-simple, .dropdown-item-with-caps') || [];
     items.forEach(item => {
         const modelId = item.getAttribute('data-model');
         const isSel = modelId === state.selectedModel;
@@ -197,6 +292,10 @@ export function selectModel(modelId) {
     updateModelDropdownSelection();
     updateModelButtonState();
     hideAllDropdowns();
+    
+    // Update capability indicators when model changes
+    updateCapabilityIndicators();
+    
     if (window.chatInputAPI?.notifyModelChange) {
         window.chatInputAPI.notifyModelChange(state.selectedModel, state.availableModels[state.selectedModel]);
     }
@@ -204,7 +303,7 @@ export function selectModel(modelId) {
 
 export function wireModelDropdownInteractions() {
     dom.modelSelectDropdown?.addEventListener('click', (e) => {
-        const button = e.target.closest('.dropdown-item, .dropdown-item-simple');
+        const button = e.target.closest('.dropdown-item, .dropdown-item-simple, .dropdown-item-with-caps');
         if (!button || button.disabled) return;
         const modelId = button.getAttribute('data-model');
         if (modelId && state.availableModels[modelId]) selectModel(modelId);

@@ -4,6 +4,7 @@ import { createNewFloatingCard, routeMessageToCard, getCardByNumber, getPrimaryC
 import { getBadgeContent, clearBadgesAfterSend } from '../ui/badges.js';
 import { isAutoScreenEnabled } from '../capture/auto-screen-state.js';
 import { addImageAttachment } from '../media/attachments.js';
+import { validateBeforeSend, showCapabilityWarning } from '../ui/capability-validator.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {
@@ -37,8 +38,10 @@ export async function sendMessage() {
         }
     }
     
-    const hasImages = window.__getImageAttachments?.().length > 0;
-    const hasMedia = window.__getMediaAttachments?.().length > 0;
+    const imageAttachments = window.__getImageAttachments?.() || [];
+    const mediaAttachments = window.__getMediaAttachments?.() || [];
+    const hasImages = imageAttachments.length > 0;
+    const hasMedia = mediaAttachments.length > 0;
     const hasAny = hasImages || hasMedia;
     
     // Get badge content
@@ -57,8 +60,25 @@ export async function sendMessage() {
         }
     }
     
+    // Add badge images to image attachments for validation
+    const allImageAttachments = hasBadgeImages 
+        ? [...imageAttachments, ...badgeContent.images.filter(img => img.mediaType === 'image')]
+        : imageAttachments;
+    
     const finalHasAny = hasAny || hasBadgeImages;
     if ((!message && !finalHasAny) || state.isSending) return;
+    
+    // ==================== CAPABILITY VALIDATION ====================
+    // Validate attachments against current model capabilities before sending
+    const validationResult = validateBeforeSend(message, allImageAttachments, mediaAttachments);
+    
+    if (!validationResult.isValid) {
+        console.warn('❌ Capability validation failed:', validationResult.errors);
+        showCapabilityWarning(validationResult);
+        return; // Don't send - show warning to user
+    }
+    // ===============================================================
+    
     if (!window.chatInputAPI) { console.error('chatInputAPI not available'); return; }
     state.isSending = true;
     state.lastMessageSent = message;

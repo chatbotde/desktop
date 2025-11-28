@@ -52,6 +52,25 @@
     gap: 8px;
 }
 
+/* Model button capability indicators */
+.model-button-caps {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.model-button-caps .btn-cap {
+    font-size: 10px;
+    line-height: 1;
+}
+
+.model-button-caps .btn-cap--text-only {
+    opacity: 0.5;
+}
+
 /* SVG crispness and sizing for icon-only buttons */
 .action-btn.icon-only svg {
     width: var(--sp-icon-size);
