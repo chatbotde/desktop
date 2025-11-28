@@ -11,6 +11,7 @@
 @import url('./media/attachments.css');
 @import url('./ui/badges.css');
 @import url('./capture/recording.css');
+@import url('./capture/audio-recording-tablet.css');
 @import url('./ui/floating-cards.css');
 @import url('./core/mcp.css');
 @import url('./input/keyboard-ux.css');

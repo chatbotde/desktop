@@ -14,6 +14,7 @@ import { contentCardTemplateHTML } from './templates/content-card-template.js';
 import { floatingCardTemplateHTML } from './templates/floating-card-template.js';
 import { mcpSettingsModalHTML } from './modals/mcp-settings-modal.js';
 import { modelSettingsModalHTML } from './modals/model-settings-modal.js';
+import { audioRecordingTabletHTML } from './audio-recording-tablet.js';
 
 /**
  * Combines all UI components into a single HTML string
@@ -34,6 +35,7 @@ export function getUIContent() {
         ${floatingCardTemplateHTML}
         ${mcpSettingsModalHTML}
         ${modelSettingsModalHTML}
+        ${audioRecordingTabletHTML}
     `;
 }
 
@@ -51,6 +53,7 @@ export {
     contentCardTemplateHTML,
     floatingCardTemplateHTML,
     mcpSettingsModalHTML,
-    modelSettingsModalHTML
+    modelSettingsModalHTML,
+    audioRecordingTabletHTML
 };
 

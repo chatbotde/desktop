@@ -8,6 +8,7 @@ import { toggleContentProtection } from '../core/content-protection.js';
 import { collapseUI } from './expand-collapse.js';
 import { isAutoScreenEnabled, toggleAutoScreenEnabled } from '../capture/auto-screen-state.js';
 import { toggleWebView } from '../webview/webview.js';
+import { showAudioRecordingTablet } from '../capture/audio-recording-tablet.js';
 
 let contentCard = null;
 let isContentCardVisible = false;
@@ -188,6 +189,9 @@ function handleContentCardAction(action) {
             break;
         case 'area-screenshot':
             handleAreaScreenshot();
+            break;
+        case 'audio-record':
+            showAudioRecordingTablet();
             break;
         case 'audio-capture':
             handleAudioCapture();

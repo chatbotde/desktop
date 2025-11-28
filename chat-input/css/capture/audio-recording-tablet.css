@@ -1,0 +1,512 @@
+/* ==================== AUDIO RECORDING TABLET STYLES ==================== */
+
+.audio-recording-tablet {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 15, 20, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 10001;
+    min-width: 320px;
+    animation: artSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes artSlideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.audio-recording-tablet.recording {
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.2);
+}
+
+.audio-recording-tablet.paused {
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 0 8px 32px rgba(251, 191, 36, 0.15);
+}
+
+/* Content */
+.art-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+}
+
+/* Header */
+.art-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Source Selection */
+.art-source-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.art-source-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.art-source-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.art-source-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.art-source-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.art-source-btn.active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #3b82f6;
+}
+
+.art-source-btn.active:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.art-source-btn svg {
+    opacity: 0.8;
+}
+
+.art-source-btn.active svg {
+    opacity: 1;
+}
+
+/* Hide source selection when recording */
+.audio-recording-tablet.recording .art-source-selection,
+.audio-recording-tablet.paused .art-source-selection {
+    display: none;
+}
+
+/* Show source indicator when recording */
+.art-source-indicator {
+    display: none;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+
+.audio-recording-tablet.recording .art-source-indicator,
+.audio-recording-tablet.paused .art-source-indicator {
+    display: block;
+}
+
+.art-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.audio-recording-tablet.recording .art-indicator,
+.audio-recording-tablet.paused .art-indicator {
+    opacity: 1;
+}
+
+.art-pulse {
+    width: 10px;
+    height: 10px;
+    background: #ef4444;
+    border-radius: 50%;
+    animation: artPulse 1.5s ease-in-out infinite;
+}
+
+.audio-recording-tablet.paused .art-pulse {
+    background: #fbbf24;
+    animation: none;
+}
+
+@keyframes artPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+.art-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ef4444;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.audio-recording-tablet.paused .art-label {
+    color: #fbbf24;
+}
+
+.audio-recording-tablet.paused .art-label::after {
+    content: ' (Paused)';
+}
+
+/* Timer */
+.art-timer {
+    font-size: 24px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+/* Waveform visualization */
+.art-waveform {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 40px;
+    padding: 8px 0;
+}
+
+.art-wave-bar {
+    width: 4px;
+    height: 8px;
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 2px;
+    transition: height 0.1s ease, background 0.3s ease;
+}
+
+.audio-recording-tablet.recording .art-wave-bar {
+    background: #3b82f6;
+    animation: artWave 0.8s ease-in-out infinite;
+}
+
+.art-wave-bar:nth-child(1) { animation-delay: 0s; }
+.art-wave-bar:nth-child(2) { animation-delay: 0.08s; }
+.art-wave-bar:nth-child(3) { animation-delay: 0.16s; }
+.art-wave-bar:nth-child(4) { animation-delay: 0.24s; }
+.art-wave-bar:nth-child(5) { animation-delay: 0.32s; }
+.art-wave-bar:nth-child(6) { animation-delay: 0.40s; }
+.art-wave-bar:nth-child(7) { animation-delay: 0.48s; }
+.art-wave-bar:nth-child(8) { animation-delay: 0.56s; }
+.art-wave-bar:nth-child(9) { animation-delay: 0.64s; }
+.art-wave-bar:nth-child(10) { animation-delay: 0.72s; }
+
+@keyframes artWave {
+    0%, 100% {
+        height: 8px;
+    }
+    50% {
+        height: 32px;
+    }
+}
+
+.audio-recording-tablet.paused .art-wave-bar {
+    background: rgba(251, 191, 36, 0.5);
+    animation: none;
+    height: 16px;
+}
+
+/* Controls */
+.art-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 4px;
+}
+
+.art-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 90px;
+}
+
+.art-btn span {
+    pointer-events: none;
+}
+
+.art-btn svg {
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+/* Start button */
+.art-btn-start {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.art-btn-start:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* Stop button */
+.art-btn-stop {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.art-btn-stop:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* Pause button */
+.art-btn-pause {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.art-btn-pause:hover {
+    background: rgba(251, 191, 36, 0.3);
+    transform: scale(1.05);
+}
+
+/* Resume button */
+.art-btn-resume {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.art-btn-resume:hover {
+    background: rgba(34, 197, 94, 0.3);
+    transform: scale(1.05);
+}
+
+/* Send button */
+.art-btn-send {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.art-btn-send:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+}
+
+/* Close button */
+.art-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.art-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+/* Audio Preview Section */
+.art-preview {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 4px;
+}
+
+.art-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.art-preview-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.art-preview-duration {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'SF Mono', 'Courier New', monospace;
+}
+
+.art-preview-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.art-preview-play {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.art-preview-play:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: scale(1.08);
+}
+
+.art-preview-play.playing {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.art-preview-play.playing:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.art-preview-progress-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.art-preview-progress {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+
+.art-preview-progress:hover {
+    height: 8px;
+}
+
+.art-preview-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+.art-preview-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'SF Mono', 'Courier New', monospace;
+    min-width: 40px;
+    text-align: right;
+}
+
+.art-preview-rerecord {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    color: #ef4444;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.art-preview-rerecord:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+    transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .audio-recording-tablet {
+        min-width: 280px;
+        padding: 12px 16px;
+        bottom: 80px;
+    }
+    
+    .art-timer {
+        font-size: 20px;
+    }
+    
+    .art-btn {
+        padding: 8px 12px;
+        min-width: 75px;
+        font-size: 12px;
+    }
+    
+    .art-controls {
+        gap: 8px;
+    }
+}
