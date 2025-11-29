@@ -19,7 +19,7 @@ class WebViewManager {
   createWebView(parentWindow, options = {}) {
     const {
       url = 'https://www.youtube.com',
-      bounds = { x: 0, y: 0, width: 400, height: 400 },
+      bounds = { x: 0, y: 0, width: 375, height: 667 },
       viewId = `webview-${Date.now()}`,
       isMobileView = false
     } = options;

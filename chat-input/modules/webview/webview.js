@@ -9,8 +9,8 @@ let isMobileView = false;
 let webViewBounds = {
     x: 100,
     y: 100,
-    width: 400,
-    height: 400
+    width: 375,
+    height: 667
 };
 let isDragging = false;
 let isResizing = false;
@@ -44,7 +44,7 @@ const CONTROLS_GAP = 8;
 function initializeWebViewUI() {
     if (webViewContainer) return;
 
-    // Create container overlay
+    // Create container overlay - Modern mobile browser style
     webViewContainer = document.createElement('div');
     webViewContainer.id = 'webview-container';
     webViewContainer.className = 'webview-container'; // Add class for easy detection
@@ -53,53 +53,72 @@ function initializeWebViewUI() {
         position: fixed;
         z-index: 99999;
         display: none;
-        border: 2px solid #3b82f6;
-        border-radius: 8px;
-        background: #1a1a1a;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        border-radius: 16px;
+        background: #000000;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
         overflow: hidden;
-        padding: ${CARD_PADDING}px;
+        padding: 0;
     `;
 
-    // Floating controls (outside the card): URL input + Close button
+    // Mobile browser header - solid background with modern styling
     webViewControls = document.createElement('div');
     webViewControls.className = 'webview-controls';
     webViewControls.style.cssText = `
-        position: fixed;
-        z-index: 100000;
+        position: absolute;
+        z-index: 1;
         display: none;
         left: 0;
         top: 0;
-        width: ${webViewBounds.width}px;
-        height: ${CONTROLS_HEIGHT}px;
+        width: 100%;
+        height: 52px;
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 4px 0;
+        padding: 8px 12px;
+        background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px 16px 0 0;
+        backdrop-filter: none;
     `;
+
+    // Add mobile-style status indicator (notch simulation)
+    const statusBar = document.createElement('div');
+    statusBar.className = 'webview-status-bar';
+    statusBar.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 4px;
+        background: #333;
+        border-radius: 0 0 8px 8px;
+        z-index: 2;
+    `;
+    webViewControls.appendChild(statusBar);
 
     const urlInput = document.createElement('input');
     urlInput.type = 'text';
-    urlInput.placeholder = 'Enter URL...';
+    urlInput.placeholder = 'Search or enter URL';
     urlInput.value = 'https://www.youtube.com';
     urlInput.className = 'webview-url-input';
     urlInput.style.cssText = `
         flex: 1;
-        padding: 8px 14px;
-        border: 1px solid rgba(59, 130, 246, 0.4);
-        border-radius: 8px;
-        background: rgba(30, 41, 59, 0.95);
-        color: white;
+        padding: 9px 14px;
+        border: none;
+        border-radius: 20px;
+        background: #2a2a2a;
+        color: #ffffff;
         font-size: 13px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         outline: none;
         transition: all 0.2s ease;
-        backdrop-filter: blur(8px);
     `;
-    // Helper function to normalize URLs - automatically add https:// if missing
+    // Smart URL normalization - handles popular domains with correct TLDs
     const normalizeUrl = (input) => {
         if (!input || !input.trim()) return input;
         
-        const trimmed = input.trim();
+        const trimmed = input.trim().toLowerCase();
         
         // If it already has a protocol, return as is
         if (/^https?:\/\//i.test(trimmed)) {
@@ -111,19 +130,110 @@ function initializeWebViewUI() {
             return 'https:' + trimmed;
         }
         
-        // For localhost or IP addresses, add https://
-        if (/^(localhost|(\d{1,3}\.){3}\d{1,3})/i.test(trimmed)) {
+        // For localhost or IP addresses
+        if (/^(localhost|127\.0\.0\.1|(\d{1,3}\.){3}\d{1,3})/i.test(trimmed)) {
             return 'https://' + trimmed;
         }
         
-        // For domain-like strings (contains at least one dot or is a known TLD pattern)
-        // Add https:// prefix
-        if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed) || 
-            /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z0-9.-]+/.test(trimmed)) {
+        // Popular domains with specific TLDs
+        const popularDomains = {
+            // AI/Tech companies
+            'openai': 'openai.com',
+            'anthropic': 'anthropic.com',
+            'huggingface': 'huggingface.co',
+            'replicate': 'replicate.com',
+            'midjourney': 'midjourney.com',
+            'runway': 'runwayml.com',
+            'perplexity': 'perplexity.ai',
+            'claude': 'claude.ai',
+            'chatgpt': 'chat.openai.com',
+            'bard': 'bard.google.com',
+            'gemini': 'gemini.google.com',
+            
+            // Social/Media
+            'youtube': 'youtube.com',
+            'twitter': 'twitter.com',
+            'x': 'x.com',
+            'instagram': 'instagram.com',
+            'facebook': 'facebook.com',
+            'linkedin': 'linkedin.com',
+            'reddit': 'reddit.com',
+            'tiktok': 'tiktok.com',
+            'twitch': 'twitch.tv',
+            'discord': 'discord.com',
+            'telegram': 'telegram.org',
+            'whatsapp': 'whatsapp.com',
+            
+            // Development
+            'github': 'github.com',
+            'gitlab': 'gitlab.com',
+            'stackoverflow': 'stackoverflow.com',
+            'stackblitz': 'stackblitz.com',
+            'codesandbox': 'codesandbox.io',
+            'codepen': 'codepen.io',
+            'replit': 'replit.com',
+            'vercel': 'vercel.com',
+            'netlify': 'netlify.com',
+            'npm': 'npmjs.com',
+            
+            // Productivity
+            'notion': 'notion.so',
+            'figma': 'figma.com',
+            'canva': 'canva.com',
+            'miro': 'miro.com',
+            'airtable': 'airtable.com',
+            'trello': 'trello.com',
+            'asana': 'asana.com',
+            'slack': 'slack.com',
+            
+            // Search/Info
+            'google': 'google.com',
+            'bing': 'bing.com',
+            'duckduckgo': 'duckduckgo.com',
+            'wikipedia': 'wikipedia.org',
+            'medium': 'medium.com',
+            
+            // Entertainment
+            'netflix': 'netflix.com',
+            'spotify': 'spotify.com',
+            'soundcloud': 'soundcloud.com',
+            'vimeo': 'vimeo.com',
+            
+            // Other
+            'amazon': 'amazon.com',
+            'ebay': 'ebay.com',
+            'dropbox': 'dropbox.com',
+            'drive': 'drive.google.com',
+            'mail': 'mail.google.com'
+        };
+        
+        // Check if it's a known popular domain
+        const domain = trimmed.split('/')[0].split('?')[0];
+        if (popularDomains[domain]) {
+            const fullUrl = 'https://' + popularDomains[domain] + trimmed.substring(domain.length);
+            return fullUrl;
+        }
+        
+        // If it already has a valid TLD (domain.tld format)
+        if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) {
             return 'https://' + trimmed;
         }
         
-        // For simple domain names without TLD (like "google"), add https://www. prefix
+        // If it has multiple dots (like subdomain.domain.tld)
+        if (/^[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z0-9.-]+/.test(trimmed)) {
+            return 'https://' + trimmed;
+        }
+        
+        // Check for common patterns like "site.ai", "site.io", "site.org"
+        const commonTLDs = ['ai', 'io', 'co', 'app', 'dev', 'org', 'net', 'edu', 'gov'];
+        for (const tld of commonTLDs) {
+            if (trimmed.endsWith('.' + tld)) {
+                return 'https://' + trimmed;
+            }
+        }
+        
+        // For simple words, try to be smart about it
+        // If it's a single word, default to .com
         if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*$/.test(trimmed)) {
             return 'https://www.' + trimmed + '.com';
         }
@@ -133,9 +243,10 @@ function initializeWebViewUI() {
     };
 
     urlInput.addEventListener('focus', () => {
-        urlInput.style.borderColor = 'rgba(59, 130, 246, 0.7)';
-        urlInput.style.background = 'rgba(30, 41, 59, 1)';
-        urlInput.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+        urlInput.style.background = '#353535';
+        if (urlInput.value === 'https://www.youtube.com') {
+            urlInput.select();
+        }
     });
 
     urlInput.addEventListener('blur', () => {
@@ -144,9 +255,31 @@ function initializeWebViewUI() {
             const normalizedUrl = normalizeUrl(urlInput.value);
             urlInput.value = normalizedUrl;
         }
-        urlInput.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-        urlInput.style.background = 'rgba(30, 41, 59, 0.95)';
-        urlInput.style.boxShadow = 'none';
+        urlInput.style.background = '#2a2a2a';
+    });
+
+    // Real-time URL suggestion on input
+    urlInput.addEventListener('input', (e) => {
+        const value = e.target.value.trim().toLowerCase();
+        
+        // Skip if already a URL or empty
+        if (!value || value.startsWith('http://') || value.startsWith('https://') || value.includes('.')) {
+            return;
+        }
+        
+        // Check popular domains for instant feedback
+        const popularDomains = {
+            'openai': 'openai.com', 'claude': 'claude.ai', 'perplexity': 'perplexity.ai',
+            'youtube': 'youtube.com', 'github': 'github.com', 'notion': 'notion.so',
+            'figma': 'figma.com', 'twitter': 'twitter.com', 'reddit': 'reddit.com'
+        };
+        
+        if (popularDomains[value]) {
+            // Show subtle hint (could add autocomplete dropdown here)
+            urlInput.style.borderBottom = '1px solid rgba(59, 130, 246, 0.3)';
+        } else {
+            urlInput.style.borderBottom = 'none';
+        }
     });
 
     urlInput.addEventListener('keydown', async (e) => {
@@ -158,6 +291,15 @@ function initializeWebViewUI() {
     });
 
     const closeBtn = createHeaderButton('×', 'Close');
+    closeBtn.style.fontSize = '20px';
+    closeBtn.addEventListener('mouseenter', () => {
+        closeBtn.style.background = '#ff3b30';
+        closeBtn.style.color = '#ffffff';
+    });
+    closeBtn.addEventListener('mouseleave', () => {
+        closeBtn.style.background = '#2a2a2a';
+        closeBtn.style.color = '#ffffff';
+    });
     closeBtn.addEventListener('click', () => toggleWebView());
 
     const dragBtn = createHeaderButton('⠿', 'Drag');
@@ -179,9 +321,13 @@ function initializeWebViewUI() {
     content.className = 'webview-content';
     content.style.cssText = `
         width: 100%;
-        height: 100%;
+        height: calc(100% - 52px);
         background: #000;
-        position: relative;
+        position: absolute;
+        top: 52px;
+        left: 0;
+        border-radius: 0 0 16px 16px;
+        overflow: hidden;
     `;
 
     const placeholder = document.createElement('div');
@@ -207,8 +353,8 @@ function initializeWebViewUI() {
     });
 
     webViewContainer.appendChild(content);
+    webViewContainer.appendChild(webViewControls);
     document.body.appendChild(webViewContainer);
-    document.body.appendChild(webViewControls);
 
     // Setup event listeners
     setupResizeListeners();
@@ -220,29 +366,28 @@ function createHeaderButton(text, title) {
     btn.textContent = text;
     btn.title = title;
     btn.style.cssText = `
-        width: 28px;
-        height: 28px;
-        border: 1px solid rgba(59, 130, 246, 0.3);
-        background: rgba(30, 41, 59, 0.95);
-        color: white;
-        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #2a2a2a;
+        color: #ffffff;
+        border-radius: 50%;
         cursor: pointer;
         font-size: 16px;
         line-height: 1;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
-        backdrop-filter: blur(8px);
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+        font-weight: 500;
     `;
     btn.addEventListener('mouseenter', () => {
-        btn.style.background = 'rgba(59, 130, 246, 0.3)';
-        btn.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+        btn.style.background = '#3a3a3a';
         btn.style.transform = 'scale(1.05)';
     });
     btn.addEventListener('mouseleave', () => {
-        btn.style.background = 'rgba(30, 41, 59, 0.95)';
-        btn.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+        btn.style.background = '#2a2a2a';
         btn.style.transform = 'scale(1)';
     });
     return btn;
@@ -406,24 +551,18 @@ function updateWebViewPosition() {
     webViewContainer.style.width = webViewBounds.width + 'px';
     webViewContainer.style.height = webViewBounds.height + 'px';
 
-    // Update actual WebContentsView bounds
+    // Update actual WebContentsView bounds - account for header height
     if (activeWebViewId && window.webView) {
-        const contentY = CARD_PADDING;
-        const contentHeight = webViewBounds.height - (CARD_PADDING * 2);
+        const headerHeight = 52;
+        const contentY = headerHeight;
+        const contentHeight = webViewBounds.height - headerHeight;
 
         window.webView.updateBounds(activeWebViewId, {
-            x: Math.round(webViewBounds.x + CARD_PADDING),
+            x: Math.round(webViewBounds.x),
             y: Math.round(webViewBounds.y + contentY),
-            width: Math.round(webViewBounds.width - (CARD_PADDING * 2)),
+            width: Math.round(webViewBounds.width),
             height: Math.round(contentHeight)
         });
-    }
-
-    // Position floating controls above the card, outside
-    if (webViewControls) {
-        webViewControls.style.left = webViewBounds.x + 'px';
-        webViewControls.style.top = Math.max(0, webViewBounds.y - CONTROLS_HEIGHT - CONTROLS_GAP) + 'px';
-        webViewControls.style.width = webViewBounds.width + 'px';
     }
 }
 
