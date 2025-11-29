@@ -111,11 +111,11 @@
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #1a1a1f;
     transition: opacity 0.2s ease, transform 0.2s ease;
     flex: 0 0 auto; /* do not squeeze items */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .attachment-preview {
@@ -215,7 +215,155 @@
 
 /* === MEDIA ATTACHMENT STYLES === */
 
-/* Enhanced attachment item for media */
+/* Compact media thumbnail - same size as image attachments */
+.attachment-item.media-thumbnail {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #1a1a1f;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 0 0 auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.attachment-item.media-thumbnail.audio {
+    background: #0f3d1a;
+    border-color: #22c55e;
+}
+
+.attachment-item.media-thumbnail.video {
+    background: #0f2847;
+    border-color: #3b82f6;
+}
+
+.attachment-item.media-thumbnail:hover {
+    border-color: var(--accent);
+    transform: scale(1.05);
+}
+
+.media-thumb-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px;
+}
+
+.media-thumb-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+}
+
+.media-thumb-icon.audio {
+    color: #22c55e;
+}
+
+.media-thumb-icon.video {
+    color: #3b82f6;
+}
+
+.media-thumb-label {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.media-thumb-duration {
+    font-size: 7px;
+    color: var(--text-dim);
+    font-family: 'Courier New', monospace;
+}
+
+.attachment-item.media-thumbnail .attachment-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s ease;
+    font-size: 10px;
+    padding: 0;
+}
+
+.attachment-item.media-thumbnail:hover .attachment-remove {
+    opacity: 1;
+}
+
+.attachment-item.media-thumbnail .attachment-remove:hover {
+    background: var(--danger);
+    transform: scale(1.1);
+}
+
+/* Media Preview Modal */
+.media-preview-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+    animation: fadeIn 0.2s ease;
+}
+
+.media-preview-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.media-preview-close {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.media-preview-close:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Legacy media attachment styles - kept for compatibility */
 .attachment-item.media-attachment {
     width: auto;
     min-width: 160px;

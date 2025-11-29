@@ -49,48 +49,40 @@ function renderImage(attachment) {
 
 function renderMedia(attachment) {
     const attachmentElement = document.createElement('div');
-    attachmentElement.className = 'attachment-item media-attachment';
+    const isAudio = attachment.mediaType === window?.MediaUtils?.MediaType?.AUDIO;
+    attachmentElement.className = `attachment-item media-thumbnail ${isAudio ? 'audio' : 'video'}`;
     attachmentElement.setAttribute('data-attachment-id', attachment.id);
+    attachmentElement.setAttribute('data-media-url', attachment.data);
+    attachmentElement.setAttribute('data-media-type', isAudio ? 'audio' : 'video');
+    attachmentElement.setAttribute('data-mime-type', attachment.type);
     attachmentElement.style.opacity = '0';
     attachmentElement.style.transform = 'scale(0.8)';
 
-    let mediaPreview = '';
-    if (attachment.mediaType === window?.MediaUtils?.MediaType?.AUDIO) {
-        mediaPreview = `
-            <div class="audio-preview">
-                <div class="media-icon"></div>
-                <audio controls preload="metadata" style="width: 100%;">
-                    <source src="${attachment.data}" type="${attachment.type}">
-                </audio>
-            </div>
-        `;
-    } else if (attachment.mediaType === window?.MediaUtils?.MediaType?.VIDEO) {
-        const videoId = `video_${attachment.id}`;
-        mediaPreview = `
-            <div class="video-preview" style="position: relative;">
-                <video id="${videoId}" controls preload="metadata" muted playsinline webkit-playsinline crossorigin="anonymous"
-                    style="width: 100%; max-height: 200px; min-height: 120px; background: #000; display: block !important; visibility: visible !important; object-fit: contain; border-radius: 8px;">
-                    <source src="${attachment.data}" type="${attachment.type}">
-                </video>
-                <div id="${videoId}_error" class="video-error" style="display: none; padding: 8px; background: #d32f2f; color: #fff; text-align: center; border-radius: 4px; margin-top: 4px; font-size: 11px;">
-                    ❌ Video cannot be displayed. This may be due to codec incompatibility or corrupted data.
-                </div>
-                <div class="video-info" style="padding: 4px 8px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; position: absolute; bottom: 4px; left: 4px; border-radius: 3px;">
-                    Video: ${attachment.type}
-                </div>
-            </div>
-        `;
-    }
+    const durationText = attachment.duration ? formatDuration(attachment.duration) : '';
+    
+    // Determine icon and label based on media type
+    const icon = isAudio ? `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+        </svg>
+    ` : `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+    `;
+    const typeLabel = isAudio ? 'Audio' : 'Video';
 
-    const durationText = attachment.duration ? ` (${formatDuration(attachment.duration)})` : '';
-    const sizeText = window?.MediaUtils?.formatFileSize ? window.MediaUtils.formatFileSize(attachment.size) : `${attachment.size} bytes`;
     attachmentElement.innerHTML = `
-        ${mediaPreview}
-        <div class="attachment-info">
-            <div class="attachment-name">${attachment.name}</div>
-            <div class="attachment-meta">${sizeText}${durationText}</div>
+        <div class="media-thumb-content" onclick="window.previewMedia('${attachment.id}')" title="Click to preview">
+            <div class="media-thumb-icon ${isAudio ? 'audio' : 'video'}">
+                ${icon}
+            </div>
+            <div class="media-thumb-label">${typeLabel}</div>
+            ${durationText ? `<div class="media-thumb-duration">${durationText}</div>` : ''}
         </div>
-        <button class="attachment-remove" onclick="window.removeMediaAttachment('${attachment.id}')" title="Remove">
+        <button class="attachment-remove" onclick="event.stopPropagation(); window.removeMediaAttachment('${attachment.id}')" title="Remove">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 6 6 18"/>
                 <path d="M6 6l12 12"/>
@@ -100,6 +92,50 @@ function renderMedia(attachment) {
     dom.attachmentsGrid.appendChild(attachmentElement);
     requestAnimationFrame(() => { attachmentElement.style.opacity = '1'; attachmentElement.style.transform = 'scale(1)'; });
 }
+
+// Preview media in a modal
+window.previewMedia = function(attachmentId) {
+    const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
+    if (!element) return;
+    
+    const mediaUrl = element.getAttribute('data-media-url');
+    const mediaType = element.getAttribute('data-media-type');
+    const mimeType = element.getAttribute('data-mime-type');
+    
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'media-preview-modal';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    
+    let mediaElement = '';
+    if (mediaType === 'audio') {
+        mediaElement = `
+            <audio controls autoplay style="width: 100%; max-width: 400px;">
+                <source src="${mediaUrl}" type="${mimeType}">
+            </audio>
+        `;
+    } else {
+        mediaElement = `
+            <video controls autoplay style="width: 100%; max-width: 600px; max-height: 80vh; border-radius: 8px;">
+                <source src="${mediaUrl}" type="${mimeType}">
+            </video>
+        `;
+    }
+    
+    modal.innerHTML = `
+        <div class="media-preview-content">
+            <button class="media-preview-close" onclick="this.closest('.media-preview-modal').remove()" title="Close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/>
+                    <path d="M6 6l12 12"/>
+                </svg>
+            </button>
+            ${mediaElement}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+};
 
 export function removeMediaAttachment(attachmentId) {
     let index = state.mediaAttachments.findIndex(att => att.id === attachmentId);
