@@ -1,0 +1,30 @@
+{
+  "name": "@buddy/chat-input",
+  "version": "1.0.0",
+  "description": "Chat input window for Buddy - TypeScript migration in progress",
+  "main": "dist/chat-input-window.js",
+  "types": "dist/chat-input-window.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "type-check": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "electron",
+    "chat-input",
+    "typescript"
+  ],
+  "author": "sonicthinking",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "electron": "^37.7.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
+  }
+}
