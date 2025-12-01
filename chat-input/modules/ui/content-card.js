@@ -1,4 +1,4 @@
-// Content Card Module - Shows list of available actions when speed-dial is opened
+// Content Card Module - Shows list of available actions when plus button is clicked
 import { dom } from '../core/dom.js';
 import { state } from '../core/state.js';
 import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from '../capture/uploads-capture.js';

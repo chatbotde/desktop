@@ -141,12 +141,15 @@
     border-radius: 30px; /* Reduced radius for a more compact look */
     padding: 0;
     min-height: 44px; /* Set a minimum height for consistency */
+    height: 44px; /* Fixed height for collapsed state */
     transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(1);
     opacity: 1;
     position: relative;
+    overflow: hidden; /* Prevent content overflow during transition */
 }
 
 /* Flexbox container: The key to horizontal alignment */
@@ -155,6 +158,7 @@
     align-items: center;
     padding: 0 4px; /* Reduced padding for better space utilization */
     gap: 4px; /* Add gap between elements for consistent spacing */
+    height: 44px; /* Match container height */
 }
 
 /* Text input area: Let it grow and take all available space */
@@ -574,15 +578,16 @@
     gap: 12px;
 }
 
-/* Content card positioning - appears above speed dial */
+/* Content card positioning */
 .content-card {
-    bottom: 100px; /* Position above speed dial */
+    bottom: auto;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%) translateY(10px) scale(0.95);
+    transform: translate(-50%, -50%) scale(0.95);
 }
 
 .content-card.visible {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
 }
 
 /* Action Groups and Buttons */

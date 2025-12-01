@@ -87,6 +87,9 @@ class WebViewManager {
       parentWindow.setIgnoreMouseEvents(false);
     }
 
+    // Setup mouse event listener on parent window to detect clicks on WebView area
+    this._setupMouseClickDetection(parentWindow, viewId, bounds);
+
     // Store reference
     this.activeViews.set(viewId, {
       view,
@@ -235,6 +238,39 @@ class WebViewManager {
   }
 
   /**
+   * Focus the web view
+   * @param {string} viewId - The view identifier
+   */
+  focusView(viewId) {
+    const viewData = this.activeViews.get(viewId);
+    if (viewData) {
+      try {
+        const { view, parentWindow } = viewData;
+        
+        // Always focus the parent window first (even if already focused)
+        if (parentWindow && !parentWindow.isDestroyed()) {
+          parentWindow.focus();
+          
+          // Disable click-through temporarily to ensure clicks work
+          if (parentWindow.isIgnoringMouseEvents && parentWindow.isIgnoringMouseEvents()) {
+            parentWindow.setIgnoreMouseEvents(false);
+          }
+        }
+        
+        // Then focus the WebContentsView's webContents
+        view.webContents.focus();
+        
+        // Force activation by executing a focus script in the webContents
+        view.webContents.executeJavaScript('window.focus();').catch(() => {});
+        
+        console.log(`[WebView ${viewId}] Focused`);
+      } catch (error) {
+        console.error(`[WebView ${viewId}] Failed to focus:`, error);
+      }
+    }
+  }
+
+  /**
    * Remove and destroy a web view
    * @param {string} viewId - The view identifier
    */
@@ -281,6 +317,7 @@ module.exports = {
   setUserAgent: (viewId, userAgent) => webViewManager.setUserAgent(viewId, userAgent),
   setVisible: (viewId, visible) => webViewManager.setVisible(viewId, visible),
   setClickThrough: (viewId, enabled) => webViewManager.setClickThrough(viewId, enabled),
+  focusView: (viewId) => webViewManager.focusView(viewId),
   destroyView: (viewId) => webViewManager.destroyView(viewId),
   getActiveViews: () => webViewManager.getActiveViews(),
   destroyAll: () => webViewManager.destroyAll()

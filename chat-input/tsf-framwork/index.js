@@ -283,6 +283,101 @@ async function simulateCtrlV() {
 }
 
 /**
+ * Get selected text from the focused application using TSF
+ * @returns {Promise<string>} Selected text (empty string if none)
+ */
+async function getSelectedText() {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    
+    if (!initialized) {
+        await initialize();
+    }
+    
+    try {
+        return native.getSelectedText() || '';
+    } catch (err) {
+        console.error('Failed to get selected text:', err);
+        return '';
+    }
+}
+
+/**
+ * Replace selected text in the focused application
+ * @param {string} text - The replacement text
+ * @returns {Promise<boolean>} Success status
+ */
+async function replaceSelectedText(text) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    
+    if (!initialized) {
+        await initialize();
+    }
+    
+    if (text === undefined || text === null) {
+        throw new TypeError('Text must be provided (can be empty string to delete)');
+    }
+    
+    try {
+        return native.replaceSelectedText(String(text));
+    } catch (err) {
+        console.error('Failed to replace selected text:', err);
+        return false;
+    }
+}
+
+/**
+ * Focus the last window and replace selected text
+ * Perfect for a "Change" button that replaces user's selected text with AI response
+ * @param {string} text - The replacement text
+ * @returns {Promise<boolean>} Success status
+ */
+async function focusAndReplaceText(text) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    
+    if (!initialized) {
+        await initialize();
+    }
+    
+    if (text === undefined || text === null) {
+        throw new TypeError('Text must be provided');
+    }
+    
+    try {
+        return native.focusAndReplaceText(String(text));
+    } catch (err) {
+        console.error('Failed to focus and replace text:', err);
+        return false;
+    }
+}
+
+/**
+ * Delete selected text in the focused application
+ * @returns {Promise<boolean>} Success status
+ */
+async function deleteSelection() {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    
+    if (!initialized) {
+        await initialize();
+    }
+    
+    try {
+        return native.deleteSelection();
+    } catch (err) {
+        console.error('Failed to delete selection:', err);
+        return false;
+    }
+}
+
+/**
  * Check if the native module is loaded and available
  * @returns {boolean} Module availability status
  */
@@ -302,6 +397,11 @@ module.exports = {
     focusLastWindow,
     focusAndInsertText,
     simulateCtrlV,
+    // Text replacement APIs
+    getSelectedText,
+    replaceSelectedText,
+    focusAndReplaceText,
+    deleteSelection,
     cleanup,
     isAvailable
 };

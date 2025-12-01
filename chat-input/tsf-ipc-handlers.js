@@ -77,6 +77,26 @@ function setupTsfIpc(window) {
         return await tsfManager.focusAndInsertText(text);
     });
 
+    // Get selected text
+    ipcMain.handle('tsf:get-selected-text', async () => {
+        return await tsfManager.getSelectedText();
+    });
+
+    // Replace selected text
+    ipcMain.handle('tsf:replace-selected-text', async (event, text) => {
+        return await tsfManager.replaceSelectedText(text);
+    });
+
+    // Focus and replace selected text
+    ipcMain.handle('tsf:focus-and-replace-text', async (event, text) => {
+        return await tsfManager.focusAndReplaceText(text);
+    });
+
+    // Delete selected text
+    ipcMain.handle('tsf:delete-selection', async () => {
+        return await tsfManager.deleteSelection();
+    });
+
     // Forward TSF manager events to renderer
     tsfManager.on('focus-changed', (focusInfo) => {
         if (window && !window.isDestroyed()) {
@@ -93,6 +113,24 @@ function setupTsfIpc(window) {
     tsfManager.on('insert-failed', (data) => {
         if (window && !window.isDestroyed()) {
             window.webContents.send('tsf:insert-failed', data);
+        }
+    });
+
+    tsfManager.on('text-replaced', (data) => {
+        if (window && !window.isDestroyed()) {
+            window.webContents.send('tsf:text-replaced', data);
+        }
+    });
+
+    tsfManager.on('replace-failed', (data) => {
+        if (window && !window.isDestroyed()) {
+            window.webContents.send('tsf:replace-failed', data);
+        }
+    });
+
+    tsfManager.on('selection-deleted', (data) => {
+        if (window && !window.isDestroyed()) {
+            window.webContents.send('tsf:selection-deleted', data);
         }
     });
 

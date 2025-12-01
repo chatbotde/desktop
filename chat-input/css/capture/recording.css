@@ -99,3 +99,157 @@
 .typing-dot:nth-child(3) {
     animation-delay: 0.4s;
 }
+
+/* ==================== LIVE TRANSCRIPTION STYLES ==================== */
+
+/* Live transcription panel */
+.live-transcription-panel {
+    position: fixed;
+    bottom: 140px;
+    right: 24px;
+    background: rgba(15, 15, 20, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 450px;
+    max-height: 350px;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    display: none;
+}
+
+.live-transcription-panel.active {
+    display: block;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Transcription header */
+.transcription-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.transcription-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 13px;
+}
+
+.transcription-icon {
+    font-size: 16px;
+    animation: transcriptionPulse 2s ease-in-out infinite;
+}
+
+@keyframes transcriptionPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.transcription-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.transcription-close:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Transcription content */
+.transcription-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.transcript-final {
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.6;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+.transcript-partial {
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.6;
+    font-size: 14px;
+    font-style: italic;
+    word-wrap: break-word;
+    animation: partialPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes partialPulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Empty state */
+.transcription-empty {
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+    padding: 20px;
+    font-size: 13px;
+}
+
+/* Scrollbar styling */
+.live-transcription-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.live-transcription-panel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.live-transcription-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.live-transcription-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .live-transcription-panel {
+        right: 12px;
+        bottom: 120px;
+        max-width: calc(100vw - 24px);
+    }
+}

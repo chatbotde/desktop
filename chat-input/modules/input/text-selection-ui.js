@@ -350,6 +350,14 @@ class TextSelectionUIManager {
             </svg>
             <span>Ask</span>
           </button>
+          <button class="text-selection-btn change-btn" title="Replace selected text with AI response" aria-label="Change">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <path d="M10 12.5l2 2 4-4"/>
+            </svg>
+            <span>Change</span>
+          </button>
           <button class="text-selection-btn add-btn" title="Add to input as badge" aria-label="Add">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 5v14M5 12h14"/>
@@ -371,6 +379,7 @@ class TextSelectionUIManager {
       previewText: this.panel.querySelector('.preview-text'),
       textarea: this.panel.querySelector('.text-selection-textarea'),
       askBtn: this.panel.querySelector('.ask-btn'),
+      changeBtn: this.panel.querySelector('.change-btn'),
       addBtn: this.panel.querySelector('.add-btn'),
       closeBtn: this.panel.querySelector('.close-btn')
     };
@@ -447,6 +456,9 @@ class TextSelectionUIManager {
     // Ask button - sends the selected text with user notes as a message
     this.elements.askBtn.addEventListener('click', () => this.handleAsk());
 
+    // Change button - replaces selected text with AI response
+    this.elements.changeBtn.addEventListener('click', () => this.handleChange());
+
     // Add button - adds text to input as badge
     this.elements.addBtn.addEventListener('click', () => this.handleAdd());
 
@@ -508,7 +520,11 @@ class TextSelectionUIManager {
     
     if (userInputText && userInputText.length > 0) {
       // Both selected text and user input provided - combine them clearly
-      combinedText = `${userInputText}\n\n-\n\n${this.currentText}`;
+      combinedText = `${userInputText}
+
+-
+
+${this.currentText}`;
     } else {
       // Only selected text - send it as is
       combinedText = this.currentText;
@@ -583,7 +599,11 @@ class TextSelectionUIManager {
     
     if (userInputText && userInputText.length > 0) {
       // Both selected text and user input provided - combine them clearly
-      badgeText = `${userInputText}\n\n---\n\n${this.currentText}`;
+      badgeText = `${userInputText}
+
+---
+
+${this.currentText}`;
     } else {
       // Only selected text - use it as is
       badgeText = this.currentText;
@@ -608,6 +628,131 @@ class TextSelectionUIManager {
 
     // Hide the panel
     this.hide();
+  }
+
+  async handleChange() {
+    if (!this.currentText) return;
+
+    console.log('Text Selection UI: Requesting AI to change selected text');
+
+    // Get the current user input (instructions for change)
+    let userInputText = '';
+    
+    if (this.elements.searchInput && this.elements.searchInput.value) {
+      userInputText = this.elements.searchInput.value.trim();
+    } else if (this.elements.textarea && this.elements.textarea.value) {
+      userInputText = this.elements.textarea.value.trim();
+    } else if (this.userInput) {
+      userInputText = this.userInput.trim();
+    }
+
+    // If no user input, use default instruction
+    if (!userInputText || userInputText.length === 0) {
+      userInputText = 'Improve this text';
+    }
+
+    // Combine instruction with selected text
+    const prompt = `${userInputText}
+
+---
+
+${this.currentText}`;
+
+    console.log('Text Selection UI: Sending prompt to AI:', prompt.substring(0, 100) + '...');
+
+    // Show visual feedback
+    const originalHTML = this.elements.changeBtn ? this.elements.changeBtn.innerHTML : '';
+    if (this.elements.changeBtn) {
+      this.elements.changeBtn.disabled = true;
+      this.elements.changeBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span>Processing...</span>
+      `;
+      this.elements.changeBtn.classList.add('processing');
+    }
+
+    // Send the prompt to AI and wait for response
+    try {
+      await sendMessage(prompt);
+
+      // Listen for the AI response
+      const responseHandler = async (event) => {
+        const response = event.detail?.text || event.detail;
+        
+        if (response && typeof response === 'string' && response.trim().length > 0) {
+          console.log('Text Selection UI: Received AI response, replacing text');
+          
+          document.removeEventListener('ai:response:complete', responseHandler);
+
+          // Call TSF to replace the selected text
+          if (window.tsfAPI && window.tsfAPI.focusAndReplaceText) {
+            const success = await window.tsfAPI.focusAndReplaceText(response);
+            
+            if (success) {
+              console.log('Text Selection UI: Successfully replaced text');
+              
+              if (this.elements.changeBtn) {
+                this.elements.changeBtn.innerHTML = `
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5"/>
+                  </svg>
+                  <span>Changed!</span>
+                `;
+                this.elements.changeBtn.classList.replace('processing', 'success');
+
+                setTimeout(() => {
+                  if (this.elements.changeBtn) {
+                    this.elements.changeBtn.disabled = false;
+                    this.elements.changeBtn.innerHTML = originalHTML;
+                    this.elements.changeBtn.classList.remove('success');
+                  }
+                }, 2000);
+              }
+
+              setTimeout(() => this.hide(), 2500);
+            } else {
+              console.error('Text Selection UI: Failed to replace text');
+              
+              if (this.elements.changeBtn) {
+                this.elements.changeBtn.innerHTML = `
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                  <span>Failed</span>
+                `;
+                this.elements.changeBtn.classList.replace('processing', 'error');
+
+                setTimeout(() => {
+                  if (this.elements.changeBtn) {
+                    this.elements.changeBtn.disabled = false;
+                    this.elements.changeBtn.innerHTML = originalHTML;
+                    this.elements.changeBtn.classList.remove('error');
+                  }
+                }, 2000);
+              }
+            }
+          }
+        }
+      };
+
+      document.addEventListener('ai:response:complete', responseHandler);
+
+      // Clear the textarea
+      if (this.elements.searchInput) this.elements.searchInput.value = '';
+      if (this.elements.textarea) this.elements.textarea.value = '';
+      this.userInput = '';
+
+    } catch (error) {
+      console.error('Text Selection UI: Error handling change:', error);
+      
+      if (this.elements.changeBtn) {
+        this.elements.changeBtn.disabled = false;
+        this.elements.changeBtn.innerHTML = originalHTML;
+        this.elements.changeBtn.classList.remove('processing');
+      }
+    }
   }
 
   handleCopy() {

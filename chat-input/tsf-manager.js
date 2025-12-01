@@ -432,6 +432,156 @@ class ChatInputTsfManager extends EventEmitter {
     }
 
     /**
+     * Get selected text from the focused application using TSF
+     * @returns {Promise<string>} Selected text (empty string if none)
+     */
+    async getSelectedText() {
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        try {
+            const text = await tsf.getSelectedText();
+            console.log(`📄 Got selected text (${text?.length || 0} chars)`);
+            return text || '';
+        } catch (err) {
+            console.error('Error getting selected text:', err);
+            return '';
+        }
+    }
+
+    /**
+     * Replace selected text in the focused application
+     * @param {string} text - The replacement text
+     * @returns {Promise<boolean>} Success status
+     */
+    async replaceSelectedText(text) {
+        if (!this.enabled) {
+            console.log('TSF is disabled');
+            return false;
+        }
+
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        if (text === undefined || text === null) {
+            console.error('Invalid text provided');
+            return false;
+        }
+
+        try {
+            console.log(`🔄 Replacing selected text with: ${String(text).substring(0, 50)}${text.length > 50 ? '...' : ''}`);
+            const success = await tsf.replaceSelectedText(String(text));
+            
+            if (success) {
+                console.log('✅ Successfully replaced selected text');
+                this.emit('text-replaced', { text });
+                return true;
+            } else {
+                console.warn('⚠️  Failed to replace selected text');
+                this.emit('replace-failed', { text });
+                return false;
+            }
+        } catch (err) {
+            console.error('Error replacing selected text:', err);
+            this.emit('error', err);
+            return false;
+        }
+    }
+
+    /**
+     * Focus last window and replace selected text there
+     * Perfect for a "Change" button that replaces user's selected text with AI response
+     * @param {string} text - The replacement text
+     * @returns {Promise<boolean>} Success status
+     */
+    async focusAndReplaceText(text) {
+        if (!this.enabled) {
+            console.log('TSF is disabled');
+            return false;
+        }
+
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        if (text === undefined || text === null) {
+            console.error('Invalid text provided');
+            return false;
+        }
+
+        try {
+            console.log('🔍 Getting last tracked application for text replacement...');
+            const lastFocus = this.lastExternalFocusInfo || await this.getLastFocusedWindow();
+            
+            if (!lastFocus || !lastFocus.processName) {
+                console.warn('⚠️  No external application tracked yet!');
+                console.log('💡 Please select text in an application first');
+                this.emit('warning', {
+                    message: 'No application to replace text in. Please select text in an application first.'
+                });
+                return false;
+            }
+
+            console.log(`📍 Target app: ${lastFocus.processName} (${lastFocus.windowTitle || 'No title'})`);
+            console.log(`🔄 Text to replace with (${String(text).length} chars): ${String(text).substring(0, 50)}${text.length > 50 ? '...' : ''}`);
+            this.emit('before-replace', { text, focusInfo: lastFocus });
+
+            // Focus and replace in one operation
+            console.log('🚀 Calling native focusAndReplaceText...');
+            const success = await tsf.focusAndReplaceText(String(text));
+
+            if (success) {
+                console.log(`✅ Successfully replaced text in ${lastFocus.processName}`);
+                this.emit('text-replaced', { text, focusInfo: lastFocus, method: 'focus-and-replace' });
+                return true;
+            } else {
+                console.warn(`⚠️  TSF replacement failed`);
+                this.emit('replace-failed', { text, focusInfo: lastFocus });
+                return false;
+            }
+        } catch (err) {
+            console.error('Error in focusAndReplaceText:', err);
+            this.emit('error', err);
+            return false;
+        }
+    }
+
+    /**
+     * Delete selected text in the focused application
+     * @returns {Promise<boolean>} Success status
+     */
+    async deleteSelection() {
+        if (!this.enabled) {
+            console.log('TSF is disabled');
+            return false;
+        }
+
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        try {
+            console.log('🗑️  Deleting selected text...');
+            const success = await tsf.deleteSelection();
+            
+            if (success) {
+                console.log('✅ Successfully deleted selected text');
+                this.emit('selection-deleted', {});
+                return true;
+            } else {
+                console.warn('⚠️  Failed to delete selected text');
+                return false;
+            }
+        } catch (err) {
+            console.error('Error deleting selection:', err);
+            this.emit('error', err);
+            return false;
+        }
+    }
+
+    /**
      * Cleanup and release resources
      */
     async cleanup() {

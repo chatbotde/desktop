@@ -326,3 +326,212 @@ void TextInserter::Cleanup() {
     m_initialized = false;
     CoUninitialize();
 }
+
+// ============================================================================
+// TEXT REPLACEMENT AND SELECTION METHODS
+// ============================================================================
+
+/**
+ * Get currently selected text from focused application using TSF
+ */
+std::wstring TextInserter::GetSelectedText() {
+    if (!m_initialized) {
+        return L"";
+    }
+
+    // Get the document manager for the focused thread
+    ITfDocumentMgr* pDocMgr = nullptr;
+    HRESULT hr = m_pThreadMgr->GetFocus(&pDocMgr);
+    
+    if (FAILED(hr) || !pDocMgr) {
+        return L"";
+    }
+
+    // Get the context from the document manager
+    ITfContext* pContext = nullptr;
+    hr = pDocMgr->GetTop(&pContext);
+    
+    if (FAILED(hr) || !pContext) {
+        pDocMgr->Release();
+        return L"";
+    }
+
+    std::wstring selectedText;
+    
+    // Create an edit session to read the selection
+    // For simplicity, we'll use a synchronous approach
+    TfEditCookie ec = 0;
+    
+    // Try to get the selection
+    TF_SELECTION tfSelection;
+    ULONG cFetched = 0;
+    
+    hr = pContext->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &tfSelection, &cFetched);
+    
+    if (SUCCEEDED(hr) && cFetched > 0) {
+        ITfRange* pRange = tfSelection.range;
+        
+        if (pRange) {
+            // Get text from the range
+            GetTextFromRange(pRange, ec, selectedText);
+            pRange->Release();
+        }
+    }
+    
+    pContext->Release();
+    pDocMgr->Release();
+
+    return selectedText;
+}
+
+/**
+ * Replace selected text in focused application
+ */
+bool TextInserter::ReplaceSelectedText(const std::wstring& text) {
+    if (!m_initialized || text.empty()) {
+        return false;
+    }
+
+    // Get the document manager for the focused thread
+    ITfDocumentMgr* pDocMgr = nullptr;
+    HRESULT hr = m_pThreadMgr->GetFocus(&pDocMgr);
+    
+    if (FAILED(hr) || !pDocMgr) {
+        // Use fallback: select all + paste
+        return ReplaceTextFallback(text);
+    }
+
+    // Get the context from the document manager
+    ITfContext* pContext = nullptr;
+    hr = pDocMgr->GetTop(&pContext);
+    
+    if (FAILED(hr) || !pContext) {
+        pDocMgr->Release();
+        return ReplaceTextFallback(text);
+    }
+
+    // Get the current selection
+    TfEditCookie ec = 0;
+    ITfRange* pRange = nullptr;
+    
+    if (!GetCurrentSelection(pContext, ec, &pRange) || !pRange) {
+        pContext->Release();
+        pDocMgr->Release();
+        return ReplaceTextFallback(text);
+    }
+
+    // Replace text in the selected range
+    bool success = SetTextInRange(pRange, ec, text);
+    
+    pRange->Release();
+    pContext->Release();
+    pDocMgr->Release();
+
+    if (!success) {
+        // If TSF replacement failed, use fallback
+        return ReplaceTextFallback(text);
+    }
+
+    return true;
+}
+
+/**
+ * Delete selected text
+ */
+bool TextInserter::DeleteSelection() {
+    return ReplaceSelectedText(L"");
+}
+
+/**
+ * Fallback method for text replacement using clipboard
+ */
+bool TextInserter::ReplaceTextFallback(const std::wstring& text) {
+    // This is essentially the same as InsertTextFallback,
+    // as the paste operation will replace any selected text
+    return InsertTextFallback(text);
+}
+
+// ============================================================================
+// HELPER METHODS FOR TSF OPERATIONS
+// ============================================================================
+
+/**
+ * Get current selection from context
+ */
+bool TextInserter::GetCurrentSelection(ITfContext* pContext, TfEditCookie ec, ITfRange** ppRange) {
+    if (!pContext || !ppRange) {
+        return false;
+    }
+
+    *ppRange = nullptr;
+
+    TF_SELECTION tfSelection;
+    ULONG cFetched = 0;
+    
+    HRESULT hr = pContext->GetSelection(ec, TF_DEFAULT_SELECTION, 1, &tfSelection, &cFetched);
+    
+    if (SUCCEEDED(hr) && cFetched > 0) {
+        *ppRange = tfSelection.range;
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Get text from a TSF range
+ */
+bool TextInserter::GetTextFromRange(ITfRange* pRange, TfEditCookie ec, std::wstring& text) {
+    if (!pRange) {
+        return false;
+    }
+
+    text.clear();
+
+    // Get the text from the range
+    // Note: This is a simplified version. A production implementation would handle
+    // chunking for very long selections
+    
+    // Clone the range to avoid modifying the original
+    ITfRange* pClone = nullptr;
+    HRESULT hr = pRange->Clone(&pClone);
+    
+    if (FAILED(hr) || !pClone) {
+        return false;
+    }
+
+    // Try to get text using ITfRangeACP interface
+    // This provides access to plain text content
+    const int BUFFER_SIZE = 4096;
+    wchar_t buffer[BUFFER_SIZE];
+    ULONG cch = 0;
+    
+    // Get text from range - using GetText would require proper edit cookie
+    // For now, we'll use a basic approach
+    
+    // Try GetText method (requires proper edit session in production)
+    hr = pRange->GetText(ec, TF_TF_MOVESTART, buffer, BUFFER_SIZE - 1, &cch);
+    
+    if (SUCCEEDED(hr) && cch > 0) {
+        buffer[cch] = L'\0';
+        text = buffer;
+    }
+
+    pClone->Release();
+    
+    return !text.empty();
+}
+
+/**
+ * Set text in a TSF range (replaces existing text)
+ */
+bool TextInserter::SetTextInRange(ITfRange* pRange, TfEditCookie ec, const std::wstring& text) {
+    if (!pRange) {
+        return false;
+    }
+
+    // Replace text at the selection/cursor position
+    HRESULT hr = pRange->SetText(ec, TF_ST_CORRECTION, text.c_str(), (LONG)text.length());
+    
+    return SUCCEEDED(hr);
+}

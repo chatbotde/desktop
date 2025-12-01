@@ -649,7 +649,7 @@
 
 /* ==================== PLUS ACTIONS: ICON COLUMN ==================== */
 /* Render Actions dropdown items as a compact vertical column of icon-only round buttons,
-   visually consistent with collapsed speed-dial buttons. Scoped to #plusActionsDropdown. */
+   visually consistent with collapsed action buttons. Scoped to #plusActionsDropdown. */
 
 #plusActionsDropdown.dropdown-menu.compact {
     min-width: 52px; /* narrow panel, fits round buttons */
@@ -668,7 +668,7 @@
 }
 
 #plusActionsDropdown .dropdown-header {
-    display: none; /* match speed-dial look (icon column only) */
+    display: none; /* icon column only */
 }
 
 #plusActionsDropdown .dropdown-item-compact {
@@ -704,7 +704,7 @@
     height: 16px;
 }
 
-/* Open state: reveal with stagger similar to speed-dial */
+/* Open state: reveal with stagger animation */
 #plusActionsDropdown.open .dropdown-item-compact {
     transform: translateY(0) scale(1);
     opacity: 1;

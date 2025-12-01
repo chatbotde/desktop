@@ -4,7 +4,7 @@
     position: fixed;
     bottom: 80px;
     right: 24px;
-    background: rgba(15, 15, 20, 0.95);
+    background: rgba(15, 15, 20, 1);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;

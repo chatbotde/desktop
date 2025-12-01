@@ -1,7 +1,9 @@
 #include <napi.h>
+#include <windows.h>
 #include "text_inserter.h"
 #include "focus_tracker.h"
 #include <memory>
+#include <string>
 
 // Global instance
 std::unique_ptr<TextInserter> g_textInserter;
@@ -237,6 +239,93 @@ Napi::Value SimulateCtrlV(const Napi::CallbackInfo& info) {
     return Napi::Boolean::New(env, true);
 }
 
+// Get selected text from focused application
+Napi::Value GetSelectedText(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (!g_textInserter) {
+        Napi::Error::New(env, "TextInserter not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    std::wstring selectedText = g_textInserter->GetSelectedText();
+    std::string utf8Text = WStringToUTF8(selectedText);
+    
+    return Napi::String::New(env, utf8Text);
+}
+
+// Replace selected text in focused application
+Napi::Value ReplaceSelectedText(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 1 || !info[0].IsString()) {
+        Napi::TypeError::New(env, "String expected").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    if (!g_textInserter) {
+        Napi::Error::New(env, "TextInserter not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    std::string text = info[0].As<Napi::String>().Utf8Value();
+    std::wstring wtext = UTF8ToWString(text);
+    
+    bool success = g_textInserter->ReplaceSelectedText(wtext);
+    
+    return Napi::Boolean::New(env, success);
+}
+
+// Focus last window and replace selected text
+Napi::Value FocusAndReplaceText(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (info.Length() < 1 || !info[0].IsString()) {
+        Napi::TypeError::New(env, "String expected").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    if (!g_focusTracker) {
+        g_focusTracker = std::make_unique<FocusTracker>();
+    }
+    
+    if (!g_textInserter) {
+        Napi::Error::New(env, "TextInserter not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    // Focus the last window first
+    bool focusSuccess = g_focusTracker->FocusLastWindow();
+    if (!focusSuccess) {
+        return Napi::Boolean::New(env, false);
+    }
+    
+    // Wait for the window to be ready and focused
+    Sleep(300);
+    
+    // Replace selected text
+    std::string text = info[0].As<Napi::String>().Utf8Value();
+    std::wstring wtext = UTF8ToWString(text);
+    
+    bool replaceSuccess = g_textInserter->ReplaceSelectedText(wtext);
+    
+    return Napi::Boolean::New(env, replaceSuccess);
+}
+
+// Delete selected text
+Napi::Value DeleteSelection(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    if (!g_textInserter) {
+        Napi::Error::New(env, "TextInserter not initialized").ThrowAsJavaScriptException();
+        return env.Null();
+    }
+    
+    bool success = g_textInserter->DeleteSelection();
+    
+    return Napi::Boolean::New(env, success);
+}
+
 // Cleanup
 Napi::Value Cleanup(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
@@ -264,6 +353,13 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set("focusLastWindow", Napi::Function::New(env, FocusLastWindow));
     exports.Set("focusAndInsertText", Napi::Function::New(env, FocusAndInsertText));
     exports.Set("simulateCtrlV", Napi::Function::New(env, SimulateCtrlV));
+    
+    // Text replacement APIs
+    exports.Set("getSelectedText", Napi::Function::New(env, GetSelectedText));
+    exports.Set("replaceSelectedText", Napi::Function::New(env, ReplaceSelectedText));
+    exports.Set("focusAndReplaceText", Napi::Function::New(env, FocusAndReplaceText));
+    exports.Set("deleteSelection", Napi::Function::New(env, DeleteSelection));
+    
     exports.Set("cleanup", Napi::Function::New(env, Cleanup));
     
     return exports;

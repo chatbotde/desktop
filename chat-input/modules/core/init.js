@@ -101,9 +101,17 @@ export async function boot() {
     window.adjustWindowHeight = () => {};
 
     if (dom.chatInputContainer) dom.chatInputContainer.classList.add('fullscreen');
+    
+    // Ensure proper initial collapsed state
     dom.promptInput.classList.remove('expanded');
-    dom.messageInput.focus();
+    dom.chatInputContainer.classList.remove('expanded');
+    state.expansionState = 'collapsed';
+    state.isTransitioning = false;
+    
+    // Initialize UI in collapsed state
+    autoResize();
     updateSendButton();
+    dom.messageInput.focus();
 
     // Update expand button title based on state
     const updateExpandButtonTitle = () => {

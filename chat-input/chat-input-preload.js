@@ -973,6 +973,18 @@ contextBridge.exposeInMainWorld("tsfAPI", {
     ipcRenderer.on('tsf:warning', (event, data) => callback(data));
   },
 
+  onTextReplaced: (callback) => {
+    ipcRenderer.on('tsf:text-replaced', (event, data) => callback(data));
+  },
+
+  onReplaceFailed: (callback) => {
+    ipcRenderer.on('tsf:replace-failed', (event, data) => callback(data));
+  },
+
+  onSelectionDeleted: (callback) => {
+    ipcRenderer.on('tsf:selection-deleted', (event, data) => callback(data));
+  },
+
   /**
    * Get last external (non-Electron) focused application
    * @returns {Promise<Object>} Last external focus info
@@ -998,6 +1010,33 @@ contextBridge.exposeInMainWorld("tsfAPI", {
    * @returns {Promise<boolean>} Success status
    */
   focusAndInsertText: (text) => ipcRenderer.invoke('tsf:focus-and-insert-text', text),
+
+  /**
+   * Get selected text from focused application using TSF
+   * @returns {Promise<string>} Selected text (empty string if none)
+   */
+  getSelectedText: () => ipcRenderer.invoke('tsf:get-selected-text'),
+
+  /**
+   * Replace selected text in focused application
+   * @param {string} text - The replacement text
+   * @returns {Promise<boolean>} Success status
+   */
+  replaceSelectedText: (text) => ipcRenderer.invoke('tsf:replace-selected-text', text),
+
+  /**
+   * Focus last window and replace selected text
+   * Perfect for "Change" button that replaces user's selected text with AI response
+   * @param {string} text - The replacement text
+   * @returns {Promise<boolean>} Success status
+   */
+  focusAndReplaceText: (text) => ipcRenderer.invoke('tsf:focus-and-replace-text', text),
+
+  /**
+   * Delete selected text in focused application
+   * @returns {Promise<boolean>} Success status
+   */
+  deleteSelection: () => ipcRenderer.invoke('tsf:delete-selection'),
 
   // Event for external app focus changes
   onExternalFocusChanged: (callback) => {
