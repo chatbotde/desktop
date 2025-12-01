@@ -82,8 +82,9 @@ class TextSelectionUIManager {
     const bar = document.createElement('div');
     bar.className = 'text-selection-mini';
     bar.style.display = 'none';
-    bar.style.opacity = '1';
-    bar.style.transform = 'scale(1)';
+    // Let CSS handle opacity and transform for animations
+    bar.style.opacity = '';
+    bar.style.transform = '';
 
     // Create Google-style search bar container
     const searchBar = document.createElement('div');
@@ -291,9 +292,29 @@ class TextSelectionUIManager {
     searchBar.appendChild(inputWrapper);
     searchBar.appendChild(actionsContainer);
 
+    // Ensure clicking anywhere on the bar focuses the input
+    searchBar.addEventListener('click', (e) => {
+      // Don't trigger if clicking buttons (they have their own handlers)
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      input.focus();
+    });
+
     // Add search bar and close button to the container
     bar.appendChild(searchBar);
     bar.appendChild(closeBtn); // Close button OUTSIDE the search bar on the right
+    
+    // Ensure clicking the container gap also focuses input
+    bar.addEventListener('click', (e) => {
+      if (e.target === bar) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (input) input.focus();
+      }
+    });
+
     document.body.appendChild(bar);
     this.miniBar = bar;
     
@@ -1116,7 +1137,6 @@ ${this.currentText}`;
       setTimeout(() => {
         if (this.elements.searchInput && this.isMiniVisible) {
           this.elements.searchInput.focus();
-          this.elements.searchInput.setSelectionRange(0, 0);
         }
       }, 250);
     });
@@ -1139,8 +1159,9 @@ ${this.currentText}`;
       this.distanceHideHandler = null;
     }
 
-    // Don't set up auto-hide timers - UI will stay visible until selection is cleared
-    // Users can manually close with the X button if needed
+    // Start auto-hide timer
+    this.startAutoHideTimer();
+
     this.showOriginX = this.lastMouseX;
     this.showOriginY = this.lastMouseY;
     this.showTime = Date.now();
@@ -1149,8 +1170,11 @@ ${this.currentText}`;
       if (!this.isMiniVisible) return;
       
       // Grace period - don't hide immediately after showing
+      const GRACE_PERIOD = 400;
+      const DISTANCE_THRESHOLD = 250;
+      
       const timeSinceShow = Date.now() - this.showTime;
-      if (timeSinceShow < gracePeriodMs) {
+      if (timeSinceShow < GRACE_PERIOD) {
         return;
       }
       
@@ -1169,17 +1193,22 @@ ${this.currentText}`;
         const rect = this.miniBar.getBoundingClientRect();
         const mouseX = this.lastMouseX;
         const mouseY = this.lastMouseY;
+        
+        // Check if mouse is inside the bar
         if (mouseX >= rect.left && mouseX <= rect.right && 
             mouseY >= rect.top && mouseY <= rect.bottom) {
           return; // mouse is over the bar, don't hide
         }
-      }
-      
-      // Check if mouse moved too far away
-      const dx = this.lastMouseX - this.showOriginX;
-      const dy = this.lastMouseY - this.showOriginY;
-      if (Math.hypot(dx, dy) > thresholdPx) {
-        this.hide();
+
+        // Calculate distance from mouse to the nearest point of the UI element
+        // This allows moving towards the UI without it hiding
+        const dx = Math.max(rect.left - mouseX, 0, mouseX - rect.right);
+        const dy = Math.max(rect.top - mouseY, 0, mouseY - rect.bottom);
+        const distance = Math.sqrt(dx*dx + dy*dy);
+
+        if (distance > DISTANCE_THRESHOLD) {
+          this.hide();
+        }
       }
     };
     
@@ -1188,7 +1217,7 @@ ${this.currentText}`;
       if (this.isMiniVisible) {
         window.addEventListener('mousemove', this.distanceHideHandler, { passive: true });
       }
-    }, gracePeriodMs);
+    }, GRACE_PERIOD);
   }
 
   startAutoHideTimer() {
@@ -1201,7 +1230,7 @@ ${this.currentText}`;
     // Only set timer if mini bar is visible
     if (!this.isMiniVisible) return;
 
-    // Set new auto-hide timer (3 seconds)
+    // Set new auto-hide timer (2 seconds)
     this.autoHideTimer = setTimeout(() => {
       // Only hide if user is not actively interacting
       const active = document.activeElement;
@@ -1211,24 +1240,37 @@ ${this.currentText}`;
         return;
       }
 
-      // Check if mouse is hovering over the bar
+      // Check if mouse is hovering over or near the bar
       if (this.miniBar) {
         const rect = this.miniBar.getBoundingClientRect();
         const mouseX = this.lastMouseX;
         const mouseY = this.lastMouseY;
+        
+        // Check if mouse is inside the bar
         if (mouseX >= rect.left && mouseX <= rect.right && 
             mouseY >= rect.top && mouseY <= rect.bottom) {
           // Mouse is over the bar, don't hide - restart timer
           this.startAutoHideTimer();
           return;
         }
+
+        // Check proximity - if mouse is near (within 150px), keep it visible
+        const dx = Math.max(rect.left - mouseX, 0, mouseX - rect.right);
+        const dy = Math.max(rect.top - mouseY, 0, mouseY - rect.bottom);
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        
+        if (distance < 150) {
+          // Mouse is near, restart timer to keep checking
+          this.startAutoHideTimer();
+          return;
+        }
       }
 
-      // No interaction detected, hide the bar
+      // No interaction and not near, hide the bar
       if (this.isMiniVisible) {
         this.hide();
       }
-    }, 3000); // 3 seconds
+    }, 2000); // 2 seconds
   }
 
   showPanel() {
