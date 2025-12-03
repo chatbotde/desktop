@@ -37,6 +37,7 @@ export const dom = {
     get hideChatButton() { return document.getElementById('hideChatButton'); },
     get badgesContainer() { return document.getElementById('badgesContainer'); },
     get badgesGrid() { return document.getElementById('badgesGrid'); },
+    get networkWarning() { return document.getElementById('networkWarning'); },
 };
 
 

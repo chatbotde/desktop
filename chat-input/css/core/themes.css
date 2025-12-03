@@ -31,10 +31,10 @@
 /* ==================== CHAT INPUT - LIGHT THEME ==================== */
 
 /* Collapsed state - light theme */
-.light-theme .prompt-input:not(.expanded),
-[data-theme="light"] .prompt-input:not(.expanded) {
+.light-theme .prompt-input:not(.expanded):not(.transparent),
+[data-theme="light"] .prompt-input:not(.expanded):not(.transparent) {
     background: #f5f5f7;
-    border-color: #d1d5db;
+    border-color: transparent;
 }
 
 .light-theme .prompt-input:not(.expanded) #messageInput,
@@ -63,17 +63,17 @@
 }
 
 /* Expanded state - light theme */
-.light-theme .prompt-input.expanded,
-[data-theme="light"] .prompt-input.expanded {
+.light-theme .prompt-input.expanded:not(.transparent),
+[data-theme="light"] .prompt-input.expanded:not(.transparent) {
     background: var(--bg-popover);
-    border-color: var(--border);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+    border-color: transparent;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .light-theme .prompt-input.expanded:focus-within,
 [data-theme="light"] .prompt-input.expanded:focus-within {
-    border-color: var(--border-hover);
-    box-shadow: 0 0 0 1px var(--border-hover), 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-color: transparent;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .light-theme .prompt-input.expanded #expandButton,

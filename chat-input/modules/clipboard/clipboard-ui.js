@@ -2,6 +2,7 @@ import { dom } from '../core/dom.js';
 import { isAutoClipboardEnabled, toggleAutoClipboardEnabled } from './auto-clipboard-state.js';
 import { appendToInput, getClipboardText } from './clipboard-injector.js';
 import { addTextBadge } from '../ui/badges.js';
+import { addImageAttachment } from '../media/attachments.js';
 
 // Inject CSS styles for the clipboard bar
 const injectStyles = () => {
@@ -246,6 +247,7 @@ class ClipboardBarManager {
     this.wasClickThroughOn = false;
     this.resizeHandler = null;
     this.isTextSelection = false;
+    this.currentType = 'text';
     this.hideTimeout = null;
     this.autoHideDelay = 8000; // Auto-hide after 8 seconds
   }
@@ -411,17 +413,18 @@ class ClipboardBarManager {
   }
 
   // Show bar with content
-  show(preview, signature, payload, isTextSelection = false) {
+  show(preview, signature, payload, isTextSelection = false, type = 'text') {
     if (!this.isChatInputVisible()) {
       console.log('Clipboard UI: Chat-input not visible, skipping show');
       return;
     }
     
-    console.log('Clipboard UI: Showing bar with content', { preview, isTextSelection });
+    console.log('Clipboard UI: Showing bar with content', { preview, isTextSelection, type });
     this.createBar();
     this.lastSignature = signature || '';
     this.currentPayload = payload;
     this.isTextSelection = isTextSelection;
+    this.currentType = type;
     
     // Set preview text
     const truncatedPreview = preview ? String(preview).slice(0, 80) : 'Content detected';
@@ -473,6 +476,13 @@ class ClipboardBarManager {
   handleAdd() {
     if (!this.currentPayload) return;
     
+    if (this.currentType === 'image') {
+      console.log('Clipboard UI: Adding image attachment');
+      addImageAttachment(this.currentPayload);
+      this.hide();
+      return;
+    }
+
     let text = '';
     if (this.isTextSelection) {
       text = typeof this.currentPayload === 'string' 
@@ -510,7 +520,7 @@ class ClipboardBarManager {
 }
 
 // Create singleton instance
-const clipboardBar = new ClipboardBarManager();
+export const clipboardBar = new ClipboardBarManager();
 
 export function initClipboardUI() {
   console.log('Clipboard UI: Initializing clipboard UI');

@@ -1,5 +1,86 @@
 import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from '../media/attachments.js';
 
+export function initializeDragAndDrop() {
+    const dropZone = document.body;
+    // We'll target the prompt input for visual feedback
+    // Note: prompt-input might be created dynamically, so we might need to query it inside the event handler or ensure it exists
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', handleDrop, false);
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight(e) {
+        const promptInput = document.querySelector('.prompt-input');
+        if (promptInput) promptInput.classList.add('drag-over');
+    }
+
+    function unhighlight(e) {
+        const promptInput = document.querySelector('.prompt-input');
+        if (promptInput) promptInput.classList.remove('drag-over');
+    }
+
+    async function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files && files.length > 0) {
+            await handleFiles(files);
+        }
+    }
+}
+
+async function handleFiles(files) {
+    // Convert FileList to Array
+    const fileArray = [...files];
+    
+    // Filter for images (extensible for other types later)
+    const imageFiles = fileArray.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+        showAttachmentLoading();
+        
+        for (const file of imageFiles) {
+            try {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    hideAttachmentLoading(); // Hide loading for this item (or manage count)
+                    addImageAttachment({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        data: e.target.result,
+                        source: 'drop'
+                    });
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                hideAttachmentLoading();
+                console.error('Error processing dropped file:', error);
+            }
+        }
+    }
+    
+    // Future: Handle other file types here
+}
+
 export async function handlePasteContent() {
     try {
         if (navigator.clipboard?.read) {

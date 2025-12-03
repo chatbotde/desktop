@@ -104,6 +104,12 @@ contextBridge.exposeInMainWorld("chatInputAPI", {
     ipcRenderer.send('auth:logout');
   },
   
+  // Search
+  performSearch: (query) => {
+    console.log('Preload: Performing search for', query);
+    return ipcRenderer.invoke('search:perform', query);
+  },
+
   // Listen for show chat input UI event (from launch window click)
   onShowChatInputUI: (callback) => {
     ipcRenderer.on('show-chat-input-ui', callback);

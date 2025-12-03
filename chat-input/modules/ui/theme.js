@@ -81,4 +81,14 @@ export function toggleLighting() {
     ], { duration: 200, easing: 'ease-out' });
 }
 
+export function toggleGlassMode() {
+    const isGlass = dom.promptInput.classList.toggle('backdrop-blur-md');
+    // Update button state if visible
+    const glassButton = document.querySelector('.action-item[data-action="glass-mode"]');
+    if (glassButton) {
+        glassButton.classList.toggle('active', isGlass);
+        glassButton.setAttribute('aria-pressed', isGlass.toString());
+    }
+}
+
 

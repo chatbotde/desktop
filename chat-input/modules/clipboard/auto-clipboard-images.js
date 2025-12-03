@@ -1,5 +1,7 @@
 import { addImageAttachment, showAttachmentLoading, hideAttachmentLoading } from '../media/attachments.js';
 import { dom } from '../core/dom.js';
+import { clipboardBar } from './clipboard-ui.js';
+import { isAutoClipboardEnabled } from './auto-clipboard-state.js';
 
 function extractDataUrl(content) {
   if (!content) return null;
@@ -39,19 +41,25 @@ export function initAutoClipboardImages() {
     lastSig = sig;
 
     try {
-      showAttachmentLoading();
       const mime = (dataUrl.match(/^data:([^;]+);base64,/i) || [])[1] || 'image/png';
       const ext = (mime.split('/')[1] || 'png').toLowerCase();
-      addImageAttachment({
+      const imageData = {
         name: `clipboard-image-${Date.now()}.${ext}`,
         type: mime,
         size: 0,
         data: dataUrl,
         source: 'clipboard'
-      });
+      };
+
+      if (isAutoClipboardEnabled()) {
+        showAttachmentLoading();
+        addImageAttachment(imageData);
+        hideAttachmentLoading();
+      } else {
+        clipboardBar.show('Image detected', sig, imageData, false, 'image');
+      }
     } catch (e) {
       console.error('AutoClipboardImages: attach failed', e);
-    } finally {
       hideAttachmentLoading();
     }
   });

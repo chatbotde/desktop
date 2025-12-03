@@ -59,6 +59,12 @@
     box-shadow: 0 0 0 1px var(--border-hover), var(--shadow-sm);
 }
 
+.prompt-input.drag-over {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring);
+    background-color: var(--bg-hover);
+}
+
 .prompt-content {
     display: flex;
     flex-direction: column;
@@ -421,6 +427,21 @@
     border-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Backdrop blur utility: medium blur with white @10% overlay */
+.prompt-input.backdrop-blur-md {
+    background: rgba(255, 255, 255, 0.1); /* white at 10% */
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+.prompt-input.backdrop-blur-md:focus-within,
+.prompt-input.backdrop-blur-md:hover {
+    background: rgba(255, 255, 255, 0.14); /* slightly stronger on hover/focus */
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
 /* ==================== PERSISTENT TOGGLE UI STYLES ==================== */
 
 .persistent-toggle {
@@ -759,4 +780,40 @@
         width: 16px;
         height: 16px;
     }
+}
+
+/* ==================== NETWORK WARNING STYLES ==================== */
+
+.network-warning {
+    position: absolute;
+    top: -36px;
+    left: 0;
+    right: 0;
+    background-color: #ef4444;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.network-warning.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.action-btn.disabled-offline {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
 }

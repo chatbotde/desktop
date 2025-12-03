@@ -5,6 +5,7 @@ import { getBadgeContent, clearBadgesAfterSend } from '../ui/badges.js';
 import { isAutoScreenEnabled } from '../capture/auto-screen-state.js';
 import { addImageAttachment } from '../media/attachments.js';
 import { validateBeforeSend, showCapabilityWarning } from '../ui/capability-validator.js';
+import { networkManager } from './network-manager.js';
 
 export function updateSendButtonVisual() {
     if (state.isSending) {
@@ -17,6 +18,16 @@ export function updateSendButtonVisual() {
 }
 
 export async function sendMessage() {
+    // Check network status first
+    if (!networkManager.isNetworkAvailable()) {
+        // Trigger a check to be sure and update UI
+        await networkManager.checkConnection();
+        if (!networkManager.isNetworkAvailable()) {
+            console.warn('Cannot send message: No network connection');
+            return;
+        }
+    }
+
     const raw = dom.messageInput.value;
     let message = raw.trim();
     

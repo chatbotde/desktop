@@ -2,7 +2,7 @@
 import { dom } from '../core/dom.js';
 import { state } from '../core/state.js';
 import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from '../capture/uploads-capture.js';
-import { toggleTheme, toggleLighting } from './theme.js';
+import { toggleTheme, toggleLighting, toggleGlassMode } from './theme.js';
 import { toggleClickThrough } from '../input/clickthrough.js';
 import { toggleContentProtection } from '../core/content-protection.js';
 import { collapseUI } from './expand-collapse.js';
@@ -141,6 +141,22 @@ function syncToggleButtonStates() {
             themeButton.classList.remove('active');
         }
     }
+
+    // Sync glass mode button
+    const glassButton = contentCard.querySelector('.action-item[data-action="glass-mode"]');
+    if (glassButton) {
+        // Check if the class is present on the prompt input
+        // We need to access dom.promptInput, but dom is not imported here directly, 
+        // however we can query it or import dom. 
+        // dom is imported at the top.
+        if (dom.promptInput && dom.promptInput.classList.contains('backdrop-blur-md')) {
+            glassButton.classList.add('active');
+            glassButton.setAttribute('aria-pressed', 'true');
+        } else {
+            glassButton.classList.remove('active');
+            glassButton.setAttribute('aria-pressed', 'false');
+        }
+    }
 }
 
 // Hide content card
@@ -226,6 +242,9 @@ function handleContentCardAction(action) {
         case 'lighting':
             toggleLighting();
             break;
+        case 'glass-mode':
+            toggleGlassMode();
+            break;
         case 'click-through':
             toggleClickThrough();
             break;
@@ -289,6 +308,11 @@ function handleContentCardAction(action) {
             collapseUI();
             break;
             
+        // Tools actions
+        case 'search':
+            handleSearchAction();
+            break;
+
         default:
             console.warn('Unknown content card action:', action);
     }
@@ -296,6 +320,83 @@ function handleContentCardAction(action) {
     // Focus message input after action
     if (dom.messageInput) {
         dom.messageInput.focus();
+    }
+}
+
+// Handle search action
+async function handleSearchAction() {
+    const query = dom.messageInput.value.trim();
+    if (!query) {
+        console.warn("Search query is empty");
+        // Optionally show a visual indication that input is required
+        if (dom.messageInput) {
+            dom.messageInput.placeholder = "Please enter a search query...";
+            setTimeout(() => {
+                dom.messageInput.placeholder = "Ask Anything.. ";
+            }, 2000);
+        }
+        return;
+    }
+
+    // Clear input
+    dom.messageInput.value = '';
+
+    // Show loading state if possible (e.g. spinner)
+    // For now, we rely on the async nature.
+
+    try {
+        if (!window.chatInputAPI || !window.chatInputAPI.performSearch) {
+            console.error("Search API not available");
+            return;
+        }
+
+        // Send search request
+        const response = await window.chatInputAPI.performSearch(query);
+        
+        if (response.success) {
+            // Format results
+            let content = `**Search Results for "${query}":**\n\n`;
+            
+            if (response.results && response.results.results && response.results.results.length > 0) {
+                content += response.results.results.map(r => `* [${r.title}](${r.url})\n  ${r.text ? r.text.substring(0, 200) + '...' : ''}`).join('\n\n');
+            } else {
+                content += "No results found.";
+            }
+
+            // Send result to main window
+            const messageData = {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Also send the user's query as a message so it appears in history
+            const userMessageData = {
+                id: (Date.now() - 1).toString(),
+                role: 'user',
+                content: `Search: ${query}`,
+                timestamp: new Date().toISOString()
+            };
+
+            window.chatInputAPI.sendMessage(userMessageData);
+            setTimeout(() => {
+                window.chatInputAPI.sendMessage(messageData);
+            }, 100);
+
+        } else {
+            console.error("Search failed:", response.error);
+            // Send error message
+             const errorMessageData = {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: `**Search Error:** ${response.error}`,
+                timestamp: new Date().toISOString()
+            };
+            window.chatInputAPI.sendMessage(errorMessageData);
+        }
+    } catch (e) {
+        console.error("Search error:", e);
     }
 }
 

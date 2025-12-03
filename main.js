@@ -47,6 +47,7 @@ const { clipboardMonitor } = require("./clipboard-monitor");
 const { textSelectionMonitor } = require("./chat-input/electron-api/text-selection");
 const { environmentConfig } = require("./utils/environment");
 const { initializeTsf } = require("./chat-input/tsf-ipc-handlers");
+const { setupSearchIpc } = require("./chat-input/search/search-handler");
 const { MinimalModeManager } = require("./global-shortcut");
 
 // Set app icon
@@ -188,6 +189,9 @@ app.whenReady().then(async () => {
     
     // Create and show chat input window directly instead of launch window
     createChatInputWindow();
+    
+    // Setup Search IPC
+    setupSearchIpc();
     
     // Register global shortcuts
     registerGlobalShortcuts();

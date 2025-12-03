@@ -101,6 +101,20 @@ export const contentCardTemplateHTML = `
                         </div>
                     </div>
 
+                    <!-- Tools Actions -->
+                    <div class="action-group">
+                        <h4 class="action-group-title">Tools</h4>
+                        <div class="action-buttons">
+                            <button class="action-item" data-action="search">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <span>Search</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Settings Actions -->
                     <div class="action-group">
                         <h4 class="action-group-title">Settings</h4>
@@ -117,6 +131,15 @@ export const contentCardTemplateHTML = `
                                     <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
                                 </svg>
                                 <span>Lighting Effect</span>
+                            </button>
+                            <button class="action-item" data-action="glass-mode">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12h20"></path>
+                                    <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"></path>
+                                    <path d="M4 12V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5"></path>
+                                    <path d="M12 2v5"></path>
+                                </svg>
+                                <span>Glass Mode</span>
                             </button>
                             <!--
                             <button class="action-item" data-action="click-through">

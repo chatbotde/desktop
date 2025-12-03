@@ -1,6 +1,7 @@
 import { state } from '../core/state.js';
 import { dom } from '../core/dom.js';
 import { updateAttachmentsVisibility } from './attachments.js';
+import { updateSendButton } from '../ui/expand-collapse.js';
 
 export function addMediaAttachment(mediaFile) {
     const attachment = {
@@ -23,6 +24,7 @@ export function addMediaAttachment(mediaFile) {
         renderMedia(attachment);
     }
     updateAttachmentsVisibility();
+    updateSendButton();
     setTimeout(() => { if (typeof window.adjustWindowHeight === 'function') window.adjustWindowHeight(); }, 100);
     return attachment;
 }
@@ -145,6 +147,9 @@ export function removeMediaAttachment(attachmentId) {
         index = state.imageAttachments.findIndex(att => att.id === attachmentId);
         if (index !== -1) state.imageAttachments.splice(index, 1);
     }
+    
+    updateSendButton();
+    
     const element = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
     if (element) {
         element.style.transition = 'opacity 0.2s ease, transform 0.2s ease';

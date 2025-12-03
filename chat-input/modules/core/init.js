@@ -11,7 +11,7 @@ import { initializeFloatingCards, hideAllCards } from '../ui/floating-cards.js';
 import { initializeContentCard, showContentCard, hideContentCard, isContentCardOpen } from '../ui/content-card.js';
 import { initializeModelSelection, updateModelDropdownSelection, selectModel, wireModelDropdownInteractions } from '../ui/model-selection.js';
 import { sendMessage, resetSendingState } from './messaging.js';
-import { handlePasteContent } from '../clipboard/paste-drop.js';
+import { handlePasteContent, initializeDragAndDrop } from '../clipboard/paste-drop.js';
 import { handleImageUpload, handleVideoUpload, handleAudioUpload, handleDesktopCapture, handleAudioCapture, handleVideoCapture, handleAreaScreenshot } from '../capture/uploads-capture.js';
 import { geometryController } from './geometry.js';
 import { stopCurrentRecording, updateVolumeIndicator } from '../capture/recording.js';
@@ -23,6 +23,7 @@ import { initializeUndoRedo, recordState } from '../input/undo-redo.js';
 import { handleKeyboardShortcut, initializeKeyboardShortcuts } from '../input/keyboard-shortcuts.js';
 import { initializeInputEnhancements } from '../input/input-enhancements.js';
 import { initTextSelectionUI } from '../input/text-selection-ui.js';
+import { networkManager } from './network-manager.js';
 import { 
     validateBeforeSend, 
     willAttachmentBeSupported, 
@@ -74,6 +75,8 @@ export async function boot() {
     initializeKeyboardShortcuts();
     initializeInputEnhancements();
     initTextSelectionUI();
+    initializeDragAndDrop();
+    networkManager.init();
 
     // Handle persistent toggle click
     const persistentToggle = document.getElementById('persistentToggle');

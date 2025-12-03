@@ -40,6 +40,9 @@ export const audioRecordingTabletHTML = `
                     </div>
                     <div class="art-timer" id="artTimer">00:00</div>
                 </div>
+
+                <!-- Status Message Area -->
+                <div id="artStatusMessage" class="art-status-message" style="display: none; font-size: 12px; margin-bottom: 8px; text-align: center;"></div>
                 
                 <!-- Audio Source Selection -->
                 <div class="art-source-selection" id="artSourceSelection">
@@ -131,6 +134,27 @@ export const audioRecordingTabletHTML = `
                             <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
                         </svg>
                         <span>Send</span>
+                    </button>
+
+                    <button class="art-btn art-btn-transcribe" id="artTranscribeBtn" title="Transcribe Recording" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <line x1="9" y1="10" x2="15" y2="10"></line>
+                            <line x1="9" y1="14" x2="13" y2="14"></line>
+                        </svg>
+                        <span>Transcribe</span>
+                    </button>
+
+                    <button class="art-btn art-btn-live" id="artLiveBtn" title="Live Transcription">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 1 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                            <line x1="8" y1="22" x2="16" y2="22"></line>
+                            <path d="M2 10l2-2"></path>
+                            <path d="M22 10l-2-2"></path>
+                        </svg>
+                        <span>Live</span>
                     </button>
                 </div>
                 

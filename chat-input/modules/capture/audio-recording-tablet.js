@@ -5,6 +5,7 @@
  */
 
 import { addMediaAttachment } from '../media/richmedia.js';
+import { AssemblyAIService } from '../transcription/assembly-ai-service.js';
 
 class AudioRecordingTablet {
     constructor() {
@@ -22,6 +23,8 @@ class AudioRecordingTablet {
         this.filePath = null;
         this.audioSource = 'microphone'; // 'microphone', 'system', 'both'
         this.rendererAPI = null;
+        this.assemblyAI = new AssemblyAIService();
+        this.isLiveTranscribing = false;
         
         // Drag state
         this.isDragging = false;
@@ -177,7 +180,7 @@ class AudioRecordingTablet {
         // Reset UI
         this.tablet.classList.remove('recording', 'paused');
         this.updateTimer(0);
-        this.showButton('start');
+        this.showButton('start', 'live');
         
         // Show source selection
         const sourceSelection = document.getElementById('artSourceSelection');
@@ -242,6 +245,21 @@ class AudioRecordingTablet {
             const newSendBtn = sendBtn.cloneNode(true);
             sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
             newSendBtn.addEventListener('click', () => this.sendRecording());
+        }
+
+        const transcribeBtn = document.getElementById('artTranscribeBtn');
+        const liveBtn = document.getElementById('artLiveBtn');
+
+        if (transcribeBtn) {
+            const newTranscribeBtn = transcribeBtn.cloneNode(true);
+            transcribeBtn.parentNode.replaceChild(newTranscribeBtn, transcribeBtn);
+            newTranscribeBtn.addEventListener('click', () => this.transcribeRecording());
+        }
+
+        if (liveBtn) {
+            const newLiveBtn = liveBtn.cloneNode(true);
+            liveBtn.parentNode.replaceChild(newLiveBtn, liveBtn);
+            newLiveBtn.addEventListener('click', () => this.toggleLiveTranscription());
         }
 
         // Handle both close buttons - now they minimize instead of close
@@ -725,6 +743,7 @@ class AudioRecordingTablet {
      * Stop audio recording
      */
     async stopRecording() {
+        this.stopLiveTranscription();
         if (!this._recorder) return;
 
         // Store recording time before stopping
@@ -761,7 +780,7 @@ class AudioRecordingTablet {
 
                             // Update UI - show send button
                             this.tablet.classList.remove('recording', 'paused');
-                            this.showButton('send');
+                            this.showButton('send', 'transcribe');
 
                             // Show preview
                             this.showPreview();
@@ -1085,7 +1104,7 @@ class AudioRecordingTablet {
      * Show specific buttons
      */
     showButton(...buttons) {
-        const allButtons = ['start', 'stop', 'pause', 'resume', 'send'];
+        const allButtons = ['start', 'stop', 'pause', 'resume', 'send', 'transcribe', 'live'];
         
         allButtons.forEach(btn => {
             const el = document.getElementById(`art${btn.charAt(0).toUpperCase() + btn.slice(1)}Btn`);
@@ -1155,8 +1174,172 @@ class AudioRecordingTablet {
      * Show error message
      */
     showError(message) {
-        // Could implement a toast notification here
         console.error('Audio Recording Tablet Error:', message);
+        this.showStatus(message, 'error');
+    }
+
+    /**
+     * Show status message
+     */
+    showStatus(message, type = 'info') {
+        const statusEl = document.getElementById('artStatusMessage');
+        if (!statusEl) return;
+
+        statusEl.textContent = message;
+        statusEl.style.display = 'block';
+        
+        // Reset classes
+        statusEl.className = 'art-status-message';
+        
+        if (type === 'error') {
+            statusEl.style.color = '#ff4444';
+        } else if (type === 'success') {
+            statusEl.style.color = '#44ff44';
+        } else {
+            statusEl.style.color = 'inherit'; // Default text color
+        }
+
+        // Auto-hide after 3 seconds if it's a success message
+        if (type === 'success') {
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    /**
+     * Transcribe the recorded audio
+     */
+    async transcribeRecording() {
+        console.log('Transcribe button clicked');
+        if (!this.pendingAudio || !this.pendingAudio.blob) {
+            console.error('No audio to transcribe', this.pendingAudio);
+            return;
+        }
+
+        const transcribeBtn = document.getElementById('artTranscribeBtn');
+        if (transcribeBtn) {
+            transcribeBtn.disabled = true;
+            const span = transcribeBtn.querySelector('span');
+            const originalText = span.textContent;
+            span.textContent = 'Transcribing...';
+            this.showStatus('Transcribing audio...', 'info');
+            
+            try {
+                console.log('Calling AssemblyAI service...');
+                const text = await this.assemblyAI.transcribeAudioFile(this.pendingAudio.blob);
+                console.log('Transcription result:', text);
+                
+                if (!text) {
+                    console.warn('Transcription returned empty text');
+                    this.showStatus('Transcription returned no text', 'error');
+                    return;
+                }
+
+                // Insert into chat input
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    const currentVal = input.value;
+                    const newVal = currentVal ? (currentVal + ' ' + text) : text;
+                    input.value = newVal;
+                    
+                    // Trigger input event to resize and update state
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    // Focus the input
+                    input.focus();
+                    
+                    // Move cursor to end
+                    input.selectionStart = input.selectionEnd = input.value.length;
+                } else {
+                    console.error('Message input element not found');
+                    this.showStatus('Could not find input field', 'error');
+                }
+                
+                this.showStatus('Transcription complete!', 'success');
+
+            } catch (error) {
+                console.error('Transcription error:', error);
+                this.showError('Transcription failed: ' + error.message);
+            } finally {
+                transcribeBtn.disabled = false;
+                span.textContent = originalText;
+            }
+        } else {
+            console.error('Transcribe button not found in DOM');
+        }
+    }
+
+    /**
+     * Toggle live transcription mode
+     */
+    async toggleLiveTranscription() {
+        if (this.isRecording) {
+            // If recording, stop it
+            this.stopRecording();
+            return;
+        }
+
+        // Start recording and streaming
+        this.isLiveTranscribing = true;
+        
+        // Update UI to show live state
+        const liveBtn = document.getElementById('artLiveBtn');
+        if (liveBtn) liveBtn.classList.add('active');
+
+        // Capture initial text state
+        const input = document.getElementById('messageInput');
+        this.initialText = input ? input.value : '';
+        this.finalizedText = '';
+
+        // Start normal recording
+        await this.startRecording();
+        
+        // Start streaming
+        this.showStatus('Live transcription started...', 'info');
+        this.assemblyAI.startRealtimeTranscription((data) => {
+            // Handle transcript
+            const text = data.text;
+            const input = document.getElementById('messageInput');
+            
+            if (!input) return;
+
+            if (data.message_type === 'PartialTranscript') {
+                // Update with partial text (temporary)
+                const separator = (this.initialText || this.finalizedText) ? ' ' : '';
+                const currentContent = this.initialText + (this.initialText && this.finalizedText ? ' ' : '') + this.finalizedText;
+                input.value = currentContent + separator + text;
+                
+                // Scroll to bottom
+                input.scrollTop = input.scrollHeight;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (data.message_type === 'FinalTranscript') {
+                // Commit final text
+                const separator = (this.finalizedText) ? ' ' : '';
+                this.finalizedText += separator + text;
+                
+                const currentContent = this.initialText + (this.initialText && this.finalizedText ? ' ' : '') + this.finalizedText;
+                input.value = currentContent;
+                
+                // Scroll to bottom
+                input.scrollTop = input.scrollHeight;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }, (error) => {
+            console.error('Live transcription error:', error);
+            this.showError('Live transcription error: ' + error.message);
+            this.stopLiveTranscription();
+        }, this._stream);
+    }
+
+    stopLiveTranscription() {
+        if (this.isLiveTranscribing) {
+            this.isLiveTranscribing = false;
+            this.assemblyAI.stopRealtimeTranscription();
+            const liveBtn = document.getElementById('artLiveBtn');
+            if (liveBtn) liveBtn.classList.remove('active');
+            this.showStatus('Live transcription stopped', 'info');
+        }
     }
 
     /**
