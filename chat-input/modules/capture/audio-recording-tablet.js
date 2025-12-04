@@ -93,6 +93,10 @@ class AudioRecordingTablet {
         
         this.wrapper.classList.add('minimized');
         this.isMinimized = true;
+        
+        // Update restore button with recording state
+        this.updateMinimizedState();
+        
         console.log('Audio recording tablet minimized');
     }
 
@@ -115,6 +119,34 @@ class AudioRecordingTablet {
         });
         
         console.log('Audio recording tablet restored');
+    }
+
+    /**
+     * Update minimized state indicator
+     */
+    updateMinimizedState() {
+        const restoreBtn = document.getElementById('artRestoreBtn');
+        if (!restoreBtn) return;
+        
+        if (this.isRecording) {
+            restoreBtn.classList.add('recording');
+            
+            // Add waveform if not exists
+            if (!restoreBtn.querySelector('.art-minimized-wave')) {
+                const wave = document.createElement('div');
+                wave.className = 'art-minimized-wave';
+                for (let i = 0; i < 6; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'art-minimized-wave-bar';
+                    wave.appendChild(bar);
+                }
+                restoreBtn.appendChild(wave);
+            }
+        } else {
+            restoreBtn.classList.remove('recording');
+            const wave = restoreBtn.querySelector('.art-minimized-wave');
+            if (wave) wave.remove();
+        }
     }
 
     /**
@@ -178,7 +210,7 @@ class AudioRecordingTablet {
         this.hidePreview();
 
         // Reset UI
-        this.tablet.classList.remove('recording', 'paused');
+        this.tablet.classList.remove('recording', 'paused', 'preview');
         this.updateTimer(0);
         this.showButton('start', 'live');
         
@@ -289,6 +321,8 @@ class AudioRecordingTablet {
             restoreBtn.parentNode.replaceChild(newRestoreBtn, restoreBtn);
             newRestoreBtn.addEventListener('click', () => this.restore());
         }
+
+
 
         // Minimized close button
         const minimizedClose = document.getElementById('artMinimizedClose');
@@ -430,14 +464,20 @@ class AudioRecordingTablet {
     }
 
     /**
-     * Select audio source
+     * Select audio source - now supports dynamic switching during recording
      */
-    selectSource(source) {
-        if (this.isRecording) return; // Can't change during recording
-        
+    async selectSource(source) {
+        const previousSource = this.audioSource;
         this.audioSource = source;
         this.updateSourceButtonStates();
-        console.log('Audio source selected:', source);
+        
+        // If currently recording, dynamically switch the source
+        if (this.isRecording && !this.isPaused) {
+            console.log('Dynamically switching audio source from', previousSource, 'to', source);
+            await this.switchRecordingSource(source);
+        } else {
+            console.log('Audio source selected:', source);
+        }
     }
 
     /**
@@ -453,6 +493,71 @@ class AudioRecordingTablet {
                 btn.classList.remove('active');
             }
         });
+    }
+
+    /**
+     * Dynamically switch recording source while recording
+     */
+    async switchRecordingSource(newSource) {
+        if (!this.isRecording) return;
+        
+        try {
+            // Store current recording data
+            const currentTime = Date.now() - this.startTime;
+            
+            // Stop current recorder
+            if (this._recorder && this._recorder.state !== 'inactive') {
+                this._recorder.stop();
+            }
+            
+            // Cleanup current streams
+            this.cleanupStreams();
+            
+            // Start new recording with new source
+            const recordingOptions = {
+                source: newSource,
+                echoCancellation: newSource !== 'system',
+                noiseSuppression: newSource !== 'system',
+                autoGainControl: newSource !== 'system',
+                processingEnabled: false,
+                timesliceMs: 500
+            };
+            
+            let result;
+            if (newSource === 'microphone') {
+                result = await this.startMicrophoneRecording(recordingOptions);
+            } else if (newSource === 'system') {
+                result = await this.startSystemAudioRecording(null, recordingOptions);
+            } else if (newSource === 'both') {
+                result = await this.startMixedAudioRecording(null, recordingOptions);
+            }
+            
+            if (result.success) {
+                // Keep the same recording session
+                this.currentSource = newSource;
+                
+                // Update source indicator
+                const sourceIndicator = document.getElementById('artSourceName');
+                if (sourceIndicator) {
+                    sourceIndicator.textContent = this.getSourceDisplayName();
+                }
+                
+                console.log('Successfully switched to', newSource);
+                this.showStatus(`Switched to ${this.getSourceDisplayName()}`, 'success');
+            } else {
+                console.error('Failed to switch source:', result.error);
+                this.showError('Failed to switch source: ' + (result.error || 'Unknown error'));
+                // Revert to previous source
+                this.audioSource = this.currentSource;
+                this.updateSourceButtonStates();
+            }
+        } catch (error) {
+            console.error('Error switching recording source:', error);
+            this.showError('Error switching source: ' + error.message);
+            // Revert to previous source
+            this.audioSource = this.currentSource;
+            this.updateSourceButtonStates();
+        }
     }
 
     /**
@@ -515,6 +620,11 @@ class AudioRecordingTablet {
                 const sourceIndicator = document.getElementById('artSourceName');
                 if (sourceIndicator) {
                     sourceIndicator.textContent = this.getSourceDisplayName();
+                }
+                
+                // Update minimized state if minimized
+                if (this.isMinimized) {
+                    this.updateMinimizedState();
                 }
                 
                 console.log('Audio recording started:', this.recordingId, 'Source:', this.audioSource);
@@ -778,12 +888,18 @@ class AudioRecordingTablet {
                             // Cleanup streams
                             this.cleanupStreams();
 
-                            // Update UI - show send button
+                            // Update UI - show send button and preview state
                             this.tablet.classList.remove('recording', 'paused');
+                            this.tablet.classList.add('preview');
                             this.showButton('send', 'transcribe');
 
                             // Show preview
                             this.showPreview();
+
+                            // Update minimized state if minimized
+                            if (this.isMinimized) {
+                                this.updateMinimizedState();
+                            }
 
                             console.log('Audio recording stopped, ready to send');
                             resolve({ success: true, audio: this.pendingAudio });
@@ -1069,8 +1185,8 @@ class AudioRecordingTablet {
         this.pendingAudio = null;
 
         // Reset UI to initial state
-        this.tablet.classList.remove('recording', 'paused');
-        this.showButton('start');
+        this.tablet.classList.remove('recording', 'paused', 'preview');
+        this.showButton('start', 'live');
 
         // Reset timer display
         const timerEl = document.getElementById('artTimer');
@@ -1078,7 +1194,7 @@ class AudioRecordingTablet {
 
         // Show source selection again
         const sourceSelection = document.getElementById('artSourceSelection');
-        if (sourceSelection) sourceSelection.style.display = '';
+        if (sourceSelection) sourceSelection.style.display = 'flex';
 
         console.log('Ready to re-record');
     }
@@ -1341,6 +1457,8 @@ class AudioRecordingTablet {
             this.showStatus('Live transcription stopped', 'info');
         }
     }
+
+
 
     /**
      * Cleanup resources
