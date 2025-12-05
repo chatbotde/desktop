@@ -1,0 +1,293 @@
+/* ==================== RESPONSIVE UTILITIES ==================== */
+/* Single Responsibility: Define responsive breakpoints and mobile-first utilities */
+
+/* ===== Breakpoint System ===== */
+/* Mobile-first approach */
+/* Default: < 640px (mobile) */
+/* sm: >= 640px (large mobile) */
+/* md: >= 768px (tablet) */
+/* lg: >= 1024px (desktop) */
+
+/* ===== Base Mobile Styles ===== */
+.chat-input-container {
+    padding: 8px 12px;
+}
+
+.prompt-actions {
+    gap: 4px;
+    padding: 0 6px 6px;
+}
+
+.left-actions,
+.right-actions {
+    gap: 4px;
+}
+
+#messageInput {
+    font-size: 14px;
+}
+
+/* ===== Small Mobile (max-width: 480px) ===== */
+@media (max-width: 480px) {
+    .attachment-item.media-attachment {
+        min-width: 180px;
+        max-width: 280px;
+    }
+    
+    .recording-indicator {
+        margin: 6px 8px;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    
+    .recording-text {
+        display: none;
+    }
+    
+    .floating-card {
+        width: 350px;
+        height: 350px;
+        top: 10px;
+        left: 10px;
+    }
+
+    .floating-card-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .floating-action-btn {
+        padding: 12px 8px;
+        min-height: 70px;
+        font-size: 11px;
+    }
+    
+    /* Audio Recording Tablet */
+    .audio-recording-tablet-wrapper {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .audio-recording-tablet {
+        min-width: 52px;
+        padding: 6px 5px;
+        border-radius: 20px;
+    }
+    
+    .art-timer {
+        font-size: 16px;
+    }
+    
+    .art-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .art-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .art-controls {
+        gap: 5px;
+    }
+    
+    .art-source-btn {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .art-source-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .art-external-controls {
+        margin-left: 6px;
+    }
+    
+    .art-drag-handle,
+    .art-close-external,
+    .art-close-btn-external {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .art-restore-btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ===== Small Screens (max-width: 640px) ===== */
+@media (max-width: 640px) {
+    .chat-input-container {
+        padding: 8px 12px;
+    }
+
+    .prompt-actions {
+        gap: 4px;
+        padding: 0 6px 6px;
+    }
+
+    .left-actions,
+    .right-actions {
+        gap: 4px;
+    }
+
+    #messageInput {
+        font-size: 14px;
+    }
+}
+
+/* ===== Tablet (max-width: 768px) ===== */
+@media (max-width: 768px) {
+    .content-card {
+        width: 90vw;
+        max-width: 420px;
+        height: 400px;
+    }
+    
+    .content-card-body {
+        max-height: 300px;
+    }
+    
+    .action-buttons {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-item {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+    
+    .persistent-toggle {
+        width: 25px;
+        height: 80px;
+    }
+    
+    .persistent-toggle:hover {
+        width: 30px;
+    }
+    
+    .toggle-indicator svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    /* Live Transcription */
+    .live-transcription-panel {
+        right: 12px;
+        bottom: 120px;
+        max-width: calc(100vw - 24px);
+    }
+    
+    /* Recording Control Panel */
+    .recording-control-panel {
+        right: 12px;
+        bottom: 70px;
+    }
+    
+    /* MCP Modal */
+    .mcp-modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .mcp-modal-header,
+    .mcp-modal-body {
+        padding: 16px;
+    }
+
+    .mcp-section {
+        margin-bottom: 24px;
+    }
+
+    .mcp-server-actions {
+        flex-direction: column;
+    }
+
+    .mcp-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== Landscape Mobile ===== */
+@media (max-height: 600px) and (orientation: landscape) {
+    .content-card {
+        height: 90vh;
+        max-height: 500px;
+    }
+    
+    .live-transcription-panel {
+        max-height: 250px;
+    }
+}
+
+/* ===== Desktop (min-width: 1024px) ===== */
+@media (min-width: 1024px) {
+    /* Desktop-specific enhancements can go here */
+    .chat-input-container.fullscreen .prompt-input {
+        max-width: 1000px;
+    }
+}
+
+/* ===== High DPI Screens ===== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Retina/HiDPI specific styles */
+    svg {
+        shape-rendering: geometricPrecision;
+    }
+    
+    .action-btn.icon-only svg,
+    .action-btn.icon-only svg * {
+        vector-effect: non-scaling-stroke;
+    }
+}
+
+/* ===== Dark Mode Preference ===== */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-theme):not([data-theme="light"]) {
+        /* Dark mode is default, no changes needed */
+    }
+}
+
+/* ===== Light Mode Preference ===== */
+@media (prefers-color-scheme: light) {
+    :root:not(.dark-theme):not([data-theme="dark"]) {
+        --color-bg-primary: #ffffff;
+        --color-bg-secondary: #f5f5f7;
+        --color-bg-tertiary: #ffffff;
+        --color-border-default: #d1d5db;
+        --color-border-hover: #9ca3af;
+        --color-text-primary: #1f2937;
+        --color-text-secondary: #6b7280;
+        --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+    .chat-input-container,
+    .audio-recording-tablet-wrapper,
+    .recording-control-panel,
+    .live-transcription-panel,
+    .persistent-toggle,
+    .hide-chat-button {
+        display: none !important;
+    }
+}

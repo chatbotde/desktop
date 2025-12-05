@@ -1,0 +1,94 @@
+/* ==================== MAIN CSS - SOLID ARCHITECTURE ==================== */
+/* 
+ * This file serves as the entry point for the modular CSS architecture
+ * Following SOLID principles for maintainability and scalability
+ * 
+ * Architecture Overview:
+ * 1. Foundation Layer: Design tokens, reset, typography, layout
+ * 2. Component Layer: Reusable UI components
+ * 3. Feature Layer: Feature-specific compositions
+ * 4. Theme Layer: Theme variations and overrides
+ * 5. Utility Layer: Helper classes and utilities
+ * 
+ * Import Order: Critical for cascade and specificity management
+ */
+
+/* ==================== LAYER 1: FOUNDATION ==================== */
+/* Foundation styles must be loaded first to provide the base abstraction layer */
+@import url('./foundation/variables.css');      /* Design tokens & CSS custom properties (DIP) */
+@import url('./foundation/reset.css');          /* Browser normalization (SRP) */
+@import url('./foundation/typography.css');     /* Typography system (SRP) */
+@import url('./foundation/layout.css');         /* Layout utilities (SRP) */
+
+/* ==================== LAYER 2: LEGACY CORE (Backward Compatibility) ==================== */
+/* These maintain compatibility with existing code during migration */
+@import url('./core/mcp.css');                  /* MCP manager styles */
+
+/* ==================== LAYER 3: LEGACY UI COMPONENTS (Backward Compatibility) ==================== */
+/* Original component files - will be gradually migrated to new structure */
+@import url('./ui/buttons.css');                /* Button components */
+@import url('./ui/chat-input.css');             /* Chat input components */
+@import url('./ui/dropdowns.css');              /* Dropdown menus */
+@import url('./ui/minimal-mode.css');           /* Minimal mode UI */
+@import url('./ui/badges.css');                 /* Badge components */
+@import url('./ui/floating-cards.css');         /* Floating card UI */
+@import url('./ui/model-settings.css');         /* Model settings modal */
+
+/* ==================== LAYER 4: LEGACY CAPTURE FEATURES (Backward Compatibility) ==================== */
+/* Media capture related styles */
+@import url('./capture/recording.css');         /* Recording indicators */
+@import url('./capture/audio-recording-tablet.css');  /* Audio tablet */
+@import url('./capture/recording-control-panel.css'); /* Control panel */
+/* @import url('./capture/area-screenshot.css'); */   /* Screenshot UI - if needed */
+
+/* ==================== LAYER 5: LEGACY MEDIA (Backward Compatibility) ==================== */
+@import url('./media/attachments.css');         /* Attachment components */
+
+/* ==================== LAYER 6: LEGACY INPUT (Backward Compatibility) ==================== */
+@import url('./input/keyboard-ux.css');         /* Keyboard interactions */
+@import url('./input/text-selection-ui.css');   /* Text selection UI */
+
+/* ==================== LAYER 7: THEMES ==================== */
+/* Theme overrides - loaded after components to properly override (OCP) */
+@import url('./core/themes.css');               /* Light/Dark theme variations */
+
+/* ==================== LAYER 8: UTILITIES ==================== */
+/* Utilities last for highest specificity when needed */
+@import url('./utilities/animations.css');      /* Animation keyframes (SRP) */
+@import url('./utilities/helpers.css');         /* Helper utilities (ISP) */
+@import url('./utilities/responsive.css');      /* Responsive breakpoints (SRP) */
+
+/* ==================== ADDITIONAL UTILITY STYLES ==================== */
+/* Any additional one-off styles that don't fit into specific modules */
+
+/* Accessibility: Ensure reduced motion is respected */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/*
+ * ==================== MIGRATION NOTES ====================
+ * 
+ * This architecture follows SOLID principles:
+ * 
+ * - Single Responsibility Principle (SRP): Each file has one clear responsibility
+ * - Open/Closed Principle (OCP): Extend through composition, not modification
+ * - Liskov Substitution Principle (LSP): Component variants are interchangeable
+ * - Interface Segregation Principle (ISP): Focused, specific modules
+ * - Dependency Inversion Principle (DIP): Depend on design tokens (abstractions)
+ * 
+ * Migration Path:
+ * 1. New features should use the new structure under features/ and components/
+ * 2. Gradually refactor legacy components to new structure
+ * 3. Test thoroughly before removing old files
+ * 4. Update imports in this file as migration progresses
+ * 
+ * For more details, see CSS-ARCHITECTURE.md
+ */

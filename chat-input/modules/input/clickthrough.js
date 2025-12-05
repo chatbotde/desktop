@@ -1,13 +1,37 @@
+/**
+ * Clickthrough Module - Adapter for new SOLID-compliant structure
+ * This file maintains backward compatibility while using the new modular architecture
+ * 
+ * @deprecated Use './clickthrough/index.js' directly for new code
+ */
+
+import { initialize, toggle, enable, disable, isEnabled } from '../clickthrough/index.js';
 import { dom } from '../core/dom.js';
 
-let isClickThroughEnabled = false;
-let clickThroughTimeout = null;
-let lastMousePosition = { x: 0, y: 0 };
-let mouseOverIframe = false;
-let iframeCheckInterval = null;
+// Legacy export for backward compatibility
+export function toggleClickThrough() {
+  toggle();
+}
 
+export function initializeClickThrough() {
+  // Initialize with dependencies
+  initialize({
+    chatInputAPI: window.chatInputAPI,
+    button: dom.clickThroughButton
+  });
+}
+
+// Re-export for backward compatibility
+export { enable as enableClickThrough, disable as disableClickThrough, isEnabled };
+
+/* ========================================================================
+ * LEGACY CODE BELOW - Kept for reference but no longer used
+ * All functionality has been refactored into the new modular structure
+ * ======================================================================== */
+
+/*
 // Generic patterns to identify UI elements automatically
-const UI_PATTERNS = {
+const UI_PATTERNS_LEGACY = {
     // Class name patterns that suggest UI elements
     classPatterns: [
         /container$/i,
@@ -363,9 +387,7 @@ function disableClickThrough() {
     }
 }
 
-export function toggleClickThrough() {
-    if (isClickThroughEnabled) disableClickThrough(); else enableClickThrough();
-}
+// Moved to top of file as wrapper around new modular implementation
 
 function handleSmartClickThrough(event) {
     if (clickThroughTimeout) clearTimeout(clickThroughTimeout);
@@ -479,7 +501,9 @@ function sendStateToAllIframes() {
     });
 }
 
-export function initializeClickThrough() {
+// Moved to top of file - see new implementation
+/*
+export function initializeClickThrough_LEGACY() {
     // Start disabled so UI remains clickable by default
     // Users can enable via Ctrl+T or the toolbar button
     document.addEventListener('click', handleSmartClickThrough);
@@ -534,12 +558,12 @@ export function initializeClickThrough() {
     // Add pointer-events style management for iframes
     const style = document.createElement('style');
     style.textContent = `
-        /* Ensure iframes are always interactive when click-through is disabled */
+        /* Ensure iframes are always interactive when click-through is disabled (CSS) *slash
         iframe {
             pointer-events: auto !important;
         }
         
-        /* When parent card is being interacted with, ensure it stays interactive */
+        /* When parent card is being interacted with, ensure it stays interactive (CSS) *slash
         .floating-card.interacting iframe,
         .floating-card.dragging iframe,
         .floating-card.resizing iframe,
@@ -574,5 +598,4 @@ export function initializeClickThrough() {
         window.removeEventListener('message', handleFrontendMessage);
     });
 }
-
-
+*/
