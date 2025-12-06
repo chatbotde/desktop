@@ -1,101 +1,96 @@
-import { useEffect } from 'react'
-import { Messages } from '@/components/Messages'
-import { 
-  WelcomeScreen
-} from '@/components'
-import { 
-  useChatManager, 
-  useScrollManager 
-} from '@/hooks'
-
-
-// Note: Window API interface is now declared in types/electron.d.ts
-
-
+import { useState } from 'react'
 
 function App() {
-  // Use custom hooks for state management
-  const chatManager = useChatManager()
-  const scrollManager = useScrollManager()
-
-  useEffect(() => {
-    // Initialize TSF if available
-    if ((window as any).tsfAPI) {
-      console.log('App: Initializing TSF...');
-      (window as any).tsfAPI.initialize()
-        .then((success: boolean) => console.log('App: TSF initialized:', success))
-        .catch((err: any) => console.error('App: TSF initialization failed:', err));
-    }
-  }, []);
-
-  useEffect(() => {
-    // Set up the message listener using the exposed API
-    if (window.api?.onChatMessage) {
-      console.log('Main Window: Setting up chat message listener');
-      window.api.onChatMessage((messageData: any) => {
-        chatManager.handleChatMessage(messageData);
-      });
-    } else {
-      console.error('Main Window: window.api.onChatMessage not available');
-    }
-
-    // Return cleanup function for chat message listener
-    return () => {
-      // Clean up chat message listener if possible
-      if (window.api?.removeAllListeners) {
-        try {
-          window.api.removeAllListeners('receive-chat-message');
-          console.log('App: Chat message listener cleaned up');
-        } catch (error) {
-          console.log('App: Could not clean up chat message listener:', error);
-        }
-      }
-    };
-  }, [chatManager.handleChatMessage])
-
-  // Listen for forwarded messages from Chat Input (floating Display 1 iframe)
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const data: any = event.data
-      if (data && data.type === 'chat-input-message' && data.payload) {
-        chatManager.handleChatMessage(data.payload)
-      }
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [chatManager.handleChatMessage])
-
-  // Show test page if enabled
-  
+  const [isOpen, setIsOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState<'home' | 'settings'>('home')
 
   return (
-    <div className="h-screen w-full flex flex-col bg-transparent">
-      {/* Full Height Content Area */}
-      <div className="relative flex-1 overflow-hidden">
-        {/* Full Height Content Container */}
-        <div className="relative z-10 h-full">
-          {/* Chat Messages Area */}
-          {chatManager.showChat && (
-            <div className="flex flex-col h-full overflow-hidden">
-              <Messages
-                messages={chatManager.messages}
-                isTyping={chatManager.isTyping}
-                isStreaming={chatManager.isStreaming}
-                onCopyMessage={chatManager.copyToClipboard}
-                onStopStreaming={chatManager.stopStreaming}
-                messagesContainerRef={scrollManager.messagesContainerRef}
-                messagesEndRef={scrollManager.messagesEndRef}
-                onScroll={scrollManager.handleScroll}
-              />
-            </div>
-          )}
+    <div className="h-screen w-full flex items-center justify-center bg-transparent">
+      {/* Toggle Button (shows when card is closed) */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          data-no-clickthrough
+          className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-sm text-white/90 backdrop-blur-md transition-all hover:scale-105"
+        >
+          Open Card
+        </button>
+      )}
 
-          {/* Welcome Content (shown when no chat) */}
-          {!chatManager.showChat && (
-            <WelcomeScreen />
-          )}
+      {/* Floating Card */}
+      {isOpen && (
+        <div 
+          data-no-clickthrough
+          className="w-80 rounded-xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        >
+          {/* Card Header */}
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <span className="text-sm font-medium text-white/90">Floating Card</span>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="w-6 h-6 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-white/10">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                activeTab === 'home'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                activeTab === 'settings'
+                  ? 'text-white border-b-2 border-blue-500'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              Settings
+            </button>
+          </div>
+
+          {/* Card Content */}
+          <div className="p-4 space-y-3">
+            {activeTab === 'home' && (
+              <div className="space-y-3 animate-in fade-in duration-150">
+                <p className="text-sm text-white/70">Welcome! Choose an action below.</p>
+                <button className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm text-white font-medium transition-colors">
+                  Primary Action
+                </button>
+                <button className="w-full py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm text-white/90 transition-colors">
+                  Secondary Action
+                </button>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="space-y-3 animate-in fade-in duration-150">
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-white/70">Dark Mode</span>
+                  <input type="checkbox" defaultChecked className="accent-blue-500" />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-white/70">Notifications</span>
+                  <input type="checkbox" className="accent-blue-500" />
+                </label>
+                <label className="flex items-center justify-between">
+                  <span className="text-sm text-white/70">Sound</span>
+                  <input type="checkbox" defaultChecked className="accent-blue-500" />
+                </label>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

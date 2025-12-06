@@ -38,6 +38,48 @@ export interface ElectronAPI {
 declare global {
   interface Window {
     api?: ElectronAPI;
+    
+    // Clickthrough API (interfaces-window)
+    clickthroughAPI?: {
+      enable: () => void;
+      disable: () => void;
+      toggle: () => void;
+      getState: () => Promise<boolean>;
+      onStateChange: (callback: (enabled: boolean) => void) => () => void;
+    };
+
+    // Interfaces API (interfaces-window)
+    interfacesAPI?: {
+      minimize: () => void;
+      maximize: () => void;
+      close: () => void;
+      isMaximized: () => Promise<boolean>;
+      getInterfaces: () => Promise<any[]>;
+      getInterface: (id: string) => Promise<any>;
+      createInterface: (data: any) => Promise<any>;
+      updateInterface: (id: string, data: any) => Promise<any>;
+      deleteInterface: (id: string) => Promise<void>;
+      onDataUpdate: (callback: (data: any) => void) => () => void;
+      onError: (callback: (error: Error) => void) => () => void;
+      onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void;
+    };
+
+    // Electron API
+    electron?: {
+      send: (channel: string, ...args: any[]) => void;
+      invoke: (channel: string, ...args: any[]) => Promise<any>;
+      on: (channel: string, callback: (...args: any[]) => void) => () => void;
+      once: (channel: string, callback: (...args: any[]) => void) => void;
+      removeAllListeners: (channel: string) => void;
+    };
+
+    // Platform info
+    platform?: {
+      isWindows: boolean;
+      isMac: boolean;
+      isLinux: boolean;
+      isElectron: boolean;
+    };
   }
 }
 

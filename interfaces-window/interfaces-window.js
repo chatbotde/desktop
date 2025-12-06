@@ -5,7 +5,7 @@
  * Loads frontend via custom protocol (app://)
  */
 
-const { BrowserWindow, app } = require('electron');
+const { BrowserWindow, app, ipcMain } = require('electron');
 const path = require('path');
 const { protocolHandler } = require('./protocol-handler');
 
@@ -14,6 +14,62 @@ class InterfacesWindow {
     this.window = null;
     this.isShowing = false;
     this.protocolRegistered = false;
+    this.clickthroughEnabled = true; // Start with clickthrough enabled
+    this._setupIPCHandlers();
+  }
+
+  /**
+   * Setup IPC handlers for clickthrough
+   * @private
+   */
+  _setupIPCHandlers() {
+    // Enable clickthrough
+    ipcMain.on('interfaces:clickthrough:enable', () => {
+      this.enableClickthrough();
+    });
+
+    // Disable clickthrough
+    ipcMain.on('interfaces:clickthrough:disable', () => {
+      this.disableClickthrough();
+    });
+
+    // Toggle clickthrough
+    ipcMain.on('interfaces:clickthrough:toggle', () => {
+      if (this.clickthroughEnabled) {
+        this.disableClickthrough();
+      } else {
+        this.enableClickthrough();
+      }
+    });
+
+    // Get clickthrough state
+    ipcMain.handle('interfaces:clickthrough:get-state', () => {
+      return this.clickthroughEnabled;
+    });
+  }
+
+  /**
+   * Enable clickthrough mode (window ignores mouse events)
+   */
+  enableClickthrough() {
+    if (!this.window || this.window.isDestroyed()) return;
+    
+    this.window.setIgnoreMouseEvents(true, { forward: true });
+    this.clickthroughEnabled = true;
+    this.send('interfaces:clickthrough:state-changed', true);
+    console.log('[InterfacesWindow] Clickthrough enabled');
+  }
+
+  /**
+   * Disable clickthrough mode (window captures mouse events)
+   */
+  disableClickthrough() {
+    if (!this.window || this.window.isDestroyed()) return;
+    
+    this.window.setIgnoreMouseEvents(false);
+    this.clickthroughEnabled = false;
+    this.send('interfaces:clickthrough:state-changed', false);
+    console.log('[InterfacesWindow] Clickthrough disabled');
   }
 
   /**
@@ -66,12 +122,10 @@ class InterfacesWindow {
     this.registerProtocol();
 
     this.window = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      minWidth: 800,
-      minHeight: 600,
+      fullscreen:true,
       resizable: true,
       frame: false,
+      alwaysOnTop:true,
       transparent: true,
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
@@ -95,6 +149,8 @@ class InterfacesWindow {
         this.window.show();
         this.isShowing = true;
       }
+      // Enable clickthrough after window is ready
+      this.enableClickthrough();
     });
 
     // Handle close

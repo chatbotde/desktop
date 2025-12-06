@@ -64,3 +64,18 @@ contextBridge.exposeInMainWorld('platform', {
   isLinux: process.platform === 'linux',
   isElectron: true,
 });
+
+// Expose clickthrough API
+contextBridge.exposeInMainWorld('clickthroughAPI', {
+  enable: () => ipcRenderer.send('interfaces:clickthrough:enable'),
+  disable: () => ipcRenderer.send('interfaces:clickthrough:disable'),
+  toggle: () => ipcRenderer.send('interfaces:clickthrough:toggle'),
+  getState: () => ipcRenderer.invoke('interfaces:clickthrough:get-state'),
+  
+  // Listen for state changes
+  onStateChange: (callback) => {
+    const subscription = (event, enabled) => callback(enabled);
+    ipcRenderer.on('interfaces:clickthrough:state-changed', subscription);
+    return () => ipcRenderer.removeListener('interfaces:clickthrough:state-changed', subscription);
+  },
+});
