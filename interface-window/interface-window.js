@@ -15,8 +15,7 @@ class InterfaceWindow {
     }
 
     this.window = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      fullscreen: true,
       frame: false,
       transparent:true,
       alwaysOnTop:true,
@@ -42,6 +41,7 @@ class InterfaceWindow {
 
     this.window.once('ready-to-show', () => {
       this.window.show();
+      this.window.setAlwaysOnTop(true, 'screen-saver');
     });
 
     this.window.on('closed', () => {
