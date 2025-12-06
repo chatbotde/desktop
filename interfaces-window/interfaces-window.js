@@ -15,6 +15,8 @@ class InterfacesWindow {
     this.isShowing = false;
     this.protocolRegistered = false;
     this.clickthroughEnabled = true; // Start with clickthrough enabled
+    this.hasFocus = false; // Track focus state
+    this.isChangingFocus = false; // Prevent clickthrough changes during focus transitions
     this._setupIPCHandlers();
   }
 
@@ -54,6 +56,12 @@ class InterfacesWindow {
   enableClickthrough() {
     if (!this.window || this.window.isDestroyed()) return;
     
+    // Don't change clickthrough state during focus transitions
+    if (this.isChangingFocus) {
+      console.log('[InterfacesWindow] Skipping clickthrough enable during focus change');
+      return;
+    }
+    
     this.window.setIgnoreMouseEvents(true, { forward: true });
     this.clickthroughEnabled = true;
     this.send('interfaces:clickthrough:state-changed', true);
@@ -65,6 +73,12 @@ class InterfacesWindow {
    */
   disableClickthrough() {
     if (!this.window || this.window.isDestroyed()) return;
+    
+    // Don't change clickthrough state during focus transitions
+    if (this.isChangingFocus) {
+      console.log('[InterfacesWindow] Skipping clickthrough disable during focus change');
+      return;
+    }
     
     this.window.setIgnoreMouseEvents(false);
     this.clickthroughEnabled = false;
@@ -125,10 +139,12 @@ class InterfacesWindow {
       fullscreen:true,
       resizable: true,
       frame: false,
-      alwaysOnTop:true,
+      alwaysOnTop: true,
       transparent: true,
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
+      skipTaskbar: true, // Don't show in taskbar to avoid focus issues
+      focusable: true, // Keep focusable so interactions work
       show: false, // Never show immediately
       webPreferences: {
         nodeIntegration: false,
@@ -153,10 +169,44 @@ class InterfacesWindow {
       this.enableClickthrough();
     });
 
+    // Handle focus events to prevent clickthrough changes during focus transitions
+    this.window.on('focus', () => {
+      this.isChangingFocus = true;
+      this.hasFocus = true;
+      console.log('[InterfacesWindow] Window focused');
+      
+      // Ensure window stays visible and on top
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.setAlwaysOnTop(true, 'screen-saver');
+      }
+      
+      // Reset flag after a short delay
+      setTimeout(() => {
+        this.isChangingFocus = false;
+      }, 100);
+    });
+
+    this.window.on('blur', () => {
+      this.isChangingFocus = true;
+      this.hasFocus = false;
+      console.log('[InterfacesWindow] Window blurred');
+      
+      // Keep window visible and on top even when blurred
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.setAlwaysOnTop(true, 'screen-saver');
+      }
+      
+      // Reset flag after a short delay
+      setTimeout(() => {
+        this.isChangingFocus = false;
+      }, 100);
+    });
+
     // Handle close
     this.window.on('closed', () => {
       this.window = null;
       this.isShowing = false;
+      this.hasFocus = false;
     });
 
     // Open DevTools in development

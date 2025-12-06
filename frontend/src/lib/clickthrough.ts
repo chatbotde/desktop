@@ -32,6 +32,7 @@ export function initializeClickthrough() {
 
   // Track mouse position and UI elements
   let isOverUI = false;
+  let debounceTimer: number | null = null;
 
   /**
    * Check if an element or its parents have data-no-clickthrough
@@ -50,7 +51,7 @@ export function initializeClickthrough() {
   }
 
   /**
-   * Handle mouse movement
+   * Handle mouse movement with debouncing
    */
   function handleMouseMove(event: MouseEvent) {
     const target = event.target as Element;
@@ -59,11 +60,19 @@ export function initializeClickthrough() {
 
     // Only update if state changed to avoid unnecessary IPC calls
     if (isOverUI !== wasOverUI) {
-      if (isOverUI) {
-        window.clickthroughAPI?.disable();
-      } else {
-        window.clickthroughAPI?.enable();
+      // Clear any pending state change
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+
+      // Debounce the state change to avoid rapid toggles
+      debounceTimer = window.setTimeout(() => {
+        if (isOverUI) {
+          window.clickthroughAPI?.disable();
+        } else {
+          window.clickthroughAPI?.enable();
+        }
+      }, 10) as unknown as number;
     }
   }
 
@@ -76,6 +85,15 @@ export function initializeClickthrough() {
       window.clickthroughAPI?.disable();
     }
   }
+
+  // Track window focus to prevent unnecessary state changes during transitions
+  window.addEventListener('focus', () => {
+    // Window regained focus - state should be managed by mouse position
+  });
+
+  window.addEventListener('blur', () => {
+    // Window lost focus - maintain current state
+  });
 
   // Add event listeners
   document.addEventListener('mousemove', handleMouseMove, true);
