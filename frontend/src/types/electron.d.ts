@@ -26,43 +26,12 @@ export interface ElectronAPI {
   
   onMcpMessage?: (serverId: string, callback: (message: any) => void) => () => void;
 
-  // Click-through APIs (for direct access if available)
-  clickThrough?: {
-    enable?: () => void;
-    disable?: () => void;
-    toggle?: () => void;
-    getState?: () => Promise<boolean>;
-  };
+
 }
 
 declare global {
   interface Window {
     api?: ElectronAPI;
-    
-    // Clickthrough API (interfaces-window)
-    clickthroughAPI?: {
-      enable: () => void;
-      disable: () => void;
-      toggle: () => void;
-      getState: () => Promise<boolean>;
-      onStateChange: (callback: (enabled: boolean) => void) => () => void;
-    };
-
-    // Interfaces API (interfaces-window)
-    interfacesAPI?: {
-      minimize: () => void;
-      maximize: () => void;
-      close: () => void;
-      isMaximized: () => Promise<boolean>;
-      getInterfaces: () => Promise<any[]>;
-      getInterface: (id: string) => Promise<any>;
-      createInterface: (data: any) => Promise<any>;
-      updateInterface: (id: string, data: any) => Promise<any>;
-      deleteInterface: (id: string) => Promise<void>;
-      onDataUpdate: (callback: (data: any) => void) => () => void;
-      onError: (callback: (error: Error) => void) => () => void;
-      onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void;
-    };
 
     // Electron API
     electron?: {

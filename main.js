@@ -8,11 +8,11 @@
  */
 
 const { app } = require('electron');
+const { ProtocolHandler } = require('./interface-window/protocol-handler');
 
 // Register custom protocol schemes BEFORE app is ready
 // This must be done synchronously at startup
-const { ProtocolHandler } = require('./interfaces-window/protocol-handler');
-ProtocolHandler.registerSchemes();
+ProtocolHandler.registerPrivileges();
 
 // Handle deep link URLs from command line arguments FIRST
 let pendingDeepLinkUrl = null;

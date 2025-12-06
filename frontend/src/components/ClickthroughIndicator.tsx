@@ -3,24 +3,11 @@
  * Shows current clickthrough state in development
  */
 
-import { useEffect, useState } from 'react'
+
 
 export function ClickthroughIndicator() {
-  const [isClickthrough, setIsClickthrough] = useState(true)
-
-  useEffect(() => {
-    if (!window.clickthroughAPI) return
-
-    // Get initial state
-    window.clickthroughAPI.getState().then(setIsClickthrough)
-
-    // Listen for changes
-    const unsubscribe = window.clickthroughAPI.onStateChange?.(setIsClickthrough)
-
-    return () => {
-      unsubscribe?.()
-    }
-  }, [])
+  // Always clickthrough
+  const isClickthrough = true;
 
   // Only show in development
   if (import.meta.env.PROD) return null
@@ -34,6 +21,7 @@ export function ClickthroughIndicator() {
     </div>
   )
 }
+
 
 /**
  * Usage in App.tsx:

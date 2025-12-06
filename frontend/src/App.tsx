@@ -1,9 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PromptInputWithActions } from '@/components'
+
+declare global {
+  interface Window {
+    interfaceAPI?: {
+      setIgnoreMouseEvents: (ignore: boolean) => void;
+      minimize: () => void;
+      maximize: () => void;
+      close: () => void;
+    }
+  }
+}
 
 function App() {
   const [isOpen, setIsOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<'home' | 'settings'>('home')
+
+  // Click-through logic
+  useEffect(() => {
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Check if the element or any of its parents has the data-no-clickthrough attribute
+      const isClickable = target.closest('[data-no-clickthrough]');
+      
+      if (isClickable) {
+        // Disable click-through (capture mouse events)
+        window.interfaceAPI?.setIgnoreMouseEvents(false);
+      } else {
+        // Enable click-through (pass mouse events to window behind)
+        window.interfaceAPI?.setIgnoreMouseEvents(true);
+      }
+    };
+
+    document.addEventListener('mouseover', handleMouseOver);
+    
+    // Initial state: click-through enabled
+    window.interfaceAPI?.setIgnoreMouseEvents(true);
+
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+    };
+  }, []);
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-transparent relative">

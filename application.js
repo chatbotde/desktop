@@ -16,8 +16,9 @@ const { IpcHandlerRegistry } = require('./ipc-handler-registry');
 const { McpProcessManager } = require('./mcp-process-manager');
 const { MediaStreamManager } = require('./media-stream-manager');
 const { ChatInputWindow } = require('./chat-input/chat-input-window');
-const { InterfacesWindow } = require('./interfaces-window/interfaces-window');
 const { initializeAuth, authService, AuthWindow } = require('./auth');
+const { InterfaceWindow } = require('./interface-window/interface-window');
+const { ProtocolHandler } = require('./interface-window/protocol-handler');
 const { AutoStartupManager } = require('./startup');
 const { clipboardMonitor } = require('./clipboard-monitor');
 const { textSelectionMonitor } = require('./chat-input/electron-api/text-selection');
@@ -51,7 +52,7 @@ class Application {
     // Window instances
     this.chatInputWindow = null;
     this.authWindow = null;
-    this.interfacesWindow = null;
+    this.interfaceWindow = null;
     this.autoStartupManager = null;
   }
 
@@ -120,6 +121,10 @@ class Application {
     this.lifecycleManager.logAppInfo();
 
     try {
+      // Setup Protocol Handler
+      const protocolHandler = new ProtocolHandler();
+      protocolHandler.setup();
+
       // Initialize auto-startup
       await this.setupAutoStartup();
 
@@ -136,6 +141,10 @@ class Application {
 
       // Create chat input window
       this.createChatInputWindow();
+
+      // Create Interface Window
+      this.interfaceWindow = new InterfaceWindow();
+      this.interfaceWindow.create();
 
       // Setup Search IPC
       setupSearchIpc();
@@ -213,12 +222,26 @@ class Application {
       'Show collapsed chat input'
     );
 
-    // Ctrl+I - Open interfaces window
+    // Ctrl+I - Toggle interface window
     this.shortcutRegistry.register(
       'CommandOrControl+I',
-      () => this.showInterfacesWindow(),
-      'Open interfaces window'
+      () => this.toggleInterfaceWindow(),
+      'Toggle interface window'
     );
+  }
+
+  /**
+   * Toggle interface window
+   * @private
+   */
+  toggleInterfaceWindow() {
+    console.log('Application: Toggle interface window requested');
+    if (this.interfaceWindow) {
+      this.interfaceWindow.toggle();
+    } else {
+      this.interfaceWindow = new InterfaceWindow();
+      this.interfaceWindow.create();
+    }
   }
 
   /**
@@ -235,19 +258,6 @@ class Application {
     } else {
       this.chatInputWindow.show();
     }
-  }
-
-  /**
-   * Show interfaces window
-   * @private
-   */
-  showInterfacesWindow() {
-    console.log('Application: Show interfaces window requested');
-    
-    if (!this.interfacesWindow) {
-      this.interfacesWindow = new InterfacesWindow();
-    }
-    this.interfacesWindow.show();
   }
 
   /**
@@ -390,37 +400,6 @@ class Application {
     this.ipcRegistry.register('ai-model-changed', (event, { modelId, modelDetails }) => {
       console.log('Application: AI model changed to', modelId);
     }, 'on');
-
-    // Interfaces window handlers
-    this.ipcRegistry.register('interfaces:show', () => {
-      this.showInterfacesWindow();
-    }, 'on');
-
-    this.ipcRegistry.register('interfaces:minimize', () => {
-      this.interfacesWindow?.getWindow()?.minimize();
-    }, 'on');
-
-    this.ipcRegistry.register('interfaces:maximize', () => {
-      const win = this.interfacesWindow?.getWindow();
-      if (win) {
-        const isMaximized = win.isMaximized();
-        isMaximized ? win.unmaximize() : win.maximize();
-        win.webContents.send('interfaces:maximize-changed', !isMaximized);
-      }
-    }, 'on');
-
-    this.ipcRegistry.register('interfaces:is-maximized', () => {
-      return this.interfacesWindow?.getWindow()?.isMaximized() ?? false;
-    });
-
-    this.ipcRegistry.register('interfaces:close', () => {
-      this.interfacesWindow?.close();
-    }, 'on');
-
-    this.ipcRegistry.register('interfaces:get-all', async () => {
-      // Return your interfaces data here
-      return [];
-    });
 
     // Environment config handlers
     this.ipcRegistry.register('get-frontend-url', () => environmentConfig.getFrontendURL());
