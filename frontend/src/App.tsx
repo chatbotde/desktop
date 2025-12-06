@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { PromptInputWithActions } from '@/components'
 
 function App() {
   const [isOpen, setIsOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<'home' | 'settings'>('home')
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-transparent">
+    <div className="h-screen w-full flex items-center justify-center bg-transparent relative">
       {/* Toggle Button (shows when card is closed) */}
       {!isOpen && (
         <button
@@ -21,7 +22,7 @@ function App() {
       {isOpen && (
         <div 
           data-no-clickthrough
-          className="w-80 rounded-xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="w-80 rounded-xl border border-white/10 bg-blue-600 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Card Header */}
           <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -91,6 +92,11 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Prompt Input at Bottom */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4" data-no-clickthrough>
+        <PromptInputWithActions />
+      </div>
     </div>
   )
 }
