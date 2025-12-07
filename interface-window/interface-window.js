@@ -1,9 +1,11 @@
 const { BrowserWindow, ipcMain, app } = require('electron');
 const path = require('path');
+const { ClickThroughManager } = require('./click-through');
 
 class InterfaceWindow {
   constructor() {
     this.window = null;
+    this.clickThroughManager = null;
   }
 
   create() {
@@ -37,6 +39,9 @@ class InterfaceWindow {
     console.log(`InterfaceWindow: Loading URL ${url}`);
     this.window.loadURL(url);
 
+    this.clickThroughManager = new ClickThroughManager(this.window);
+    this.clickThroughManager.setup();
+
     this.window.once('ready-to-show', () => {
       this.window.show();
       this.window.setAlwaysOnTop(true, 'screen-saver');
@@ -44,6 +49,7 @@ class InterfaceWindow {
 
     this.window.on('closed', () => {
       this.window = null;
+      this.clickThroughManager = null;
     });
 
     this.setupHandlers();
