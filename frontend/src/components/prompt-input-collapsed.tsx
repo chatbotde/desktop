@@ -34,7 +34,7 @@ export function PromptInputCollapsed({
     <div className="flex items-center gap-3 mx-8 mb-6">
       <button
         onClick={onHide}
-        className="bg-[#2a2a2a] hover:bg-[#3a3a3a] flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0 border border-white/10"
+        className="bg-[#2a2a2a] hover:bg-[#3a3a3a] flex h-10 w-10 items-center justify-center rounded-full transition-colors shrink-0 border border-white/10"
       >
         <X className="size-4 text-white/50" />
       </button>

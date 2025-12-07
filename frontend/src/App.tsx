@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PromptInputWithActions } from '@/components'
 import ClickThrough from '@/components/click-through'
 import RightTransparent from '@/components/right-transparent'
+import { OutputMessages } from './components/output-messages'
 
 declare global {
   interface Window {
@@ -29,6 +30,7 @@ function App() {
         {/* Add your content here */}
         <p className="text-gray-700"></p>
       </RightTransparent>
+      <OutputMessages />
 
       {/* Prompt Input at Bottom */}
       <div
