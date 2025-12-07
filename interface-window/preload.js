@@ -21,10 +21,5 @@ contextBridge.exposeInMainWorld('interfaceAPI', {
       // Deliberately strip event as it includes `sender` 
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
-  },
-
-  // Click-through control
-  setIgnoreMouseEvents: (ignore) => {
-    ipcRenderer.send('interface-window:set-ignore-mouse-events', ignore);
   }
 });

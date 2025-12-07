@@ -1,11 +1,9 @@
 const { BrowserWindow, ipcMain, app } = require('electron');
 const path = require('path');
-const { ClickThroughManager } = require('./click-through');
 
 class InterfaceWindow {
   constructor() {
     this.window = null;
-    this.clickThroughManager = null;
   }
 
   create() {
@@ -15,10 +13,10 @@ class InterfaceWindow {
     }
 
     this.window = new BrowserWindow({
-      fullscreen: true,
+      fullscreen:true,
       frame: false,
       transparent:true,
-      alwaysOnTop:true,
+      alwaysOnTop:false,
       title:"",
       skipTaskbar:false,
       webPreferences: {
@@ -47,10 +45,6 @@ class InterfaceWindow {
     this.window.on('closed', () => {
       this.window = null;
     });
-
-    // Initialize click-through manager
-    this.clickThroughManager = new ClickThroughManager(this.window);
-    this.clickThroughManager.setup();
 
     this.setupHandlers();
 

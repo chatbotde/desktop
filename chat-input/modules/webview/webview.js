@@ -358,7 +358,6 @@ function initializeWebViewUI() {
 
     // Setup event listeners
     setupResizeListeners();
-    setupClickthroughIntegration();
 }
 
 function createHeaderButton(text, title) {
@@ -443,46 +442,6 @@ function setupResizeListeners() {
             e.preventDefault();
         });
     });
-}
-
-function setupClickthroughIntegration() {
-    // Make WebView container part of the automatic click-through detection
-    // The clickthrough system will automatically handle enable/disable based on cursor position
-    
-    // Add mouse enter/leave listeners for explicit tracking
-    if (webViewContainer) {
-        webViewContainer.addEventListener('mouseenter', () => {
-            console.log('[WebView] Mouse entered - should disable click-through');
-        });
-        
-        webViewContainer.addEventListener('mouseleave', () => {
-            console.log('[WebView] Mouse left - should enable click-through');
-        });
-    }
-
-    // Listen for IPC mouse state events from WebContentsView
-    if (window.webView && window.webView.onMouseState) {
-        window.webView.onMouseState((data) => {
-            console.log('[WebView] IPC Mouse state:', data);
-            
-            // Get the clickthrough module
-            const clickthroughEnabled = sessionStorage.getItem('clickthrough-enabled') === 'true';
-            
-            if (data.isOver) {
-                // Mouse is over WebView - disable click-through if it's enabled
-                if (clickthroughEnabled && window.chatInputAPI?.disableClickThrough) {
-                    console.log('[WebView] Disabling click-through (mouse over WebView)');
-                    window.chatInputAPI.disableClickThrough();
-                }
-            } else {
-                // Mouse left WebView - re-enable click-through if it was on
-                if (!clickthroughEnabled && window.chatInputAPI?.enableClickThrough) {
-                    console.log('[WebView] Re-enabling click-through (mouse left WebView)');
-                    window.chatInputAPI.enableClickThrough();
-                }
-            }
-        });
-    }
 }
 
 document.addEventListener('mousemove', (e) => {
