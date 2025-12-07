@@ -41,7 +41,7 @@ export function PromptInput({
     <PromptInputContext.Provider
       value={{ value, onValueChange, isLoading, onSubmit }}
     >
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("relative", className)}>
         {children}
       </div>
     </PromptInputContext.Provider>
@@ -58,6 +58,16 @@ export function PromptInputTextarea({
   className,
 }: PromptInputTextareaProps) {
   const { value, onValueChange, onSubmit } = usePromptInput()
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  // Auto-resize textarea
+  React.useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      const scrollHeight = textareaRef.current.scrollHeight
+      textareaRef.current.style.height = Math.min(scrollHeight, 200) + 'px'
+    }
+  }, [value])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -68,16 +78,16 @@ export function PromptInputTextarea({
 
   return (
     <textarea
+      ref={textareaRef}
       value={value}
       onChange={(e) => onValueChange(e.target.value)}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
       className={cn(
-        "w-full resize-none rounded-lg border border-white/30 bg-white/10 backdrop-blur-md px-3 py-2 text-sm text-white placeholder:text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "w-full resize-none rounded-lg border border-white/30 bg-white/10 backdrop-blur-md px-3 py-2 text-sm text-white placeholder:text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 overflow-y-auto",
         className
       )}
       rows={1}
-      style={{ minHeight: "40px" }}
     />
   )
 }

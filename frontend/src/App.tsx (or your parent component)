@@ -1,0 +1,14 @@
+// Example usage in parent component:
+
+const [isInputVisible, setIsInputVisible] = useState(true);
+
+// ...in your JSX:
+<RightTransparent 
+  onClick={() => setIsInputVisible(true)} 
+  showInputHint={!isInputVisible}
+/>
+
+<PromptInputWithActions 
+  isVisible={isInputVisible} 
+  onVisibilityChange={setIsInputVisible} 
+/>
