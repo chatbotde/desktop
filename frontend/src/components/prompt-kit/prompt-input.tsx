@@ -26,6 +26,7 @@ interface PromptInputProps {
   isLoading: boolean
   onSubmit: () => void
   className?: string
+  style?: React.CSSProperties
   children: React.ReactNode
 }
 
@@ -35,13 +36,14 @@ export function PromptInput({
   isLoading,
   onSubmit,
   className,
+  style,
   children,
 }: PromptInputProps) {
   return (
     <PromptInputContext.Provider
       value={{ value, onValueChange, isLoading, onSubmit }}
     >
-      <div className={cn("relative", className)}>
+      <div className={cn("relative", className)} style={style}>
         {children}
       </div>
     </PromptInputContext.Provider>

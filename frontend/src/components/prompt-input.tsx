@@ -5,11 +5,13 @@ import { PromptInputExpanded } from "./prompt-input-expanded"
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
+  isDarkTheme?: boolean;
 }
 
 export function PromptInputWithActions({ 
   isVisible: controlledVisible, 
-  onVisibilityChange 
+  onVisibilityChange,
+  isDarkTheme = false
 }: PromptInputWithActionsProps = {}) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -71,6 +73,7 @@ export function PromptInputWithActions({
         onSubmit={handleSubmit}
         onExpand={() => setIsExpanded(true)}
         onHide={() => setIsVisible(false)}
+        isDarkTheme={isDarkTheme}
       />
     )
   }
@@ -87,6 +90,7 @@ export function PromptInputWithActions({
       onHide={() => setIsVisible(false)}
       onFileChange={handleFileChange}
       onRemoveFile={handleRemoveFile}
+      isDarkTheme={isDarkTheme}
     />
   )
 }

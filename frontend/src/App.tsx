@@ -17,6 +17,7 @@ declare global {
 
 function App() {
   const [isInputVisible, setIsInputVisible] = useState(true)
+  const [isDarkTheme, setIsDarkTheme] = useState(false)
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-transparent relative">
@@ -30,7 +31,7 @@ function App() {
         {/* Add your content here */}
         <p className="text-gray-700"></p>
       </RightTransparent>
-      <OutputMessages />
+      <OutputMessages onThemeChange={setIsDarkTheme} />
 
       {/* Prompt Input at Bottom */}
       <div
@@ -39,7 +40,8 @@ function App() {
       >
         <PromptInputWithActions 
           isVisible={isInputVisible} 
-          onVisibilityChange={setIsInputVisible} 
+          onVisibilityChange={setIsInputVisible}
+          isDarkTheme={isDarkTheme}
         />
       </div>
     </div>
