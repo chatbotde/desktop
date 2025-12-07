@@ -13,7 +13,7 @@ class ClickThroughManager {
 
     // Initial state: Click-through enabled (transparent parts are clickable-through)
     // forward: true allows the renderer to see the mouse to detect hover
-    this.setIgnoreMouseEvents(true);
+    this.setIgnoreMouseEvents(true , { forward: true });
 
     // Remove existing listeners to prevent duplicates
     ipcMain.removeAllListeners('interface-window:set-ignore-mouse-events');
@@ -43,9 +43,11 @@ class ClickThroughManager {
         ? !!options.forward
         : true;
       const effectiveOptions = { forward: forwardFlag };
+      console.log('[ClickThrough] ENABLED - clicks pass through window', { forward: forwardFlag });
       this.window.setIgnoreMouseEvents(true, effectiveOptions);
     } else {
       // Disable click-through: Window captures all mouse events (for UI interaction)
+      console.log('[ClickThrough] DISABLED - window captures clicks');
       this.window.setIgnoreMouseEvents(false);
     }
   }
