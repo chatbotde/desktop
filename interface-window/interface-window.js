@@ -1,6 +1,7 @@
 const { BrowserWindow, ipcMain, app } = require('electron');
 const path = require('path');
 const { ClickThroughManager } = require('./click-through');
+const { screen } = require('electron');
 
 class InterfaceWindow {
   constructor() {
@@ -14,24 +15,27 @@ class InterfaceWindow {
       return this.window;
     }
 
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.workAreaSize;
+
     this.window = new BrowserWindow({
-      width:600,
-      height:400,
+      width: width,
+      height: height-1,
       frame: false,
-      transparent:true,
-      alwaysOnTop:false,
-      focusable:true,
-      resizable:false,
-      minimizable:false,
-      maximizable:false,
-      closable:false,
-      title:"",
-      skipTaskbar:false,
+      transparent: true,
+      alwaysOnTop: false,
+      focusable: true,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      closable: false,
+      title: "",
+      skipTaskbar: false,
       webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: true
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
       },
       show: false // Don't show until ready-to-show
     });
