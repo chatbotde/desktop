@@ -23,9 +23,9 @@ interface ModelSelectorPopoverProps {
   }
 }
 
-export function ModelSelectorPopover({ 
-  isDarkTheme = true, 
-  themeClasses 
+export function ModelSelectorPopover({
+  isDarkTheme = true,
+  themeClasses
 }: ModelSelectorPopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedModel, setSelectedModelState] = useState<AIModel | null>(null)
@@ -63,10 +63,10 @@ export function ModelSelectorPopover({
       case 'reasoning':
         return (
           <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/>
-            <path d="M8.5 8.5v.01"/>
-            <path d="M16 15.5v.01"/>
-            <path d="M12 12v.01"/>
+            <path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" />
+            <path d="M8.5 8.5v.01" />
+            <path d="M16 15.5v.01" />
+            <path d="M12 12v.01" />
           </svg>
         )
       default:
@@ -74,98 +74,51 @@ export function ModelSelectorPopover({
     }
   }
 
-  const getProviderColor = (provider: string) => {
-    if (isDarkTheme) {
-      switch (provider) {
-        case 'google':
-          return 'bg-blue-900/50 text-blue-300 border-blue-700'
-        case 'openai':
-          return 'bg-green-900/50 text-green-300 border-green-700'
-        case 'anthropic':
-          return 'bg-purple-900/50 text-purple-300 border-purple-700'
-        case 'openrouter':
-          return 'bg-orange-900/50 text-orange-300 border-orange-700'
-        default:
-          return 'bg-zinc-800 text-zinc-300 border-zinc-700'
-      }
-    } else {
-      switch (provider) {
-        case 'google':
-          return 'bg-blue-100 text-blue-800 border-blue-200'
-        case 'openai':
-          return 'bg-green-100 text-green-800 border-green-200'
-        case 'anthropic':
-          return 'bg-purple-100 text-purple-800 border-purple-200'
-        case 'openrouter':
-          return 'bg-orange-100 text-orange-800 border-orange-200'
-        default:
-          return 'bg-gray-100 text-gray-800 border-gray-200'
-      }
-    }
-  }
+
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <button 
+        <button
           className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
           data-no-clickthrough
         >
           <Sparkles className={`size-5 ${themeClasses.icon}`} />
         </button>
       </PopoverTrigger>
-      <PopoverContent 
+      <PopoverContent
         className={cn(
-          "w-96 p-0 border",
-          isDarkTheme 
-            ? "border-zinc-700" 
+          "w-60 p-0 border",
+          isDarkTheme
+            ? "border-zinc-700"
             : "border-zinc-200"
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
         align="start"
         data-no-clickthrough
       >
-        <div className="max-h-[400px] overflow-y-auto">
-          <div 
-            className={cn(
-              "p-4 border-b sticky top-0 z-10",
-              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
-            )}
-            style={{ backgroundColor: themeClasses.containerBg }}
-          >
-            <h3 className={cn(
-              "font-semibold text-sm",
-              themeClasses.fileText
-            )}>
-              Choose AI Model
-            </h3>
-            <p className={cn(
-              "text-xs mt-1",
-              themeClasses.icon
-            )}>
-              Select the AI model for your conversations
-            </p>
-          </div>
-          
+        <div className="max-h-[300px] overflow-y-auto">
+
+
           <div className="p-2">
             {Object.entries(modelsByProvider).map(([provider, models]) => (
               <div key={provider} className="mb-4 last:mb-0">
                 <div className={cn(
                   "px-2 py-2 text-xs font-medium uppercase border-b",
-                  isDarkTheme 
-                    ? "text-zinc-400 border-zinc-700" 
+                  isDarkTheme
+                    ? "text-zinc-400 border-zinc-700"
                     : "text-zinc-500 border-zinc-200"
                 )}>
                   {provider} Models
                 </div>
-                
+
                 {models.map((model) => (
                   <button
                     key={model.id}
                     className={cn(
-                      "w-full p-3 text-left transition-colors rounded-lg mt-1",
-                      isDarkTheme 
-                        ? "hover:bg-zinc-800" 
+                      "w-full p-1 text-left transition-colors rounded-lg mt-1",
+                      isDarkTheme
+                        ? "hover:bg-zinc-800"
                         : "hover:bg-zinc-50",
                       selectedModel?.id === model.id && (
                         isDarkTheme
@@ -185,15 +138,9 @@ export function ModelSelectorPopover({
                           )}>
                             {model.displayName}
                           </div>
-                          <div className={cn(
-                            "text-xs mt-0.5 line-clamp-2",
-                            themeClasses.icon
-                          )}>
-                            {model.description}
-                          </div>
                         </div>
                       </div>
-                      
+
                       {selectedModel?.id === model.id && (
                         <div className={cn(
                           "h-2 w-2 rounded-full mt-1 shrink-0",
@@ -203,15 +150,10 @@ export function ModelSelectorPopover({
                     </div>
 
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs", getProviderColor(model.provider))}
-                      >
-                        {model.provider}
-                      </Badge>
-                      
-                      <Badge 
-                        variant="outline" 
+
+
+                      <Badge
+                        variant="outline"
                         className={cn(
                           "text-xs",
                           isDarkTheme
