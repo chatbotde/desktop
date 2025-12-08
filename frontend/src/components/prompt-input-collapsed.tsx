@@ -40,7 +40,7 @@ export function PromptInputCollapsed({
   const canSubmit = input.trim().length > 0 || files.length > 0
 
   return (
-    <div className="flex items-center gap-3 mx-8 mb-6">
+    <div className="flex items-center gap-3 mx-8 mb-0">
       <button
         onClick={onHide}
         aria-label="Hide input"
@@ -50,6 +50,7 @@ export function PromptInputCollapsed({
           themeClasses.buttonHover
         )}
         style={{ backgroundColor: themeClasses.buttonBg }}
+        data-no-clickthrough
       >
         <X className={`size-4 ${themeClasses.icon}`} />
       </button>

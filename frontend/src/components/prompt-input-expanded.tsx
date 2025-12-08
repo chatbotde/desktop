@@ -61,7 +61,7 @@ export function PromptInputExpanded({
   const canSubmit = input.trim().length > 0 || files.length > 0
 
   return (
-    <div className="flex items-start gap-3 mx-4 mb-6">
+    <div className="flex items-start gap-3 mx-4 mb-0">
       <button
         onClick={onHide}
         aria-label="Hide input"

@@ -97,7 +97,7 @@ function App() {
 
       {/* Prompt Input at Bottom */}
       <div
-        className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
         data-no-clickthrough
       >
         <PromptInputWithActions 

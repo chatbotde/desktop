@@ -23,7 +23,7 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
     const [isVisible, setIsVisible] = useState(true)
     const [position, setPosition] = useState({ x: 100, y: 100 })
     const [size, setSize] = useState({ width: 600, height: 400 })
-    const [isDarkTheme, setIsDarkTheme] = useState(false)
+    const [isDarkTheme, setIsDarkTheme] = useState(true)
     const cardRef = useRef<HTMLDivElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
