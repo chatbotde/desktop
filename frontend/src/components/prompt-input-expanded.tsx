@@ -28,6 +28,7 @@ interface PromptInputExpandedProps {
   onRemoveFile: (index: number) => void
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
+  onAudioClick?: () => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -44,6 +45,7 @@ export function PromptInputExpanded({
   onRemoveFile,
   isDarkTheme = true,
   onFilesAdded,
+  onAudioClick,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -202,6 +204,7 @@ export function PromptInputExpanded({
             <PromptInputAction tooltip="Voice input">
               <button
                 aria-label="Voice input"
+                onClick={onAudioClick}
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
                   hoverClass

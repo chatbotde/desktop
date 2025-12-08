@@ -2,18 +2,21 @@ import { useState, useCallback } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 
+
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   isDarkTheme?: boolean;
   onSendMessage?: (message: string) => void | Promise<void>;
+  onAudioClick?: () => void;
 }
 
 export function PromptInputWithActions({
   isVisible: controlledVisible,
   onVisibilityChange,
   isDarkTheme = true,
-  onSendMessage
+  onSendMessage,
+  onAudioClick
 }: PromptInputWithActionsProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -77,38 +80,38 @@ export function PromptInputWithActions({
     return null
   }
 
-  // Collapsed state - functional input bar
-  if (!isExpanded) {
-    return (
-      <PromptInputCollapsed
-        input={input}
-        setInput={setInput}
-        isLoading={isLoading}
-        files={files}
-        onSubmit={handleSubmit}
-        onExpand={() => setIsExpanded(true)}
-        onHide={() => setIsVisible(false)}
-        isDarkTheme={isDarkTheme}
-        onFilesAdded={handleFilesAdded}
-      />
-    )
-  }
-
-  // Expanded state - full input with actions
   return (
-    <PromptInputExpanded
-      input={input}
-      setInput={setInput}
-      isLoading={isLoading}
-      files={files}
-      onSubmit={handleSubmit}
-      onCollapse={() => setIsExpanded(false)}
-      onHide={() => setIsVisible(false)}
-      onFileChange={handleFileChange}
-      onFilesAdded={handleFilesAdded}
-      onRemoveFile={handleRemoveFile}
-      isDarkTheme={isDarkTheme}
-    />
+    <div className="relative w-full">
+      {!isExpanded ? (
+        <PromptInputCollapsed
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          files={files}
+          onSubmit={handleSubmit}
+          onExpand={() => setIsExpanded(true)}
+          onHide={() => setIsVisible(false)}
+          isDarkTheme={isDarkTheme}
+          onFilesAdded={handleFilesAdded}
+          onAudioClick={onAudioClick}
+        />
+      ) : (
+        <PromptInputExpanded
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          files={files}
+          onSubmit={handleSubmit}
+          onCollapse={() => setIsExpanded(false)}
+          onHide={() => setIsVisible(false)}
+          onFileChange={handleFileChange}
+          onFilesAdded={handleFilesAdded}
+          onRemoveFile={handleRemoveFile}
+          isDarkTheme={isDarkTheme}
+          onAudioClick={onAudioClick}
+        />
+      )}
+    </div>
   )
 }
 

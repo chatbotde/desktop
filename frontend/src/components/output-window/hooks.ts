@@ -14,17 +14,24 @@ export function useDraggable(
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
+    let animationFrameId: number;
+
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        setPosition({
-          x: e.clientX - dragOffset.x,
-          y: e.clientY - dragOffset.y
+        animationFrameId = requestAnimationFrame(() => {
+          setPosition({
+            x: e.clientX - dragOffset.x,
+            y: e.clientY - dragOffset.y
+          })
         })
       }
     }
 
     const handleMouseUp = () => {
       setIsDragging(false)
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
     }
 
     if (isDragging) {
@@ -33,6 +40,9 @@ export function useDraggable(
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId)
+        }
       }
     }
   }, [isDragging, dragOffset, setPosition])

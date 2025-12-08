@@ -20,6 +20,7 @@ interface PromptInputCollapsedProps {
   onHide: () => void
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
+  onAudioClick?: () => void
 }
 
 export function PromptInputCollapsed({
@@ -32,6 +33,7 @@ export function PromptInputCollapsed({
   onHide,
   isDarkTheme = true,
   onFilesAdded,
+  onAudioClick,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -103,6 +105,7 @@ export function PromptInputCollapsed({
 
         <button
           aria-label="Voice input"
+          onClick={onAudioClick}
           className={cn(
             "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
             hoverClass

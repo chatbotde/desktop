@@ -6,6 +6,8 @@ import { OutputMessages } from './components/output-messages'
 import type { ChatMessage } from './components/output-window/types'
 import { sendMessageComplete } from '@/lib/ai'
 
+import { AudioRecorderPill } from '@/components/audio-recorder-pill'
+
 declare global {
   interface Window {
     interfaceAPI?: {
@@ -39,6 +41,7 @@ const createChatMessage = (
 function App() {
   const [isInputVisible, setIsInputVisible] = useState(true)
   const [isOutputVisible, setIsOutputVisible] = useState(true)
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false)
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
 
@@ -84,7 +87,7 @@ function App() {
   }, [])
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-transparent relative">
+    <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
       {/* Right Transparent Panel - Above everything */}
       <RightTransparent
@@ -100,6 +103,15 @@ function App() {
         onClose={() => setIsOutputVisible(false)}
       />
 
+      {showAudioRecorder && (
+        <div data-no-clickthrough>
+          <AudioRecorderPill
+            onClose={() => setShowAudioRecorder(false)}
+            isDarkTheme={isDarkTheme}
+          />
+        </div>
+      )}
+
       {/* Prompt Input at Bottom */}
       <div
         className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
@@ -110,6 +122,7 @@ function App() {
           onVisibilityChange={setIsInputVisible}
           isDarkTheme={isDarkTheme}
           onSendMessage={handleSendMessage}
+          onAudioClick={() => setShowAudioRecorder(prev => !prev)}
         />
       </div>
     </div>
