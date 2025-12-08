@@ -6,12 +6,14 @@ interface PromptInputWithActionsProps {
   isVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   isDarkTheme?: boolean;
+  onSendMessage?: (message: string) => void | Promise<void>;
 }
 
 export function PromptInputWithActions({ 
   isVisible: controlledVisible, 
   onVisibilityChange,
-  isDarkTheme = false
+  isDarkTheme = false,
+  onSendMessage
 }: PromptInputWithActionsProps = {}) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -20,15 +22,20 @@ export function PromptInputWithActions({
   const [internalVisible, setInternalVisible] = useState(true)
   const uploadInputRef = useRef<HTMLInputElement>(null)
 
-  const handleSubmit = () => {
-    if (input.trim() || files.length > 0) {
-      setIsLoading(true)
-      setTimeout(() => {
-        setIsLoading(false)
-        setInput("")
-        setFiles([])
-        setIsExpanded(false)
-      }, 2000)
+  const handleSubmit = async () => {
+    if (!(input.trim() || files.length > 0)) return
+
+    setIsLoading(true)
+
+    try {
+      if (input.trim() && onSendMessage) {
+        await onSendMessage(input)
+      }
+    } finally {
+      setIsLoading(false)
+      setInput("")
+      setFiles([])
+      setIsExpanded(false)
     }
   }
 
