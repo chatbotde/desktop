@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import 'katex/dist/katex.min.css'
 import { InlineMath, BlockMath } from 'react-katex'
 import { createHighlighter } from 'shiki'
-import '../../styles/syntax-highlighting.css'
 import type { JSX } from 'react/jsx-runtime'
 
 // Only bundle 30 most common languages to reduce bundle size from 64MB to ~15MB

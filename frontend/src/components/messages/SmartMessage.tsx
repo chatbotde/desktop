@@ -59,7 +59,9 @@ export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
           <MessageContent
             markdown={role === 'assistant'}
             className={cn(
-              "prose prose-invert max-w-none break-words whitespace-pre-wrap bg-transparent p-0",
+              role === 'assistant'
+                ? "prose prose-invert max-w-none break-words whitespace-pre-wrap bg-transparent p-0"
+                : "max-w-none break-words whitespace-pre-wrap bg-transparent p-0 !text-white",
               "text-[15px] leading-[1.7] tracking-[0.01em]",
               "[&_p]:mb-3 [&_p]:mt-0",
               "[&_ul]:my-3 [&_ol]:my-3",
@@ -67,7 +69,9 @@ export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
               "[&_pre]:!bg-transparent [&_code]:!bg-transparent",
               "[&_pre]:my-3 [&_pre]:rounded-lg",
               "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
-              "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2"
+              "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
+              // Force white text for assistant messages on dark background
+              role === 'assistant' && "!text-white [&_*]:!text-white [&_p]:!text-white [&_span]:!text-white [&_div]:!text-white [&_strong]:!text-white [&_code]:!text-white"
             )}
           >
             {content}

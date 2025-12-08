@@ -45,7 +45,7 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
         )
       : cn(
           'bg-transparent px-4 py-3',
-          isDarkTheme ? 'text-white' : 'text-black'
+          isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
         )
   )
 
@@ -69,7 +69,11 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
               markdown={message.role === 'assistant'}
               className={cn(
                 "max-w-none break-words whitespace-pre-wrap bg-transparent p-0",
-                isDarkTheme ? "prose prose-invert" : "prose prose-zinc",
+                isUser 
+                  ? "!text-white"
+                  : isDarkTheme 
+                    ? "prose prose-invert prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-100 prose-strong:text-white prose-code:text-zinc-100 !text-zinc-100"
+                    : "prose prose-zinc prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900 !text-zinc-900",
                 "text-[15px] leading-[1.7] tracking-[0.01em]",
                 "[&_p]:mb-3 [&_p]:mt-0",
                 "[&_ul]:my-3 [&_ol]:my-3",
@@ -77,7 +81,11 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
                 "[&_pre]:!bg-transparent [&_code]:!bg-transparent",
                 "[&_pre]:my-3 [&_pre]:rounded-lg",
                 "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
-                "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2"
+                "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
+                // Only override main text elements for theme
+                isDarkTheme 
+                  ? "[&_p]:!text-zinc-100 [&_h1]:!text-zinc-100 [&_h2]:!text-zinc-100 [&_h3]:!text-zinc-100 [&_strong]:!text-white [&_code]:!text-zinc-100"
+                  : "[&_p]:!text-zinc-900 [&_h1]:!text-zinc-900 [&_h2]:!text-zinc-900 [&_h3]:!text-zinc-900 [&_strong]:!text-zinc-900 [&_code]:!text-zinc-900"
               )}
             >
               {message.content}
@@ -118,7 +126,7 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
             "absolute -bottom-8 p-1.5 rounded-full text-xs",
             isDarkTheme 
               ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700" 
-              : "bg-white text-zinc-600 hover:bg-zinc-50",
+              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
             "border shadow-sm",
             isDarkTheme ? "border-zinc-700" : "border-zinc-200",
             isUser ? "right-0" : "left-0"

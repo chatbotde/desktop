@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button"
 import { ArrowUp, Plus, Mic, Square, X } from "lucide-react"
-import { useRef } from "react"
+import { useRef, useMemo, useCallback } from "react"
+import { cn } from "@/lib/utils"
+import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 
 interface PromptInputCollapsedProps {
   input: string
@@ -21,51 +23,51 @@ export function PromptInputCollapsed({
   onSubmit,
   onExpand,
   onHide,
-  isDarkTheme = false,
+  isDarkTheme = true,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
+  const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       onSubmit()
     }
-  }
+  }, [onSubmit])
 
-  const themeClasses = isDarkTheme
-    ? {
-        containerBg: 'oklch(0.14 0.00 0)',
-        containerBorder: 'border-zinc-700',
-        buttonBg: 'oklch(0.14 0.00 0)',
-        buttonHover: 'hover:bg-zinc-800',
-        buttonBorder: 'border-zinc-700',
-        input: 'text-zinc-200 placeholder:text-zinc-500',
-        icon: 'text-zinc-300',
-      }
-    : {
-        containerBg: '#ffffff',
-        containerBorder: 'border-zinc-200',
-        buttonBg: '#ffffff',
-        buttonHover: 'hover:bg-zinc-50',
-        buttonBorder: 'border-zinc-200',
-        input: 'text-zinc-900 placeholder:text-zinc-400',
-        icon: 'text-zinc-600',
-      }
+  const canSubmit = input.trim().length > 0 || files.length > 0
 
   return (
     <div className="flex items-center gap-3 mx-8 mb-6">
       <button
         onClick={onHide}
-        className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors shrink-0 border ${themeClasses.buttonBorder} ${themeClasses.buttonHover}`}
+        aria-label="Hide input"
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full transition-colors shrink-0 border",
+          themeClasses.buttonBorder,
+          themeClasses.buttonHover
+        )}
         style={{ backgroundColor: themeClasses.buttonBg }}
       >
         <X className={`size-4 ${themeClasses.icon}`} />
       </button>
       
-      <div className={`flex items-center gap-2 rounded-full px-2 py-1 border flex-1 ${themeClasses.containerBorder}`} style={{ backgroundColor: themeClasses.containerBg }}>
+      <div 
+        className={cn(
+          "flex items-center gap-2 rounded-full px-2 py-1 border flex-1",
+          themeClasses.containerBorder
+        )} 
+        style={{ backgroundColor: themeClasses.containerBg }}
+      >
         <button 
           onClick={onExpand}
-          className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+          aria-label="Expand input"
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+            hoverClass
+          )}
         >
           <Plus className={`size-4 ${themeClasses.icon}`} />
         </button>
@@ -77,10 +79,20 @@ export function PromptInputCollapsed({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask anything..."
-          className={`flex-1 bg-transparent ${themeClasses.input} text-base outline-none border-0 py-2`}
+          aria-label="Message input"
+          className={cn(
+            "flex-1 bg-transparent text-base outline-none border-0 py-2",
+            themeClasses.input
+          )}
         />
         
-        <button className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors">
+        <button 
+          aria-label="Voice input"
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+            hoverClass
+          )}
+        >
           <Mic className={`size-4 ${themeClasses.icon}`} />
         </button>
         
@@ -89,7 +101,8 @@ export function PromptInputCollapsed({
           size="icon"
           className="h-8 w-8 rounded-full bg-white text-black hover:bg-white/90 ml-2"
           onClick={onSubmit}
-          disabled={!input.trim() && files.length === 0}
+          disabled={!canSubmit || isLoading}
+          aria-label={isLoading ? "Stop generation" : "Send message"}
         >
           {isLoading ? (
             <Square className="size-4 fill-current" />

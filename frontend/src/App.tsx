@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PromptInputWithActions } from '@/components'
 import ClickThrough from '@/components/click-through'
 import RightTransparent from '@/components/right-transparent'
 import { OutputMessages } from './components/output-messages'
-import type { ChatMessage } from './components/output-messages'
+import type { ChatMessage } from './components/output-window/types'
 import { sendMessageComplete } from '@/lib/ai'
 
 declare global {
@@ -18,21 +18,67 @@ declare global {
   }
 }
 
+// Helper function to generate unique message IDs
+const generateMessageId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+}
+
+// Helper function to create a chat message
+const createChatMessage = (
+  content: string,
+  role: 'user' | 'assistant' = 'assistant'
+): ChatMessage => {
+  return {
+    id: generateMessageId(),
+    role,
+    content,
+    timestamp: new Date()
+  }
+}
+
 function App() {
   const [isInputVisible, setIsInputVisible] = useState(true)
-  const [isDarkTheme, setIsDarkTheme] = useState(false)
+  const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
 
   // Expose function to add messages globally
-  window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString() + Math.random(),
-      role,
-      content: message,
-      timestamp: new Date()
+  useEffect(() => {
+    window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
+      const newMessage = createChatMessage(message, role)
+      setOutputMessages(prev => [...prev, newMessage])
     }
-    setOutputMessages(prev => [...prev, newMessage])
-  }
+
+    return () => {
+      window.addOutputMessage = undefined
+    }
+  }, [])
+
+  // Handle sending messages
+  const handleSendMessage = useCallback(async (message: string) => {
+    // Add user message immediately
+    const userMessage = createChatMessage(message, 'user')
+    setOutputMessages(prev => [...prev, userMessage])
+
+    // Request assistant response
+    try {
+      const replyText = await sendMessageComplete(message)
+      const assistantMessage = createChatMessage(replyText, 'assistant')
+      setOutputMessages(prev => [...prev, assistantMessage])
+    } catch (err) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : typeof err === 'string' 
+          ? err 
+          : 'Unknown error'
+      
+      const errorResponse = createChatMessage(
+        `Sorry, I could not get a response right now. (${errorMessage})`,
+        'assistant'
+      )
+      setOutputMessages(prev => [...prev, errorResponse])
+      console.error('AI response failed:', err)
+    }
+  }, [])
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-transparent relative">
@@ -42,10 +88,7 @@ function App() {
         onClick={() => setIsInputVisible(true)} 
         showInputHint={!isInputVisible}
         className="z-[100]"
-      >
-        {/* Add your content here */}
-        <p className="text-gray-700"></p>
-      </RightTransparent>
+      />
       <OutputMessages 
         onThemeChange={setIsDarkTheme} 
         messages={outputMessages}
@@ -61,38 +104,7 @@ function App() {
           isVisible={isInputVisible} 
           onVisibilityChange={setIsInputVisible}
           isDarkTheme={isDarkTheme}
-          onSendMessage={async (message) => {
-            // Add user message immediately
-            const userMessage: ChatMessage = {
-              id: Date.now().toString() + Math.random(),
-              role: 'user',
-              content: message,
-              timestamp: new Date()
-            }
-            setOutputMessages(prev => [...prev, userMessage])
-
-            // Request assistant response
-            try {
-              const replyText = await sendMessageComplete(message)
-              const assistantMessage: ChatMessage = {
-                id: Date.now().toString() + Math.random(),
-                role: 'assistant',
-                content: replyText,
-                timestamp: new Date()
-              }
-              setOutputMessages(prev => [...prev, assistantMessage])
-            } catch (err: any) {
-              const errorText = err?.message ? String(err.message) : 'Unknown error'
-              const assistantMessage: ChatMessage = {
-                id: Date.now().toString() + Math.random(),
-                role: 'assistant',
-                content: `Sorry, I could not get a response right now. (${errorText})`,
-                timestamp: new Date()
-              }
-              setOutputMessages(prev => [...prev, assistantMessage])
-              console.error('AI response failed:', err)
-            }
-          }}
+          onSendMessage={handleSendMessage}
         />
       </div>
     </div>

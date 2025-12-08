@@ -1,13 +1,15 @@
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./styles/syntax-highlighting.css";
+
+/* ============================================
+   CSS Variables & Theme Configuration
+   ============================================ */
 
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -42,57 +44,8 @@
   --sidebar-accent-foreground: hsl(240 5.9% 10%);
   --sidebar-border: hsl(220 13% 91%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
 
-
-
-
-
-body {
-  background: transparent;
-  color: var(--foreground);
-}
-
-/* Electron-specific styles */
-.drag-region {
-  -webkit-app-region: drag;
-}
-
-.no-drag {
-  -webkit-app-region: no-drag;
-}
-
-/* Custom scrollbar for transparency */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
-:root {
+  /* Color aliases for component compatibility */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -122,14 +75,65 @@ body {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
 @layer base {
   body {
+    background: transparent;
     background-color: var(--background);
     color: var(--foreground);
   }
 }
 
-/* Custom scrollbar styles for chat area */
+/* ============================================
+   Electron-specific Styles
+   ============================================ */
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ============================================
+   Scrollbar Styles
+   ============================================ */
+
+/* Global scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Chat area scrollbar */
 .chat-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
@@ -153,78 +157,7 @@ body {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Smooth scroll behavior */
-.smooth-scroll {
-  scroll-behavior: smooth;
-}
-
-/* Animation for message appearance */
-@keyframes slideInFromBottom {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-appear {
-  animation: slideInFromBottom 0.3s ease-out;
-}
-
-/* KaTeX Math Styling */
-.katex {
-  font-size: 1.1em;
-  color: #f8f8f2;
-}
-
-.katex-display {
-  margin: 1.5em 0;
-  text-align: center;
-}
-
-.katex-display .katex {
-  font-size: 1.2em;
-}
-
-/* Math block styling */
-.math-block {
-  background: rgba(68, 71, 90, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  border: 1px solid rgba(68, 71, 90, 0.5);
-}
-
-/* Inline math styling */
-.math-inline {
-  padding: 0.2em 0.4em;
-  background: rgba(68, 71, 90, 0.2);
-  border-radius: 4px;
-  border: 1px solid rgba(68, 71, 90, 0.3);
-}
-
-
-
-/* Message animation */
-.message-appear {
-  animation: messageSlideIn 0.3s ease-out;
-}
-
-@keyframes messageSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Scrollbar styling */
+/* Scrollable content scrollbar */
 .scrollable-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -241,4 +174,56 @@ body {
 
 .scrollable-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-appear {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+/* ============================================
+   Math & KaTeX Styling
+   ============================================ */
+
+.katex {
+  font-size: 1.1em;
+  color: #f8f8f2;
+}
+
+.katex-display {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+.katex-display .katex {
+  font-size: 1.2em;
+}
+
+.math-block {
+  background: rgba(68, 71, 90, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid rgba(68, 71, 90, 0.5);
+}
+
+.math-inline {
+  padding: 0.2em 0.4em;
+  background: rgba(68, 71, 90, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(68, 71, 90, 0.3);
 }

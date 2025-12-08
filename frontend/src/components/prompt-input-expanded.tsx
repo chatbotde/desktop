@@ -5,8 +5,10 @@ import {
 } from "@/components/prompt-kit/prompt-input"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp } from "lucide-react"
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useMemo, useCallback } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
+import { cn } from "@/lib/utils"
+import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 
 interface PromptInputExpandedProps {
   input: string
@@ -21,6 +23,8 @@ interface PromptInputExpandedProps {
   isDarkTheme?: boolean
 }
 
+const MAX_TEXTAREA_HEIGHT = 200
+
 export function PromptInputExpanded({
   input,
   setInput,
@@ -31,53 +35,41 @@ export function PromptInputExpanded({
   onHide,
   onFileChange,
   onRemoveFile,
-  isDarkTheme = false,
+  isDarkTheme = true,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
+  const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
+
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px'
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      const newHeight = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT)
+      textarea.style.height = `${newHeight}px`
     }
   }, [input])
 
-  const themeClasses = isDarkTheme
-    ? {
-        containerBg: 'oklch(0.14 0.00 0)',
-        containerBorder: 'border-zinc-700',
-        buttonBg: 'oklch(0.14 0.00 0)',
-        buttonHover: 'hover:bg-zinc-800',
-        buttonBorder: 'border-zinc-700',
-        textarea: 'text-zinc-200 placeholder:text-zinc-500',
-        icon: 'text-zinc-300',
-        fileItem: 'bg-zinc-800 border-zinc-700',
-        fileText: 'text-zinc-200',
-      }
-    : {
-        containerBg: '#ffffff',
-        containerBorder: 'border-zinc-200',
-        buttonBg: '#ffffff',
-        buttonHover: 'hover:bg-zinc-50',
-        buttonBorder: 'border-zinc-200',
-        textarea: 'text-zinc-900 placeholder:text-zinc-400',
-        icon: 'text-zinc-600',
-        fileItem: 'bg-zinc-50 border-zinc-200',
-        fileText: 'text-zinc-900',
-      }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       onSubmit()
     }
-  }
+  }, [onSubmit])
+
+  const canSubmit = input.trim().length > 0 || files.length > 0
 
   return (
     <div className="flex items-start gap-3 mx-4 mb-6">
       <button
         onClick={onHide}
-        className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0 mt-2 border ${themeClasses.buttonBorder} ${themeClasses.buttonHover}`}
+        aria-label="Hide input"
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0 mt-2 border",
+          themeClasses.buttonBorder,
+          themeClasses.buttonHover
+        )}
         style={{ backgroundColor: themeClasses.buttonBg }}
       >
         <X className={`size-4 ${themeClasses.icon}`} />
@@ -88,12 +80,19 @@ export function PromptInputExpanded({
         onValueChange={setInput}
         isLoading={isLoading}
         onSubmit={onSubmit}
-        className={`flex-1 rounded-2xl border px-3 py-2 ${themeClasses.containerBorder}`}
+        className={cn(
+          "flex-1 rounded-2xl border px-3 py-2",
+          themeClasses.containerBorder
+        )}
         style={{ backgroundColor: themeClasses.containerBg }}
       >
         <button 
           onClick={onCollapse}
-          className="absolute top-2 right-2 hover:bg-white/10 flex h-6 w-6 items-center justify-center rounded-full transition-colors"
+          aria-label="Collapse input"
+          className={cn(
+            "absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full transition-colors",
+            hoverClass
+          )}
         >
           <ChevronUp className={`size-4 ${themeClasses.icon} rotate-180`} />
         </button>
@@ -102,15 +101,24 @@ export function PromptInputExpanded({
           <div className="flex flex-wrap gap-2 pb-1 max-h-[80px] overflow-y-auto">
             {files.map((file, index) => (
               <div
-                key={index}
-                className={`${themeClasses.fileItem} flex items-center gap-2 rounded-lg px-3 py-2 text-sm border`}
+                key={`${file.name}-${index}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm border",
+                  themeClasses.fileItem
+                )}
                 onClick={e => e.stopPropagation()}
               >
-                <Paperclip className={`size-4 ${themeClasses.icon}`} />
-                <span className={`max-w-[120px] truncate ${themeClasses.fileText}`}>{file.name}</span>
+                <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+                <span className={cn("max-w-[120px] truncate", themeClasses.fileText)}>
+                  {file.name}
+                </span>
                 <button
                   onClick={() => onRemoveFile(index)}
-                  className="hover:bg-white/10 rounded-full p-1"
+                  aria-label={`Remove ${file.name}`}
+                  className={cn(
+                    "rounded-full p-1 transition-colors",
+                    hoverClass
+                  )}
                 >
                   <X className={`size-4 ${themeClasses.icon}`} />
                 </button>
@@ -125,31 +133,45 @@ export function PromptInputExpanded({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask me anything..."
-          className={`w-full bg-transparent ${themeClasses.textarea} border-0 focus:outline-none focus:ring-0 min-h-[20px] max-h-[200px] overflow-y-auto resize-none px-0 py-0`}
+          aria-label="Message input"
+          className={cn(
+            "w-full bg-transparent border-0 focus:outline-none focus:ring-0 min-h-[20px] max-h-[200px] overflow-y-auto resize-none px-0 py-0",
+            themeClasses.textarea
+          )}
           rows={1}
         />
 
         <PromptInputActions className="flex items-center justify-between gap-2 pt-0">
           <div className="flex items-center gap-2">
             <PromptInputAction tooltip="Add action">
-              <button className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors">
+              <button 
+                aria-label="Add action"
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                  hoverClass
+                )}
+              >
                 <Plus className={`size-5 ${themeClasses.icon}`} />
               </button>
             </PromptInputAction>
             
             <PromptInputAction tooltip="Attach files">
               <label
-                htmlFor="file-upload"
-                className="hover:bg-white/10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors"
+                htmlFor="file-upload-expanded"
+                className={cn(
+                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors",
+                  hoverClass
+                )}
               >
                 <input
                   type="file"
                   multiple
                   onChange={onFileChange}
                   className="hidden"
-                  id="file-upload"
+                  id="file-upload-expanded"
+                  aria-label="Attach files"
                 />
-                <Paperclip className={`size-5 ${themeClasses.icon}`} />
+                <Paperclip className={`size-5 ${themeClasses.icon}`} aria-hidden="true" />
               </label>
             </PromptInputAction>
 
@@ -163,7 +185,13 @@ export function PromptInputExpanded({
 
           <div className="flex items-center gap-2">
             <PromptInputAction tooltip="Voice input">
-              <button className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors">
+              <button 
+                aria-label="Voice input"
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                  hoverClass
+                )}
+              >
                 <Mic className={`size-5 ${themeClasses.icon}`} />
               </button>
             </PromptInputAction>
@@ -174,7 +202,8 @@ export function PromptInputExpanded({
                 size="icon"
                 className="h-8 w-8 rounded-full bg-white text-black hover:bg-white/90"
                 onClick={onSubmit}
-                disabled={!input.trim() && files.length === 0}
+                disabled={!canSubmit || isLoading}
+                aria-label={isLoading ? "Stop generation" : "Send message"}
               >
                 {isLoading ? (
                   <Square className="size-4 fill-current" />

@@ -24,7 +24,7 @@ interface ModelSelectorPopoverProps {
 }
 
 export function ModelSelectorPopover({ 
-  isDarkTheme = false, 
+  isDarkTheme = true, 
   themeClasses 
 }: ModelSelectorPopoverProps) {
   const [isOpen, setIsOpen] = useState(false)

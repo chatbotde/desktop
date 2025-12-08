@@ -24,11 +24,11 @@ export function getThemeClasses(isDarkTheme: boolean): ThemeClasses {
     : {
         card: 'fixed border border-zinc-200 bg-white shadow-lg',
         cardBg: '#ffffff',
-        dragButton: 'p-1.5 rounded hover:bg-zinc-100 transition-colors cursor-grab active:cursor-grabbing',
-        iconButton: 'p-1 rounded-full hover:bg-zinc-100 transition-colors',
+        dragButton: 'p-1.5 rounded hover:bg-zinc-100 transition-colors cursor-grab active:cursor-grabbing text-zinc-700',
+        iconButton: 'p-1 rounded-full hover:bg-zinc-100 transition-colors text-zinc-700',
         content: 'p-4 overflow-y-auto bg-white',
         contentBg: '#ffffff',
-        emptyText: 'text-muted-foreground text-sm text-center',
-        resizeIcon: 'text-zinc-400'
+        emptyText: 'text-zinc-600 text-sm text-center',
+        resizeIcon: 'text-zinc-600'
       }
 }
