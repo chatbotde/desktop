@@ -38,6 +38,7 @@ const createChatMessage = (
 
 function App() {
   const [isInputVisible, setIsInputVisible] = useState(true)
+  const [isOutputVisible, setIsOutputVisible] = useState(true)
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
 
@@ -46,6 +47,7 @@ function App() {
     window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
       const newMessage = createChatMessage(message, role)
       setOutputMessages(prev => [...prev, newMessage])
+      setIsOutputVisible(true)
     }
 
     return () => {
@@ -55,6 +57,7 @@ function App() {
 
   // Handle sending messages
   const handleSendMessage = useCallback(async (message: string) => {
+    setIsOutputVisible(true)
     // Add user message immediately
     const userMessage = createChatMessage(message, 'user')
     setOutputMessages(prev => [...prev, userMessage])
@@ -93,6 +96,8 @@ function App() {
         onThemeChange={setIsDarkTheme}
         messages={outputMessages}
         onClearMessages={() => setOutputMessages([])}
+        isVisible={isOutputVisible}
+        onClose={() => setIsOutputVisible(false)}
       />
 
       {/* Prompt Input at Bottom */}

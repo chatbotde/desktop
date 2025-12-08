@@ -15,12 +15,18 @@ interface OutputMessagesProps {
     onThemeChange?: (isDark: boolean) => void
     messages?: ChatMessage[]
     onClearMessages?: () => void
+    isVisible?: boolean
+    onClose?: () => void
 }
 
-
-
-export function OutputMessages({ onThemeChange, messages = [], onClearMessages }: OutputMessagesProps = {}) {
-    const [isVisible, setIsVisible] = useState(true)
+export function OutputMessages({
+    onThemeChange,
+    messages = [],
+    onClearMessages,
+    isVisible: propIsVisible,
+    onClose: propOnClose
+}: OutputMessagesProps = {}) {
+    const [internalIsVisible, setInternalIsVisible] = useState(true)
     const [position, setPosition] = useState({ x: 100, y: 100 })
     const [size, setSize] = useState({ width: 600, height: 400 })
     const [isDarkTheme, setIsDarkTheme] = useState(true)
@@ -32,12 +38,18 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
     const { handleResizeMouseDown } = useResizable(size, setSize)
     useAutoScroll(messagesEndRef, messages.length)
 
+    const isVisible = propIsVisible !== undefined ? propIsVisible : internalIsVisible
+
     if (!isVisible) {
         return null
     }
 
     const handleClose = () => {
-        setIsVisible(false)
+        if (propOnClose) {
+            propOnClose()
+        } else {
+            setInternalIsVisible(false)
+        }
     }
 
     const handleClear = () => {
