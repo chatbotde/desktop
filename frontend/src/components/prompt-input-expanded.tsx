@@ -3,6 +3,12 @@ import {
   PromptInputAction,
   PromptInputActions,
 } from "@/components/prompt-kit/prompt-input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback } from "react"
@@ -21,6 +27,7 @@ interface PromptInputExpandedProps {
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile: (index: number) => void
   isDarkTheme?: boolean
+  onFilesAdded?: (files: File[]) => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -36,6 +43,7 @@ export function PromptInputExpanded({
   onFileChange,
   onRemoveFile,
   isDarkTheme = true,
+  onFilesAdded,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -74,7 +82,7 @@ export function PromptInputExpanded({
       >
         <X className={`size-4 ${themeClasses.icon}`} />
       </button>
-      
+
       <PromptInput
         value={input}
         onValueChange={setInput}
@@ -86,7 +94,7 @@ export function PromptInputExpanded({
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
       >
-        <button 
+        <button
           onClick={onCollapse}
           aria-label="Collapse input"
           className={cn(
@@ -144,17 +152,24 @@ export function PromptInputExpanded({
         <PromptInputActions className="flex items-center justify-between gap-2 pt-0">
           <div className="flex items-center gap-2">
             <PromptInputAction tooltip="Add action">
-              <button 
-                aria-label="Add action"
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  hoverClass
-                )}
-              >
-                <Plus className={`size-5 ${themeClasses.icon}`} />
-              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    aria-label="Add action"
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                      hoverClass
+                    )}
+                  >
+                    <Plus className={`size-5 ${themeClasses.icon}`} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
+                  <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} />
+                </PopoverContent>
+              </Popover>
             </PromptInputAction>
-            
+
             <PromptInputAction tooltip="Attach files">
               <label
                 htmlFor="file-upload-expanded"
@@ -176,7 +191,7 @@ export function PromptInputExpanded({
             </PromptInputAction>
 
             <PromptInputAction tooltip="Select model">
-              <ModelSelectorPopover 
+              <ModelSelectorPopover
                 isDarkTheme={isDarkTheme}
                 themeClasses={themeClasses}
               />
@@ -185,7 +200,7 @@ export function PromptInputExpanded({
 
           <div className="flex items-center gap-2">
             <PromptInputAction tooltip="Voice input">
-              <button 
+              <button
                 aria-label="Voice input"
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full transition-colors",

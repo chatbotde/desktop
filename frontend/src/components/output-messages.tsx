@@ -53,9 +53,9 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
     const themeClasses = getThemeClasses(isDarkTheme)
 
     return (
-        <Card 
+        <Card
             ref={cardRef}
-            className={themeClasses.card} 
+            className={themeClasses.card}
             data-no-clickthrough
             style={{
                 left: `${position.x}px`,
@@ -67,12 +67,12 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
             }}
         >
             <div className="absolute top-2 left-2">
-                <DragButton 
+                <DragButton
                     onMouseDown={handleDragMouseDown}
                     className={themeClasses.dragButton}
                 />
             </div>
-            <WindowControls 
+            <WindowControls
                 isDarkTheme={isDarkTheme}
                 onThemeToggle={handleThemeToggle}
                 onClear={handleClear}
@@ -80,7 +80,7 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
                 iconButtonClass={themeClasses.iconButton}
             />
             <CardHeader className="py-0 px-0">
-                
+
             </CardHeader>
             <CardContent className={themeClasses.content} style={{ height: 'calc(100% - 60px)', backgroundColor: themeClasses.contentBg }}>
                 {messages.length === 0 ? (
@@ -88,9 +88,9 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
                 ) : (
                     <div className="w-full space-y-4 flex flex-col">
                         {messages.map((msg) => (
-                            <MessageBubble 
-                                key={msg.id} 
-                                message={msg} 
+                            <MessageBubble
+                                key={msg.id}
+                                message={msg}
                                 isDarkTheme={isDarkTheme}
                             />
                         ))}
@@ -98,7 +98,7 @@ export function OutputMessages({ onThemeChange, messages = [], onClearMessages }
                     </div>
                 )}
             </CardContent>
-            <ResizeHandle 
+            <ResizeHandle
                 onMouseDown={handleResizeMouseDown}
                 className={themeClasses.resizeIcon}
             />

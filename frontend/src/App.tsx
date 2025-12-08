@@ -65,12 +65,12 @@ function App() {
       const assistantMessage = createChatMessage(replyText, 'assistant')
       setOutputMessages(prev => [...prev, assistantMessage])
     } catch (err) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : typeof err === 'string' 
-          ? err 
+      const errorMessage = err instanceof Error
+        ? err.message
+        : typeof err === 'string'
+          ? err
           : 'Unknown error'
-      
+
       const errorResponse = createChatMessage(
         `Sorry, I could not get a response right now. (${errorMessage})`,
         'assistant'
@@ -84,13 +84,13 @@ function App() {
     <div className="h-screen w-full flex items-center justify-center bg-transparent relative">
       <ClickThrough />
       {/* Right Transparent Panel - Above everything */}
-      <RightTransparent 
-        onClick={() => setIsInputVisible(true)} 
+      <RightTransparent
+        onClick={() => setIsInputVisible(true)}
         showInputHint={!isInputVisible}
         className="z-[100]"
       />
-      <OutputMessages 
-        onThemeChange={setIsDarkTheme} 
+      <OutputMessages
+        onThemeChange={setIsDarkTheme}
         messages={outputMessages}
         onClearMessages={() => setOutputMessages([])}
       />
@@ -100,8 +100,8 @@ function App() {
         className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
         data-no-clickthrough
       >
-        <PromptInputWithActions 
-          isVisible={isInputVisible} 
+        <PromptInputWithActions
+          isVisible={isInputVisible}
           onVisibilityChange={setIsInputVisible}
           isDarkTheme={isDarkTheme}
           onSendMessage={handleSendMessage}

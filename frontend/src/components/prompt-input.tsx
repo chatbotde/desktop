@@ -9,8 +9,8 @@ interface PromptInputWithActionsProps {
   onSendMessage?: (message: string) => void | Promise<void>;
 }
 
-export function PromptInputWithActions({ 
-  isVisible: controlledVisible, 
+export function PromptInputWithActions({
+  isVisible: controlledVisible,
   onVisibilityChange,
   isDarkTheme = true,
   onSendMessage
@@ -53,6 +53,11 @@ export function PromptInputWithActions({
     }
   }, [])
 
+  const handleFilesAdded = useCallback((newFiles: File[]) => {
+    setFiles((prev) => [...prev, ...newFiles])
+    setIsExpanded(true)
+  }, [])
+
   const handleRemoveFile = useCallback((index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }, [])
@@ -84,6 +89,7 @@ export function PromptInputWithActions({
         onExpand={() => setIsExpanded(true)}
         onHide={() => setIsVisible(false)}
         isDarkTheme={isDarkTheme}
+        onFilesAdded={handleFilesAdded}
       />
     )
   }
@@ -99,6 +105,7 @@ export function PromptInputWithActions({
       onCollapse={() => setIsExpanded(false)}
       onHide={() => setIsVisible(false)}
       onFileChange={handleFileChange}
+      onFilesAdded={handleFilesAdded}
       onRemoveFile={handleRemoveFile}
       isDarkTheme={isDarkTheme}
     />

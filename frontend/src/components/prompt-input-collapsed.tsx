@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, X } from "lucide-react"
+import { ArrowUp, Plus, Mic, Square, X, ChevronsUp } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { MediaUploadCard } from "./media-upload-card"
 import { useRef, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
@@ -13,6 +19,7 @@ interface PromptInputCollapsedProps {
   onExpand: () => void
   onHide: () => void
   isDarkTheme?: boolean
+  onFilesAdded?: (files: File[]) => void
 }
 
 export function PromptInputCollapsed({
@@ -24,6 +31,7 @@ export function PromptInputCollapsed({
   onExpand,
   onHide,
   isDarkTheme = true,
+  onFilesAdded,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -54,25 +62,31 @@ export function PromptInputCollapsed({
       >
         <X className={`size-4 ${themeClasses.icon}`} />
       </button>
-      
-      <div 
+
+      <div
         className={cn(
           "flex items-center gap-2 rounded-full px-2 py-1 border flex-1",
           themeClasses.containerBorder
-        )} 
+        )}
         style={{ backgroundColor: themeClasses.containerBg }}
       >
-        <button 
-          onClick={onExpand}
-          aria-label="Expand input"
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-            hoverClass
-          )}
-        >
-          <Plus className={`size-4 ${themeClasses.icon}`} />
-        </button>
-        
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="Add media"
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                hoverClass
+              )}
+            >
+              <Plus className={`size-4 ${themeClasses.icon}`} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
+            <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} />
+          </PopoverContent>
+        </Popover>
+
         <input
           ref={inputRef}
           type="text"
@@ -86,8 +100,8 @@ export function PromptInputCollapsed({
             themeClasses.input
           )}
         />
-        
-        <button 
+
+        <button
           aria-label="Voice input"
           className={cn(
             "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
@@ -96,19 +110,21 @@ export function PromptInputCollapsed({
         >
           <Mic className={`size-4 ${themeClasses.icon}`} />
         </button>
-        
+
         <Button
           variant="default"
           size="icon"
           className="h-8 w-8 rounded-full bg-white text-black hover:bg-white/90 ml-2"
-          onClick={onSubmit}
-          disabled={!canSubmit || isLoading}
-          aria-label={isLoading ? "Stop generation" : "Send message"}
+          onClick={canSubmit ? onSubmit : onExpand}
+          disabled={isLoading}
+          aria-label={isLoading ? "Stop generation" : canSubmit ? "Send message" : "Expand input"}
         >
           {isLoading ? (
             <Square className="size-4 fill-current" />
-          ) : (
+          ) : canSubmit ? (
             <ArrowUp className="size-4" />
+          ) : (
+            <ChevronsUp className="size-4" />
           )}
         </Button>
       </div>
