@@ -7,6 +7,7 @@ import type { ChatMessage } from './components/output-window/types'
 import { sendMessageComplete } from '@/lib/ai'
 
 import { AudioRecorderPill } from '@/components/audio-recorder-pill'
+import { VideoScroll } from '@/components/container'
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ function App() {
   const [isInputVisible, setIsInputVisible] = useState(true)
   const [isOutputVisible, setIsOutputVisible] = useState(true)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
+  const [showVideoScroll, setShowVideoScroll] = useState(false)
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
 
@@ -112,6 +114,12 @@ function App() {
         </div>
       )}
 
+      {showVideoScroll && (
+        <div data-no-clickthrough>
+          <VideoScroll onClose={() => setShowVideoScroll(false)} />
+        </div>
+      )}
+
       {/* Prompt Input at Bottom */}
       <div
         className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
@@ -123,6 +131,7 @@ function App() {
           isDarkTheme={isDarkTheme}
           onSendMessage={handleSendMessage}
           onAudioClick={() => setShowAudioRecorder(prev => !prev)}
+          onMoreClick={() => setShowVideoScroll(true)}
         />
       </div>
     </div>

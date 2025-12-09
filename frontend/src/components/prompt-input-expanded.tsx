@@ -29,6 +29,7 @@ interface PromptInputExpandedProps {
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
   onAudioClick?: () => void
+  onMoreClick?: () => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -46,6 +47,7 @@ export function PromptInputExpanded({
   isDarkTheme = true,
   onFilesAdded,
   onAudioClick,
+  onMoreClick,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -167,7 +169,7 @@ export function PromptInputExpanded({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
-                  <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} />
+                  <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} />
                 </PopoverContent>
               </Popover>
             </PromptInputAction>

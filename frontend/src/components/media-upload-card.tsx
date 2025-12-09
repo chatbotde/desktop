@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Image, Mic, Video, FileText } from "lucide-react"
+import { Image, Mic, Video, FileText, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo } from "react"
 import { getThemeClasses } from "./prompt-input-theme"
@@ -8,9 +8,10 @@ interface MediaUploadCardProps {
     onFileUpload?: (files: File[]) => void
     className?: string
     isDarkTheme?: boolean
+    onMoreClick?: () => void
 }
 
-export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true }: MediaUploadCardProps) {
+export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onMoreClick }: MediaUploadCardProps) {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const audioInputRef = useRef<HTMLInputElement>(null)
@@ -51,6 +52,12 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true }:
             label: 'Upload Audio',
             icon: Mic,
             action: () => audioInputRef.current?.click()
+        },
+        {
+            id: 'more',
+            label: 'More',
+            icon: MoreHorizontal,
+            action: () => onMoreClick?.()
         },
     ] as const
 

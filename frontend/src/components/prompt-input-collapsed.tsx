@@ -21,6 +21,7 @@ interface PromptInputCollapsedProps {
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
   onAudioClick?: () => void
+  onMoreClick?: () => void
 }
 
 export function PromptInputCollapsed({
@@ -34,6 +35,7 @@ export function PromptInputCollapsed({
   isDarkTheme = true,
   onFilesAdded,
   onAudioClick,
+  onMoreClick,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -85,7 +87,7 @@ export function PromptInputCollapsed({
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
-            <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} />
+            <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} />
           </PopoverContent>
         </Popover>
 

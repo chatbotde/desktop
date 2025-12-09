@@ -9,6 +9,7 @@ interface PromptInputWithActionsProps {
   isDarkTheme?: boolean;
   onSendMessage?: (message: string) => void | Promise<void>;
   onAudioClick?: () => void;
+  onMoreClick?: () => void;
 }
 
 export function PromptInputWithActions({
@@ -16,7 +17,8 @@ export function PromptInputWithActions({
   onVisibilityChange,
   isDarkTheme = true,
   onSendMessage,
-  onAudioClick
+  onAudioClick,
+  onMoreClick
 }: PromptInputWithActionsProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -94,6 +96,7 @@ export function PromptInputWithActions({
           isDarkTheme={isDarkTheme}
           onFilesAdded={handleFilesAdded}
           onAudioClick={onAudioClick}
+          onMoreClick={onMoreClick}
         />
       ) : (
         <PromptInputExpanded
@@ -109,6 +112,7 @@ export function PromptInputWithActions({
           onRemoveFile={handleRemoveFile}
           isDarkTheme={isDarkTheme}
           onAudioClick={onAudioClick}
+          onMoreClick={onMoreClick}
         />
       )}
     </div>
