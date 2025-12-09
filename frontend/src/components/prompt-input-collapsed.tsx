@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, X, ChevronsUp } from "lucide-react"
+import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, Paperclip, Image, Video, Music } from "lucide-react"
 import {
   Popover,
   PopoverContent,
@@ -9,6 +9,7 @@ import { MediaUploadCard } from "./media-upload-card"
 import { useRef, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
+import { ModelSelectorPopover } from "./model-selector-popover"
 
 interface PromptInputCollapsedProps {
   input: string
@@ -22,6 +23,8 @@ interface PromptInputCollapsedProps {
   onFilesAdded?: (files: File[]) => void
   onAudioClick?: () => void
   onMoreClick?: () => void
+  onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onRemoveFile?: (index: number) => void
 }
 
 export function PromptInputCollapsed({
@@ -36,6 +39,8 @@ export function PromptInputCollapsed({
   onFilesAdded,
   onAudioClick,
   onMoreClick,
+  onFileChange,
+  onRemoveFile,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -50,6 +55,20 @@ export function PromptInputCollapsed({
   }, [onSubmit])
 
   const canSubmit = input.trim().length > 0 || files.length > 0
+
+  const getFileIcon = (file: File) => {
+    const fileType = file.type.toLowerCase()
+
+    if (fileType.startsWith('image/')) {
+      return <Image className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else if (fileType.startsWith('video/')) {
+      return <Video className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else if (fileType.startsWith('audio/')) {
+      return <Music className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else {
+      return <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    }
+  }
 
   return (
     <div className="flex items-center gap-3 mx-8 mb-0">
@@ -79,7 +98,7 @@ export function PromptInputCollapsed({
             <button
               aria-label="Add media"
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0",
                 hoverClass
               )}
             >
@@ -91,6 +110,29 @@ export function PromptInputCollapsed({
           </PopoverContent>
         </Popover>
 
+
+
+        {files.length > 0 && (
+          <div className="flex items-center gap-1 overflow-x-auto max-w-[100px] scrollbar-hide">
+            {files.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className={cn(
+                  "flex items-center justify-center h-6 w-6 rounded bg-muted shrink-0 cursor-pointer",
+                  themeClasses.fileItem
+                )}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemoveFile?.(index)
+                }}
+                title={file.name}
+              >
+                {getFileIcon(file)}
+              </div>
+            ))}
+          </div>
+        )}
+
         <input
           ref={inputRef}
           type="text"
@@ -100,7 +142,7 @@ export function PromptInputCollapsed({
           placeholder="Ask anything..."
           aria-label="Message input"
           className={cn(
-            "flex-1 bg-transparent text-base outline-none border-0 py-2",
+            "flex-1 bg-transparent text-base outline-none border-0 py-2 min-w-0",
             themeClasses.input
           )}
         />
@@ -109,7 +151,7 @@ export function PromptInputCollapsed({
           aria-label="Voice input"
           onClick={onAudioClick}
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+            "flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0",
             hoverClass
           )}
         >
@@ -119,7 +161,7 @@ export function PromptInputCollapsed({
         <Button
           variant="default"
           size="icon"
-          className="h-8 w-8 rounded-full bg-white text-black hover:bg-white/90 ml-2"
+          className="h-8 w-8 rounded-full bg-blue-500 text-white hover:bg-blue-500/90 ml-2 shrink-0"
           onClick={canSubmit ? onSubmit : onExpand}
           disabled={isLoading}
           aria-label={isLoading ? "Stop generation" : canSubmit ? "Send message" : "Expand input"}

@@ -67,6 +67,22 @@ export function PromptInputWithActions({
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files)
+      setFiles((prev) => [...prev, ...droppedFiles])
+      setIsExpanded(true)
+    }
+  }, [])
+
   // Use controlled or internal visibility
   const isVisible = controlledVisible !== undefined ? controlledVisible : internalVisible
   const setIsVisible = useCallback((visible: boolean) => {
@@ -83,7 +99,12 @@ export function PromptInputWithActions({
   }
 
   return (
-    <div className="relative w-full">
+    <div
+      className="relative w-full"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+
       {!isExpanded ? (
         <PromptInputCollapsed
           input={input}
@@ -97,6 +118,8 @@ export function PromptInputWithActions({
           onFilesAdded={handleFilesAdded}
           onAudioClick={onAudioClick}
           onMoreClick={onMoreClick}
+          onFileChange={handleFileChange}
+          onRemoveFile={handleRemoveFile}
         />
       ) : (
         <PromptInputExpanded

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp } from "lucide-react"
+import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
@@ -71,6 +71,19 @@ export function PromptInputExpanded({
   }, [onSubmit])
 
   const canSubmit = input.trim().length > 0 || files.length > 0
+  const getFileIcon = (file: File) => {
+    const fileType = file.type.toLowerCase()
+
+    if (fileType.startsWith('image/')) {
+      return <Image className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else if (fileType.startsWith('video/')) {
+      return <Video className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else if (fileType.startsWith('audio/')) {
+      return <Music className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    } else {
+      return <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
+    }
+  }
 
   return (
     <div className="flex items-start gap-3 mx-4 mb-0">
@@ -110,20 +123,17 @@ export function PromptInputExpanded({
         </button>
 
         {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 pb-1 max-h-[80px] overflow-y-auto">
+          <div className="flex flex-wrap gap-2 pb-1 max-h-[40px] overflow-y-auto">
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm border",
+                  "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
                   themeClasses.fileItem
                 )}
                 onClick={e => e.stopPropagation()}
               >
-                <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
-                <span className={cn("max-w-[120px] truncate", themeClasses.fileText)}>
-                  {file.name}
-                </span>
+                {getFileIcon(file)}
                 <button
                   onClick={() => onRemoveFile(index)}
                   aria-label={`Remove ${file.name}`}
@@ -220,7 +230,7 @@ export function PromptInputExpanded({
               <Button
                 variant="default"
                 size="icon"
-                className="h-8 w-8 rounded-full bg-white text-black hover:bg-white/90"
+                className="h-8 w-8 rounded-full bg-blue-500 text-white hover:bg-blue-500/90"
                 onClick={onSubmit}
                 disabled={!canSubmit || isLoading}
                 aria-label={isLoading ? "Stop generation" : "Send message"}
