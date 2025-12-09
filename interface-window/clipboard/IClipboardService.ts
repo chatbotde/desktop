@@ -1,0 +1,37 @@
+
+import { NativeImage } from 'electron';
+
+export interface ClipboardData {
+    text?: string;
+    html?: string;
+    image?: NativeImage;
+    rtf?: string;
+    bookmark?: string; // The title of the URL at text.
+}
+
+export interface IClipboardReader {
+    readText(type?: 'selection' | 'clipboard'): string;
+    readHTML(type?: 'selection' | 'clipboard'): string;
+    readImage(type?: 'selection' | 'clipboard'): NativeImage;
+    readRTF(type?: 'selection' | 'clipboard'): string;
+    readBookmark(): { title: string; url: string };
+    readFindText(): string;
+    readBuffer(format: string): Buffer;
+    read(format: string): string;
+    availableFormats(type?: 'selection' | 'clipboard'): string[];
+    has(format: string, type?: 'selection' | 'clipboard'): boolean;
+}
+
+export interface IClipboardWriter {
+    writeText(text: string, type?: 'selection' | 'clipboard'): void;
+    writeHTML(markup: string, type?: 'selection' | 'clipboard'): void;
+    writeImage(image: NativeImage, type?: 'selection' | 'clipboard'): void;
+    writeRTF(text: string, type?: 'selection' | 'clipboard'): void;
+    writeBookmark(title: string, url: string, type?: 'selection' | 'clipboard'): void;
+    writeFindText(text: string): void;
+    writeBuffer(format: string, buffer: Buffer, type?: 'selection' | 'clipboard'): void;
+    write(data: ClipboardData, type?: 'selection' | 'clipboard'): void;
+    clear(type?: 'selection' | 'clipboard'): void;
+}
+
+export interface IClipboardService extends IClipboardReader, IClipboardWriter { }

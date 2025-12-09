@@ -1,0 +1,16 @@
+{
+  "name": "interface-window",
+  "version": "1.0.0",
+  "description": "Interface window module for Buddy - TypeScript setup",
+  "main": "interface-window.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.0.0"
+  },
+  "dependencies": {}
+}
