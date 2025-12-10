@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, CornerDownLeft, ArrowRightLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InsertButton } from '../insert-button'
+import { ReplaceButton } from '../replace-button'
 import { MessageContent } from '../prompt-kit/message'
 import type { ChatMessage } from './types'
 
@@ -28,25 +30,25 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
   }
 
   const isUser = message.role === 'user'
-  
+
   const messageStyles = cn(
     "transition-all duration-300 break-words overflow-hidden relative",
     "leading-[1.7] tracking-normal font-normal antialiased",
     isUser
       ? cn(
-          'text-white',
-          'bg-blue-600',
-          'rounded-2xl',
-          'border-7 border-blue-600',
-          'shadow-lg shadow-blue-500/20',
-          'px-1 py-0',
-          'hover:shadow-xl hover:shadow-blue-500/30',
-          'transition-all duration-300 ease-in-out'
-        )
+        'text-white',
+        'bg-blue-600',
+        'rounded-2xl',
+        'border-7 border-blue-600',
+        'shadow-lg shadow-blue-500/20',
+        'px-1 py-0',
+        'hover:shadow-xl hover:shadow-blue-500/30',
+        'transition-all duration-300 ease-in-out'
+      )
       : cn(
-          'bg-transparent px-4 py-3',
-          isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
-        )
+        'bg-transparent px-4 py-3',
+        isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
+      )
   )
 
   return (
@@ -69,9 +71,9 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
               markdown={message.role === 'assistant'}
               className={cn(
                 "max-w-none break-words whitespace-pre-wrap bg-transparent p-0",
-                isUser 
+                isUser
                   ? "!text-white"
-                  : isDarkTheme 
+                  : isDarkTheme
                     ? "prose prose-invert prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-100 prose-strong:text-white prose-code:text-zinc-100 !text-zinc-100"
                     : "prose prose-zinc prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900 !text-zinc-900",
                 "text-[15px] leading-[1.7] tracking-[0.01em]",
@@ -83,7 +85,7 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
                 "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
                 "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
                 // Only override main text elements for theme
-                isDarkTheme 
+                isDarkTheme
                   ? "[&_p]:!text-zinc-100 [&_h1]:!text-zinc-100 [&_h2]:!text-zinc-100 [&_h3]:!text-zinc-100 [&_strong]:!text-white [&_code]:!text-zinc-100"
                   : "[&_p]:!text-zinc-900 [&_h1]:!text-zinc-900 [&_h2]:!text-zinc-900 [&_h3]:!text-zinc-900 [&_strong]:!text-zinc-900 [&_code]:!text-zinc-900"
               )}
@@ -117,24 +119,57 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
             {isExpanded ? 'Show less' : 'Show more'}
           </button>
         )}
-        
+
         {/* Copy button */}
         <button
           onClick={handleCopy}
           className={cn(
             "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            "absolute -bottom-8 p-1.5 rounded-full text-xs",
-            isDarkTheme 
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700" 
+            "absolute -bottom-8 right-0 p-1.5 rounded-full text-xs",
+            isDarkTheme
+              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
               : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
             "border shadow-sm",
-            isDarkTheme ? "border-zinc-700" : "border-zinc-200",
-            isUser ? "right-0" : "left-0"
+            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
           )}
           title={copied ? "Copied!" : "Copy"}
         >
           {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
         </button>
+
+        {/* Insert button */}
+        <InsertButton
+          content={message.content}
+          variant="ghost"
+          className={cn(
+            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+            "absolute -bottom-8 right-8 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
+            isDarkTheme
+              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
+              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
+            "border shadow-sm",
+            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+          )}
+        >
+          <CornerDownLeft className="w-3 h-3" />
+        </InsertButton>
+
+        {/* Replace button */}
+        <ReplaceButton
+          content={message.content}
+          variant="ghost"
+          className={cn(
+            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+            "absolute -bottom-8 right-16 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
+            isDarkTheme
+              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
+              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
+            "border shadow-sm",
+            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+          )}
+        >
+          <ArrowRightLeft className="w-3 h-3" />
+        </ReplaceButton>
       </div>
     </div>
   )

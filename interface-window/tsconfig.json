@@ -3,16 +3,16 @@
   "compilerOptions": {
     /* Language and Environment */
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "CommonJS",
-    
     /* Module Resolution */
     "moduleResolution": "node",
     "baseUrl": ".",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    
     /* Type Checking */
     "strict": true,
     "noUnusedLocals": true,
@@ -22,7 +22,6 @@
     "noImplicitOverride": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    
     /* Emit */
     "outDir": "./dist",
     "rootDir": ".",
@@ -33,15 +32,16 @@
     "importHelpers": true,
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    
     /* Interop Constraints */
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "isolatedModules": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.js"
+    "*.ts",
+    "electron-api/**/*.ts",
+    "os-system/**/*.ts",
+    "monitor/**/*.ts"
   ],
   "exclude": [
     "node_modules",

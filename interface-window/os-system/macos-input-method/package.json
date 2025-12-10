@@ -1,0 +1,32 @@
+{
+  "name": "macos-input-method",
+  "version": "1.0.0",
+  "description": "Native macOS Input Method framework binding for Node.js/Electron",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "macos",
+    "input-method",
+    "text-input",
+    "ime",
+    "native",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "gypfile": true,
+  "dependencies": {
+    "nan": "^2.18.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.0"
+  },
+  "os": [
+    "darwin"
+  ]
+}

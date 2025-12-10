@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { MessageBubble } from './output-window/MessageBubble'
 import { DragButton } from './output-window/DragButton'
 import { ResizeHandle } from './output-window/ResizeHandle'
@@ -67,7 +67,7 @@ export function OutputMessages({
     return (
         <Card
             ref={cardRef}
-            className={themeClasses.card}
+            className="fixed bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-8 shadow-sm"
             data-no-clickthrough
             style={{
                 left: `${position.x}px`,
@@ -91,10 +91,8 @@ export function OutputMessages({
                 onClose={handleClose}
                 iconButtonClass={themeClasses.iconButton}
             />
-            <CardHeader className="py-0 px-0">
 
-            </CardHeader>
-            <CardContent className={themeClasses.content} style={{ height: 'calc(100% - 60px)', backgroundColor: themeClasses.contentBg }}>
+            <CardContent className={themeClasses.content} style={{ height: 'calc(100%-1px)', backgroundColor: themeClasses.contentBg }}>
                 {messages.length === 0 ? (
                     <p className={themeClasses.emptyText}>Welcome to future</p>
                 ) : (

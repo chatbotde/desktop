@@ -25,15 +25,17 @@ export function PromptInputWithActions({
   const [files, setFiles] = useState<File[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
   const [internalVisible, setInternalVisible] = useState(true)
+  const [clipboardItems, setClipboardItems] = useState<string[]>([])
 
   const handleSubmit = useCallback(async () => {
-    if (!(input.trim() || files.length > 0)) return
+    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
 
     setIsLoading(true)
 
     try {
-      if (input.trim() && onSendMessage) {
-        await onSendMessage(input)
+      if ((input.trim() || clipboardItems.length > 0) && onSendMessage) {
+        const messageParts = [...clipboardItems, input].filter(Boolean)
+        await onSendMessage(messageParts.join("\n\n"))
       }
     } catch (error) {
       console.error('Error sending message:', error)
@@ -42,9 +44,10 @@ export function PromptInputWithActions({
       setIsLoading(false)
       setInput("")
       setFiles([])
+      setClipboardItems([])
       setIsExpanded(false)
     }
-  }, [input, files.length, onSendMessage])
+  }, [input, files.length, clipboardItems, onSendMessage])
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -65,6 +68,15 @@ export function PromptInputWithActions({
 
   const handleRemoveFile = useCallback((index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const handleClipboardItemAdd = useCallback((text: string) => {
+    setClipboardItems((prev) => [...prev, text])
+    setIsExpanded(true)
+  }, [])
+
+  const handleRemoveClipboardItem = useCallback((index: number) => {
+    setClipboardItems((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -111,6 +123,7 @@ export function PromptInputWithActions({
           setInput={setInput}
           isLoading={isLoading}
           files={files}
+          clipboardItems={clipboardItems}
           onSubmit={handleSubmit}
           onExpand={() => setIsExpanded(true)}
           onHide={() => setIsVisible(false)}
@@ -120,6 +133,8 @@ export function PromptInputWithActions({
           onMoreClick={onMoreClick}
           onFileChange={handleFileChange}
           onRemoveFile={handleRemoveFile}
+          onClipboardItemAdd={handleClipboardItemAdd}
+          onRemoveClipboardItem={handleRemoveClipboardItem}
         />
       ) : (
         <PromptInputExpanded
@@ -127,6 +142,7 @@ export function PromptInputWithActions({
           setInput={setInput}
           isLoading={isLoading}
           files={files}
+          clipboardItems={clipboardItems}
           onSubmit={handleSubmit}
           onCollapse={() => setIsExpanded(false)}
           onHide={() => setIsVisible(false)}
@@ -136,6 +152,8 @@ export function PromptInputWithActions({
           isDarkTheme={isDarkTheme}
           onAudioClick={onAudioClick}
           onMoreClick={onMoreClick}
+          onClipboardItemAdd={handleClipboardItemAdd}
+          onRemoveClipboardItem={handleRemoveClipboardItem}
         />
       )}
     </div>

@@ -2,6 +2,9 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const path = require('path');
 const { ClickThroughManager } = require('./click-through');
 const { screen } = require('electron');
+const { registerElectronApis } = require('./dist/register-apis'); // Auto-register APIs
+
+
 
 class InterfaceWindow {
   constructor() {
@@ -20,7 +23,7 @@ class InterfaceWindow {
 
     this.window = new BrowserWindow({
       width: width,
-      height: height-1,
+      height: height - 1,
       frame: false,
       transparent: true,
       alwaysOnTop: false,
@@ -32,10 +35,10 @@ class InterfaceWindow {
       title: "",
       skipTaskbar: false,
       webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
+        preload: path.join(__dirname, 'preload.js'),
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true
       },
       show: false // Don't show until ready-to-show
     });
@@ -43,9 +46,9 @@ class InterfaceWindow {
     // Load the frontend
     // In development, load from Vite dev server
     // In production, use the custom protocol
-    const isDev = !app.isPackaged; 
+    const isDev = !app.isPackaged;
     const url = isDev ? 'http://localhost:5173' : 'buddy-app://frontend/index.html';
-    
+
     console.log(`InterfaceWindow: Loading URL ${url}`);
     this.window.loadURL(url);
 
@@ -68,6 +71,7 @@ class InterfaceWindow {
   }
 
   setupHandlers() {
+    registerElectronApis();
     ipcMain.on('interface-window:minimize', () => {
       if (this.window) this.window.minimize();
     });

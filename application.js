@@ -48,7 +48,7 @@ class Application {
     this.ipcRegistry = ipcRegistry || new IpcHandlerRegistry();
     this.mcpManager = mcpManager || new McpProcessManager();
     this.mediaManager = mediaManager || new MediaStreamManager();
-    
+
     // Window instances
     this.chatInputWindow = null;
     this.authWindow = null;
@@ -250,7 +250,7 @@ class Application {
    */
   toggleChatInput() {
     console.log('Application: Toggle chat input requested');
-    
+
     if (!this.chatInputWindow) {
       this.createChatInputWindow();
     } else if (this.chatInputWindow.getChatInputWindow()?.isVisible()) {
@@ -266,7 +266,7 @@ class Application {
    */
   showCollapsedChatInput() {
     console.log('Application: Show collapsed chat input');
-    
+
     // Disable minimal mode if active
     if (MinimalModeManager.getStatus()) {
       MinimalModeManager.disableMinimalMode();
@@ -486,7 +486,7 @@ class Application {
    */
   cleanup() {
     console.log('Application: Cleaning up...');
-    
+
     this.shortcutRegistry.unregisterAll();
     this.mcpManager.disconnectAll();
     this.mediaManager.closeAll();

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, Paperclip, Image, Video, Music } from "lucide-react"
+import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, Paperclip, Image, Video, Music, FileText } from "lucide-react"
 import {
   Popover,
   PopoverContent,
@@ -9,13 +9,14 @@ import { MediaUploadCard } from "./media-upload-card"
 import { useRef, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
-import { ModelSelectorPopover } from "./model-selector-popover"
+import { ClipboardPill } from "./clipboard"
 
 interface PromptInputCollapsedProps {
   input: string
   setInput: (value: string) => void
   isLoading: boolean
   files: File[]
+  clipboardItems?: string[]
   onSubmit: () => void
   onExpand: () => void
   onHide: () => void
@@ -25,6 +26,8 @@ interface PromptInputCollapsedProps {
   onMoreClick?: () => void
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile?: (index: number) => void
+  onClipboardItemAdd?: (text: string) => void
+  onRemoveClipboardItem?: (index: number) => void
 }
 
 export function PromptInputCollapsed({
@@ -32,6 +35,7 @@ export function PromptInputCollapsed({
   setInput,
   isLoading,
   files,
+  clipboardItems,
   onSubmit,
   onExpand,
   onHide,
@@ -39,8 +43,9 @@ export function PromptInputCollapsed({
   onFilesAdded,
   onAudioClick,
   onMoreClick,
-  onFileChange,
   onRemoveFile,
+  onClipboardItemAdd,
+  onRemoveClipboardItem,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -54,7 +59,7 @@ export function PromptInputCollapsed({
     }
   }, [onSubmit])
 
-  const canSubmit = input.trim().length > 0 || files.length > 0
+  const canSubmit = input.trim().length > 0 || files.length > 0 || (clipboardItems && clipboardItems.length > 0)
 
   const getFileIcon = (file: File) => {
     const fileType = file.type.toLowerCase()
@@ -71,7 +76,11 @@ export function PromptInputCollapsed({
   }
 
   return (
-    <div className="flex items-center gap-3 mx-8 mb-0">
+    <div className="relative flex items-center gap-3 mx-8 mb-0">
+      <ClipboardPill
+        onAdd={(text) => onClipboardItemAdd ? onClipboardItemAdd(text) : setInput(input + (input ? " " : "") + text)}
+        isDarkTheme={isDarkTheme}
+      />
       <button
         onClick={onHide}
         aria-label="Hide input"
@@ -112,8 +121,24 @@ export function PromptInputCollapsed({
 
 
 
-        {files.length > 0 && (
+        {(files.length > 0 || (clipboardItems && clipboardItems.length > 0)) && (
           <div className="flex items-center gap-1 overflow-x-auto max-w-[100px] scrollbar-hide">
+            {clipboardItems?.map((item, index) => (
+              <div
+                key={`clipboard-${index}`}
+                className={cn(
+                  "flex items-center justify-center h-6 w-6 rounded bg-muted shrink-0 cursor-pointer",
+                  themeClasses.fileItem
+                )}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemoveClipboardItem?.(index)
+                }}
+                title={item}
+              >
+                <FileText className={`size-4 ${themeClasses.icon}`} />
+              </div>
+            ))}
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}

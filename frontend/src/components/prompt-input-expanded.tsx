@@ -10,17 +10,19 @@ import {
 } from "@/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music } from "lucide-react"
+import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
+import { ClipboardPill } from "./clipboard"
 
 interface PromptInputExpandedProps {
   input: string
   setInput: (value: string) => void
   isLoading: boolean
   files: File[]
+  clipboardItems?: string[]
   onSubmit: () => void
   onCollapse: () => void
   onHide: () => void
@@ -30,6 +32,8 @@ interface PromptInputExpandedProps {
   onFilesAdded?: (files: File[]) => void
   onAudioClick?: () => void
   onMoreClick?: () => void
+  onClipboardItemAdd?: (text: string) => void
+  onRemoveClipboardItem?: (index: number) => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -39,6 +43,7 @@ export function PromptInputExpanded({
   setInput,
   isLoading,
   files,
+  clipboardItems,
   onSubmit,
   onCollapse,
   onHide,
@@ -48,6 +53,8 @@ export function PromptInputExpanded({
   onFilesAdded,
   onAudioClick,
   onMoreClick,
+  onClipboardItemAdd,
+  onRemoveClipboardItem,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -70,7 +77,7 @@ export function PromptInputExpanded({
     }
   }, [onSubmit])
 
-  const canSubmit = input.trim().length > 0 || files.length > 0
+  const canSubmit = input.trim().length > 0 || files.length > 0 || (clipboardItems && clipboardItems.length > 0)
   const getFileIcon = (file: File) => {
     const fileType = file.type.toLowerCase()
 
@@ -86,7 +93,11 @@ export function PromptInputExpanded({
   }
 
   return (
-    <div className="flex items-start gap-3 mx-4 mb-0">
+    <div className="relative flex items-start gap-3 mx-4 mb-0">
+      <ClipboardPill
+        onAdd={(text) => onClipboardItemAdd ? onClipboardItemAdd(text) : setInput(input + (input ? " " : "") + text)}
+        isDarkTheme={isDarkTheme}
+      />
       <button
         onClick={onHide}
         aria-label="Hide input"
@@ -122,8 +133,32 @@ export function PromptInputExpanded({
           <ChevronUp className={`size-4 ${themeClasses.icon} rotate-180`} />
         </button>
 
-        {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 pb-1 max-h-[40px] overflow-y-auto">
+        {(files.length > 0 || (clipboardItems && clipboardItems.length > 0)) && (
+          <div className="flex flex-wrap gap-2 pb-1 max-h-[80px] overflow-y-auto">
+            {clipboardItems?.map((item, index) => (
+              <div
+                key={`clipboard-${index}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-2 py-1 text-sm border max-w-[200px]",
+                  themeClasses.fileItem
+                )}
+                onClick={e => e.stopPropagation()}
+                title={item}
+              >
+                <FileText className={`size-4 ${themeClasses.icon} shrink-0`} aria-hidden="true" />
+                <span className="truncate">{item.replace(/\n/g, ' ').substring(0, 30)}</span>
+                <button
+                  onClick={() => onRemoveClipboardItem?.(index)}
+                  aria-label={`Remove clipboard item`}
+                  className={cn(
+                    "rounded-full p-0.5 transition-colors shrink-0",
+                    hoverClass
+                  )}
+                >
+                  <X className={`size-3 ${themeClasses.icon}`} />
+                </button>
+              </div>
+            ))}
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
@@ -134,6 +169,7 @@ export function PromptInputExpanded({
                 onClick={e => e.stopPropagation()}
               >
                 {getFileIcon(file)}
+                <span className="truncate max-w-[150px]">{file.name}</span>
                 <button
                   onClick={() => onRemoveFile(index)}
                   aria-label={`Remove ${file.name}`}
