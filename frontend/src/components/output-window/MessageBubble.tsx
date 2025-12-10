@@ -1,19 +1,19 @@
 import { useState } from 'react'
-import { Copy, Check, CornerDownLeft, ArrowRightLeft } from 'lucide-react'
+import { Copy, Check, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InsertButton } from '../insert-button'
-import { ReplaceButton } from '../replace-button'
 import { MessageContent } from '../prompt-kit/message'
 import type { ChatMessage } from './types'
 
 interface MessageBubbleProps {
   message: ChatMessage
   isDarkTheme: boolean
+  id?: string
 }
 
 const LONG_CONTENT_CHAR_THRESHOLD = 450
 
-export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
+export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -39,9 +39,9 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
         'text-white',
         'bg-blue-600',
         'rounded-2xl',
-        'border-7 border-blue-600',
+        'border border-blue-600',
         'shadow-lg shadow-blue-500/20',
-        'px-1 py-0',
+        'px-4 py-2',
         'hover:shadow-xl hover:shadow-blue-500/30',
         'transition-all duration-300 ease-in-out'
       )
@@ -52,7 +52,7 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
   )
 
   return (
-    <div className={cn(
+    <div id={id} className={cn(
       "flex w-full group",
       isUser ? "justify-end" : "justify-start"
     )}>
@@ -137,39 +137,27 @@ export function MessageBubble({ message, isDarkTheme }: MessageBubbleProps) {
           {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
         </button>
 
-        {/* Insert button */}
-        <InsertButton
-          content={message.content}
-          variant="ghost"
-          className={cn(
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            "absolute -bottom-8 right-8 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
-            isDarkTheme
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
-              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
-            "border shadow-sm",
-            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
-          )}
-        >
-          <CornerDownLeft className="w-3 h-3" />
-        </InsertButton>
+        {/* Insert button - only show for AI messages */}
+        {!isUser && (
+          <InsertButton
+            content={message.content}
+            variant="ghost"
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+              "absolute -bottom-8 right-8 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
+              isDarkTheme
+                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
+                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
+              "border shadow-sm",
+              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+            )}
+          >
+            <CornerDownLeft className="w-3 h-3" />
+          </InsertButton>
+        )}
 
         {/* Replace button */}
-        <ReplaceButton
-          content={message.content}
-          variant="ghost"
-          className={cn(
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            "absolute -bottom-8 right-16 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
-            isDarkTheme
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
-              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
-            "border shadow-sm",
-            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
-          )}
-        >
-          <ArrowRightLeft className="w-3 h-3" />
-        </ReplaceButton>
+
       </div>
     </div>
   )

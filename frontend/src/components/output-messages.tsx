@@ -36,7 +36,7 @@ export function OutputMessages({
     // Use custom hooks for drag, resize, and auto-scroll
     const { handleDragMouseDown } = useDraggable(setPosition, cardRef)
     const { handleResizeMouseDown } = useResizable(size, setSize)
-    useAutoScroll(messagesEndRef, messages.length)
+    useAutoScroll(messages)
 
     const isVisible = propIsVisible !== undefined ? propIsVisible : internalIsVisible
 
@@ -96,10 +96,11 @@ export function OutputMessages({
                 {messages.length === 0 ? (
                     <p className={themeClasses.emptyText}>Welcome to future</p>
                 ) : (
-                    <div className="w-full space-y-4 flex flex-col">
+                    <div className="w-full space-y-10 flex flex-col">
                         {messages.map((msg) => (
                             <MessageBubble
                                 key={msg.id}
+                                id={`message-${msg.id}`}
                                 message={msg}
                                 isDarkTheme={isDarkTheme}
                             />

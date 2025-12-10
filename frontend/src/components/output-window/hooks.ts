@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Position, Size } from './types'
 
 interface UseDraggableResult {
@@ -115,10 +115,21 @@ export function useResizable(
   return { isResizing, handleResizeMouseDown }
 }
 
-export function useAutoScroll(messagesEndRef: React.RefObject<HTMLDivElement | null>, messagesLength: number) {
+export function useAutoScroll(messages: any[]) {
+  const prevLengthRef = useRef(messages.length)
+
   useEffect(() => {
-    if (messagesLength > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    // Only scroll if a NEW message is added
+    if (messages.length > prevLengthRef.current) {
+      const lastMessage = messages[messages.length - 1]
+      // Use setTimeout to ensure DOM is rendered
+      setTimeout(() => {
+        const element = document.getElementById(`message-${lastMessage.id}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
     }
-  }, [messagesLength, messagesEndRef])
+    prevLengthRef.current = messages.length
+  }, [messages])
 }
