@@ -15,17 +15,17 @@ const { GlobalShortcutRegistry } = require('./global-shortcut-registry');
 const { IpcHandlerRegistry } = require('./ipc-handler-registry');
 const { McpProcessManager } = require('./mcp-process-manager');
 const { MediaStreamManager } = require('./media-stream-manager');
-const { ChatInputWindow } = require('./chat-input/chat-input-window');
+// const { ChatInputWindow } = require('./chat-input/chat-input-window'); // ISOLATED
 const { initializeAuth, authService, AuthWindow } = require('./auth');
 const { InterfaceWindow } = require('./interface-window/interface-window');
 const { ProtocolHandler } = require('./interface-window/protocol-handler');
 const { AutoStartupManager } = require('./startup');
 const { clipboardMonitor } = require('./clipboard-monitor');
-const { textSelectionMonitor } = require('./chat-input/electron-api/text-selection');
+const { textSelectionMonitor } = require('./interface-window/monitor/text-selection-monitor');
 const { environmentConfig } = require('./utils/environment');
-const { initializeTsf } = require('./chat-input/tsf-ipc-handlers');
-const { setupSearchIpc } = require('./chat-input/search/search-handler');
-const { MinimalModeManager } = require('./global-shortcut');
+// const { initializeTsf } = require('./chat-input/tsf-ipc-handlers'); // ISOLATED
+// const { setupSearchIpc } = require('./chat-input/search/search-handler'); // ISOLATED
+// const { MinimalModeManager } = require('./global-shortcut'); // ISOLATED
 
 class Application {
   /**
@@ -50,7 +50,7 @@ class Application {
     this.mediaManager = mediaManager || new MediaStreamManager();
 
     // Window instances
-    this.chatInputWindow = null;
+    // this.chatInputWindow = null; // ISOLATED
     this.authWindow = null;
     this.interfaceWindow = null;
     this.autoStartupManager = null;
@@ -140,14 +140,14 @@ class Application {
       }
 
       // Create chat input window
-      this.createChatInputWindow();
+      // this.createChatInputWindow(); // ISOLATED
 
       // Create Interface Window
       this.interfaceWindow = new InterfaceWindow();
       this.interfaceWindow.create();
 
       // Setup Search IPC
-      setupSearchIpc();
+      // setupSearchIpc(); // ISOLATED
 
       // Register global shortcuts
       this.registerGlobalShortcuts();
@@ -160,11 +160,11 @@ class Application {
       this.registerIpcHandlers();
 
       // Initialize TSF
-      setTimeout(() => this.initializeTsf(), 1000);
+      // setTimeout(() => this.initializeTsf(), 1000); // ISOLATED
     } catch (error) {
       console.error('Application: Error during initialization:', error);
       // Continue with basic functionality
-      this.createChatInputWindow();
+      // this.createChatInputWindow(); // ISOLATED
       this.registerGlobalShortcuts();
     }
   }
@@ -186,6 +186,7 @@ class Application {
    * Create chat input window
    * @private
    */
+  /* ISOLATED
   createChatInputWindow() {
     if (!this.chatInputWindow) {
       console.log('Application: Creating chat input window');
@@ -195,6 +196,7 @@ class Application {
       MinimalModeManager.initialize(this.chatInputWindow);
     }
   }
+  */
 
   /**
    * Register global shortcuts
@@ -202,25 +204,31 @@ class Application {
    */
   registerGlobalShortcuts() {
     // Ctrl+H - Toggle chat input visibility
+    /* ISOLATED
     this.shortcutRegistry.register(
       'CommandOrControl+H',
       () => this.toggleChatInput(),
       'Toggle chat input visibility'
     );
+    */
 
     // Ctrl+M - Toggle minimal mode
+    /* ISOLATED
     this.shortcutRegistry.register(
       'CommandOrControl+M',
       () => MinimalModeManager.toggleMinimalMode(),
       'Toggle minimal mode'
     );
+    */
 
     // Ctrl+Shift+L - Show collapsed chat input
+    /* ISOLATED
     this.shortcutRegistry.register(
       'CommandOrControl+Shift+L',
       () => this.showCollapsedChatInput(),
       'Show collapsed chat input'
     );
+    */
 
     // Ctrl+I - Toggle interface window
     this.shortcutRegistry.register(
@@ -248,6 +256,7 @@ class Application {
    * Toggle chat input window
    * @private
    */
+  /* ISOLATED
   toggleChatInput() {
     console.log('Application: Toggle chat input requested');
 
@@ -259,11 +268,13 @@ class Application {
       this.chatInputWindow.show();
     }
   }
+  */
 
   /**
    * Show chat input in collapsed state
    * @private
    */
+  /* ISOLATED
   showCollapsedChatInput() {
     console.log('Application: Show collapsed chat input');
 
@@ -284,6 +295,7 @@ class Application {
       window.webContents.send('set-collapsed-state', true);
     }
   }
+  */
 
   /**
    * Setup clipboard monitoring
@@ -294,11 +306,13 @@ class Application {
 
     clipboardMonitor.startMonitoring();
 
+    /* ISOLATED
     clipboardMonitor.onChange((clipboardContent) => {
       if (this.chatInputWindow?.getChatInputWindow()?.isVisible()) {
         this.chatInputWindow.getChatInputWindow().webContents.send('clipboard-changed', clipboardContent);
       }
     });
+    */
 
     // Register clipboard IPC handlers
     this.ipcRegistry.register('start-clipboard-monitoring', () => {
@@ -331,8 +345,9 @@ class Application {
     textSelectionMonitor.startMonitoring();
 
     textSelectionMonitor.onSelection((selectionData) => {
-      if (selectionData?.text && this.chatInputWindow?.getChatInputWindow()) {
-        this.chatInputWindow.getChatInputWindow().webContents.send('text-selection-changed', selectionData);
+      // Send to interface window if it exists and has valid coordinates
+      if (selectionData?.text && this.interfaceWindow?.window) {
+        this.interfaceWindow.window.webContents.send('text-selection-changed', selectionData);
       }
     });
 
@@ -350,13 +365,6 @@ class Application {
     this.ipcRegistry.register('get-text-selection-monitoring-status', () => {
       return textSelectionMonitor.isActive();
     });
-
-    // Handle add to chat
-    this.ipcRegistry.register('add-to-chat', (event, text) => {
-      if (text && this.chatInputWindow?.getChatInputWindow()) {
-        this.chatInputWindow.getChatInputWindow().webContents.send('add-text-to-input', text);
-      }
-    }, 'on');
   }
 
   /**
@@ -365,6 +373,7 @@ class Application {
    */
   registerIpcHandlers() {
     // Chat input window handlers
+    /* ISOLATED
     this.ipcRegistry.register('toggle-chat-input', () => {
       this.toggleChatInput();
     }, 'on');
@@ -372,6 +381,7 @@ class Application {
     this.ipcRegistry.register('hide-chat-input', () => {
       this.chatInputWindow?.hide();
     }, 'on');
+    */
 
     // MCP handlers
     this.ipcRegistry.register('mcp:connect', async (event, config) => {
@@ -424,6 +434,7 @@ class Application {
    * Initialize TSF
    * @private
    */
+  /* ISOLATED
   async initializeTsf() {
     try {
       console.log('Application: Initializing TSF...');
@@ -437,6 +448,7 @@ class Application {
       console.error('Application: TSF initialization error:', error);
     }
   }
+  */
 
   /**
    * Handle auth success
@@ -445,7 +457,7 @@ class Application {
   onAuthSuccess(user) {
     console.log('Application: Auth success:', user.email || user.id);
     this.authWindow?.close();
-    this.chatInputWindow?.show();
+    // this.chatInputWindow?.show(); // ISOLATED
   }
 
   /**
@@ -490,7 +502,7 @@ class Application {
     this.shortcutRegistry.unregisterAll();
     this.mcpManager.disconnectAll();
     this.mediaManager.closeAll();
-    this.chatInputWindow?.destroy();
+    // this.chatInputWindow?.destroy(); // ISOLATED
 
     console.log('Application: Cleanup complete');
   }

@@ -6,17 +6,12 @@ import { OutputMessages } from './components/output-messages'
 import type { ChatMessage } from './components/output-window/types'
 import { sendMessageComplete } from '@/lib/ai'
 
+import { TextSelectionPopup } from '@/components/text-selection/TextSelectionPopup'
 import { AudioRecorderPill } from '@/components/audio-recorder-pill'
 import { VideoScroll } from '@/components/container'
 
 declare global {
   interface Window {
-    interfaceAPI?: {
-      minimize: () => void;
-      maximize: () => void;
-      close: () => void;
-      setIgnoreMouseEvents?: (ignore: boolean, options?: { forward?: boolean }) => void;
-    }
     addOutputMessage?: (message: string, role?: 'user' | 'assistant') => void;
   }
 }
@@ -91,6 +86,7 @@ function App() {
   return (
     <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
+      <TextSelectionPopup onSendMessage={handleSendMessage} />
       {/* Right Transparent Panel - Above everything */}
       <RightTransparent
         onClick={() => setIsInputVisible(true)}

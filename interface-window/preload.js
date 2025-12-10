@@ -35,10 +35,18 @@ contextBridge.exposeInMainWorld('interfaceAPI', {
 
   // Example: Receive message from main process
   onMessage: (channel, func) => {
-    const validChannels = ['interface-update'];
+    const validChannels = ['interface-update', 'text-selection-changed'];
     if (validChannels.includes(channel)) {
       // Deliberately strip event as it includes `sender` 
       ipcRenderer.on(channel, (event, ...args) => func(...args));
+    }
+  },
+
+  // Remove message listener
+  removeMessageListener: (channel, func) => {
+    const validChannels = ['interface-update', 'text-selection-changed'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.removeListener(channel, func);
     }
   }
 });
