@@ -19,6 +19,25 @@ try {
   };
 }
 
+// Load TSF module with error handling
+let setupTsfIpc, initializeTsf;
+try {
+  const tsfModule = require('./dist/tsf');
+  setupTsfIpc = tsfModule.setupTsfIpc;
+  initializeTsf = tsfModule.initializeTsf;
+  console.log('InterfaceWindow: Successfully loaded TSF module from dist');
+} catch (error) {
+  console.error('InterfaceWindow: Failed to load TSF module:', error);
+  // Provide fallback functions
+  setupTsfIpc = () => {
+    console.warn('InterfaceWindow: setupTsfIpc not available (using fallback)');
+  };
+  initializeTsf = async () => {
+    console.warn('InterfaceWindow: initializeTsf not available (using fallback)');
+    return false;
+  };
+}
+
 
 
 class InterfaceWindow {
@@ -87,6 +106,17 @@ class InterfaceWindow {
 
   setupHandlers() {
     registerElectronApis();
+
+    // Setup TSF IPC handlers and initialize TSF
+    setupTsfIpc(this.window);
+    initializeTsf().then(success => {
+      if (success) {
+        console.log('InterfaceWindow: TSF initialized successfully');
+      } else {
+        console.warn('InterfaceWindow: TSF initialization failed');
+      }
+    });
+
     ipcMain.on('interface-window:minimize', () => {
       if (this.window) this.window.minimize();
     });

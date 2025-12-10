@@ -29,6 +29,8 @@ export function InsertButton({
         e.preventDefault();
         e.stopPropagation(); // Stop propagation to prevent message click events
 
+        console.log("[InsertButton] handleInsert called, content length:", content?.length);
+
         if (!content) {
             console.warn("[InsertButton] No content to insert");
             return;
@@ -39,8 +41,13 @@ export function InsertButton({
         try {
             // Use the TSF API exposed by the preload script
             // This maps to the native tsf-framework's focusAndInsertText functionality
+            console.log("[InsertButton] window.tsfAPI:", window.tsfAPI);
+            console.log("[InsertButton] focusAndInsertText available:", !!window.tsfAPI?.focusAndInsertText);
+
             if (window.tsfAPI?.focusAndInsertText) {
+                console.log("[InsertButton] Calling focusAndInsertText...");
                 const success = await window.tsfAPI.focusAndInsertText(content)
+                console.log("[InsertButton] focusAndInsertText result:", success);
                 if (!success) {
                     console.warn("TSF insert reported failure, but might have fallen back silently.")
                 }
