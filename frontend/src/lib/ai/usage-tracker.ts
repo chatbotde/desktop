@@ -364,12 +364,3 @@ export const getRateLimitStatus = () => usageTracker.getRateLimitStatus();
 export const getDashboard = () => usageTracker.getDashboard();
 export const getProfile = () => usageTracker.getProfile();
 
-// Type declaration for window.electronAPI
-declare global {
-  interface Window {
-    electronAPI?: {
-      getAuthToken?: () => Promise<string | null>;
-      [key: string]: unknown;
-    };
-  }
-}

@@ -2,7 +2,22 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const path = require('path');
 const { ClickThroughManager } = require('./click-through');
 const { screen } = require('electron');
-const { registerElectronApis } = require('./dist/register-apis'); // Auto-register APIs
+
+// Load register-apis with error handling
+let registerElectronApis;
+try {
+  const registerApisModule = require('./dist/register-apis');
+  registerElectronApis = registerApisModule.registerElectronApis;
+  console.log('InterfaceWindow: Successfully loaded register-apis from dist');
+} catch (error) {
+  console.error('InterfaceWindow: Failed to load register-apis:', error);
+  console.error('InterfaceWindow: __dirname =', __dirname);
+  console.error('InterfaceWindow: Attempted path =', path.join(__dirname, 'dist', 'register-apis'));
+  // Provide a fallback function
+  registerElectronApis = () => {
+    console.warn('InterfaceWindow: registerElectronApis not available (using fallback)');
+  };
+}
 
 
 

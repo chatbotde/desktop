@@ -1,4 +1,4 @@
-const { protocol, net } = require('electron');
+const { protocol, net, app } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -6,7 +6,16 @@ const { pathToFileURL } = require('url');
 class ProtocolHandler {
   constructor(scheme = 'buddy-app') {
     this.scheme = scheme;
-    this.frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+    // In development, use frontend/dist; in production, use app-frontend
+    const isDev = !app.isPackaged;
+    const basePath = app.isPackaged ? app.getAppPath() : __dirname;
+    
+    if (isDev) {
+      this.frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+    } else {
+      // In packaged app, files are in app-frontend
+      this.frontendDistPath = path.join(basePath, 'app-frontend');
+    }
   }
 
   /**
@@ -33,6 +42,16 @@ class ProtocolHandler {
    * Should be called when app is ready
    */
   setup() {
+    // Verify the frontend path exists
+    if (!fs.existsSync(this.frontendDistPath)) {
+      console.error(`ProtocolHandler: Frontend path does not exist: ${this.frontendDistPath}`);
+      console.error(`ProtocolHandler: app.isPackaged = ${app.isPackaged}`);
+      console.error(`ProtocolHandler: app.getAppPath() = ${app.getAppPath()}`);
+      console.error(`ProtocolHandler: __dirname = ${__dirname}`);
+    } else {
+      console.log(`ProtocolHandler: Frontend path verified: ${this.frontendDistPath}`);
+    }
+
     protocol.handle(this.scheme, (request) => {
       const url = new URL(request.url);
       let pathname = url.pathname;
@@ -52,6 +71,7 @@ class ProtocolHandler {
 
       // If file doesn't exist, fall back to index.html (SPA routing)
       if (!fs.existsSync(filePath)) {
+        console.warn(`ProtocolHandler: File not found: ${filePath}, falling back to index.html`);
         filePath = path.join(this.frontendDistPath, 'index.html');
       }
 

@@ -90,7 +90,7 @@ declare global {
     /**
      * Complete Electron API suite
      */
-    electronAPI: {
+    electronAPI?: {
       app: any;
       autoUpdater: any;
       clipboard: any;
@@ -101,6 +101,8 @@ declare global {
       process: any;
       safeStorage: any;
       screen: any;
+      getAuthToken?: () => Promise<string | null>;
+      [key: string]: unknown;
     };
 
   }
