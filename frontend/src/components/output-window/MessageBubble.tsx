@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Copy, Check, CornerDownLeft } from 'lucide-react'
+import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { InsertButton } from '../insert-button'
 import { MessageContent } from '../prompt-kit/message'
 import type { ChatMessage, MediaAttachment } from './types'
 
@@ -16,8 +15,33 @@ const LONG_CONTENT_CHAR_THRESHOLD = 450
 export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isInserting, setIsInserting] = useState(false)
+  const [insertSuccess, setInsertSuccess] = useState(false)
 
   const isLongContent = message.role === 'user' && message.content.length > LONG_CONTENT_CHAR_THRESHOLD
+
+  // Extract plain text from message content (removes markdown formatting)
+  const getPlainText = (content: string): string => {
+    // Remove markdown code blocks
+    let text = content.replace(/```[\s\S]*?```/g, '')
+    // Remove inline code
+    text = text.replace(/`[^`]*`/g, '')
+    // Remove markdown links but keep text
+    text = text.replace(/\[([^\]]*)\]\([^\)]*\)/g, '$1')
+    // Remove markdown headers
+    text = text.replace(/^#{1,6}\s+/gm, '')
+    // Remove markdown bold/italic
+    text = text.replace(/\*\*([^*]*)\*\*/g, '$1')
+    text = text.replace(/\*([^*]*)\*/g, '$1')
+    text = text.replace(/__([^_]*)__/g, '$1')
+    text = text.replace(/_([^_]*)_/g, '$1')
+    // Remove markdown lists
+    text = text.replace(/^[\s]*[-*+]\s+/gm, '')
+    text = text.replace(/^[\s]*\d+\.\s+/gm, '')
+    // Clean up extra whitespace
+    text = text.replace(/\n{3,}/g, '\n\n').trim()
+    return text
+  }
 
   const handleCopy = async () => {
     try {
@@ -26,6 +50,45 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
+    }
+  }
+
+  const handleInsert = async () => {
+    if (!window.tsfAPI) {
+      console.error('[MessageBubble] TSF API is not available')
+      return
+    }
+
+    setIsInserting(true)
+    setInsertSuccess(false)
+
+    try {
+      // Get plain text from message content
+      const plainText = getPlainText(message.content)
+      
+      if (!plainText || plainText.trim().length === 0) {
+        console.warn('[MessageBubble] No text to insert')
+        setIsInserting(false)
+        return
+      }
+
+      // Initialize TSF if needed
+      await window.tsfAPI.initialize()
+
+      // Insert text into the last focused application (not current)
+      // This focuses the last external app and inserts text there
+      const success = await window.tsfAPI.focusAndInsertText(plainText)
+
+      if (success) {
+        setInsertSuccess(true)
+        setTimeout(() => setInsertSuccess(false), 2000)
+      } else {
+        console.error('[MessageBubble] Failed to insert text')
+      }
+    } catch (error) {
+      console.error('[MessageBubble] Error inserting text:', error)
+    } finally {
+      setIsInserting(false)
     }
   }
 
@@ -151,43 +214,50 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
           </button>
         )}
 
-        {/* Copy button */}
-        <button
-          onClick={handleCopy}
-          className={cn(
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-            "absolute -bottom-8 right-0 p-1.5 rounded-full text-xs",
-            isDarkTheme
-              ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-              : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
-            "border shadow-sm",
-            isDarkTheme ? "border-zinc-700" : "border-zinc-200"
-          )}
-          title={copied ? "Copied!" : "Copy"}
-        >
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-        </button>
-
-        {/* Insert button - only show for AI messages */}
-        {!isUser && (
-          <InsertButton
-            content={message.content}
-            variant="ghost"
+        {/* Action buttons */}
+        <div className={cn(
+          "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+          "absolute -bottom-8 right-0 flex items-center gap-1.5"
+        )}>
+          {/* Insert button */}
+          <button
+            onClick={handleInsert}
+            disabled={isInserting || !window.tsfAPI}
             className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              "absolute -bottom-8 right-8 p-0 h-[26px] w-[26px] rounded-full text-xs gap-0",
+              "p-1.5 rounded-full text-xs transition-colors",
               isDarkTheme
-                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-normal"
+                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed border-zinc-200",
+              "border shadow-sm",
+              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+            )}
+            title={insertSuccess ? "Inserted!" : isInserting ? "Inserting..." : "Insert text"}
+          >
+            {insertSuccess ? (
+              <Check className="w-3 h-3" />
+            ) : isInserting ? (
+              <Send className="w-3 h-3 animate-pulse" />
+            ) : (
+              <Send className="w-3 h-3" />
+            )}
+          </button>
+
+          {/* Copy button */}
+          <button
+            onClick={handleCopy}
+            className={cn(
+              "p-1.5 rounded-full text-xs",
+              isDarkTheme
+                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                 : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
               "border shadow-sm",
               isDarkTheme ? "border-zinc-700" : "border-zinc-200"
             )}
+            title={copied ? "Copied!" : "Copy"}
           >
-            <CornerDownLeft className="w-3 h-3" />
-          </InsertButton>
-        )}
-
-        {/* Replace button */}
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
 
       </div>
     </div>

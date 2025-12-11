@@ -3,8 +3,6 @@ import { X, ArrowUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { InsertButton } from "@/components/insert-button"
-import { ReplaceButton } from "@/components/replace-button"
 
 export interface TextSelectionInputProps {
   /** The selected text to display/edit */
@@ -15,12 +13,6 @@ export interface TextSelectionInputProps {
   onSend: () => void
   /** Callback when close is clicked */
   onClose: () => void
-  /** Content to insert/replace (AI response) */
-  responseContent?: string
-  /** Callback after insert */
-  onInsert?: () => void
-  /** Callback after replace */
-  onReplace?: () => void
   /** Placeholder text */
   placeholder?: string
   /** Whether the component is in loading state */
@@ -38,9 +30,6 @@ export function TextSelectionInput({
   onChange,
   onSend,
   onClose,
-  responseContent = "",
-  onInsert,
-  onReplace,
   placeholder = "Ask about this...",
   isLoading = false,
   maxHeight = 100,
@@ -130,23 +119,6 @@ export function TextSelectionInput({
       {/* Actions bar */}
       <div className="flex items-center justify-between gap-1  border-zinc-700/50 px-2 py-1">
         <div className="flex items-center gap-1">
-          <InsertButton
-            content={responseContent}
-            onInsert={onInsert}
-            showLoading={false}
-            variant="ghost"
-            className="h-7 gap-1.5 px-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80 shadow-none"
-          />
-
-          <ReplaceButton
-            content={responseContent}
-            onReplace={onReplace}
-            showLoading={false}
-            variant="ghost"
-            className="h-7 gap-1.5 px-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80 shadow-none"
-          >
-            Replace
-          </ReplaceButton>
         </div>
 
         {/* Send button */}

@@ -50,42 +50,6 @@ declare global {
       isElectron: boolean;
     };
 
-    // Text Services Framework API
-    tsfAPI?: {
-      // Core methods
-      initialize: () => Promise<boolean>;
-      insertText: (text: string, options?: any) => Promise<boolean>;
-      insertTextFallback: (text: string) => Promise<boolean>;
-      getFocusInfo: () => Promise<any>;
-      isTsfAvailable: () => Promise<boolean>;
-      isEditableWindow: () => Promise<boolean>;
-      setEnabled: (enabled: boolean) => void;
-      isEnabled: () => Promise<boolean>;
-
-      // Window tracking
-      getLastExternalFocus: () => Promise<any>;
-      getLastFocusedWindow: () => Promise<any>;
-      focusLastWindow: () => Promise<boolean>;
-
-      // Smart actions
-      focusAndInsertText: (text: string) => Promise<boolean>;
-      getSelectedText: () => Promise<string>;
-      replaceSelectedText: (text: string) => Promise<boolean>;
-      focusAndReplaceText: (text: string) => Promise<boolean>;
-      deleteSelection: () => Promise<boolean>;
-
-      // Events
-      onFocusChanged: (callback: (focusInfo: any) => void) => void;
-      onTextInserted: (callback: (data: any) => void) => void;
-      onInsertFailed: (callback: (data: any) => void) => void;
-      onWarning: (callback: (data: any) => void) => void;
-      onTextReplaced: (callback: (data: any) => void) => void;
-      onReplaceFailed: (callback: (data: any) => void) => void;
-      onSelectionDeleted: (callback: (data: any) => void) => void;
-      onExternalFocusChanged: (callback: (focusInfo: any) => void) => void;
-
-      [key: string]: any;
-    };
 
     /**
      * Complete Electron API suite
@@ -128,6 +92,33 @@ declare global {
       sendMessage: (channel: string, data: any) => void;
       onMessage: (channel: string, func: (...args: any[]) => void) => void;
       removeMessageListener: (channel: string, func: (...args: any[]) => void) => void;
+    };
+
+    /**
+     * Text Services Framework API for inserting text into any application
+     */
+    tsfAPI?: {
+      initialize: () => Promise<void>;
+      insertText: (text: string, options?: { useFallback?: boolean; force?: boolean }) => Promise<boolean>;
+      insertTextFallback: (text: string) => Promise<boolean>;
+      getFocusInfo: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean }>;
+      isTsfAvailable: () => Promise<boolean>;
+      isEditableWindow: () => Promise<boolean>;
+      setEnabled: (enabled: boolean) => void;
+      isEnabled: () => Promise<boolean>;
+      getLastExternalFocus: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
+      getLastFocusedWindow: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
+      focusLastWindow: () => Promise<boolean>;
+      focusAndInsertText: (text: string) => Promise<boolean>;
+      getSelectedText: () => Promise<string>;
+      replaceSelectedText: (text: string) => Promise<boolean>;
+      focusAndReplaceText: (text: string) => Promise<boolean>;
+      deleteSelection: () => Promise<boolean>;
+      onFocusChanged: (callback: (focusInfo: any) => void) => void;
+      onTextInserted: (callback: (data: any) => void) => void;
+      onInsertFailed: (callback: (data: any) => void) => void;
+      onWarning: (callback: (data: any) => void) => void;
+      onExternalFocusChanged: (callback: (focusInfo: any) => void) => void;
     };
 
   }

@@ -24,10 +24,6 @@ declare global {
       onMessage?: (channel: string, callback: (...args: unknown[]) => void) => void
       removeMessageListener?: (channel: string, callback: (...args: unknown[]) => void) => void
     }
-    tsfAPI?: {
-      focusAndInsertText: (text: string) => Promise<boolean>
-      focusAndReplaceText: (text: string) => Promise<boolean>
-    }
   }
 }
 
@@ -41,7 +37,6 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
   const [prompt, setPrompt] = useState('')
   const [position, setPosition] = useState({ top: 0, left: 0 })
   const [isLoading, setIsLoading] = useState(false)
-  const [aiResponse, setAiResponse] = useState<string>('')
   const { isFeatureEnabled } = useFeature()
 
   useEffect(() => {
@@ -62,7 +57,6 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
 
       setSelectionData(data)
       setPrompt('')
-      setAiResponse('')
 
       const popupWidth = 400
       const popupHeight = 120
@@ -105,7 +99,6 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
   const handleClose = useCallback(() => {
     setIsVisible(false)
     setPrompt('')
-    setAiResponse('')
     setIsLoading(false)
   }, [])
 
@@ -158,9 +151,6 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
         onClose={handleClose}
         placeholder="Ask about this..."
         isLoading={isLoading}
-        responseContent={aiResponse}
-        onInsert={handleClose}
-        onReplace={handleClose}
       />
     </div>
   )

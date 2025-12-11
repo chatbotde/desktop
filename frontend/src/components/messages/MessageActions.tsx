@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Copy, Check, Send, CornerDownLeft, ArrowRightLeft } from 'lucide-react'
+import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { InsertButton } from '../insert-button'
-import { ReplaceButton } from '../replace-button'
 
 interface MessageActionsProps {
   content: string
@@ -73,35 +71,6 @@ export function MessageActions({ content, role, onCopy }: MessageActionsProps) {
         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
       </Button>
 
-      {role === 'assistant' && (
-        <>
-          <InsertButton
-            content={content}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-9 w-9 p-0 rounded-full transition-all duration-200 backdrop-blur-md",
-              "shadow-sm hover:shadow-md",
-              "bg-black/40 text-white/70 hover:text-white hover:bg-black/50 border border-white/10 hover:border-white/20"
-            )}
-          >
-            <CornerDownLeft className="w-4 h-4" />
-          </InsertButton>
-
-          <ReplaceButton
-            content={content}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "h-9 w-9 p-0 rounded-full transition-all duration-200 backdrop-blur-md",
-              "shadow-sm hover:shadow-md",
-              "bg-black/40 text-white/70 hover:text-white hover:bg-black/50 border border-white/10 hover:border-white/20"
-            )}
-          >
-            <ArrowRightLeft className="w-4 h-4" />
-          </ReplaceButton>
-        </>
-      )}
 
       <Button
         variant="ghost"
