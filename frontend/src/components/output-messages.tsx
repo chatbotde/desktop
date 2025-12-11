@@ -27,9 +27,24 @@ export function OutputMessages({
     onClose: propOnClose
 }: OutputMessagesProps = {}) {
     const [internalIsVisible, setInternalIsVisible] = useState(true)
-    const [position, setPosition] = useState({ x: 100, y: 100 })
-    const [size, setSize] = useState({ width: 600, height: 400 })
+    const [isCollapsed, setIsCollapsed] = useState(false)
     const [isDarkTheme, setIsDarkTheme] = useState(true)
+    
+    // Center the output window on mount
+    const defaultSize = { width: 600, height: 400 }
+    const collapsedSize = { width: 600, height: 60 } // Just header height when collapsed
+    const [size, setSize] = useState(defaultSize)
+
+    // Center position based on window size (run code at mount)
+    const getCenteredPosition = () => {
+        const width = typeof window !== "undefined" ? window.innerWidth : 1200;
+        const height = typeof window !== "undefined" ? window.innerHeight : 800;
+        return {
+            x: Math.max(0, Math.round((width - size.width) / 2)),
+            y: Math.max(0, Math.round((height - size.height) / 2)),
+        };
+    };
+    const [position, setPosition] = useState(getCenteredPosition)
     const cardRef = useRef<HTMLDivElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -62,12 +77,25 @@ export function OutputMessages({
         onThemeChange?.(newTheme)
     }
 
+    const handleCollapseToggle = () => {
+        setIsCollapsed(prev => {
+            const newCollapsed = !prev
+            // Adjust size when collapsing/expanding
+            if (newCollapsed) {
+                setSize(collapsedSize)
+            } else {
+                setSize(defaultSize)
+            }
+            return newCollapsed
+        })
+    }
+
     const themeClasses = getThemeClasses(isDarkTheme)
 
     return (
         <Card
             ref={cardRef}
-            className="fixed bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-8 shadow-sm"
+            className={`fixed bg-card text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm ${isCollapsed ? 'py-2' : 'py-8'}`}
             data-no-clickthrough
             style={{
                 left: `${position.x}px`,
@@ -89,10 +117,13 @@ export function OutputMessages({
                 onThemeToggle={handleThemeToggle}
                 onClear={handleClear}
                 onClose={handleClose}
+                onCollapse={handleCollapseToggle}
+                isCollapsed={isCollapsed}
                 iconButtonClass={themeClasses.iconButton}
             />
 
-            <CardContent className={themeClasses.content} style={{ height: 'calc(100%-1px)', backgroundColor: themeClasses.contentBg }}>
+            {!isCollapsed && (
+                <CardContent className={themeClasses.content} style={{ height: 'calc(100%-1px)', backgroundColor: themeClasses.contentBg }}>
                 {messages.length === 0 ? (
                     <p className={themeClasses.emptyText}>Welcome to future</p>
                 ) : (
@@ -109,10 +140,13 @@ export function OutputMessages({
                     </div>
                 )}
             </CardContent>
-            <ResizeHandle
-                onMouseDown={handleResizeMouseDown}
-                className={themeClasses.resizeIcon}
-            />
+            )}
+            {!isCollapsed && (
+                <ResizeHandle
+                    onMouseDown={handleResizeMouseDown}
+                    className={themeClasses.resizeIcon}
+                />
+            )}
         </Card>
     )
 }
