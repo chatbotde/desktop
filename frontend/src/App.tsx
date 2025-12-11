@@ -39,8 +39,8 @@ const createChatMessage = (
 }
 
 function App() {
-  const [isInputVisible, setIsInputVisible] = useState(true)
-  const [isOutputVisible, setIsOutputVisible] = useState(true)
+  const [isInputVisible, setIsInputVisible] = useState(false)
+  const [isOutputVisible, setIsOutputVisible] = useState(false)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
   const [showVideoScroll, setShowVideoScroll] = useState(false)
   const [showAreaScreenshot, setShowAreaScreenshot] = useState(false)
