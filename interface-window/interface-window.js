@@ -76,7 +76,8 @@ class InterfaceWindow {
         preload: preloadPath,
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false  // Disable sandbox to ensure preload script works correctly
+      sandbox: false  // Disable sandbox to ensure preload script works correctly
+        
       },
       show: false // Don't show until ready-to-show
     });

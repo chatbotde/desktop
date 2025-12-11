@@ -43,8 +43,8 @@ export function TextSelectionInput({
   onReplace,
   placeholder = "Ask about this...",
   isLoading = false,
-  maxHeight = 120,
-  minHeight = 40,
+  maxHeight = 100,
+  minHeight = 10,
   className,
 }: TextSelectionInputProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
@@ -89,7 +89,7 @@ export function TextSelectionInput({
         "w-full max-w-md",
         className,
       )}
-      style={{ backgroundColor: "oklch(0.14 0.00 0 / 0.95)" }}
+      style={{ backgroundColor: "oklch(0.14 0.00 0 / 1)" }}
     >
       {/* Close button */}
       <button
@@ -128,7 +128,7 @@ export function TextSelectionInput({
       </div>
 
       {/* Actions bar */}
-      <div className="flex items-center justify-between gap-1 border-t border-zinc-700/50 px-2 py-1.5">
+      <div className="flex items-center justify-between gap-1  border-zinc-700/50 px-2 py-1">
         <div className="flex items-center gap-1">
           <InsertButton
             content={responseContent}

@@ -164,7 +164,6 @@ export function PromptInputExpanded({
                 title={item}
               >
                 <FileText className={`size-4 ${themeClasses.icon} shrink-0`} aria-hidden="true" />
-                <span className="truncate">{item.replace(/\n/g, ' ').substring(0, 30)}</span>
                 <button
                   onClick={() => onRemoveClipboardItem?.(index)}
                   aria-label={`Remove clipboard item`}
@@ -187,7 +186,6 @@ export function PromptInputExpanded({
                 onClick={e => e.stopPropagation()}
               >
                 {getFileIcon(file)}
-                <span className="truncate max-w-[150px]">{file.name}</span>
                 <button
                   onClick={() => onRemoveFile(index)}
                   aria-label={`Remove ${file.name}`}

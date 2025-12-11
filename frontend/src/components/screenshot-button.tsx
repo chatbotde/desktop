@@ -19,11 +19,9 @@ export function ScreenshotButton({
   onScreenshot,
   variant = 'ghost',
   size = 'default',
-  className,
-  isDarkTheme = true
-}: ScreenshotButtonProps) {
+  className}: ScreenshotButtonProps) {
   const [isCapturing, setIsCapturing] = useState(false)
-  const [isAreaMode, setIsAreaMode] = useState(false)
+  const [] = useState(false)
 
   const handleQuickScreenshot = useCallback(async () => {
     if (!window.CaptureAPI) {
@@ -46,38 +44,6 @@ export function ScreenshotButton({
     }
   }, [onScreenshot])
 
-  const handleAreaScreenshot = useCallback(async () => {
-    if (!window.CaptureAPI) {
-      console.error('CaptureAPI is not available')
-      return
-    }
-
-    setIsAreaMode(true)
-    setIsCapturing(true)
-
-    try {
-      // Dynamically import the area screenshot cursor
-      const { activateAreaScreenshot } = await import('../../buddy/interface-window/capture/area-screenshot-cursor.js')
-      
-      // Listen for screenshot captured event
-      const handleScreenshotCaptured = (event: CustomEvent) => {
-        const { screenshot } = event.detail
-        onScreenshot?.(screenshot)
-        window.removeEventListener('screenshot-captured', handleScreenshotCaptured as EventListener)
-        setIsAreaMode(false)
-        setIsCapturing(false)
-      }
-
-      window.addEventListener('screenshot-captured', handleScreenshotCaptured as EventListener)
-      
-      // Activate area screenshot mode
-      await activateAreaScreenshot()
-    } catch (error) {
-      console.error('Error activating area screenshot:', error)
-      setIsAreaMode(false)
-      setIsCapturing(false)
-    }
-  }, [onScreenshot])
 
   const handleClick = useCallback(() => {
     if (isCapturing) return

@@ -3,7 +3,7 @@
  * Provides freehand drawing to select area for screenshot
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef} from 'react'
 
 interface AreaScreenshotOverlayProps {
   onCapture: (area: { x: number; y: number; width: number; height: number; path?: Array<{ x: number; y: number }> }) => void

@@ -476,7 +476,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         {recordingDuration}s
                     </div>
                     <div className={cn("text-xs", themeClasses.icon)}>
-                        {source === 'mic' ? '🎤 Mic' : source === 'system' ? '🖥️ System' : '🎤🖥️ Both'}
+                        {source === 'mic' ? 'Mic' : source === 'system' ? 'System' : 'Both'}
                     </div>
                 </div>
             )}
