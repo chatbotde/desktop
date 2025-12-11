@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextSelectionInput } from './text-selection'
+import { useFeature } from '@/contexts/FeatureContext'
 
 interface SelectionData {
   text: string
@@ -41,9 +42,22 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
   const [position, setPosition] = useState({ top: 0, left: 0 })
   const [isLoading, setIsLoading] = useState(false)
   const [aiResponse, setAiResponse] = useState<string>('')
+  const { isFeatureEnabled } = useFeature()
 
   useEffect(() => {
+    // Don't listen for text selection if feature is disabled
+    if (!isFeatureEnabled('text-selection')) {
+      // Hide popup if feature is disabled
+      setIsVisible(false)
+      return
+    }
+
     const handleSelectionChange = (data: SelectionData) => {
+      // Double check feature is enabled before showing
+      if (!isFeatureEnabled('text-selection')) {
+        return
+      }
+
       if (!data?.text?.trim()) return
 
       setSelectionData(data)
@@ -80,8 +94,13 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
       window.interfaceAPI.onMessage('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
     }
 
-    return () => {}
-  }, [])
+    return () => {
+      // Clean up listener when component unmounts or feature is disabled
+      if (window.interfaceAPI?.removeMessageListener) {
+        window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
+      }
+    }
+  }, [isFeatureEnabled])
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
@@ -89,6 +108,13 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
     setAiResponse('')
     setIsLoading(false)
   }, [])
+
+  // Hide popup if feature is disabled
+  useEffect(() => {
+    if (!isFeatureEnabled('text-selection')) {
+      setIsVisible(false)
+    }
+  }, [isFeatureEnabled])
 
   const handleSend = useCallback(async () => {
     if (!prompt.trim() || isLoading) return
@@ -110,7 +136,8 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
     }
   }, [prompt, selectionData, isLoading, onSendMessage, handleClose])
 
-  if (!isVisible) return null
+  // Don't render if feature is disabled or not visible
+  if (!isFeatureEnabled('text-selection') || !isVisible) return null
 
   return (
     <div

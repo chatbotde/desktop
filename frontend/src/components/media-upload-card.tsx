@@ -1,8 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Image, Mic, Video, FileText, MoreHorizontal, Camera, Square } from "lucide-react"
+import { Image, Mic, Video, FileText, MoreHorizontal, Camera, Square, Sliders, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { getThemeClasses } from "./prompt-input-theme"
+import { DynamicFeatureList } from "@/components/features/feature-active"
 
 interface MediaUploadCardProps {
     onFileUpload?: (files: File[]) => void
@@ -18,6 +20,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
     const audioInputRef = useRef<HTMLInputElement>(null)
     const docInputRef = useRef<HTMLInputElement>(null)
     const [isCapturing, setIsCapturing] = useState(false)
+    const [isFeatureDialogOpen, setIsFeatureDialogOpen] = useState(false)
 
     const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
@@ -146,6 +149,12 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             action: () => audioInputRef.current?.click()
         },
         {
+            id: 'features',
+            label: 'Features',
+            icon: Sliders,
+            action: () => setIsFeatureDialogOpen(true)
+        },
+        {
             id: 'more',
             label: 'More',
             icon: MoreHorizontal,
@@ -154,78 +163,104 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
     ] as const
 
     return (
-        <Card
-            className={cn(
-                "w-48 overflow-hidden shadow-xl rounded-xl p-0 border",
-                themeClasses.containerBorder,
-                className
-            )}
-            style={{ backgroundColor: themeClasses.containerBg }}
-            data-no-clickthrough
-        >
-            <input
-                type="file"
-                ref={docInputRef}
-                className="hidden"
-                multiple
-                accept=".pdf,.doc,.docx,.txt,.md,.csv,.xls,.xlsx"
-                onChange={handleFileChange}
-            />
-            <input
-                type="file"
-                ref={imageInputRef}
-                className="hidden"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-            />
-            <input
-                type="file"
-                ref={videoInputRef}
-                className="hidden"
-                multiple
-                accept="video/*"
-                onChange={handleFileChange}
-            />
-            <input
-                type="file"
-                ref={audioInputRef}
-                className="hidden"
-                multiple
-                accept="audio/*"
-                onChange={handleFileChange}
-            />
+        <>
+            <Card
+                className={cn(
+                    "w-48 overflow-hidden shadow-xl rounded-xl p-0 border",
+                    themeClasses.containerBorder,
+                    className
+                )}
+                style={{ backgroundColor: themeClasses.containerBg }}
+                data-no-clickthrough
+            >
+                <input
+                    type="file"
+                    ref={docInputRef}
+                    className="hidden"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,.md,.csv,.xls,.xlsx"
+                    onChange={handleFileChange}
+                />
+                <input
+                    type="file"
+                    ref={imageInputRef}
+                    className="hidden"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileChange}
+                />
+                <input
+                    type="file"
+                    ref={videoInputRef}
+                    className="hidden"
+                    multiple
+                    accept="video/*"
+                    onChange={handleFileChange}
+                />
+                <input
+                    type="file"
+                    ref={audioInputRef}
+                    className="hidden"
+                    multiple
+                    accept="audio/*"
+                    onChange={handleFileChange}
+                />
 
-            <CardContent className="p-1.5">
-                <div className="flex flex-col">
-                    {options.map((option) => (
+                <CardContent className="p-1.5">
+                    <div className="flex flex-col">
+                        {options.map((option) => (
+                            <button
+                                key={option.id}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('[MediaUploadCard] Button clicked:', option.id);
+                                    if (!option.disabled && option.action) {
+                                        option.action();
+                                    }
+                                }}
+                                disabled={option.disabled}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors text-left w-full",
+                                    themeClasses.icon,
+                                    themeClasses.buttonHover,
+                                    "group cursor-pointer",
+                                    option.disabled && "opacity-50 cursor-not-allowed"
+                                )}
+                            >
+                                <option.icon className="h-4 w-4 stroke-[2]" />
+                                <span className={cn("text-sm font-medium", themeClasses.input)}>
+                                    {option.label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {isFeatureDialogOpen && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center" data-no-clickthrough>
+                    <Card 
+                        className={cn(
+                            "relative max-w-2xl w-full mx-4 shadow-xl rounded-xl border",
+                            themeClasses.containerBorder
+                        )}
+                        style={{ backgroundColor: themeClasses.containerBg }}
+                    >
                         <button
-                            key={option.id}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                console.log('[MediaUploadCard] Button clicked:', option.id);
-                                if (!option.disabled && option.action) {
-                                    option.action();
-                                }
-                            }}
-                            disabled={option.disabled}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors text-left w-full",
-                                themeClasses.icon,
-                                themeClasses.buttonHover,
-                                "group cursor-pointer",
-                                option.disabled && "opacity-50 cursor-not-allowed"
-                            )}
+                            onClick={() => setIsFeatureDialogOpen(false)}
+                            className="absolute top-4 right-4 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-400 hover:text-zinc-200 transition-all duration-150 shadow-md hover:shadow-lg hover:scale-105"
+                            aria-label="Close"
                         >
-                            <option.icon className="h-4 w-4 stroke-[2]" />
-                            <span className={cn("text-sm font-medium", themeClasses.input)}>
-                                {option.label}
-                            </span>
+                            <X className="h-3.5 w-3.5" />
                         </button>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+                        <CardContent className="p-6">
+                            <DynamicFeatureList />
+                        </CardContent>
+                    </Card>
+                </div>,
+                document.body
+            )}
+        </>
     )
 }

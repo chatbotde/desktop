@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Plus, X, Copy, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useFeature } from "@/contexts/FeatureContext"
 
 interface ClipboardPillProps {
     onAdd: (text: string) => void
@@ -20,6 +21,7 @@ export function ClipboardPill({ onAdd, isDarkTheme = true }: ClipboardPillProps)
     const [content, setContent] = useState<string>(globalState.content)
     const [isVisible, setIsVisible] = useState(globalState.isVisible)
     const [isAutoAdd, setIsAutoAdd] = useState(globalState.isAutoAdd)
+    const { isFeatureEnabled } = useFeature()
 
     // Helper to update both local and global state
     const updateState = (updates: Partial<typeof globalState>) => {
@@ -30,6 +32,11 @@ export function ClipboardPill({ onAdd, isDarkTheme = true }: ClipboardPillProps)
     }
 
     useEffect(() => {
+        // Don't monitor clipboard if feature is disabled
+        if (!isFeatureEnabled('clipboard')) {
+            return
+        }
+
         const checkClipboard = async () => {
             try {
                 let text = ""
@@ -79,9 +86,10 @@ export function ClipboardPill({ onAdd, isDarkTheme = true }: ClipboardPillProps)
             window.removeEventListener("focus", handleFocus)
             document.removeEventListener("visibilitychange", handleVisibilityChange)
         }
-    }, [onAdd])
+    }, [onAdd, isFeatureEnabled])
 
-    if (!isVisible || !content) return null
+    // Hide if feature is disabled or not visible
+    if (!isFeatureEnabled('clipboard') || !isVisible || !content) return null
 
     const themeClasses = isDarkTheme
         ? "bg-slate-900/90 border-slate-700 text-slate-100 shadow-black/40"
