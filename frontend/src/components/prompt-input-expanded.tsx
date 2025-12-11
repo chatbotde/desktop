@@ -47,7 +47,6 @@ export function PromptInputExpanded({
   onSubmit,
   onCollapse,
   onHide,
-  onFileChange,
   onRemoveFile,
   isDarkTheme = true,
   onFilesAdded,
@@ -91,6 +90,25 @@ export function PromptInputExpanded({
       return <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
     }
   }
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const pastedFiles: File[] = []
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile()
+        if (file) {
+          pastedFiles.push(file)
+        }
+      }
+    }
+
+    if (pastedFiles.length > 0 && onFilesAdded) {
+      e.preventDefault()
+      onFilesAdded(pastedFiles)
+    }
+  }, [onFilesAdded])
 
   return (
     <div className="relative flex items-start gap-3 mx-4 mb-0">
@@ -190,6 +208,7 @@ export function PromptInputExpanded({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Ask me anything..."
           aria-label="Message input"
           className={cn(
@@ -218,26 +237,6 @@ export function PromptInputExpanded({
                   <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} />
                 </PopoverContent>
               </Popover>
-            </PromptInputAction>
-
-            <PromptInputAction tooltip="Attach files">
-              <label
-                htmlFor="file-upload-expanded"
-                className={cn(
-                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors",
-                  hoverClass
-                )}
-              >
-                <input
-                  type="file"
-                  multiple
-                  onChange={onFileChange}
-                  className="hidden"
-                  id="file-upload-expanded"
-                  aria-label="Attach files"
-                />
-                <Paperclip className={`size-5 ${themeClasses.icon}`} aria-hidden="true" />
-              </label>
             </PromptInputAction>
 
             <PromptInputAction tooltip="Select model">

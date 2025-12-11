@@ -75,6 +75,25 @@ export function PromptInputCollapsed({
     }
   }
 
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const pastedFiles: File[] = []
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile()
+        if (file) {
+          pastedFiles.push(file)
+        }
+      }
+    }
+
+    if (pastedFiles.length > 0 && onFilesAdded) {
+      e.preventDefault()
+      onFilesAdded(pastedFiles)
+    }
+  }, [onFilesAdded])
+
   return (
     <div className="relative flex items-center gap-3 mx-8 mb-0">
       <ClipboardPill
@@ -164,6 +183,7 @@ export function PromptInputCollapsed({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Ask anything..."
           aria-label="Message input"
           className={cn(

@@ -55,6 +55,10 @@ class InterfaceWindow {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workAreaSize;
 
+    const preloadPath = path.join(__dirname, 'preload.js');
+    console.log(`InterfaceWindow: Preload path: ${preloadPath}`);
+    console.log(`InterfaceWindow: Preload exists: ${require('fs').existsSync(preloadPath)}`);
+
     this.window = new BrowserWindow({
       width: width,
       height: height - 1,
@@ -69,12 +73,24 @@ class InterfaceWindow {
       title: "",
       skipTaskbar: false,
       webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
+        preload: preloadPath,
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true
+        sandbox: false  // Disable sandbox to ensure preload script works correctly
       },
       show: false // Don't show until ready-to-show
+    });
+
+    // Listen for preload errors
+    this.window.webContents.on('preload-error', (event, preloadPath, error) => {
+      console.error(`InterfaceWindow: Preload error in ${preloadPath}:`, error);
+    });
+
+    // Listen for console messages from preload
+    this.window.webContents.on('console-message', (event, level, message, line, sourceId) => {
+      if (sourceId && sourceId.includes('preload')) {
+        console.log(`[Preload Console ${level}]:`, message);
+      }
     });
 
     // Load the frontend
@@ -116,6 +132,15 @@ class InterfaceWindow {
         console.warn('InterfaceWindow: TSF initialization failed');
       }
     });
+
+    // Register capture API handlers
+    try {
+      const { CaptureApiHandlers } = require('./dist/capture/handlers/capture-api-handlers');
+      CaptureApiHandlers.registerHandlers();
+      console.log('InterfaceWindow: Capture API handlers registered successfully');
+    } catch (error) {
+      console.error('InterfaceWindow: Failed to register capture API handlers:', error);
+    }
 
     ipcMain.on('interface-window:minimize', () => {
       if (this.window) this.window.minimize();

@@ -3,11 +3,13 @@ import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 
 
+import type { MediaAttachment } from './output-window/types'
+
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   isDarkTheme?: boolean;
-  onSendMessage?: (message: string) => void | Promise<void>;
+  onSendMessage?: (message: string, attachments?: MediaAttachment[]) => void | Promise<void>;
   onAudioClick?: () => void;
   onMoreClick?: () => void;
 }
@@ -27,15 +29,63 @@ export function PromptInputWithActions({
   const [internalVisible, setInternalVisible] = useState(true)
   const [clipboardItems, setClipboardItems] = useState<string[]>([])
 
+  // Convert files to MediaAttachment format
+  const convertFilesToAttachments = useCallback(async (filesToConvert: File[]): Promise<MediaAttachment[]> => {
+    const attachments: MediaAttachment[] = []
+    
+    for (const file of filesToConvert) {
+      // Only process image files for now
+      if (file.type.startsWith('image/')) {
+        try {
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+
+          // Get image dimensions
+          const dimensions = await new Promise<{ width: number; height: number } | undefined>((resolve) => {
+            const img = new Image()
+            img.onload = () => {
+              resolve({ width: img.width, height: img.height })
+            }
+            img.onerror = () => resolve(undefined)
+            img.src = dataUrl
+          })
+
+          attachments.push({
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: dataUrl,
+            source: 'upload',
+            mediaType: 'image',
+            dimensions
+          })
+        } catch (error) {
+          console.error('Error converting file to attachment:', error)
+        }
+      }
+    }
+    
+    return attachments
+  }, [])
+
   const handleSubmit = useCallback(async () => {
     if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
 
     setIsLoading(true)
 
     try {
-      if ((input.trim() || clipboardItems.length > 0) && onSendMessage) {
+      // Convert files to MediaAttachment format
+      const attachments = files.length > 0 ? await convertFilesToAttachments(files) : undefined
+
+      if ((input.trim() || clipboardItems.length > 0 || attachments) && onSendMessage) {
         const messageParts = [...clipboardItems, input].filter(Boolean)
-        await onSendMessage(messageParts.join("\n\n"))
+        const message = messageParts.join("\n\n") || (attachments ? "See attached images" : "")
+        await onSendMessage(message, attachments)
       }
     } catch (error) {
       console.error('Error sending message:', error)
@@ -47,7 +97,7 @@ export function PromptInputWithActions({
       setClipboardItems([])
       setIsExpanded(false)
     }
-  }, [input, files.length, clipboardItems, onSendMessage])
+  }, [input, files, clipboardItems, onSendMessage, convertFilesToAttachments])
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {

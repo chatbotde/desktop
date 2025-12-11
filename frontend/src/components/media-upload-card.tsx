@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Image, Mic, Video, FileText, MoreHorizontal } from "lucide-react"
+import { Image, Mic, Video, FileText, MoreHorizontal, Camera, Square } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useRef, useMemo } from "react"
+import { useRef, useMemo, useState, useCallback } from "react"
 import { getThemeClasses } from "./prompt-input-theme"
 
 interface MediaUploadCardProps {
@@ -9,13 +9,15 @@ interface MediaUploadCardProps {
     className?: string
     isDarkTheme?: boolean
     onMoreClick?: () => void
+    onScreenshot?: (screenshot: { name: string; type: string; size: number; data: string }) => void
 }
 
-export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onMoreClick }: MediaUploadCardProps) {
+export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onMoreClick, onScreenshot }: MediaUploadCardProps) {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const audioInputRef = useRef<HTMLInputElement>(null)
     const docInputRef = useRef<HTMLInputElement>(null)
+    const [isCapturing, setIsCapturing] = useState(false)
 
     const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
@@ -27,6 +29,82 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             e.target.value = ''
         }
     }
+
+    const handleQuickScreenshot = useCallback(async () => {
+        console.log('[MediaUploadCard] handleQuickScreenshot called')
+        console.log('[MediaUploadCard] window.CaptureAPI:', window.CaptureAPI)
+        
+        if (!window.CaptureAPI) {
+            console.error('[MediaUploadCard] CaptureAPI is not available')
+            alert('CaptureAPI is not available. Please ensure the interface window is properly initialized.')
+            return
+        }
+
+        if (!window.CaptureAPI.quickScreenshot) {
+            console.error('[MediaUploadCard] quickScreenshot method is not available')
+            alert('quickScreenshot method is not available')
+            return
+        }
+
+        setIsCapturing(true)
+        console.log('[MediaUploadCard] Calling quickScreenshot...')
+        
+        try {
+            const result = await window.CaptureAPI.quickScreenshot()
+            console.log('[MediaUploadCard] Screenshot result:', result)
+            
+            if (result.success && result.screenshot) {
+                console.log('[MediaUploadCard] Screenshot successful, converting to file...')
+                // Convert data URL to File object
+                const response = await fetch(result.screenshot.data)
+                const blob = await response.blob()
+                const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+                console.log('[MediaUploadCard] File created:', file.name, file.size, 'bytes')
+                onFileUpload?.([file])
+                onScreenshot?.(result.screenshot)
+            } else {
+                console.error('[MediaUploadCard] Screenshot failed:', result.error)
+                alert(`Screenshot failed: ${result.error || 'Unknown error'}`)
+            }
+        } catch (error) {
+            console.error('[MediaUploadCard] Error taking screenshot:', error)
+            alert(`Error taking screenshot: ${error instanceof Error ? error.message : String(error)}`)
+        } finally {
+            setIsCapturing(false)
+        }
+    }, [onFileUpload, onScreenshot])
+
+    const handleAreaScreenshot = useCallback(() => {
+        if (!window.CaptureAPI) {
+            console.error('CaptureAPI is not available')
+            return
+        }
+
+        // This will be handled by the parent component showing the overlay
+        // For now, we'll trigger a custom event
+        const event = new CustomEvent('show-area-screenshot', {
+            detail: { onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
+                setIsCapturing(true)
+                try {
+                    const result = await window.CaptureAPI!.takeAreaScreenshot(area)
+                    if (result.success && result.screenshot) {
+                        const response = await fetch(result.screenshot.data)
+                        const blob = await response.blob()
+                        const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+                        onFileUpload?.([file])
+                        onScreenshot?.(result.screenshot)
+                    } else {
+                        console.error('Area screenshot failed:', result.error)
+                    }
+                } catch (error) {
+                    console.error('Error taking area screenshot:', error)
+                } finally {
+                    setIsCapturing(false)
+                }
+            }}
+        })
+        window.dispatchEvent(event)
+    }, [onFileUpload, onScreenshot])
 
     const options = [
         {
@@ -40,6 +118,20 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             label: 'Upload Image',
             icon: Image,
             action: () => imageInputRef.current?.click()
+        },
+        {
+            id: 'screenshot',
+            label: isCapturing ? 'Capturing...' : 'Take Screenshot',
+            icon: Camera,
+            action: handleQuickScreenshot,
+            disabled: isCapturing
+        },
+        {
+            id: 'area-screenshot',
+            label: isCapturing ? 'Selecting area...' : 'Area Screenshot',
+            icon: Square,
+            action: handleAreaScreenshot,
+            disabled: isCapturing
         },
         {
             id: 'video',
@@ -109,12 +201,21 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                     {options.map((option) => (
                         <button
                             key={option.id}
-                            onClick={option.action}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('[MediaUploadCard] Button clicked:', option.id);
+                                if (!option.disabled && option.action) {
+                                    option.action();
+                                }
+                            }}
+                            disabled={option.disabled}
                             className={cn(
                                 "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors text-left w-full",
                                 themeClasses.icon,
                                 themeClasses.buttonHover,
-                                "group cursor-pointer"
+                                "group cursor-pointer",
+                                option.disabled && "opacity-50 cursor-not-allowed"
                             )}
                         >
                             <option.icon className="h-4 w-4 stroke-[2]" />

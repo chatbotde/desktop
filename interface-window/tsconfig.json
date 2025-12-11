@@ -42,7 +42,8 @@
     "electron-api/**/*.ts",
     "os-system/**/*.ts",
     "monitor/**/*.ts",
-    "tsf/**/*.ts"
+    "tsf/**/*.ts",
+    "capture/**/*.ts"
   ],
   "exclude": [
     "node_modules",

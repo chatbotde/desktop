@@ -3,12 +3,14 @@ import { PromptInputWithActions } from '@/components'
 import ClickThrough from '@/components/click-through'
 import RightTransparent from '@/components/right-transparent'
 import { OutputMessages } from './components/output-messages'
-import type { ChatMessage } from './components/output-window/types'
+import type { ChatMessage, MediaAttachment } from './components/output-window/types'
 import { sendMessageComplete } from '@/lib/ai'
 
 import { TextSelectionPopup } from '@/components/text-selection/TextSelectionPopup'
 import { AudioRecorderPill } from '@/components/audio-recorder-pill'
+import { AudioPreview } from '@/components/audio-preview'
 import { VideoScroll } from '@/components/container'
+import { AreaScreenshotOverlay } from '@/components/area-screenshot-overlay'
 
 declare global {
   interface Window {
@@ -24,13 +26,15 @@ const generateMessageId = (): string => {
 // Helper function to create a chat message
 const createChatMessage = (
   content: string,
-  role: 'user' | 'assistant' = 'assistant'
+  role: 'user' | 'assistant' = 'assistant',
+  attachments?: MediaAttachment[]
 ): ChatMessage => {
   return {
     id: generateMessageId(),
     role,
     content,
-    timestamp: new Date()
+    timestamp: new Date(),
+    attachments
   }
 }
 
@@ -39,8 +43,28 @@ function App() {
   const [isOutputVisible, setIsOutputVisible] = useState(true)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
   const [showVideoScroll, setShowVideoScroll] = useState(false)
+  const [showAreaScreenshot, setShowAreaScreenshot] = useState(false)
+  const [areaScreenshotCallback, setAreaScreenshotCallback] = useState<((area: { x: number; y: number; width: number; height: number }) => void) | null>(null)
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
+
+  // Debug: Check if CaptureAPI is available on mount
+  useEffect(() => {
+    console.log('[App] Component mounted, checking for CaptureAPI...');
+    console.log('[App] window.CaptureAPI:', window.CaptureAPI);
+    console.log('[App] window.interfaceAPI:', window.interfaceAPI);
+    
+    // Check after a short delay in case preload hasn't finished
+    const timeout = setTimeout(() => {
+      console.log('[App] After delay - window.CaptureAPI:', window.CaptureAPI);
+      if (!window.CaptureAPI) {
+        console.error('[App] CaptureAPI is still not available after delay');
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Expose function to add messages globally
   useEffect(() => {
@@ -50,21 +74,43 @@ function App() {
       setIsOutputVisible(true)
     }
 
+    // Listen for area screenshot requests
+    const handleShowAreaScreenshot = (event: CustomEvent) => {
+      setAreaScreenshotCallback(() => event.detail.onCapture)
+      setShowAreaScreenshot(true)
+    }
+
+    window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
+
     return () => {
       window.addOutputMessage = undefined
+      window.removeEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
     }
   }, [])
 
   // Handle sending messages
-  const handleSendMessage = useCallback(async (message: string) => {
+  const handleSendMessage = useCallback(async (message: string, attachments?: MediaAttachment[]) => {
     setIsOutputVisible(true)
     // Add user message immediately
-    const userMessage = createChatMessage(message, 'user')
+    const userMessage = createChatMessage(message, 'user', attachments)
     setOutputMessages(prev => [...prev, userMessage])
+
+    // Convert MediaAttachment to the format expected by AI service
+    const aiAttachments: import('@/lib/ai/gemini').MediaAttachment[] | undefined = attachments?.map(att => ({
+      id: att.id,
+      name: att.name,
+      type: att.type,
+      size: att.size,
+      data: att.data,
+      source: att.source,
+      mediaType: att.mediaType,
+      dimensions: att.dimensions,
+      duration: att.duration
+    }))
 
     // Request assistant response
     try {
-      const replyText = await sendMessageComplete(message)
+      const replyText = await sendMessageComplete(message, aiAttachments)
       const assistantMessage = createChatMessage(replyText, 'assistant')
       setOutputMessages(prev => [...prev, assistantMessage])
     } catch (err) {
@@ -106,14 +152,50 @@ function App() {
           <AudioRecorderPill
             onClose={() => setShowAudioRecorder(false)}
             isDarkTheme={isDarkTheme}
+            onRecordingComplete={(blob) => {
+              console.log('[App] Audio recording completed, size:', blob.size, 'bytes')
+              setRecordedAudio(blob)
+            }}
           />
         </div>
+      )}
+
+      {recordedAudio && (
+        <AudioPreview
+          audioBlob={recordedAudio}
+          fileName={`recording-${Date.now()}.webm`}
+          isDarkTheme={isDarkTheme}
+          onClose={() => setRecordedAudio(null)}
+          onDelete={() => setRecordedAudio(null)}
+          onUse={(blob) => {
+            // Convert blob to File and add to message
+            const file = new File([blob], `recording-${Date.now()}.webm`, { type: blob.type })
+            // You can add this to a message or handle it as needed
+            console.log('[App] Using audio recording:', file.name, file.size, 'bytes')
+            setRecordedAudio(null)
+            // TODO: Add to message or trigger file upload
+          }}
+        />
       )}
 
       {showVideoScroll && (
         <div data-no-clickthrough>
           <VideoScroll onClose={() => setShowVideoScroll(false)} />
         </div>
+      )}
+
+      {showAreaScreenshot && areaScreenshotCallback && (
+        <AreaScreenshotOverlay
+          onCapture={async (area) => {
+            await areaScreenshotCallback(area)
+            setShowAreaScreenshot(false)
+            setAreaScreenshotCallback(null)
+          }}
+          onCancel={() => {
+            setShowAreaScreenshot(false)
+            setAreaScreenshotCallback(null)
+          }}
+        />
       )}
 
       {/* Prompt Input at Bottom */}

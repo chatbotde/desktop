@@ -3,7 +3,7 @@ import { Copy, Check, CornerDownLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InsertButton } from '../insert-button'
 import { MessageContent } from '../prompt-kit/message'
-import type { ChatMessage } from './types'
+import type { ChatMessage, MediaAttachment } from './types'
 
 interface MessageBubbleProps {
   message: ChatMessage
@@ -62,6 +62,37 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
           : "w-full break-words relative",
         isUser ? "items-end" : "items-start"
       )}>
+        {/* Display attachments (images) */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className={cn(
+            "mb-2 space-y-2",
+            isUser ? "flex flex-col items-end" : "flex flex-col items-start"
+          )}>
+            {message.attachments.map((attachment) => (
+              attachment.mediaType === 'image' && (
+                <div
+                  key={attachment.id}
+                  className={cn(
+                    "rounded-lg overflow-hidden",
+                    isUser ? "max-w-full" : "max-w-full",
+                    "shadow-md"
+                  )}
+                >
+                  <img
+                    src={attachment.data}
+                    alt={attachment.name}
+                    className={cn(
+                      "max-w-full h-auto",
+                      "max-h-[400px] object-contain",
+                      isUser ? "rounded-lg" : "rounded-lg"
+                    )}
+                    loading="lazy"
+                  />
+                </div>
+              )
+            ))}
+          </div>
+        )}
         <div className={messageStyles}>
           <div className={cn(
             "relative",

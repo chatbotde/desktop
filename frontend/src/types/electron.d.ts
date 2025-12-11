@@ -105,6 +105,31 @@ declare global {
       [key: string]: unknown;
     };
 
+    /**
+     * Capture API for screenshots and screen recording
+     */
+    CaptureAPI?: {
+      takeScreenshot: (options?: any) => Promise<any>;
+      takeWindowScreenshot: (windowId: string, options?: any) => Promise<any>;
+      takeAreaScreenshot: (area: { x: number; y: number; width: number; height: number }, options?: any) => Promise<any>;
+      getScreenshotSources: (includeWindows?: boolean) => Promise<any>;
+      quickScreenshot: () => Promise<any>;
+      checkSupport: () => Promise<any>;
+    };
+
+    /**
+     * Interface Window API
+     */
+    interfaceAPI?: {
+      minimize: () => void;
+      maximize: () => void;
+      close: () => void;
+      setIgnoreMouseEvents: (ignore: boolean, options?: any) => void;
+      sendMessage: (channel: string, data: any) => void;
+      onMessage: (channel: string, func: (...args: any[]) => void) => void;
+      removeMessageListener: (channel: string, func: (...args: any[]) => void) => void;
+    };
+
   }
 }
 
