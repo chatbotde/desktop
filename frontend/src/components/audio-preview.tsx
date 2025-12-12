@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, Download, X, Trash2, Volume2 } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Play, Pause, Download, X, Trash2, Volume2, FileText, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getThemeClasses, getHoverClass } from './prompt-input-theme'
 import { Button } from '@/components/ui/button'
+import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
+import type { TranscriptionResult } from '@/lib/audio'
 
 interface AudioPreviewProps {
   audioBlob: Blob
@@ -10,6 +12,7 @@ interface AudioPreviewProps {
   onClose: () => void
   onDelete?: () => void
   onUse?: (blob: Blob) => void
+  onTranscriptionComplete?: (transcription: string) => void
   isDarkTheme?: boolean
 }
 
@@ -19,12 +22,16 @@ export function AudioPreview({
   onClose, 
   onDelete,
   onUse,
+  onTranscriptionComplete,
   isDarkTheme = true 
 }: AudioPreviewProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [audioUrl, setAudioUrl] = useState<string>('')
+  const [transcription, setTranscription] = useState<string>('')
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [showTranscription, setShowTranscription] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const themeClasses = getThemeClasses(isDarkTheme)
@@ -101,6 +108,36 @@ export function AudioPreview({
     URL.revokeObjectURL(url)
   }
 
+  const handleTranscribe = useCallback(async () => {
+    if (!isAssemblyAIConfigured()) {
+      alert('AssemblyAI is not configured. Please add VITE_ASSEMBLYAI_API_KEY to your .env file.')
+      return
+    }
+
+    setIsTranscribing(true)
+    setShowTranscription(true)
+
+    try {
+      const service = createPrerecordedService()
+      const result: TranscriptionResult = await service.transcribe(audioBlob, {
+        punctuate: true,
+        formatText: true,
+      })
+
+      if (result.status === 'completed' && result.text) {
+        setTranscription(result.text)
+        onTranscriptionComplete?.(result.text)
+      } else {
+        setTranscription(result.error || 'Transcription failed')
+      }
+    } catch (error) {
+      console.error('Transcription error:', error)
+      setTranscription(error instanceof Error ? error.message : 'Failed to transcribe audio')
+    } finally {
+      setIsTranscribing(false)
+    }
+  }, [audioBlob, onTranscriptionComplete])
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
@@ -139,6 +176,24 @@ export function AudioPreview({
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {isAssemblyAIConfigured() && (
+              <button
+                onClick={handleTranscribe}
+                disabled={isTranscribing}
+                className={cn(
+                  "p-1.5 rounded-lg transition-colors",
+                  hoverClass,
+                  isTranscribing && "opacity-50 cursor-not-allowed"
+                )}
+                title="Transcribe Audio"
+              >
+                {isTranscribing ? (
+                  <Loader2 className={cn("size-4 animate-spin", themeClasses.icon)} />
+                ) : (
+                  <FileText className={cn("size-4", themeClasses.icon)} />
+                )}
+              </button>
+            )}
             {onDelete && (
               <button
                 onClick={onDelete}
@@ -185,6 +240,41 @@ export function AudioPreview({
             <span className={themeClasses.icon}>{formatTime(duration)}</span>
           </div>
         </div>
+
+        {/* Transcription Section */}
+        {showTranscription && (
+          <div className={cn(
+            "mb-3 p-3 rounded-lg border",
+            themeClasses.containerBorder,
+            "bg-opacity-50"
+          )}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={cn("text-xs font-semibold", themeClasses.input)}>
+                Transcription
+              </div>
+              <button
+                onClick={() => setShowTranscription(false)}
+                className={cn("p-1 rounded", hoverClass)}
+              >
+                <X className={cn("size-3", themeClasses.icon)} />
+              </button>
+            </div>
+            {isTranscribing ? (
+              <div className={cn("text-sm flex items-center gap-2", themeClasses.icon)}>
+                <Loader2 className="size-4 animate-spin" />
+                Transcribing audio...
+              </div>
+            ) : transcription ? (
+              <div className={cn("text-sm whitespace-pre-wrap", themeClasses.input)}>
+                {transcription}
+              </div>
+            ) : (
+              <div className={cn("text-sm", themeClasses.icon)}>
+                No transcription available
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Controls */}
         <div className="flex items-center justify-between gap-2">
