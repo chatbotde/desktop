@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageBubble } from './output-window/MessageBubble'
+import { ThinkingIndicator } from './output-window/ThinkingIndicator'
 import { DragButton } from './output-window/DragButton'
 import { ResizeHandle } from './output-window/ResizeHandle'
 import { WindowControls } from './output-window/WindowControls'
@@ -14,6 +15,7 @@ export type { ChatMessage }
 interface OutputMessagesProps {
     onThemeChange?: (isDark: boolean) => void
     messages?: ChatMessage[]
+    isWaitingForResponse?: boolean
     onClearMessages?: () => void
     isVisible?: boolean
     onClose?: () => void
@@ -25,6 +27,7 @@ interface OutputMessagesProps {
 export function OutputMessages({
     onThemeChange,
     messages = [],
+    isWaitingForResponse = false,
     onClearMessages,
     isVisible: propIsVisible,
     onClose: propOnClose,
@@ -150,6 +153,10 @@ export function OutputMessages({
                                 onExplainSelectedText={onExplainSelectedText}
                             />
                         ))}
+                        {/* Show thinking indicator if waiting for response and last message is from user */}
+                        {isWaitingForResponse && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
+                            <ThinkingIndicator isDarkTheme={isDarkTheme} />
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
                 )}

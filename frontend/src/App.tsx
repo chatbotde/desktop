@@ -48,6 +48,7 @@ function App() {
   const [areaScreenshotCallback, setAreaScreenshotCallback] = useState<((area: { x: number; y: number; width: number; height: number }) => void) | null>(null)
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false)
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
   const [explanation, setExplanation] = useState<string | undefined>(undefined)
   const [explanationPosition, setExplanationPosition] = useState<{ x: number; y: number } | undefined>(undefined)
@@ -97,6 +98,7 @@ function App() {
     // Add user message immediately
     const userMessage = createChatMessage(message, 'user', attachments)
     setOutputMessages(prev => [...prev, userMessage])
+    setIsWaitingForResponse(true)
 
     // Convert MediaAttachment to the format expected by AI service
     const aiAttachments: import('@/lib/ai/gemini').MediaAttachment[] | undefined = attachments?.map(att => ({
@@ -129,6 +131,8 @@ function App() {
       )
       setOutputMessages(prev => [...prev, errorResponse])
       console.error('AI response failed:', err)
+    } finally {
+      setIsWaitingForResponse(false)
     }
   }, [])
 
@@ -187,6 +191,7 @@ function App() {
       <OutputMessages
         onThemeChange={setIsDarkTheme}
         messages={outputMessages}
+        isWaitingForResponse={isWaitingForResponse}
         onClearMessages={() => {
           setOutputMessages([])
           setExplanation(undefined)
