@@ -11,6 +11,7 @@ import { AudioRecorderPill } from '@/components/audio-recorder-pill'
 import { AudioPreview } from '@/components/audio-preview'
 import { VideoScroll } from '@/components/container'
 import { AreaScreenshotOverlay } from '@/components/area-screenshot-overlay'
+import { Explanation } from './components/explaination'
 
 declare global {
   interface Window {
@@ -48,6 +49,8 @@ function App() {
   const [isDarkTheme, setIsDarkTheme] = useState(true)
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
+  const [explanation, setExplanation] = useState<string | undefined>(undefined)
+  const [explanationPosition, setExplanationPosition] = useState<{ x: number; y: number } | undefined>(undefined)
 
   // Debug: Check if CaptureAPI is available on mount
   useEffect(() => {
@@ -129,6 +132,48 @@ function App() {
     }
   }, [])
 
+  const handleAddSelectedTextToPrompt = useCallback((text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    // Ensure prompt input is visible and append as a "clipboard item"
+    setIsInputVisible(true)
+    window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: trimmed } }))
+  }, [])
+
+  const handleAskSelectedText = useCallback(async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    await handleSendMessage(`Selected text:\n"${trimmed}"`)
+  }, [handleSendMessage])
+
+  const handleExplainSelectedText = useCallback(async (text: string, position?: { x: number; y: number }) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    
+    // Store the position for dynamic positioning
+    if (position) {
+      setExplanationPosition(position)
+    }
+    
+    try {
+      // Request explanation from AI
+      const explanationText = await sendMessageComplete(
+        `Please explain the following text in a clear and concise way:\n\n"${trimmed}"`
+      )
+      setExplanation(explanationText)
+      setIsOutputVisible(true)
+    } catch (err) {
+      const errorMessage = err instanceof Error
+        ? err.message
+        : typeof err === 'string'
+          ? err
+          : 'Unknown error'
+      setExplanation(`Sorry, I could not explain this text. (${errorMessage})`)
+      setIsOutputVisible(true)
+      console.error('Explanation failed:', err)
+    }
+  }, [])
+
   return (
     <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
@@ -142,10 +187,30 @@ function App() {
       <OutputMessages
         onThemeChange={setIsDarkTheme}
         messages={outputMessages}
-        onClearMessages={() => setOutputMessages([])}
+        onClearMessages={() => {
+          setOutputMessages([])
+          setExplanation(undefined)
+          setExplanationPosition(undefined)
+        }}
         isVisible={isOutputVisible}
         onClose={() => setIsOutputVisible(false)}
+        onAddSelectedTextToPrompt={handleAddSelectedTextToPrompt}
+        onAskSelectedText={handleAskSelectedText}
+        onExplainSelectedText={handleExplainSelectedText}
       />
+
+      {/* Explanation component - appears dynamically positioned relative to selection */}
+      {explanation && (
+        <Explanation
+          explanation={explanation}
+          isDarkTheme={isDarkTheme}
+          position={explanationPosition}
+          onClose={() => {
+            setExplanation(undefined)
+            setExplanationPosition(undefined)
+          }}
+        />
+      )}
 
       {showAudioRecorder && (
         <div data-no-clickthrough>

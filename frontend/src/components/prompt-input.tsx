@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 
@@ -154,6 +154,22 @@ export function PromptInputWithActions({
       setInternalVisible(visible)
     }
   }, [onVisibilityChange])
+
+  // Allow other parts of the app (e.g. Output window selection) to add text to the prompt.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ text?: string }>
+      const text = custom.detail?.text?.trim()
+      if (!text) return
+
+      setClipboardItems((prev) => [...prev, text])
+      setIsExpanded(true)
+      setIsVisible(true)
+    }
+
+    window.addEventListener('prompt-add-text', handler as EventListener)
+    return () => window.removeEventListener('prompt-add-text', handler as EventListener)
+  }, [setIsVisible])
 
   // Hidden state - return null (RightTransparent will show the input)
   if (!isVisible) {

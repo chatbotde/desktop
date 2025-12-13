@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageBubble } from './output-window/MessageBubble'
 import { DragButton } from './output-window/DragButton'
 import { ResizeHandle } from './output-window/ResizeHandle'
 import { WindowControls } from './output-window/WindowControls'
-import { TextSelectionActions } from './output-window/TextSelectionActions'
 import { useDraggable, useResizable, useAutoScroll } from './output-window/hooks'
 import { getThemeClasses } from './output-window/theme'
 import type { ChatMessage } from './output-window/types'
@@ -18,8 +17,9 @@ interface OutputMessagesProps {
     onClearMessages?: () => void
     isVisible?: boolean
     onClose?: () => void
-    onAddMessage?: (text: string) => void
-    onSendMessage?: (text: string) => void
+    onAddSelectedTextToPrompt?: (text: string) => void
+    onAskSelectedText?: (text: string) => void | Promise<void>
+    onExplainSelectedText?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
 }
 
 export function OutputMessages({
@@ -28,17 +28,13 @@ export function OutputMessages({
     onClearMessages,
     isVisible: propIsVisible,
     onClose: propOnClose,
-    onAddMessage,
-    onSendMessage,
+    onAddSelectedTextToPrompt,
+    onAskSelectedText,
+    onExplainSelectedText,
 }: OutputMessagesProps = {}) {
     const [internalIsVisible, setInternalIsVisible] = useState(true)
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [isDarkTheme, setIsDarkTheme] = useState(true)
-    
-    // Text selection state
-    const [selectedText, setSelectedText] = useState('')
-    const [selectionPosition, setSelectionPosition] = useState({ x: 0, y: 0 })
-    const [showSelectionActions, setShowSelectionActions] = useState(false)
     
     // Center the output window on mount
     const defaultSize = { width: 600, height: 400 }
@@ -63,139 +59,6 @@ export function OutputMessages({
     const { handleDragMouseDown } = useDraggable(setPosition, cardRef)
     const { handleResizeMouseDown } = useResizable(size, setSize)
     useAutoScroll(messages)
-
-    // Handle text selection within the output window
-    useEffect(() => {
-        if (isCollapsed || !cardRef.current) return
-
-        let selectionTimeout: NodeJS.Timeout | null = null
-
-        const handleMouseUp = () => {
-            // Small delay to ensure selection is complete
-            setTimeout(() => {
-                const selection = window.getSelection()
-                if (!selection || selection.rangeCount === 0) {
-                    return
-                }
-
-                const selectedText = selection.toString().trim()
-                if (selectedText.length === 0) {
-                    setShowSelectionActions(false)
-                    setSelectedText('')
-                    return
-                }
-
-                // Check if selection is within the output window
-                const range = selection.getRangeAt(0)
-                const container = cardRef.current
-                if (!container) return
-
-                // Check if the selection is within our card
-                // Check both start and end containers to handle cross-node selections
-                const startContainer = range.startContainer
-                const endContainer = range.endContainer
-                
-                const isWithinCard = 
-                    container.contains(startContainer) || 
-                    container.contains(endContainer) ||
-                    (startContainer.nodeType === Node.TEXT_NODE && container.contains(startContainer.parentElement)) ||
-                    (endContainer.nodeType === Node.TEXT_NODE && container.contains(endContainer.parentElement))
-
-                if (!isWithinCard) {
-                    setShowSelectionActions(false)
-                    setSelectedText('')
-                    return
-                }
-
-                // Get selection position
-                const rect = range.getBoundingClientRect()
-                
-                // Position popup near the selection (below it, centered)
-                // Use absolute screen coordinates
-                const x = rect.left + (rect.width / 2) - 100 // Center popup (assuming ~200px width)
-                const y = rect.bottom + 10
-
-                // Ensure it's not off-screen
-                const absoluteX = Math.max(10, x)
-                const absoluteY = Math.max(10, y)
-
-                console.log('[OutputMessages] Text selected:', selectedText.substring(0, 50))
-                console.log('[OutputMessages] Position:', { x: absoluteX, y: absoluteY })
-
-                setSelectedText(selectedText)
-                setSelectionPosition({ x: absoluteX, y: absoluteY })
-                setShowSelectionActions(true)
-            }, 50) // Small delay to ensure selection is complete
-        }
-
-        const handleSelectionChange = () => {
-            // Clear any existing timeout
-            if (selectionTimeout) {
-                clearTimeout(selectionTimeout)
-            }
-
-            const selection = window.getSelection()
-            if (!selection || selection.toString().trim().length === 0) {
-                // Delay hiding to allow for button clicks
-                selectionTimeout = setTimeout(() => {
-                    const currentSelection = window.getSelection()
-                    if (!currentSelection || currentSelection.toString().trim().length === 0) {
-                        setShowSelectionActions(false)
-                        setSelectedText('')
-                    }
-                }, 200) // Longer delay to prevent premature hiding
-            }
-        }
-
-        const card = cardRef.current
-        if (card) {
-            card.addEventListener('mouseup', handleMouseUp)
-            document.addEventListener('selectionchange', handleSelectionChange)
-        }
-
-        return () => {
-            if (selectionTimeout) {
-                clearTimeout(selectionTimeout)
-            }
-            if (card) {
-                card.removeEventListener('mouseup', handleMouseUp)
-                document.removeEventListener('selectionchange', handleSelectionChange)
-            }
-        }
-    }, [isCollapsed])
-
-    const handleAddMessage = useCallback((text: string) => {
-        if (onAddMessage) {
-            onAddMessage(text)
-        } else {
-            // Default: add as a new user message
-            console.log('Add message:', text)
-        }
-        setShowSelectionActions(false)
-        setSelectedText('')
-        // Clear selection
-        window.getSelection()?.removeAllRanges()
-    }, [onAddMessage])
-
-    const handleSendMessage = useCallback((text: string) => {
-        if (onSendMessage) {
-            onSendMessage(text)
-        } else {
-            // Default: send as a new user message
-            console.log('Send message:', text)
-        }
-        setShowSelectionActions(false)
-        setSelectedText('')
-        // Clear selection
-        window.getSelection()?.removeAllRanges()
-    }, [onSendMessage])
-
-    const handleCloseSelectionActions = useCallback(() => {
-        setShowSelectionActions(false)
-        setSelectedText('')
-        // Clear selection
-        window.getSelection()?.removeAllRanges()
-    }, [])
 
     const isVisible = propIsVisible !== undefined ? propIsVisible : internalIsVisible
 
@@ -282,6 +145,9 @@ export function OutputMessages({
                                 id={`message-${msg.id}`}
                                 message={msg}
                                 isDarkTheme={isDarkTheme}
+                                onAddSelectedText={onAddSelectedTextToPrompt}
+                                onAskSelectedText={onAskSelectedText}
+                                onExplainSelectedText={onExplainSelectedText}
                             />
                         ))}
                         <div ref={messagesEndRef} />
@@ -289,17 +155,6 @@ export function OutputMessages({
                 )}
             </CardContent>
             )}
-
-            {/* Text Selection Actions Popup */}
-            <TextSelectionActions
-                selectedText={selectedText}
-                position={selectionPosition}
-                isVisible={showSelectionActions && !isCollapsed}
-                onClose={handleCloseSelectionActions}
-                onAdd={handleAddMessage}
-                onSend={handleSendMessage}
-                isDarkTheme={isDarkTheme}
-            />
             {!isCollapsed && (
                 <ResizeHandle
                     onMouseDown={handleResizeMouseDown}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Plus, Send, ArrowRight } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Plus, Send, ArrowRight, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { InsertButton } from '../insert-button'
@@ -26,14 +26,19 @@ interface TextSelectionActionsProps {
   onClose: () => void
   
   /**
-   * Callback when "Add" button is clicked
+   * Callback when "Add" button is clicked - adds text to prompt-input in compact form
    */
   onAdd?: (text: string) => void
   
   /**
-   * Callback when "Send" button is clicked
+   * Callback when "Ask" button is clicked - sends message to model
    */
-  onSend?: (text: string) => void
+  onAsk?: (text: string) => void
+  
+  /**
+   * Callback when "Explain" button is clicked - explains the selected text
+   */
+  onExplain?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
   
   /**
    * Dark theme mode
@@ -42,10 +47,13 @@ interface TextSelectionActionsProps {
 }
 
 /**
- * Text Selection Actions Popup
+ * Text Selection Actions Component
  * 
- * Shows three action buttons (Add, Send, Insert) when text is selected
- * in the output window.
+ * Shows four pill-style buttons (Add, Ask, Explain, Insert) when text is selected.
+ * - Add: Adds selected text to prompt-input in compact form
+ * - Ask: Sends message to model
+ * - Explain: Explains the selected text and shows explanation in Explanation component
+ * - Insert: Uses InsertButton component to insert text into focused application
  */
 export function TextSelectionActions({
   selectedText,
@@ -53,7 +61,8 @@ export function TextSelectionActions({
   isVisible,
   onClose,
   onAdd,
-  onSend,
+  onAsk,
+  onExplain,
   isDarkTheme = true,
 }: TextSelectionActionsProps) {
   const popupRef = useRef<HTMLDivElement>(null)
@@ -61,50 +70,35 @@ export function TextSelectionActions({
 
   // Adjust position to keep popup within viewport
   useEffect(() => {
-    if (!isVisible) {
-      setAdjustedPosition(position)
-      return
+    if (!isVisible || !popupRef.current) return
+
+    const popup = popupRef.current
+    const rect = popup.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    let x = position.x
+    let y = position.y
+
+    // Adjust horizontal position
+    // `position.x` is treated as the horizontal center of the popup.
+    const halfW = rect.width / 2
+    if (x + halfW > viewportWidth - 10) {
+      x = viewportWidth - 10 - halfW
+    }
+    if (x - halfW < 10) {
+      x = 10 + halfW
     }
 
-    // Use a small delay to ensure the popup is rendered before calculating
-    const timeout = setTimeout(() => {
-      if (!popupRef.current) {
-        setAdjustedPosition(position)
-        return
-      }
+    // Adjust vertical position (show above selection)
+    if (y + rect.height > viewportHeight) {
+      y = position.y - rect.height - 10
+    }
+    if (y < 10) {
+      y = 10
+    }
 
-      const popup = popupRef.current
-      const rect = popup.getBoundingClientRect()
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-
-      let x = position.x
-      let y = position.y
-
-      // Adjust horizontal position (center the popup on selection)
-      const popupWidth = rect.width || 250 // Fallback width if not rendered yet
-      x = x - (popupWidth / 2)
-      
-      if (x + popupWidth > viewportWidth) {
-        x = viewportWidth - popupWidth - 10
-      }
-      if (x < 10) {
-        x = 10
-      }
-
-      // Adjust vertical position (show above selection if near bottom)
-      const popupHeight = rect.height || 40 // Fallback height
-      if (y + popupHeight > viewportHeight) {
-        y = position.y - popupHeight - 20
-      }
-      if (y < 10) {
-        y = 10
-      }
-
-      setAdjustedPosition({ x, y })
-    }, 10)
-
-    return () => clearTimeout(timeout)
+    setAdjustedPosition({ x, y })
   }, [position, isVisible])
 
   // Close popup when clicking outside
@@ -147,90 +141,115 @@ export function TextSelectionActions({
     }
   }, [selectedText, onAdd, onClose])
 
-  const handleSend = useCallback(() => {
-    if (selectedText.trim() && onSend) {
-      onSend(selectedText.trim())
+  const handleAsk = useCallback(() => {
+    if (selectedText.trim() && onAsk) {
+      onAsk(selectedText.trim())
       onClose()
     }
-  }, [selectedText, onSend, onClose])
+  }, [selectedText, onAsk, onClose])
 
-  // Debug logging
-  useEffect(() => {
-    if (isVisible && selectedText.trim()) {
-      console.log('[TextSelectionActions] Rendering popup:', {
-        selectedText: selectedText.substring(0, 50),
-        position,
-        adjustedPosition
-      })
+  const handleExplain = useCallback(async () => {
+    if (selectedText.trim() && onExplain) {
+      try {
+        await onExplain(selectedText.trim(), position)
+        onClose()
+      } catch (err) {
+        console.error('[TextSelectionActions] Failed to explain selection:', err)
+      }
     }
-  }, [isVisible, selectedText, position, adjustedPosition])
+  }, [selectedText, onExplain, onClose, position])
 
   if (!isVisible || !selectedText.trim()) {
     return null
   }
 
   const bgColor = isDarkTheme 
-    ? 'bg-zinc-800 border-zinc-700' 
-    : 'bg-white border-zinc-200'
+    ? 'bg-zinc-800/95 border-zinc-700 backdrop-blur-md' 
+    : 'bg-white/95 border-zinc-200 backdrop-blur-md'
   const textColor = isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
+  const buttonHover = isDarkTheme 
+    ? 'hover:bg-zinc-700' 
+    : 'hover:bg-zinc-100'
 
   return (
     <div
       ref={popupRef}
       className={cn(
-        'fixed z-[10001] flex items-center gap-2 px-2 py-1.5 rounded-lg shadow-lg border',
-        'animate-in fade-in slide-in-from-bottom-2 duration-200',
+        'fixed z-[10001] flex items-center gap-2 px-2 py-1.5 rounded-full shadow-lg border',
+        // Smooth "appear" (no flying). Position changes are eased too.
+        'animate-in fade-in zoom-in-95 duration-150',
+        'transition-[left,top] duration-100 ease-out',
         bgColor,
         textColor
       )}
       style={{
         left: `${adjustedPosition.x}px`,
         top: `${adjustedPosition.y}px`,
+        transform: 'translate(-50%, 0)',
       }}
       data-no-clickthrough
     >
-      {/* Add Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleAdd}
-        className={cn(
-          'h-8 px-3 gap-1.5',
-          isDarkTheme 
-            ? 'hover:bg-zinc-700 text-zinc-200' 
-            : 'hover:bg-zinc-100 text-zinc-700'
-        )}
-        title="Add to conversation"
-      >
-        <Plus className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium">Add</span>
-      </Button>
+      {/* Add Button - Pill Style */}
+      {onAdd && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAdd}
+          className={cn(
+            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
+            buttonHover,
+            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
+          )}
+          title="Add to prompt"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add</span>
+        </Button>
+      )}
 
-      {/* Send Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleSend}
-        className={cn(
-          'h-8 px-3 gap-1.5',
-          isDarkTheme 
-            ? 'hover:bg-zinc-700 text-zinc-200' 
-            : 'hover:bg-zinc-100 text-zinc-700'
-        )}
-        title="Send as message"
-      >
-        <Send className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium">Send</span>
-      </Button>
+      {/* Ask Button - Pill Style */}
+      {onAsk && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAsk}
+          className={cn(
+            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
+            buttonHover,
+            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
+          )}
+          title="Ask about this"
+        >
+          <Send className="h-3.5 w-3.5" />
+          <span>Ask</span>
+        </Button>
+      )}
 
-      {/* Insert Button */}
+      {/* Explain Button - Pill Style */}
+      {onExplain && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleExplain}
+          className={cn(
+            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
+            buttonHover,
+            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
+          )}
+          title="Explain this text"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+          <span>Explain</span>
+        </Button>
+      )}
+
+      {/* Insert Button - Pill Style */}
       <InsertButton
         text={selectedText.trim()}
         variant="ghost"
         size="sm"
         showSuccess={true}
         icon={<ArrowRight className="h-3.5 w-3.5" />}
-        label="Insert"
         onInserted={(success) => {
           if (success) {
             // Close after successful insert
@@ -238,15 +257,14 @@ export function TextSelectionActions({
           }
         }}
         className={cn(
-          'h-8 px-3 gap-1.5',
+          'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
+          buttonHover,
           isDarkTheme 
-            ? 'hover:bg-zinc-700 text-zinc-200' 
-            : 'hover:bg-zinc-100 text-zinc-700'
+            ? 'text-zinc-200' 
+            : 'text-zinc-700'
         )}
+        label="Insert"
       />
     </div>
   )
 }
-
-
-

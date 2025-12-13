@@ -1,22 +1,38 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MessageContent } from '../prompt-kit/message'
-import type { ChatMessage, MediaAttachment } from './types'
+import type { ChatMessage } from './types'
+import { TextSelectionActions } from './TextSelectionActions'
 
 interface MessageBubbleProps {
   message: ChatMessage
   isDarkTheme: boolean
   id?: string
+  onAddSelectedText?: (text: string) => void
+  onAskSelectedText?: (text: string) => void | Promise<void>
+  onExplainSelectedText?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
 }
 
 const LONG_CONTENT_CHAR_THRESHOLD = 450
 
-export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isDarkTheme,
+  id,
+  onAddSelectedText,
+  onAskSelectedText,
+  onExplainSelectedText,
+}: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isInserting, setIsInserting] = useState(false)
   const [insertSuccess, setInsertSuccess] = useState(false)
+  const contentContainerRef = useRef<HTMLDivElement>(null)
+
+  const [selectionText, setSelectionText] = useState('')
+  const [selectionPos, setSelectionPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [isSelectionVisible, setIsSelectionVisible] = useState(false)
 
   const isLongContent = message.role === 'user' && message.content.length > LONG_CONTENT_CHAR_THRESHOLD
 
@@ -94,6 +110,53 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
 
   const isUser = message.role === 'user'
 
+  const hideSelectionActions = useCallback(() => {
+    setIsSelectionVisible(false)
+    setSelectionText('')
+  }, [])
+
+  const updateSelectionFromDOM = useCallback(() => {
+    const container = contentContainerRef.current
+    if (!container) return
+
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) {
+      hideSelectionActions()
+      return
+    }
+
+    const text = selection.toString().trim()
+    if (!text) {
+      hideSelectionActions()
+      return
+    }
+
+    const anchorNode = selection.anchorNode
+    const focusNode = selection.focusNode
+    const isInside =
+      (anchorNode && container.contains(anchorNode)) ||
+      (focusNode && container.contains(focusNode))
+
+    if (!isInside) {
+      hideSelectionActions()
+      return
+    }
+
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      hideSelectionActions()
+      return
+    }
+
+    // `TextSelectionActions` uses `position: fixed`, so viewport coords are correct.
+    const x = rect.left + rect.width / 2
+
+    setSelectionText(text)
+    setSelectionPos({ x, y: rect.top + rect.height / 2 }) // Use center of selection for explanation positioning
+    setIsSelectionVisible(true)
+  }, [hideSelectionActions])
+
   const messageStyles = cn(
     "transition-all duration-300 break-words overflow-hidden relative",
     "leading-[1.7] tracking-normal font-normal antialiased",
@@ -156,7 +219,13 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
             ))}
           </div>
         )}
-        <div className={messageStyles}>
+        <div
+          className={messageStyles}
+          ref={contentContainerRef}
+          onMouseUp={updateSelectionFromDOM}
+          onKeyUp={updateSelectionFromDOM}
+          onTouchEnd={updateSelectionFromDOM}
+        >
           <div className={cn(
             "relative",
             !isExpanded && isLongContent ? "max-h-48 overflow-hidden" : ""
@@ -198,6 +267,38 @@ export function MessageBubble({ message, isDarkTheme, id }: MessageBubbleProps) 
             )}
           </div>
         </div>
+
+        <TextSelectionActions
+          selectedText={selectionText}
+          position={selectionPos}
+          isVisible={isSelectionVisible}
+          onClose={hideSelectionActions}
+          onAdd={onAddSelectedText}
+          onAsk={
+            onAskSelectedText
+              ? async (t) => {
+                  try {
+                    await onAskSelectedText(t)
+                  } catch (err) {
+                    console.error('[MessageBubble] Failed to ask about selection:', err)
+                  }
+                }
+              : undefined
+          }
+          onExplain={
+            onExplainSelectedText
+              ? async (t) => {
+                  try {
+                    // Pass both text and position to the handler
+                    await onExplainSelectedText(t, selectionPos)
+                  } catch (err) {
+                    console.error('[MessageBubble] Failed to explain selection:', err)
+                  }
+                }
+              : undefined
+          }
+          isDarkTheme={isDarkTheme}
+        />
         {isLongContent && (
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
