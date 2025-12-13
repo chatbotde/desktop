@@ -67,7 +67,7 @@ class InterfaceWindow {
       alwaysOnTop: false,
       focusable: true,
       resizable: false,
-      minimizable: false,
+      minimizable: true,
       maximizable: false,
       closable: false,
       title: "",
