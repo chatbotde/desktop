@@ -177,3 +177,7 @@ export {
   type CapabilityErrorCode,
   type CapabilitySummary,
 } from './capabilities';
+
+// Export Local LLM module (separate, independent module)
+// Use this for local LLM operations with Ollama
+export * from './local-llm';

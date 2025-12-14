@@ -324,7 +324,7 @@ export class UnifiedAIService {
   /**
    * Check if the current provider is configured
    */
-  isCurrentProviderConfigured(): boolean {
+  async isCurrentProviderConfigured(): Promise<boolean> {
     const selectedModel = getSelectedModel();
     if (!selectedModel) return false;
 
@@ -355,7 +355,7 @@ export class UnifiedAIService {
   /**
    * Get configuration status for the current provider
    */
-  getCurrentProviderStatus() {
+  async getCurrentProviderStatus() {
     const selectedModel = getSelectedModel();
     if (!selectedModel) {
       return {
@@ -365,7 +365,7 @@ export class UnifiedAIService {
       };
     }
 
-    const isConfigured = this.isCurrentProviderConfigured();
+    const isConfigured = await this.isCurrentProviderConfigured();
 
     return {
       isConfigured,

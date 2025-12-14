@@ -1,5 +1,5 @@
 import * as React from "react"
-import { X, ArrowUp } from "lucide-react"
+import { X, ArrowUp, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,12 +11,16 @@ export interface TextSelectionInputProps {
   onChange: (value: string) => void
   /** Callback when send is clicked */
   onSend: () => void
+  /** Callback when generate is clicked */
+  onGenerate?: () => void
   /** Callback when close is clicked */
   onClose: () => void
   /** Placeholder text */
   placeholder?: string
   /** Whether the component is in loading state */
   isLoading?: boolean
+  /** Whether the generate button is in loading state */
+  isGenerating?: boolean
   /** Maximum height for the textarea (in pixels) */
   maxHeight?: number
   /** Minimum height for the textarea (in pixels) */
@@ -29,9 +33,11 @@ export function TextSelectionInput({
   value,
   onChange,
   onSend,
+  onGenerate,
   onClose,
   placeholder = "Ask about this...",
   isLoading = false,
+  isGenerating = false,
   maxHeight = 100,
   minHeight = 10,
   className,
@@ -121,25 +127,49 @@ export function TextSelectionInput({
         <div className="flex items-center gap-1">
         </div>
 
-        {/* Send button */}
-        <Button
-          size="sm"
-          onClick={onSend}
-          disabled={!canSend}
-          className={cn(
-            "h-7 w-7 p-0 rounded-full",
-            canSend 
-              ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105" 
-              : "bg-zinc-700 text-zinc-500"
+        <div className="flex items-center gap-1">
+          {/* Generate button */}
+          {onGenerate && (
+            <Button
+              size="sm"
+              onClick={onGenerate}
+              disabled={!value.trim() || isGenerating || isLoading}
+              className={cn(
+                "h-7 w-7 p-0 rounded-full",
+                value.trim() && !isGenerating && !isLoading
+                  ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105" 
+                  : "bg-zinc-700 text-zinc-500"
+              )}
+              aria-label="Generate"
+            >
+              {isGenerating ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+            </Button>
           )}
-          aria-label="Send"
-        >
-          {isLoading ? (
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <ArrowUp className="h-3.5 w-3.5" />
-          )}
-        </Button>
+
+          {/* Send button */}
+          <Button
+            size="sm"
+            onClick={onSend}
+            disabled={!canSend}
+            className={cn(
+              "h-7 w-7 p-0 rounded-full",
+              canSend 
+                ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105" 
+                : "bg-zinc-700 text-zinc-500"
+            )}
+            aria-label="Send"
+          >
+            {isLoading ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <ArrowUp className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </div>
       </div>
     </Card>
   )

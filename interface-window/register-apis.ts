@@ -25,6 +25,13 @@ const services: Record<string, any> = {
     screen: new ElectronScreenService()
 };
 
+// Security check function - will be set by LockManager
+let securityCheckFn: ((channel: string) => boolean) | null = null;
+
+export function setSecurityCheck(checkFn: (channel: string) => boolean) {
+    securityCheckFn = checkFn;
+}
+
 export function registerElectronApis() {
     console.log('Registering Electron APIs...');
     for (const [name, service] of Object.entries(services)) {
@@ -40,6 +47,15 @@ export function registerElectronApis() {
                 // Electron throws if handler already exists
                 try {
                     ipcMain.handle(channel, async (_event, ...args) => {
+                        // Security check: block requests when locked (except block: channels)
+                        if (securityCheckFn && securityCheckFn(channel)) {
+                            console.warn(`IPC Security: Blocked ${channel} - application is locked`);
+                            return {
+                                success: false,
+                                error: 'Application is locked. This action is not allowed.',
+                                blocked: true
+                            };
+                        }
                         try {
                             const result = await service[method](...args);
                             return result;

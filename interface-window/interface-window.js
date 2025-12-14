@@ -38,12 +38,33 @@ try {
   };
 }
 
+// Load Block Manager with error handling
+let initializeBlockManager, stopBlockManager;
+try {
+  const blockManagerModule = require('./block-manager/init-block-manager');
+  initializeBlockManager = blockManagerModule.initializeBlockManager;
+  stopBlockManager = blockManagerModule.stopBlockManager;
+  console.log('InterfaceWindow: Successfully loaded Block Manager module');
+} catch (error) {
+  console.error('InterfaceWindow: Failed to load Block Manager module:', error);
+  // Provide fallback functions
+  initializeBlockManager = () => {
+    console.warn('InterfaceWindow: Block Manager not available (using fallback)');
+    return false;
+  };
+  stopBlockManager = () => {
+    console.warn('InterfaceWindow: Block Manager stop not available');
+  };
+}
+
 
 
 class InterfaceWindow {
-  constructor() {
+  constructor(globalShortcutRegistry = null) {
     this.window = null;
     this.clickThroughManager = null;
+    this.blockManagerInitialized = false;
+    this.globalShortcutRegistry = globalShortcutRegistry;
   }
 
   create() {
@@ -67,6 +88,7 @@ class InterfaceWindow {
       alwaysOnTop: false,
       focusable: true,
       resizable: false,
+      skipTaskbar:true,
       minimizable: true,
       maximizable: false,
       closable: false,
@@ -107,11 +129,26 @@ class InterfaceWindow {
     this.clickThroughManager.setup();
 
     this.window.once('ready-to-show', () => {
-      this.window.show();
-      this.window.setAlwaysOnTop(true, 'screen-saver');
+      // Check if locked before showing (block manager might be initialized by now)
+      if (!this.isLocked()) {
+        this.window.show();
+        this.window.setAlwaysOnTop(true, 'screen-saver');
+      }
+      
+      // Initialize block manager after window is ready
+      // Pass globalShortcutRegistry if available
+      if (initializeBlockManager) {
+        this.blockManagerInitialized = initializeBlockManager(this, this.globalShortcutRegistry);
+      }
     });
 
     this.window.on('closed', () => {
+      // Stop block manager when window closes
+      if (stopBlockManager && this.blockManagerInitialized) {
+        stopBlockManager();
+        this.blockManagerInitialized = false;
+      }
+      
       this.window = null;
       this.clickThroughManager = null;
     });
@@ -144,10 +181,14 @@ class InterfaceWindow {
     }
 
     ipcMain.on('interface-window:minimize', () => {
+      // Check if locked before allowing minimize
+      if (this.isLocked()) return;
       if (this.window) this.window.minimize();
     });
 
     ipcMain.on('interface-window:maximize', () => {
+      // Check if locked before allowing maximize
+      if (this.isLocked()) return;
       if (this.window) {
         if (this.window.isMaximized()) {
           this.window.unmaximize();
@@ -158,11 +199,19 @@ class InterfaceWindow {
     });
 
     ipcMain.on('interface-window:close', () => {
+      // Check if locked before allowing close
+      if (this.isLocked()) return;
       if (this.window) this.window.close();
     });
   }
 
   show() {
+    // SECURITY: Never show window when locked
+    if (this.isLocked()) {
+      console.log('InterfaceWindow: Cannot show - application is locked');
+      return;
+    }
+    
     if (this.window) {
       this.window.show();
       this.window.focus();
@@ -178,6 +227,12 @@ class InterfaceWindow {
   }
 
   toggle() {
+    // Don't allow toggle when locked
+    if (this.isLocked()) {
+      console.log('InterfaceWindow: Cannot toggle - application is locked');
+      return;
+    }
+    
     if (this.window) {
       if (this.window.isVisible()) {
         this.hide();
@@ -191,6 +246,32 @@ class InterfaceWindow {
 
   isVisible() {
     return this.window ? this.window.isVisible() : false;
+  }
+
+  /**
+   * Check if application is locked
+   */
+  isLocked() {
+    if (!this.blockManagerInitialized) {
+      return false;
+    }
+    try {
+      const { getLockManager } = require('./block-manager/init-block-manager');
+      const lockManager = getLockManager();
+      if (lockManager) {
+        return lockManager.getLockState();
+      }
+      // Fallback to BlockManager
+      const { getBlockManager } = require('./block-manager/init-block-manager');
+      const blockManager = getBlockManager();
+      if (blockManager) {
+        const status = blockManager.getLockStatus();
+        return status && status.isLocked;
+      }
+    } catch (error) {
+      // Ignore errors
+    }
+    return false;
   }
 }
 

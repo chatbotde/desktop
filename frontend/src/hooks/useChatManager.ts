@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import type { ChatMessage, MediaAttachment } from '@/components/Messages'
 import { sendMessage } from '@/lib/ai'
 import { setSelectedModel } from '@/lib/ai/model-config'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 export function useChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -91,8 +92,52 @@ export function useChatManager() {
       // Create a new AbortController for this request
       abortControllerRef.current = new AbortController();
       
-      // Send message with media to the selected AI provider (automatically routed)
-      const responseStream = await sendMessage(messageData.content || '', mediaAttachments);
+      // Check if a local LLM model is selected
+      // First ensure local LLM service is initialized
+      let localLLMInitialized = false;
+      try {
+        const initResult = await unifiedLocalLLMService.initialize();
+        localLLMInitialized = initResult.success;
+        console.log('Local LLM initialization:', initResult.message);
+      } catch (error) {
+        console.warn('Failed to initialize local LLM service:', error);
+      }
+      
+      // Check if a local model is currently set in the service
+      const currentLocalModel = unifiedLocalLLMService.getCurrentModel();
+      console.log('Current local model check:', currentLocalModel);
+      console.log('Ollama service current model:', unifiedLocalLLMService.getCurrentModel()?.name || 'none');
+      
+      const isLocalModelSelected = currentLocalModel !== null;
+      
+      let responseStream: AsyncGenerator<string, void, unknown>;
+      
+      if (isLocalModelSelected && currentLocalModel) {
+        // Use local LLM service
+        console.log('✅ Using local LLM model:', currentLocalModel.displayName, '(', currentLocalModel.name, ')');
+        try {
+          // Ensure Ollama is running
+          const isConfigured = await unifiedLocalLLMService.isConfigured();
+          if (!isConfigured) {
+            throw new Error('Ollama is not running. Please start Ollama service.');
+          }
+          
+          responseStream = await unifiedLocalLLMService.sendMessage(
+            messageData.content || '', 
+            mediaAttachments,
+            currentLocalModel.name
+          );
+        } catch (localError) {
+          console.error('❌ Local LLM error:', localError);
+          throw localError;
+        }
+      } else {
+        // Use cloud AI service (automatically routed)
+        console.log('⚠️ Using cloud AI service (no local model selected)');
+        console.log('   - Local model check result:', isLocalModelSelected);
+        console.log('   - Current local model:', currentLocalModel);
+        responseStream = await sendMessage(messageData.content || '', mediaAttachments);
+      }
       
       setIsTyping(false);
       setIsStreaming(true);
@@ -236,6 +281,11 @@ export function useChatManager() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+    // Clear local LLM history if a local model is selected
+    const currentLocalModel = unifiedLocalLLMService.getCurrentModel();
+    if (currentLocalModel) {
+      unifiedLocalLLMService.clearHistory();
     }
   }
 

@@ -4,7 +4,8 @@ import ClickThrough from '@/components/click-through'
 import RightTransparent from '@/components/right-transparent'
 import { OutputMessages } from './components/output-messages'
 import type { ChatMessage, MediaAttachment } from './components/output-window/types'
-import { sendMessageComplete } from '@/lib/ai'
+import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 import { TextSelectionPopup } from '@/components/text-selection/TextSelectionPopup'
 import { AudioRecorderPill } from '@/components/audio-recorder-pill'
@@ -115,7 +116,22 @@ function App() {
 
     // Request assistant response
     try {
-      const replyText = await sendMessageComplete(message, aiAttachments)
+      // If a local model is selected, use Ollama (local LLM). Otherwise use cloud router.
+      const localModel = unifiedLocalLLMService.getCurrentModel()
+      const replyText = localModel
+        ? await (async () => {
+            const init = await unifiedLocalLLMService.initialize()
+            if (!init.success) {
+              throw new Error(init.message)
+            }
+            return await unifiedLocalLLMService.sendMessageComplete(
+              message,
+              aiAttachments,
+              localModel.name
+            )
+          })()
+        : await sendCloudMessageComplete(message, aiAttachments)
+
       const assistantMessage = createChatMessage(replyText, 'assistant')
       setOutputMessages(prev => [...prev, assistantMessage])
     } catch (err) {
@@ -161,9 +177,18 @@ function App() {
     
     try {
       // Request explanation from AI
-      const explanationText = await sendMessageComplete(
-        `Please explain the following text in a clear and concise way:\n\n"${trimmed}"`
-      )
+      const prompt = `Please explain the following text in a clear and concise way:\n\n"${trimmed}"`
+      const localModel = unifiedLocalLLMService.getCurrentModel()
+      const explanationText = localModel
+        ? await (async () => {
+            const init = await unifiedLocalLLMService.initialize()
+            if (!init.success) {
+              throw new Error(init.message)
+            }
+            return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
+          })()
+        : await sendCloudMessageComplete(prompt)
+
       setExplanation(explanationText)
       setIsOutputVisible(true)
     } catch (err) {

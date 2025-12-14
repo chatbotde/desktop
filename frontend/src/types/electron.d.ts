@@ -121,6 +121,26 @@ declare global {
       onExternalFocusChanged: (callback: (focusInfo: any) => void) => void;
     };
 
+    /**
+     * Block API for managing blocked applications and websites
+     */
+    blockAPI?: {
+      addApp: (processName: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+      removeApp: (processName: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+      addWebsite: (url: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+      removeWebsite: (url: string) => Promise<{ success: boolean; message?: string; error?: string }>;
+      getApps: () => Promise<{ success: boolean; apps: string[]; error?: string }>;
+      getWebsites: () => Promise<{ success: boolean; websites: string[]; error?: string }>;
+      getStatus: () => Promise<{ 
+        success: boolean; 
+        status: { isLocked: boolean; blockedApp?: string; blockedWebsite?: string } | null; 
+        lockEnabled: boolean; 
+        error?: string 
+      }>;
+      setEnabled: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      onLockChanged: (callback: (status: { isLocked: boolean; blockedApp?: string; blockedWebsite?: string }) => void) => () => void;
+    };
+
   }
 }
 

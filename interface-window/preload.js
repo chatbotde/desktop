@@ -339,4 +339,57 @@ try {
   }
 }
 
+// Expose Block API
+try {
+  contextBridge.exposeInMainWorld('blockAPI', {
+    /**
+     * Add an application to the block list
+     * @param {string} processName - Process name (e.g., "Cursor.exe")
+     * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+     */
+    addApp: (processName) => ipcRenderer.invoke('block:add-app', processName),
+
+    /**
+     * Remove an application from the block list
+     * @param {string} processName - Process name
+     * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+     */
+    removeApp: (processName) => ipcRenderer.invoke('block:remove-app', processName),
+
+    /**
+     * Get all blocked applications
+     * @returns {Promise<{success: boolean, apps: string[], error?: string}>}
+     */
+    getApps: () => ipcRenderer.invoke('block:get-apps'),
+
+    /**
+     * Get current lock status
+     * @returns {Promise<{success: boolean, status: {isLocked: boolean, blockedApp?: string}, lockEnabled: boolean, error?: string}>}
+     */
+    getStatus: () => ipcRenderer.invoke('block:get-status'),
+
+    /**
+     * Set lock enabled/disabled
+     * @param {boolean} enabled - Enable or disable lock feature
+     * @returns {Promise<{success: boolean, error?: string}>}
+     */
+    setEnabled: (enabled) => ipcRenderer.invoke('block:set-enabled', enabled),
+
+    /**
+     * Listen to lock status changes
+     * @param {function} callback - Callback function receiving lock status
+     * @returns {function} Unsubscribe function
+     */
+    onLockChanged: (callback) => {
+      const handler = (event, status) => callback(status);
+      ipcRenderer.on('block:lock-changed', handler);
+      return () => ipcRenderer.removeListener('block:lock-changed', handler);
+    }
+  });
+
+  console.log('[Preload] blockAPI exposed successfully');
+} catch (error) {
+  console.error('[Preload] Error exposing blockAPI:', error);
+}
+
 console.log('[Preload] All APIs exposed, preload script complete');

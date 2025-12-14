@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextSelectionInput } from './text-selection'
+import { TextSelectionOutput } from './text-selection-output'
 import { useFeature } from '@/contexts/FeatureContext'
+import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 interface SelectionData {
   text: string
@@ -37,6 +40,8 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
   const [prompt, setPrompt] = useState('')
   const [position, setPosition] = useState({ top: 0, left: 0 })
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const { isFeatureEnabled } = useFeature()
 
   useEffect(() => {
@@ -100,6 +105,8 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
     setIsVisible(false)
     setPrompt('')
     setIsLoading(false)
+    setIsGenerating(false)
+    setGeneratedOutput(null)
   }, [])
 
   // Hide popup if feature is disabled
@@ -110,7 +117,7 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
   }, [isFeatureEnabled])
 
   const handleSend = useCallback(async () => {
-    if (!prompt.trim() || isLoading) return
+    if (!prompt.trim() || isLoading || isGenerating) return
 
     let message = prompt.trim()
     if (selectionData?.text) {
@@ -127,7 +134,76 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [prompt, selectionData, isLoading, onSendMessage, handleClose])
+  }, [prompt, selectionData, isLoading, isGenerating, onSendMessage, handleClose])
+
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || isGenerating || isLoading) return
+
+    let message = prompt.trim()
+    if (selectionData?.text) {
+      message = `${message}\n\nSelected text:\n"${selectionData.text}"`
+    }
+
+    setIsGenerating(true)
+    setGeneratedOutput(null)
+
+    try {
+      // Use the same AI service logic as handleSendMessage
+      const localModel = unifiedLocalLLMService.getCurrentModel()
+      const replyText = localModel
+        ? await (async () => {
+            const init = await unifiedLocalLLMService.initialize()
+            if (!init.success) {
+              throw new Error(init.message)
+            }
+            return await unifiedLocalLLMService.sendMessageComplete(
+              message,
+              undefined,
+              localModel.name
+            )
+          })()
+        : await sendCloudMessageComplete(message, undefined)
+
+      setGeneratedOutput(replyText)
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Unknown error'
+      setGeneratedOutput(`Sorry, I could not generate a response right now. (${errorMessage})`)
+      console.error('AI generation failed:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [prompt, selectionData, isGenerating, isLoading])
+
+  const handleInsert = useCallback(async () => {
+    if (!generatedOutput) return
+    
+    try {
+      // Use TSF API to insert text at the cursor position
+      if (window.tsfAPI?.focusAndInsertText) {
+        const success = await window.tsfAPI.focusAndInsertText(generatedOutput)
+        if (success) {
+          console.log('Text inserted successfully')
+          // Optionally close the popup after insertion
+          // handleClose()
+        } else {
+          console.error('Failed to insert text')
+        }
+      } else {
+        console.warn('TSF API not available for text insertion')
+      }
+    } catch (error) {
+      console.error('Error inserting text:', error)
+    }
+  }, [generatedOutput])
+
+  const handleCopy = useCallback(() => {
+    // Copy is handled by the TextSelectionOutput component
+    console.log('Content copied to clipboard')
+  }, [])
 
   // Don't render if feature is disabled or not visible
   if (!isFeatureEnabled('text-selection') || !isVisible) return null
@@ -144,14 +220,25 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
       className="w-[400px] transition-all duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
       data-no-clickthrough
     >
-      <TextSelectionInput
-        value={prompt}
-        onChange={setPrompt}
-        onSend={handleSend}
-        onClose={handleClose}
-        placeholder="Ask about this..."
-        isLoading={isLoading}
-      />
+      <div className="flex flex-col gap-0">
+        <TextSelectionInput
+          value={prompt}
+          onChange={setPrompt}
+          onSend={handleSend}
+          onGenerate={handleGenerate}
+          onClose={handleClose}
+          placeholder="Ask about this..."
+          isLoading={isLoading}
+          isGenerating={isGenerating}
+        />
+        {generatedOutput && (
+          <TextSelectionOutput
+            content={generatedOutput}
+            onInsert={handleInsert}
+            onCopy={handleCopy}
+          />
+        )}
+      </div>
     </div>
   )
 }

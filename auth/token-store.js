@@ -30,7 +30,9 @@ let electronStore = null;
 
 try {
   // Try to use electron-store for persistent fallback
-  const Store = require('electron-store');
+  let Store = require('electron-store');
+  // handle default export
+  if (Store && Store.default) Store = Store.default;
   electronStore = new Store({
     name: 'auth-tokens',
     encryptionKey: `${config.KEYTAR_SERVICE}-fallback-key`,

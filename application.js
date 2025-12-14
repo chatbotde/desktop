@@ -142,8 +142,8 @@ class Application {
       // Create chat input window
       // this.createChatInputWindow(); // ISOLATED
 
-      // Create Interface Window
-      this.interfaceWindow = new InterfaceWindow();
+      // Create Interface Window (pass shortcut registry for security)
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
       this.interfaceWindow.create();
 
       // Setup Search IPC
@@ -244,10 +244,17 @@ class Application {
    */
   toggleInterfaceWindow() {
     console.log('Application: Toggle interface window requested');
+    
+    // Check if application is locked
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot toggle - application is locked');
+      return;
+    }
+    
     if (this.interfaceWindow) {
       this.interfaceWindow.toggle();
     } else {
-      this.interfaceWindow = new InterfaceWindow();
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
       this.interfaceWindow.create();
     }
   }

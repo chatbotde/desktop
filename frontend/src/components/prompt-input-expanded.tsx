@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText } from "lucide-react"
+import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Wifi } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import { ClipboardPill } from "./clipboard"
+import { useNetworkStatus } from "@/hooks/use-network-status"
 
 interface PromptInputExpandedProps {
   input: string
@@ -59,6 +60,7 @@ export function PromptInputExpanded({
 
   const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
   const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
+  const { isOnline } = useNetworkStatus()
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -112,6 +114,21 @@ export function PromptInputExpanded({
 
   return (
     <div className="relative flex items-start gap-3 mx-4 mb-0">
+      {/* Network Status Icon - Outside and Centered */}
+      {!isOnline && (
+        <div
+          className={cn(
+            "absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full mb-2",
+            "flex h-8 w-8 items-center justify-center rounded-full shrink-0 z-50",
+            "opacity-90"
+          )}
+          title="No Internet Connection"
+          aria-label="No Internet Connection"
+        >
+          <WifiOff className={`size-5 ${themeClasses.icon} text-red-500`} />
+        </div>
+      )}
+
       <ClipboardPill
         onAdd={(text) => onClipboardItemAdd ? onClipboardItemAdd(text) : setInput(input + (input ? " " : "") + text)}
         isDarkTheme={isDarkTheme}

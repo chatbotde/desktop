@@ -43,7 +43,8 @@
     "os-system/**/*.ts",
     "monitor/**/*.ts",
     "tsf/**/*.ts",
-    "capture/**/*.ts"
+    "capture/**/*.ts",
+    "block-manager/**/*.ts"
   ],
   "exclude": [
     "node_modules",
