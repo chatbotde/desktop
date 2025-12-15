@@ -15,6 +15,8 @@ const { GlobalShortcutRegistry } = require('./global-shortcut-registry');
 const { IpcHandlerRegistry } = require('./ipc-handler-registry');
 const { McpProcessManager } = require('./mcp-process-manager');
 const { MediaStreamManager } = require('./media-stream-manager');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 // const { ChatInputWindow } = require('./chat-input/chat-input-window'); // ISOLATED
 const { initializeAuth, authService, AuthWindow } = require('./auth');
 const { InterfaceWindow } = require('./interface-window/interface-window');
@@ -379,6 +381,8 @@ class Application {
    * @private
    */
   registerIpcHandlers() {
+    const execFileAsync = promisify(execFile);
+
     // Chat input window handlers
     /* ISOLATED
     this.ipcRegistry.register('toggle-chat-input', () => {
@@ -417,6 +421,34 @@ class Application {
     this.ipcRegistry.register('ai-model-changed', (event, { modelId, modelDetails }) => {
       console.log('Application: AI model changed to', modelId);
     }, 'on');
+
+    // Ollama helpers (local LLM)
+    this.ipcRegistry.register('ollama:isInstalled', async () => {
+      // This checks whether the `ollama` CLI is available on PATH.
+      // It does NOT guarantee the Ollama service is running.
+      const tryCommands = [
+        { cmd: 'ollama', args: ['--version'] },
+        { cmd: 'ollama', args: ['version'] },
+      ];
+
+      for (const attempt of tryCommands) {
+        try {
+          const { stdout } = await execFileAsync(attempt.cmd, attempt.args, {
+            timeout: 2500,
+            windowsHide: true,
+          });
+          const version = String(stdout || '').trim();
+          return { installed: true, version: version || undefined };
+        } catch (error) {
+          // try next
+        }
+      }
+
+      return {
+        installed: false,
+        error: 'Ollama CLI not found. Please install Ollama and ensure it is on PATH.',
+      };
+    });
 
     // Environment config handlers
     this.ipcRegistry.register('get-frontend-url', () => environmentConfig.getFrontendURL());

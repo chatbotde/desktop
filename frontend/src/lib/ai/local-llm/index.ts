@@ -52,6 +52,7 @@ export {
   getRecommendedLocalLLMModels,
   getLocalLLMModelById,
   setLocalLLMModel,
+  clearLocalLLMModel,
   type LocalLLMModel,
 } from './model-config';
 

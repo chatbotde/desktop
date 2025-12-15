@@ -1,27 +1,25 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Image, Mic, Video, FileText, Camera, Circle, Sliders, X, Lock } from "lucide-react"
+import { Image, Mic, Video, FileText, Camera, Circle, X, Settings, ChevronsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
-import { createPortal } from "react-dom"
 import { getThemeClasses } from "./prompt-input-theme"
-import { DynamicFeatureList } from "@/components/features/feature-active"
-import { BlockSettings } from "@/components/settings/BlockSettings"
+import { SettingsModal } from "@/components/settings/SettingsModal"
 
 interface MediaUploadCardProps {
     onFileUpload?: (files: File[]) => void
     className?: string
     isDarkTheme?: boolean
     onScreenshot?: (screenshot: { name: string; type: string; size: number; data: string }) => void
+    onMoreClick?: () => void
 }
 
-export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot }: MediaUploadCardProps) {
+export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot, onMoreClick }: MediaUploadCardProps) {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const audioInputRef = useRef<HTMLInputElement>(null)
     const docInputRef = useRef<HTMLInputElement>(null)
     const [isCapturing, setIsCapturing] = useState(false)
-    const [isFeatureDialogOpen, setIsFeatureDialogOpen] = useState(false)
-    const [isBlockSettingsOpen, setIsBlockSettingsOpen] = useState(false)
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
     const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
@@ -150,17 +148,21 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             action: () => audioInputRef.current?.click()
         },
         {
-            id: 'features',
-            label: 'Features',
-            icon: Sliders,
-            action: () => setIsFeatureDialogOpen(true)
+            id: 'settings',
+            label: 'Settings',
+            icon: Settings,
+            action: () => setIsSettingsOpen(true)
         },
-        {
-            id: 'block-settings',
-            label: 'Block Settings',
-            icon: Lock,
-            action: () => setIsBlockSettingsOpen(true)
-        },
+        ...(onMoreClick
+            ? ([
+                {
+                    id: 'more',
+                    label: 'More',
+                    icon: ChevronsUp,
+                    action: onMoreClick,
+                },
+            ] as const)
+            : []),
     ] as const
 
     return (
@@ -237,60 +239,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                 </CardContent>
             </Card>
 
-            {isFeatureDialogOpen && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-50 flex items-center justify-center" data-no-clickthrough>
-                    <Card 
-                        className={cn(
-                            "relative max-w-2xl w-full mx-4 shadow-xl rounded-xl border",
-                            themeClasses.containerBorder
-                        )}
-                        style={{ backgroundColor: themeClasses.containerBg }}
-                    >
-                        <button
-                            onClick={() => setIsFeatureDialogOpen(false)}
-                            className="absolute top-4 right-4 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-400 hover:text-zinc-200 transition-all duration-150 shadow-md hover:shadow-lg hover:scale-105"
-                            aria-label="Close"
-                        >
-                            <X className="h-3.5 w-3.5" />
-                        </button>
-                        <CardContent className="p-6">
-                            <DynamicFeatureList />
-                        </CardContent>
-                    </Card>
-                </div>,
-                document.body
-            )}
-
-            {isBlockSettingsOpen && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-50 " data-no-clickthrough>
-                    <div className="h-[300px] flex items-start justify-center p-4">
-                        <div 
-                            className={cn(
-                                "relative w-full max-w-2xl shadow-xl rounded-xl border mt-8 mb-8",
-                                themeClasses.containerBorder
-                            )}
-                            style={{ backgroundColor: themeClasses.containerBg }}
-                        >
-                            <button
-                                onClick={() => setIsBlockSettingsOpen(false)}
-                                className={cn(
-                                    "absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 shadow-md hover:shadow-lg hover:scale-105",
-                                    isDarkTheme 
-                                        ? "bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-400 hover:text-zinc-200"
-                                        : "bg-zinc-200 hover:bg-zinc-300 border border-zinc-300 text-zinc-600 hover:text-zinc-800"
-                                )}
-                                aria-label="Close"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                            <div className="p-6">
-                                <BlockSettings isDarkTheme={isDarkTheme} />
-                            </div>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} isDarkTheme={isDarkTheme} />
         </>
     )
 }

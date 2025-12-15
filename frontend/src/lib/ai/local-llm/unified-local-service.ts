@@ -7,17 +7,11 @@
  */
 
 import { ollamaService, isOllamaConfigured } from './ollama';
-import { localLLMModelConfig, type LocalLLMModel } from './model-config';
+import { clearLocalLLMModel, localLLMModelConfig, type LocalLLMModel } from './model-config';
 import type { MediaAttachment } from '../gemini';
-
-// Simple token estimation (approximately 4 characters per token)
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
 
 export class UnifiedLocalLLMService {
   private currentSystemPrompt: string | null = null;
-  private usageTrackingEnabled: boolean = false; // Local LLM doesn't need usage tracking
   private currentModelName: string | null = null; // Track current model name directly
 
   constructor() {
@@ -67,6 +61,14 @@ export class UnifiedLocalLLMService {
    */
   getRecommendedModels(): LocalLLMModel[] {
     return localLLMModelConfig.getRecommendedModels();
+  }
+
+  /**
+   * Clear local model selection (switch back to cloud mode)
+   */
+  clearModel() {
+    this.currentModelName = null;
+    clearLocalLLMModel();
   }
 
   /**

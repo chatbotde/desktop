@@ -305,6 +305,13 @@ export class LocalLLMModelConfigManager {
   }
 
   /**
+   * Clear selected model (switch back to cloud mode)
+   */
+  clearSelectedModel() {
+    this.selectedModelId = null;
+  }
+
+  /**
    * Get model by Ollama name
    */
   getModelByOllamaName(ollamaName: string): LocalLLMModel | null {
@@ -322,6 +329,13 @@ export class LocalLLMModelConfigManager {
     if (this.availableModels.length === 0) return true; // Haven't checked yet
     return this.availableModels.includes(model.name);
   }
+
+  /**
+   * Get model by ID
+   */
+  getModelById(modelId: string): LocalLLMModel | null {
+    return this.modelConfigs.get(modelId) || null;
+  }
 }
 
 // Export singleton instance
@@ -330,6 +344,7 @@ export const localLLMModelConfig = LocalLLMModelConfigManager.getInstance();
 // Convenience functions
 export const getLocalLLMModels = () => localLLMModelConfig.getAvailableModels();
 export const getRecommendedLocalLLMModels = () => localLLMModelConfig.getRecommendedModels();
-export const getLocalLLMModelById = (id: string) => localLLMModelConfig.getSelectedModel();
+export const getLocalLLMModelById = (id: string) => localLLMModelConfig.getModelById(id);
 export const setLocalLLMModel = (id: string) => localLLMModelConfig.setSelectedModel(id);
+export const clearLocalLLMModel = () => localLLMModelConfig.clearSelectedModel();
 

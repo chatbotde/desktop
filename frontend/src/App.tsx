@@ -71,6 +71,14 @@ function App() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Keep shadcn/tailwind theme tokens consistent globally.
+  // Many UI components (Select/Popover/Dialog) rely on `.dark` + CSS variables for correct colors.
+  useEffect(() => {
+    const root = document.documentElement
+    if (isDarkTheme) root.classList.add('dark')
+    else root.classList.remove('dark')
+  }, [isDarkTheme])
+
   // Expose function to add messages globally
   useEffect(() => {
     window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {

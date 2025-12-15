@@ -119,7 +119,7 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
   };
 
   return (
-    <div className="h-[700px] w-full flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 px-6 py-4 border-b" style={{ borderColor: isDarkTheme ? 'rgb(39 39 42)' : 'rgb(228 228 231)' }}>
         <h2 className={cn('text-lg font-semibold mb-1', isDarkTheme ? 'text-zinc-100' : 'text-zinc-900')}>
@@ -192,7 +192,7 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
 
         {/* Apps List - Scrollable */}
         <div className={cn(
-          'flex-1 min-h-0 overflow-y-auto',
+          'flex-1 min-h-0 overflow-y-auto pr-1',
           apps.length === 0 && 'flex items-center justify-center'
         )}>
           {apps.length === 0 ? (

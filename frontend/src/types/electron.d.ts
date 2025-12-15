@@ -62,6 +62,9 @@ declare global {
       globalShortcut: any;
       ipcMain: any;
       net: any;
+      ollama?: {
+        isInstalled: () => Promise<{ installed: boolean; version?: string; error?: string }>;
+      };
       process: any;
       safeStorage: any;
       screen: any;

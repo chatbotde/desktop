@@ -81,6 +81,7 @@ const serviceNames = [
   'globalShortcut',
   'ipcMain',
   'net',
+  'ollama',
   'process',
   'safeStorage',
   'screen'

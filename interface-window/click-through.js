@@ -9,7 +9,7 @@ class ClickThroughManager {
     if (!this.window) return;
 
     // Enable content protection to prevent screen capture
-    this.window.setContentProtection(true);
+    this.window.setContentProtection(false);
 
     // Initial state: Click-through enabled (transparent parts are clickable-through)
     // forward: true allows the renderer to see the mouse to detect hover

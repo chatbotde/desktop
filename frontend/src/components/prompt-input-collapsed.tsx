@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, Paperclip, Image, Video, Music, FileText, WifiOff, Wifi } from "lucide-react"
+import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, Paperclip, Image, Video, Music, FileText, WifiOff } from "lucide-react"
 import {
   Popover,
   PopoverContent,

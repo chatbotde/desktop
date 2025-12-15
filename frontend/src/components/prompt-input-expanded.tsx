@@ -10,13 +10,17 @@ import {
 } from "@/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Wifi } from "lucide-react"
-import { useRef, useEffect, useMemo, useCallback } from "react"
+import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Cpu } from "lucide-react"
+import { useRef, useEffect, useMemo, useCallback, useState } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import { ClipboardPill } from "./clipboard"
 import { useNetworkStatus } from "@/hooks/use-network-status"
+import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
+import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
+import { getShowLocalModelControl, subscribeShowLocalModelControl } from "@/lib/settings/prompt-controls"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PromptInputExpandedProps {
   input: string
@@ -70,6 +74,37 @@ export function PromptInputExpanded({
       textarea.style.height = `${newHeight}px`
     }
   }, [input])
+
+  // --- Local LLM selection (Ollama) ---
+  const [ollamaRunning, setOllamaRunning] = useState<boolean | null>(null)
+  const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const [selectedLocalModelName, setSelectedLocalModelName] = useState<string | null>(
+    () => unifiedLocalLLMService.getCurrentModel()?.name ?? null
+  )
+  const [showLocalControlInPrompt, setShowLocalControlInPrompt] = useState<boolean>(() => getShowLocalModelControl())
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const running = await isOllamaConfigured()
+      if (cancelled) return
+      setOllamaRunning(running)
+      if (running) {
+        const models = await ollamaService.listModels()
+        if (cancelled) return
+        setOllamaModels(models)
+      } else {
+        setOllamaModels([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [setOllamaRunning, setOllamaModels])
+
+  useEffect(() => {
+    return subscribeShowLocalModelControl((value) => setShowLocalControlInPrompt(value))
+  }, [])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -168,8 +203,36 @@ export function PromptInputExpanded({
           <ChevronUp className={`size-4 ${themeClasses.icon} rotate-180`} />
         </button>
 
-        {(files.length > 0 || (clipboardItems && clipboardItems.length > 0)) && (
+        {(!!selectedLocalModelName || files.length > 0 || (clipboardItems && clipboardItems.length > 0)) && (
           <div className="flex flex-wrap gap-2 pb-1 max-h-[80px] overflow-y-auto">
+            {selectedLocalModelName && (
+              <div
+                key={`selected-local-${selectedLocalModelName}`}
+                className={cn(
+                  "flex items-center gap-2 rounded-full px-2 py-1 text-xs border max-w-[260px]",
+                  themeClasses.fileItem,
+                  isDarkTheme ? "border-green-600" : "border-green-400"
+                )}
+                onClick={(e) => e.stopPropagation()}
+                title={`Chat using local model: ${selectedLocalModelName}`}
+              >
+                <Cpu className={`size-3 ${themeClasses.icon} shrink-0`} aria-hidden="true" />
+                <span className={cn("truncate", themeClasses.fileText)}>{selectedLocalModelName}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    unifiedLocalLLMService.clearModel()
+                    setSelectedLocalModelName(null)
+                  }}
+                  aria-label="Clear local model selection"
+                  className={cn("rounded-full p-0.5 transition-colors shrink-0", hoverClass)}
+                  type="button"
+                >
+                  <X className={`size-3 ${themeClasses.icon}`} />
+                </button>
+              </div>
+            )}
+
             {clipboardItems?.map((item, index) => (
               <div
                 key={`clipboard-${index}`}
@@ -260,6 +323,92 @@ export function PromptInputExpanded({
                 themeClasses={themeClasses}
               />
             </PromptInputAction>
+
+            {showLocalControlInPrompt && (
+              <PromptInputAction tooltip="Local model (Ollama)">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                        hoverClass
+                      )}
+                      aria-label="Local model (Ollama)"
+                      type="button"
+                    >
+                      <Cpu className={`size-5 ${themeClasses.icon}`} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className={cn(
+                      "w-60 p-0 border",
+                      isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+                    )}
+                    style={{ backgroundColor: themeClasses.containerBg }}
+                    align="start"
+                    data-no-clickthrough
+                  >
+                    <div className="max-h-[400px] overflow-y-auto">
+                      <div className="p-2">
+                        {ollamaRunning === false || ollamaModels.length === 0 ? (
+                          <div className={cn(
+                            "px-2 py-4 text-xs text-center",
+                            isDarkTheme ? "text-zinc-500" : "text-zinc-400"
+                          )}>
+                            {ollamaRunning === false
+                              ? "Ollama is not running"
+                              : "No models available"}
+                          </div>
+                        ) : (
+                          ollamaModels.map((modelName) => {
+                            const isSelected = selectedLocalModelName === modelName
+                            return (
+                              <button
+                                key={modelName}
+                                className={cn(
+                                  "w-full p-1 text-left transition-colors rounded-lg mt-1",
+                                  isDarkTheme
+                                    ? "hover:bg-zinc-800"
+                                    : "hover:bg-zinc-50",
+                                  isSelected && (
+                                    isDarkTheme
+                                      ? "bg-green-900/30 border border-green-700"
+                                      : "bg-green-50 border border-green-200"
+                                  )
+                                )}
+                                onClick={() => {
+                                  unifiedLocalLLMService.setModel(modelName)
+                                  setSelectedLocalModelName(modelName)
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <Cpu className={`size-3 ${themeClasses.icon}`} />
+                                    <div className={cn(
+                                      "font-medium text-sm truncate",
+                                      themeClasses.fileText
+                                    )}>
+                                      {modelName}
+                                    </div>
+                                  </div>
+
+                                  {isSelected && (
+                                    <div className={cn(
+                                      "h-2 w-2 rounded-full mt-1 shrink-0",
+                                      isDarkTheme ? "bg-green-400" : "bg-green-500"
+                                    )} />
+                                  )}
+                                </div>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </PromptInputAction>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

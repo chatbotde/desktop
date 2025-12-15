@@ -94,10 +94,8 @@ export function useChatManager() {
       
       // Check if a local LLM model is selected
       // First ensure local LLM service is initialized
-      let localLLMInitialized = false;
       try {
         const initResult = await unifiedLocalLLMService.initialize();
-        localLLMInitialized = initResult.success;
         console.log('Local LLM initialization:', initResult.message);
       } catch (error) {
         console.warn('Failed to initialize local LLM service:', error);
