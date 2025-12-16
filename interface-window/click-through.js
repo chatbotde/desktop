@@ -8,7 +8,9 @@ class ClickThroughManager {
   setup() {
     if (!this.window) return;
 
-    // Enable content protection to prevent screen capture
+    // Initial state: Content protection disabled (window can be captured)
+    // This can be toggled via setContentProtection method
+    this.contentProtectionEnabled = false;
     this.window.setContentProtection(false);
 
     // Initial state: Click-through enabled (transparent parts are clickable-through)
@@ -17,12 +19,21 @@ class ClickThroughManager {
 
     // Remove existing listeners to prevent duplicates
     ipcMain.removeAllListeners('interface-window:set-ignore-mouse-events');
+    ipcMain.removeAllListeners('interface-window:set-content-protection');
 
     // Listen for hover state changes from the frontend
     ipcMain.on('interface-window:set-ignore-mouse-events', (event, ignore, options) => {
       // Verify the sender is our window
       if (this.window && !this.window.isDestroyed() && event.sender.id === this.window.webContents.id) {
         this.setIgnoreMouseEvents(ignore, options);
+      }
+    });
+
+    // Listen for content protection changes from the frontend
+    ipcMain.on('interface-window:set-content-protection', (event, enabled) => {
+      // Verify the sender is our window
+      if (this.window && !this.window.isDestroyed() && event.sender.id === this.window.webContents.id) {
+        this.setContentProtection(enabled);
       }
     });
   }
@@ -50,6 +61,26 @@ class ClickThroughManager {
       console.log('[ClickThrough] DISABLED - window captures clicks');
       this.window.setIgnoreMouseEvents(false);
     }
+  }
+
+  /**
+   * Set the content protection state
+   * @param {boolean} enabled - If true, window is excluded from screen capture. If false, window can be captured.
+   */
+  setContentProtection(enabled) {
+    if (!this.window || this.window.isDestroyed()) return;
+
+    this.contentProtectionEnabled = !!enabled;
+    this.window.setContentProtection(enabled);
+    console.log(`[ClickThrough] Content protection ${enabled ? 'ENABLED' : 'DISABLED'} - window ${enabled ? 'excluded from' : 'included in'} screen capture`);
+  }
+
+  /**
+   * Get the current content protection state
+   * @returns {boolean} Current content protection state
+   */
+  getContentProtection() {
+    return this.contentProtectionEnabled || false;
   }
 }
 

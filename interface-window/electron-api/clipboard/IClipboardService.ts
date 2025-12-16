@@ -12,7 +12,11 @@ export interface ClipboardData {
 export interface IClipboardReader {
     readText(type?: 'selection' | 'clipboard'): string;
     readHTML(type?: 'selection' | 'clipboard'): string;
-    readImage(type?: 'selection' | 'clipboard'): NativeImage;
+    /**
+     * Renderer-safe image read.
+     * Returning NativeImage across IPC/contextBridge does not work, so we return a Data URL.
+     */
+    readImage(type?: 'selection' | 'clipboard'): string | null;
     readRTF(type?: 'selection' | 'clipboard'): string;
     readBookmark(): { title: string; url: string };
     readFindText(): string;
@@ -25,7 +29,10 @@ export interface IClipboardReader {
 export interface IClipboardWriter {
     writeText(text: string, type?: 'selection' | 'clipboard'): void;
     writeHTML(markup: string, type?: 'selection' | 'clipboard'): void;
-    writeImage(image: NativeImage, type?: 'selection' | 'clipboard'): void;
+    /**
+     * Accept a NativeImage (main) or a Data URL string (renderer).
+     */
+    writeImage(image: NativeImage | string, type?: 'selection' | 'clipboard'): void;
     writeRTF(text: string, type?: 'selection' | 'clipboard'): void;
     writeBookmark(title: string, url: string, type?: 'selection' | 'clipboard'): void;
     writeFindText(text: string): void;

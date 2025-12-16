@@ -6,6 +6,7 @@ import { OutputMessages } from './components/output-messages'
 import type { ChatMessage, MediaAttachment } from './components/output-window/types'
 import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { buildAskPrompt, buildExplainPrompt } from '@/lib/prompt'
 
 import { TextSelectionPopup } from '@/components/text-selection/TextSelectionPopup'
 import { AudioRecorderPill } from '@/components/audio-recorder-pill'
@@ -13,6 +14,7 @@ import { AudioPreview } from '@/components/audio-preview'
 import { VideoScroll } from '@/components/container'
 import { AreaScreenshotOverlay } from '@/components/area-screenshot-overlay'
 import { Explanation } from './components/explaination'
+import { useAutoScreenshot } from '@/hooks/useAutoScreenshot'
 
 declare global {
   interface Window {
@@ -54,12 +56,22 @@ function App() {
   const [explanation, setExplanation] = useState<string | undefined>(undefined)
   const [explanationPosition, setExplanationPosition] = useState<{ x: number; y: number } | undefined>(undefined)
 
+  // Auto-screenshot feature - automatically takes screenshots when user starts typing
+  useAutoScreenshot({
+    onScreenshot: (file, isAutoScreenshot) => {
+      console.log('[App] Auto-screenshot captured, adding to prompt:', file.name, 'isAuto:', isAutoScreenshot)
+      // Dispatch custom event to add file to prompt input
+      window.dispatchEvent(new CustomEvent('prompt-add-files', { detail: { files: [file] } }))
+      setIsInputVisible(true)
+    },
+  })
+
   // Debug: Check if CaptureAPI is available on mount
   useEffect(() => {
     console.log('[App] Component mounted, checking for CaptureAPI...');
     console.log('[App] window.CaptureAPI:', window.CaptureAPI);
     console.log('[App] window.interfaceAPI:', window.interfaceAPI);
-    
+
     // Check after a short delay in case preload hasn't finished
     const timeout = setTimeout(() => {
       console.log('[App] After delay - window.CaptureAPI:', window.CaptureAPI);
@@ -67,7 +79,7 @@ function App() {
         console.error('[App] CaptureAPI is still not available after delay');
       }
     }, 1000);
-    
+
     return () => clearTimeout(timeout);
   }, []);
 
@@ -128,16 +140,16 @@ function App() {
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const replyText = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) {
-              throw new Error(init.message)
-            }
-            return await unifiedLocalLLMService.sendMessageComplete(
-              message,
-              aiAttachments,
-              localModel.name
-            )
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) {
+            throw new Error(init.message)
+          }
+          return await unifiedLocalLLMService.sendMessageComplete(
+            message,
+            aiAttachments,
+            localModel.name
+          )
+        })()
         : await sendCloudMessageComplete(message, aiAttachments)
 
       const assistantMessage = createChatMessage(replyText, 'assistant')
@@ -171,30 +183,42 @@ function App() {
   const handleAskSelectedText = useCallback(async (text: string) => {
     const trimmed = text.trim()
     if (!trimmed) return
-    await handleSendMessage(`Selected text:\n"${trimmed}"`)
+
+    // Use centralized prompt builder
+    const prompt = buildAskPrompt({
+      selectedText: trimmed,
+      includeLabel: true,
+    })
+
+    await handleSendMessage(prompt)
   }, [handleSendMessage])
 
   const handleExplainSelectedText = useCallback(async (text: string, position?: { x: number; y: number }) => {
     const trimmed = text.trim()
     if (!trimmed) return
-    
+
     // Store the position for dynamic positioning
     if (position) {
       setExplanationPosition(position)
     }
-    
+
     try {
-      // Request explanation from AI
-      const prompt = `Please explain the following text in a clear and concise way:\n\n"${trimmed}"`
+      // Request explanation from AI using centralized prompt builder
+      const prompt = buildExplainPrompt({
+        selectedText: trimmed,
+        style: 'clear',
+        includeQuotes: true,
+      })
+
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const explanationText = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) {
-              throw new Error(init.message)
-            }
-            return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) {
+            throw new Error(init.message)
+          }
+          return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
+        })()
         : await sendCloudMessageComplete(prompt)
 
       setExplanation(explanationText)
@@ -214,7 +238,10 @@ function App() {
   return (
     <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
-      <TextSelectionPopup onSendMessage={handleSendMessage} />
+      <TextSelectionPopup
+        onSendMessage={handleSendMessage}
+        onAddToPrompt={handleAddSelectedTextToPrompt}
+      />
       {/* Right Transparent Panel - Above everything */}
       <RightTransparent
         onClick={() => setIsInputVisible(true)}

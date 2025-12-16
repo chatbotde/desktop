@@ -174,7 +174,7 @@ class InterfaceWindow {
     // Register capture API handlers
     try {
       const { CaptureApiHandlers } = require('./dist/capture/handlers/capture-api-handlers');
-      CaptureApiHandlers.registerHandlers();
+      CaptureApiHandlers.registerHandlers(this.clickThroughManager);
       console.log('InterfaceWindow: Capture API handlers registered successfully');
     } catch (error) {
       console.error('InterfaceWindow: Failed to register capture API handlers:', error);

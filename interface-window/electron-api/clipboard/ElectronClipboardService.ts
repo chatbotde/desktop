@@ -1,4 +1,4 @@
-import { clipboard, NativeImage } from 'electron';
+import { clipboard, NativeImage, nativeImage } from 'electron';
 import { IClipboardService, ClipboardData } from './IClipboardService';
 
 export class ElectronClipboardService implements IClipboardService {
@@ -10,8 +10,17 @@ export class ElectronClipboardService implements IClipboardService {
         return clipboard.readHTML(type);
     }
 
-    public readImage(type?: 'selection' | 'clipboard'): NativeImage {
-        return clipboard.readImage(type);
+    /**
+     * Read image from the OS clipboard.
+     *
+     * IMPORTANT:
+     * - NativeImage objects cannot be sent over IPC / contextBridge (not structured-cloneable).
+     * - We return a Data URL string instead so the renderer can preview + convert to File.
+     */
+    public readImage(type?: 'selection' | 'clipboard'): string | null {
+        const img = clipboard.readImage(type);
+        if (!img || img.isEmpty()) return null;
+        return img.toDataURL();
     }
 
     public readRTF(type?: 'selection' | 'clipboard'): string {
@@ -50,7 +59,18 @@ export class ElectronClipboardService implements IClipboardService {
         clipboard.writeHTML(markup, type);
     }
 
-    public writeImage(image: NativeImage, type?: 'selection' | 'clipboard'): void {
+    /**
+     * Write an image to the OS clipboard.
+     *
+     * Accepts either a NativeImage (main-side) or a Data URL string (renderer-side).
+     */
+    public writeImage(image: NativeImage | string, type?: 'selection' | 'clipboard'): void {
+        if (typeof image === 'string') {
+            // Expect a data URL from the renderer (e.g. "data:image/png;base64,...")
+            const img = nativeImage.createFromDataURL(image);
+            clipboard.writeImage(img, type);
+            return;
+        }
         clipboard.writeImage(image, type);
     }
 

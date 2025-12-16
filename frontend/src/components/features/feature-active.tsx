@@ -1,25 +1,13 @@
 "use client"
 
-import type React from "react"
-
 import { Button } from "@/components/ui/button"
-import { Type, Copy } from "lucide-react"
 import { useFeature } from "@/contexts/FeatureContext"
 import { cn } from "@/lib/utils"
-
-interface Feature {
-  id: string
-  label: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-const features: Feature[] = [
-  { id: "text-selection", label: "Text Selection", icon: Type },
-  { id: "clipboard", label: "Clipboard", icon: Copy },
-]
+import { getFeaturesForList } from "@/features/registry"
 
 export function DynamicFeatureList() {
   const { isFeatureEnabled, toggleFeature } = useFeature()
+  const features = getFeaturesForList()
 
   const handleFeatureClick = (featureId: string) => {
     toggleFeature(featureId)

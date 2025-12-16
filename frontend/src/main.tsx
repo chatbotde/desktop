@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { initializeClickthrough } from './lib/clickthrough'
 import { FeatureProvider } from './contexts/FeatureContext'
+import { FeatureEffects } from './features/FeatureEffects'
 
 // Initialize clickthrough system when DOM is ready
 initializeClickthrough()
@@ -11,7 +12,8 @@ initializeClickthrough()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <FeatureProvider>
-    <App />
+      <FeatureEffects />
+      <App />
     </FeatureProvider>
   </StrictMode>,
 )

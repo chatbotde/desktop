@@ -39,6 +39,13 @@ try {
       ipcRenderer.send('interface-window:set-ignore-mouse-events', ignore, sanitizedOptions);
     },
 
+    setContentProtection: (enabled) => {
+      if (typeof enabled !== 'boolean') {
+        return;
+      }
+      ipcRenderer.send('interface-window:set-content-protection', enabled);
+    },
+
     // Example: Send message to main process
     sendMessage: (channel, data) => {
       const validChannels = ['interface-action'];
@@ -99,12 +106,29 @@ serviceNames.forEach(name => {
 
 // Explicitly define clipboard methods as Proxies don't survive contextBridge
 electronAPI.clipboard = {
+  // Read methods
   readText: (...args) => ipcRenderer.invoke('clipboard:readText', ...args),
-  writeText: (...args) => ipcRenderer.invoke('clipboard:writeText', ...args),
   readHTML: (...args) => ipcRenderer.invoke('clipboard:readHTML', ...args),
-  writeHTML: (...args) => ipcRenderer.invoke('clipboard:writeHTML', ...args),
   readImage: (...args) => ipcRenderer.invoke('clipboard:readImage', ...args),
+  readRTF: (...args) => ipcRenderer.invoke('clipboard:readRTF', ...args),
+  readBookmark: (...args) => ipcRenderer.invoke('clipboard:readBookmark', ...args),
+  readFindText: (...args) => ipcRenderer.invoke('clipboard:readFindText', ...args),
+  readBuffer: (...args) => ipcRenderer.invoke('clipboard:readBuffer', ...args),
+  read: (...args) => ipcRenderer.invoke('clipboard:read', ...args),
+
+  // Write methods
+  writeText: (...args) => ipcRenderer.invoke('clipboard:writeText', ...args),
+  writeHTML: (...args) => ipcRenderer.invoke('clipboard:writeHTML', ...args),
   writeImage: (...args) => ipcRenderer.invoke('clipboard:writeImage', ...args),
+  writeRTF: (...args) => ipcRenderer.invoke('clipboard:writeRTF', ...args),
+  writeBookmark: (...args) => ipcRenderer.invoke('clipboard:writeBookmark', ...args),
+  writeFindText: (...args) => ipcRenderer.invoke('clipboard:writeFindText', ...args),
+  writeBuffer: (...args) => ipcRenderer.invoke('clipboard:writeBuffer', ...args),
+  write: (...args) => ipcRenderer.invoke('clipboard:write', ...args),
+
+  // Utility methods
+  availableFormats: (...args) => ipcRenderer.invoke('clipboard:availableFormats', ...args),
+  has: (...args) => ipcRenderer.invoke('clipboard:has', ...args),
   clear: (...args) => ipcRenderer.invoke('clipboard:clear', ...args),
 };
 
@@ -266,7 +290,7 @@ console.log('[Preload] Exposing CaptureAPI to renderer...');
 try {
   contextBridge.exposeInMainWorld("CaptureAPI", {
     // ==================== SCREENSHOT METHODS ====================
-    
+
     /**
      * Take a screenshot
      * @param {Object} options - Screenshot options

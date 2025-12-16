@@ -1,9 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Image, Mic, Video, FileText, Camera, Circle, X, Settings, ChevronsUp } from "lucide-react"
+import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
 import { getThemeClasses } from "./prompt-input-theme"
 import { SettingsModal } from "@/components/settings/SettingsModal"
+import { useFeature } from "@/contexts/FeatureContext"
 
 interface MediaUploadCardProps {
     onFileUpload?: (files: File[]) => void
@@ -20,6 +21,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
     const docInputRef = useRef<HTMLInputElement>(null)
     const [isCapturing, setIsCapturing] = useState(false)
     const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+    const { isFeatureEnabled } = useFeature()
 
     const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
@@ -35,7 +37,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
     const handleQuickScreenshot = useCallback(async () => {
         console.log('[MediaUploadCard] handleQuickScreenshot called')
         console.log('[MediaUploadCard] window.CaptureAPI:', window.CaptureAPI)
-        
+
         if (!window.CaptureAPI) {
             console.error('[MediaUploadCard] CaptureAPI is not available')
             alert('CaptureAPI is not available. Please ensure the interface window is properly initialized.')
@@ -50,11 +52,11 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
 
         setIsCapturing(true)
         console.log('[MediaUploadCard] Calling quickScreenshot...')
-        
+
         try {
             const result = await window.CaptureAPI.quickScreenshot()
             console.log('[MediaUploadCard] Screenshot result:', result)
-            
+
             if (result.success && result.screenshot) {
                 console.log('[MediaUploadCard] Screenshot successful, converting to file...')
                 // Convert data URL to File object
@@ -85,30 +87,44 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
         // This will be handled by the parent component showing the overlay
         // For now, we'll trigger a custom event
         const event = new CustomEvent('show-area-screenshot', {
-            detail: { onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
-                setIsCapturing(true)
-                try {
-                    const result = await window.CaptureAPI!.takeAreaScreenshot(area)
-                    if (result.success && result.screenshot) {
-                        const response = await fetch(result.screenshot.data)
-                        const blob = await response.blob()
-                        const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
-                        onFileUpload?.([file])
-                        onScreenshot?.(result.screenshot)
-                    } else {
-                        console.error('Area screenshot failed:', result.error)
+            detail: {
+                onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
+                    setIsCapturing(true)
+                    try {
+                        const result = await window.CaptureAPI!.takeAreaScreenshot(area)
+                        if (result.success && result.screenshot) {
+                            const response = await fetch(result.screenshot.data)
+                            const blob = await response.blob()
+                            const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+                            onFileUpload?.([file])
+                            onScreenshot?.(result.screenshot)
+                        } else {
+                            console.error('Area screenshot failed:', result.error)
+                        }
+                    } catch (error) {
+                        console.error('Error taking area screenshot:', error)
+                    } finally {
+                        setIsCapturing(false)
                     }
-                } catch (error) {
-                    console.error('Error taking area screenshot:', error)
-                } finally {
-                    setIsCapturing(false)
                 }
-            }}
+            }
         })
         window.dispatchEvent(event)
     }, [onFileUpload, onScreenshot])
 
-    const options = [
+    const isOptionEnabled = (id: string) => {
+        switch (id) {
+            case 'document': return isFeatureEnabled('upload-document')
+            case 'image': return isFeatureEnabled('upload-image')
+            case 'screenshot': return isFeatureEnabled('quick-screenshot')
+            case 'area-screenshot': return isFeatureEnabled('area-screenshot')
+            case 'video': return isFeatureEnabled('upload-video')
+            case 'audio': return isFeatureEnabled('upload-audio')
+            default: return true
+        }
+    }
+
+    const allOptions = [
         {
             id: 'document',
             label: 'Upload document',
@@ -147,6 +163,10 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             icon: Mic,
             action: () => audioInputRef.current?.click()
         },
+    ]
+
+    const options = [
+        ...allOptions.filter(opt => isOptionEnabled(opt.id)),
         {
             id: 'settings',
             label: 'Settings',
@@ -163,7 +183,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                 },
             ] as const)
             : []),
-    ] as const
+    ]
 
     return (
         <>

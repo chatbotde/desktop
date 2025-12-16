@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextSelectionInput } from './text-selection'
 import { TextSelectionOutput } from './text-selection-output'
+import { AddToPromptButton } from '../add-button'
+import { ExpandButton } from '../expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
@@ -17,25 +19,14 @@ interface SelectionData {
   [key: string]: unknown
 }
 
-declare global {
-  interface Window {
-    interfaceAPI?: {
-      minimize: () => void
-      maximize: () => void
-      close: () => void
-      setIgnoreMouseEvents?: (ignore: boolean, options?: { forward?: boolean }) => void
-      onMessage?: (channel: string, callback: (...args: unknown[]) => void) => void
-      removeMessageListener?: (channel: string, callback: (...args: unknown[]) => void) => void
-    }
-  }
-}
-
 interface TextSelectionPopupProps {
   onSendMessage: (message: string) => Promise<void>
+  onAddToPrompt?: (text: string) => void
 }
 
-export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
+export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelectionPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [selectionData, setSelectionData] = useState<SelectionData | null>(null)
   const [prompt, setPrompt] = useState('')
   const [position, setPosition] = useState({ top: 0, left: 0 })
@@ -62,6 +53,7 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
 
       setSelectionData(data)
       setPrompt('')
+      setIsExpanded(false) // Reset to pill mode for new selection
 
       const popupWidth = 400
       const popupHeight = 120
@@ -103,6 +95,7 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
+    setIsExpanded(false)
     setPrompt('')
     setIsLoading(false)
     setIsGenerating(false)
@@ -152,16 +145,16 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const replyText = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) {
-              throw new Error(init.message)
-            }
-            return await unifiedLocalLLMService.sendMessageComplete(
-              message,
-              undefined,
-              localModel.name
-            )
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) {
+            throw new Error(init.message)
+          }
+          return await unifiedLocalLLMService.sendMessageComplete(
+            message,
+            undefined,
+            localModel.name
+          )
+        })()
         : await sendCloudMessageComplete(message, undefined)
 
       setGeneratedOutput(replyText)
@@ -180,7 +173,7 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
 
   const handleInsert = useCallback(async () => {
     if (!generatedOutput) return
-    
+
     try {
       // Use TSF API to insert text at the cursor position
       if (window.tsfAPI?.focusAndInsertText) {
@@ -207,6 +200,46 @@ export function TextSelectionPopup({ onSendMessage }: TextSelectionPopupProps) {
 
   // Don't render if feature is disabled or not visible
   if (!isFeatureEnabled('text-selection') || !isVisible) return null
+
+  // Calculate theme classes (assuming same logic as other components or just standard slate)
+  // Since we don't have isDarkTheme prop passed explicitly, defaults might need adjustment or we use system preference/standard dark
+  // TextSelectionPopup seems to rely on global 'dark' class or specific styles? 
+  // The current component uses tailwind classes.
+
+  const handleAddToPrompt = () => {
+    if (selectionData?.text && onAddToPrompt) {
+      onAddToPrompt(selectionData.text)
+      handleClose()
+    }
+  }
+
+  if (!isExpanded) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: position.top,
+          left: position.left,
+          zIndex: 9999,
+          pointerEvents: 'auto',
+        }}
+        className="flex items-center gap-1 p-1 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl backdrop-blur-md transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
+        data-no-clickthrough
+      >
+        <AddToPromptButton
+          onClick={handleAddToPrompt}
+          isDarkTheme={true}
+        />
+        <div className="w-px h-4 bg-slate-700/50 mx-0.5" />
+        <ExpandButton
+          isExpanded={false}
+          onClick={() => setIsExpanded(true)}
+          isDarkTheme={true}
+          tooltip="Expand to ask AI"
+        />
+      </div>
+    )
+  }
 
   return (
     <div

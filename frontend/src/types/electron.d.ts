@@ -92,6 +92,7 @@ declare global {
       maximize: () => void;
       close: () => void;
       setIgnoreMouseEvents: (ignore: boolean, options?: any) => void;
+      setContentProtection: (enabled: boolean) => void;
       sendMessage: (channel: string, data: any) => void;
       onMessage: (channel: string, func: (...args: any[]) => void) => void;
       removeMessageListener: (channel: string, func: (...args: any[]) => void) => void;

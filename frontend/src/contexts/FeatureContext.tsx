@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-
-export type FeatureId = 'text-selection' | 'clipboard' | string
+import type { FeatureId } from '@/features/types'
+import { getDefaultEnabledFeatureIds } from '@/features/registry'
 
 interface FeatureContextType {
   enabledFeatures: Set<FeatureId>
@@ -23,8 +23,8 @@ export function FeatureProvider({ children }: { children: ReactNode }) {
         console.error('Failed to parse enabled features', e)
       }
     }
-    // Default: both features enabled
-    return new Set(['text-selection', 'clipboard'])
+    // Default: enable features marked as defaultEnabled in the registry
+    return new Set(getDefaultEnabledFeatureIds())
   })
 
   // Update localStorage when features change

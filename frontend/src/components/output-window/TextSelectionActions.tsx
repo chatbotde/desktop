@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, Send, ArrowRight, HelpCircle } from 'lucide-react'
+import { Plus, Send, ArrowRight, HelpCircle, Replace } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { InsertButton } from '../insert-button'
+import { ReplaceButton } from '../replace-button'
 
 interface TextSelectionActionsProps {
   /**
@@ -49,11 +50,12 @@ interface TextSelectionActionsProps {
 /**
  * Text Selection Actions Component
  * 
- * Shows four pill-style buttons (Add, Ask, Explain, Insert) when text is selected.
+ * Shows pill-style buttons (Add, Ask, Explain, Insert, Replace) when text is selected.
  * - Add: Adds selected text to prompt-input in compact form
  * - Ask: Sends message to model
  * - Explain: Explains the selected text and shows explanation in Explanation component
- * - Insert: Uses InsertButton component to insert text into focused application
+ * - Insert: Uses InsertButton component to insert text at cursor position in focused application
+ * - Replace: Uses ReplaceButton component to replace selected text in focused application
  */
 export function TextSelectionActions({
   selectedText,
@@ -264,6 +266,29 @@ export function TextSelectionActions({
             : 'text-zinc-700'
         )}
         label="Insert"
+      />
+
+      {/* Replace Button - Pill Style */}
+      <ReplaceButton
+        text={selectedText.trim()}
+        variant="ghost"
+        size="sm"
+        showSuccess={true}
+        icon={<Replace className="h-3.5 w-3.5" />}
+        onReplaced={(success) => {
+          if (success) {
+            // Close after successful replace
+            setTimeout(() => onClose(), 500)
+          }
+        }}
+        className={cn(
+          'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
+          buttonHover,
+          isDarkTheme 
+            ? 'text-zinc-200' 
+            : 'text-zinc-700'
+        )}
+        label="Replace"
       />
     </div>
   )

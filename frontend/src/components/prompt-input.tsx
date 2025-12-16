@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 
@@ -28,6 +28,7 @@ export function PromptInputWithActions({
   const [isExpanded, setIsExpanded] = useState(false)
   const [internalVisible, setInternalVisible] = useState(true)
   const [clipboardItems, setClipboardItems] = useState<string[]>([])
+  const prevInputLengthRef = useRef<number>(0)
 
   // Convert files to MediaAttachment format
   const convertFilesToAttachments = useCallback(async (filesToConvert: File[]): Promise<MediaAttachment[]> => {
@@ -73,6 +74,21 @@ export function PromptInputWithActions({
     return attachments
   }, [])
 
+  const handleInputChange = useCallback((value: string) => {
+    const prevLength = prevInputLengthRef.current
+    prevInputLengthRef.current = value.length
+    
+    setInput(value)
+    
+    // Emit typing start event when user starts typing (first character)
+    if (value.length === 1 && prevLength === 0) {
+      console.log('[PromptInput] Typing started, dispatching prompt-typing-start event')
+      window.dispatchEvent(new CustomEvent('prompt-typing-start', { 
+        detail: { inputValue: value } 
+      }))
+    }
+  }, [])
+
   const handleSubmit = useCallback(async () => {
     if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
 
@@ -93,9 +109,13 @@ export function PromptInputWithActions({
     } finally {
       setIsLoading(false)
       setInput("")
+      prevInputLengthRef.current = 0
       setFiles([])
       setClipboardItems([])
       setIsExpanded(false)
+      
+      // Emit input cleared event to reset auto-screenshot
+      window.dispatchEvent(new CustomEvent('prompt-input-cleared'))
     }
   }, [input, files, clipboardItems, onSendMessage, convertFilesToAttachments])
 
@@ -155,6 +175,11 @@ export function PromptInputWithActions({
     }
   }, [onVisibilityChange])
 
+  // Sync ref with input state when input changes externally
+  useEffect(() => {
+    prevInputLengthRef.current = input.length
+  }, [input])
+
   // Allow other parts of the app (e.g. Output window selection) to add text to the prompt.
   useEffect(() => {
     const handler = (event: Event) => {
@@ -171,6 +196,33 @@ export function PromptInputWithActions({
     return () => window.removeEventListener('prompt-add-text', handler as EventListener)
   }, [setIsVisible])
 
+  // Allow other parts of the app to trigger sending the current prompt
+  useEffect(() => {
+    const handler = () => {
+      // Fire-and-forget; internal state + loading is handled in handleSubmit
+      handleSubmit()
+    }
+
+    window.addEventListener('prompt-send-now', handler as EventListener)
+    return () => window.removeEventListener('prompt-send-now', handler as EventListener)
+  }, [handleSubmit])
+
+  // Allow other parts of the app to add files to the prompt (e.g. auto-screenshot)
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<{ files?: File[] }>
+      const files = custom.detail?.files
+      if (!files || files.length === 0) return
+
+      handleFilesAdded(files)
+      setIsExpanded(true)
+      setIsVisible(true)
+    }
+
+    window.addEventListener('prompt-add-files', handler as EventListener)
+    return () => window.removeEventListener('prompt-add-files', handler as EventListener)
+  }, [handleFilesAdded, setIsVisible])
+
   // Hidden state - return null (RightTransparent will show the input)
   if (!isVisible) {
     return null
@@ -186,7 +238,7 @@ export function PromptInputWithActions({
       {!isExpanded ? (
         <PromptInputCollapsed
           input={input}
-          setInput={setInput}
+          setInput={handleInputChange}
           isLoading={isLoading}
           files={files}
           clipboardItems={clipboardItems}
@@ -205,7 +257,7 @@ export function PromptInputWithActions({
       ) : (
         <PromptInputExpanded
           input={input}
-          setInput={setInput}
+          setInput={handleInputChange}
           isLoading={isLoading}
           files={files}
           clipboardItems={clipboardItems}

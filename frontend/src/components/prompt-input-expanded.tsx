@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
 import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Cpu } from "lucide-react"
+import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Cpu, Power } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback, useState } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
@@ -18,9 +18,9 @@ import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import { ClipboardPill } from "./clipboard"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
+import { useFeature } from "@/contexts/FeatureContext"
 import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
 import { getShowLocalModelControl, subscribeShowLocalModelControl } from "@/lib/settings/prompt-controls"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PromptInputExpandedProps {
   input: string
@@ -65,6 +65,41 @@ export function PromptInputExpanded({
   const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
   const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
   const { isOnline } = useNetworkStatus()
+  const { setFeatureEnabled } = useFeature()
+  const imageUrlsRef = useRef<Map<File, string>>(new Map())
+
+  // Check if a file is an auto-screenshot
+  const isAutoScreenshot = (file: File): boolean => {
+    return !!(file as any).__isAutoScreenshot
+  }
+
+  // Handle disabling auto-screenshot from preview
+  const handleDisableAutoScreenshot = useCallback(() => {
+    setFeatureEnabled('auto-screenshot', false)
+  }, [setFeatureEnabled])
+
+  // Get or create object URL for image files
+
+  // Cleanup object URLs when files are removed
+  useEffect(() => {
+    const currentFiles = new Set(files)
+    const urlsToCleanup: string[] = []
+
+    imageUrlsRef.current.forEach((url, file) => {
+      if (!currentFiles.has(file)) {
+        urlsToCleanup.push(url)
+        imageUrlsRef.current.delete(file)
+      }
+    })
+
+    urlsToCleanup.forEach(url => URL.revokeObjectURL(url))
+
+    return () => {
+      // Cleanup all URLs on unmount
+      imageUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+      imageUrlsRef.current.clear()
+    }
+  }, [files])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -85,18 +120,18 @@ export function PromptInputExpanded({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      const running = await isOllamaConfigured()
-      if (cancelled) return
-      setOllamaRunning(running)
-      if (running) {
-        const models = await ollamaService.listModels()
+      ; (async () => {
+        const running = await isOllamaConfigured()
         if (cancelled) return
-        setOllamaModels(models)
-      } else {
-        setOllamaModels([])
-      }
-    })()
+        setOllamaRunning(running)
+        if (running) {
+          const models = await ollamaService.listModels()
+          if (cancelled) return
+          setOllamaModels(models)
+        } else {
+          setOllamaModels([])
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -165,7 +200,27 @@ export function PromptInputExpanded({
       )}
 
       <ClipboardPill
-        onAdd={(text) => onClipboardItemAdd ? onClipboardItemAdd(text) : setInput(input + (input ? " " : "") + text)}
+        onAdd={(content) => {
+          // Handle string content (text, html text preview)
+          if (typeof content === 'string') {
+            onClipboardItemAdd ? onClipboardItemAdd(content) : setInput(input + (input ? " " : "") + content)
+          } else if (content.text) {
+            // Handle ClipboardContent object with text
+            onClipboardItemAdd ? onClipboardItemAdd(content.text) : setInput(input + (input ? " " : "") + content.text)
+          }
+        }}
+        onAddImage={(dataUrl) => {
+          if (onFilesAdded) {
+            // Convert data URL to File
+            fetch(dataUrl)
+              .then(res => res.blob())
+              .then(blob => {
+                const file = new File([blob], `clipboard-image-${Date.now()}.png`, { type: 'image/png' })
+                onFilesAdded([file])
+              })
+              .catch(err => console.error('Failed to convert clipboard image:', err))
+          }
+        }}
         isDarkTheme={isDarkTheme}
       />
       <button
@@ -256,28 +311,79 @@ export function PromptInputExpanded({
                 </button>
               </div>
             ))}
-            {files.map((file, index) => (
-              <div
-                key={`${file.name}-${index}`}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
-                  themeClasses.fileItem
-                )}
-                onClick={e => e.stopPropagation()}
-              >
-                {getFileIcon(file)}
-                <button
-                  onClick={() => onRemoveFile(index)}
-                  aria-label={`Remove ${file.name}`}
+            {files.map((file, index) => {
+              const isAuto = isAutoScreenshot(file)
+
+              // For auto-screenshots, show expanded horizontal layout with preview
+              if (isAuto) {
+                return (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-2 py-2",
+                      themeClasses.fileItem
+                    )}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <Image className={`size-4 ${themeClasses.icon} shrink-0`} />
+
+                    <div className="flex items-center gap-1 ml-auto">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDisableAutoScreenshot()
+                        }}
+                        aria-label="Disable auto-screenshot"
+                        className={cn(
+                          "rounded-full p-1.5 transition-colors",
+                          isDarkTheme ? "bg-red-600 hover:bg-red-700 text-white" : "bg-red-500 hover:bg-red-600 text-white"
+                        )}
+                        title="Disable auto-screenshot"
+                      >
+                        <Power className="size-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemoveFile(index)
+                        }}
+                        aria-label={`Remove ${file.name}`}
+                        className={cn(
+                          "rounded-full p-1 transition-colors",
+                          hoverClass
+                        )}
+                      >
+                        <X className={`size-4 ${themeClasses.icon}`} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+
+              // For regular files, show compact icon form
+              return (
+                <div
+                  key={`${file.name}-${index}`}
                   className={cn(
-                    "rounded-full p-1 transition-colors",
-                    hoverClass
+                    "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
+                    themeClasses.fileItem
                   )}
+                  onClick={e => e.stopPropagation()}
                 >
-                  <X className={`size-4 ${themeClasses.icon}`} />
-                </button>
-              </div>
-            ))}
+                  {getFileIcon(file)}
+                  <button
+                    onClick={() => onRemoveFile(index)}
+                    aria-label={`Remove ${file.name}`}
+                    className={cn(
+                      "rounded-full p-1 transition-colors",
+                      hoverClass
+                    )}
+                  >
+                    <X className={`size-4 ${themeClasses.icon}`} />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
 

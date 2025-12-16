@@ -2,7 +2,7 @@ export interface ModelProvider {
   id: string;
   name: string;
   description: string;
-  category: 'text' | 'multimodal' | 'coding' | 'reasoning'|'image-generation'|'video-generation'|'audio-generation';
+  category: 'text' | 'multimodal' | 'coding' | 'reasoning' | 'image-generation' | 'video-generation' | 'audio-generation';
   apiKey?: string;
   endpoint?: string;
   maxTokens?: number;
@@ -18,7 +18,7 @@ export interface AIModel {
   displayName: string;
   provider: string;
   description: string;
-  category: 'text' | 'multimodal' | 'coding' | 'reasoning'|'image-generation'|'video-generation'|'audio-generation';
+  category: 'text' | 'multimodal' | 'coding' | 'reasoning' | 'image-generation' | 'video-generation' | 'audio-generation';
   maxTokens: number;
   inputCost?: number; // per 1K tokens
   outputCost?: number; // per 1K tokens
@@ -151,21 +151,21 @@ export const AVAILABLE_MODELS: AIModel[] = [
     isReasoning: false,
   },
   {
-    id : 'models/gemini-flash-lite-latest',
-    name : 'gemini-flash-lite-latest',
-    displayName : 'Gemini Flash Lite Latest',
-    provider : 'google',
-    description : 'Latest Gemini flash lite model',
-    category : 'multimodal',
-    maxTokens : 8192,
-    inputCost : 3.50,
-    outputCost : 10.50,
-    supportsImages : true,
-    supportsAudio : false,
-    supportsVideo : false,
-    capabilities : ['text', 'images'],
-    contextWindow : 32000,
-    isAvailable : true,
+    id: 'models/gemini-flash-lite-latest',
+    name: 'gemini-flash-lite-latest',
+    displayName: 'Gemini Flash Lite Latest',
+    provider: 'google',
+    description: 'Latest Gemini flash lite model',
+    category: 'multimodal',
+    maxTokens: 8192,
+    inputCost: 3.50,
+    outputCost: 10.50,
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'images'],
+    contextWindow: 32000,
+    isAvailable: true,
   },
   {
     id: 'gemini-2.5-flash',
@@ -323,38 +323,38 @@ export const AVAILABLE_MODELS: AIModel[] = [
   },
   {
 
-    id : 'claude-haiku-4-5',
-    name : 'claude-haiku-4-5',
-    displayName : 'Claude Haiku 4.5',
-    provider : 'anthropic',
-    description : 'Anthropic\'s latest model',
-    category : 'image-generation',
-    maxTokens : 4096,
-    inputCost : 5.00,
-    outputCost : 15.00,
-    supportsImages : true,
-    supportsAudio : false,
-    supportsVideo : false,
-    capabilities : ['text', 'images', 'function-calling', 'advanced-reasoning'],
-    contextWindow : 128000,
-    isAvailable : true, // Now implemented!
+    id: 'claude-haiku-4-5',
+    name: 'claude-haiku-4-5',
+    displayName: 'Claude Haiku 4.5',
+    provider: 'anthropic',
+    description: 'Anthropic\'s latest model',
+    category: 'image-generation',
+    maxTokens: 4096,
+    inputCost: 5.00,
+    outputCost: 15.00,
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
+    contextWindow: 128000,
+    isAvailable: true, // Now implemented!
   },
   {
-    id : 'claude-sonnet-4-20250514',
-    name : 'claude-sonnet-4-20250514',
-    displayName : 'Claude Sonnet 4 2025-05-14',
-    provider : 'anthropic',
-    description : 'Anthropic\'s latest model',
-    category : 'image-generation',
-    maxTokens : 4096,
-    inputCost : 5.00,
-    outputCost : 15.00,
-    supportsImages : true,
-    supportsAudio : false,
-    supportsVideo : false,
-    capabilities : ['text', 'images', 'function-calling', 'advanced-reasoning'],
-    contextWindow : 128000,
-    isAvailable : true, // Now implemented!
+    id: 'claude-sonnet-4-20250514',
+    name: 'claude-sonnet-4-20250514',
+    displayName: 'Claude Sonnet 4 2025-05-14',
+    provider: 'anthropic',
+    description: 'Anthropic\'s latest model',
+    category: 'image-generation',
+    maxTokens: 4096,
+    inputCost: 5.00,
+    outputCost: 15.00,
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'images', 'function-calling', 'advanced-reasoning'],
+    contextWindow: 128000,
+    isAvailable: true, // Now implemented!
   },
   // OpenRouter Models
   {

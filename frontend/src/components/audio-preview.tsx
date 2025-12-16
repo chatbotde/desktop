@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Play, Pause, Download, X, Trash2, Volume2, FileText, Loader2 } from 'lucide-react'
+import { Play, Pause, Download, X, Trash2, Volume2, FileText, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getThemeClasses, getHoverClass } from './prompt-input-theme'
 import { Button } from '@/components/ui/button'
 import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { TranscriptionResult } from '@/lib/audio'
+import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { InsertButton } from '@/components/insert-button'
 
 interface AudioPreviewProps {
   audioBlob: Blob
@@ -32,6 +35,9 @@ export function AudioPreview({
   const [transcription, setTranscription] = useState<string>('')
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [showTranscription, setShowTranscription] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<string>('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   const themeClasses = getThemeClasses(isDarkTheme)
@@ -137,6 +143,60 @@ export function AudioPreview({
       setIsTranscribing(false)
     }
   }, [audioBlob, onTranscriptionComplete])
+
+  const handleGenerateFromTranscription = useCallback(async () => {
+    const text = transcription.trim()
+    if (!text) return
+
+    setIsGenerating(true)
+    setAiError(null)
+
+    // Build a simple instruction-style prompt around the transcription
+    const prompt = `You are an assistant that turns spoken text into a concise written prompt.\n\n` +
+      `Transcribed audio:\n"""${text}"""\n\n` +
+      `Rewrite this as a clear, single text prompt the user could send to an AI assistant. ` +
+      `Do not add explanations, just return the final prompt text.`
+
+    try {
+      const localModel = unifiedLocalLLMService.getCurrentModel()
+      const replyText = localModel
+        ? await (async () => {
+            const init = await unifiedLocalLLMService.initialize()
+            if (!init.success) {
+              throw new Error(init.message)
+            }
+            return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
+          })()
+        : await sendCloudMessageComplete(prompt)
+
+      const suggestion = replyText.trim()
+      setAiSuggestion(suggestion)
+
+      // Automatically insert into the main prompt input and send to AI
+      try {
+        window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: suggestion } }))
+        window.dispatchEvent(new Event('prompt-send-now'))
+      } catch (error) {
+        console.error('Failed to auto-send generated prompt:', error)
+      }
+    } catch (error) {
+      console.error('AI generation from transcription failed:', error)
+      setAiError(error instanceof Error ? error.message : 'Failed to generate prompt from transcription')
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [transcription])
+
+  const handleInsertSuggestion = useCallback(() => {
+    if (!aiSuggestion.trim()) return
+
+    try {
+      const text = aiSuggestion.trim()
+      window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text } }))
+    } catch (error) {
+      console.error('Failed to dispatch prompt-add-text event:', error)
+    }
+  }, [aiSuggestion])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -265,8 +325,80 @@ export function AudioPreview({
                 Transcribing audio...
               </div>
             ) : transcription ? (
-              <div className={cn("text-sm whitespace-pre-wrap", themeClasses.input)}>
-                {transcription}
+              <div className="space-y-3">
+                <div className={cn("text-sm whitespace-pre-wrap", themeClasses.input)}>
+                  {transcription}
+                </div>
+
+                {/* AI suggestion from transcription */}
+                <div className={cn(
+                  "mt-2 pt-2 border-t text-xs space-y-2",
+                  themeClasses.containerBorder
+                )}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={cn("flex items-center gap-2", themeClasses.icon)}>
+                      <Sparkles className="size-3 text-blue-400" />
+                      <span>Turn this transcription into an AI-ready prompt</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleGenerateFromTranscription}
+                      disabled={isGenerating}
+                      className={cn(
+                        "h-7 px-2 text-xs",
+                        isDarkTheme ? "border-zinc-700" : "border-zinc-300"
+                      )}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="size-3 mr-1 animate-spin" />
+                          Generating…
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-3 mr-1" />
+                          Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {aiError && (
+                    <div className={cn("text-xs text-red-400", themeClasses.icon)}>
+                      {aiError}
+                    </div>
+                  )}
+
+                  {aiSuggestion && (
+                    <div className="space-y-2">
+                      <div className={cn(
+                        "text-sm whitespace-pre-wrap rounded-md px-2 py-1",
+                        isDarkTheme ? "bg-zinc-900/60" : "bg-zinc-100"
+                      )}>
+                        {aiSuggestion}
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <InsertButton
+                          text={aiSuggestion}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-3 text-xs"
+                          label="Insert"
+                          showSuccess={true}
+                        />
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={handleInsertSuggestion}
+                          className="h-7 px-3 text-xs"
+                        >
+                          Insert into prompt
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className={cn("text-sm", themeClasses.icon)}>

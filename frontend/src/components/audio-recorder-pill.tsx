@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, Monitor, Layers, Square, Circle, X, GripVertical, AudioWaveform, Minus, FileText } from "lucide-react"
+import { Mic, Monitor, Layers, Square, Circle, X, GripVertical, AudioWaveform, Minus, FileText, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import {
@@ -10,6 +10,9 @@ import {
 import { useDraggable } from './output-window/hooks'
 import { createStreamingService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { IStreamingTranscriptionService, TranscriptionEvent } from '@/lib/audio'
+import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { InsertButton } from '@/components/insert-button'
 
 interface AudioRecorderPillProps {
     onClose: () => void
@@ -27,6 +30,9 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     const [partialText, setPartialText] = useState('')
     const [isTranscribing, setIsTranscribing] = useState(false)
     const [showTranscription, setShowTranscription] = useState(false)
+    const [aiSuggestion, setAiSuggestion] = useState('')
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [aiError, setAiError] = useState<string | null>(null)
     const transcriptionContainerRef = useRef<HTMLDivElement>(null)
 
     // Transcription service
@@ -145,7 +151,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                     throw new Error('CaptureAPI is not available')
                 }
 
-                const sourcesResult = await window.CaptureAPI.getScreenshotSources(false)
+                const sourcesResult = await (window.CaptureAPI as any).getScreenshotSources(false)
                 if (!sourcesResult.success || !sourcesResult.sources?.length) {
                     throw new Error('No screen sources available for system audio')
                 }
@@ -192,7 +198,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                 let systemStream: MediaStream | null = null
                 try {
                     if (window.CaptureAPI) {
-                        const sourcesResult = await window.CaptureAPI.getScreenshotSources(false)
+                        const sourcesResult = await (window.CaptureAPI as any).getScreenshotSources(false)
                         if (sourcesResult.success && sourcesResult.sources?.length) {
                             const screenSource = sourcesResult.sources.find((s: any) => s.type === 'screen') || sourcesResult.sources[0]
                             
@@ -407,6 +413,59 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     useEffect(() => {
         setPosition({ x: window.innerWidth - 80, y: window.innerHeight - 350 })
     }, [])
+
+    const handleGenerateFromLiveTranscription = useCallback(async () => {
+        const fullText = `${transcriptionText} ${partialText}`.trim()
+        if (!fullText) return
+
+        setIsGenerating(true)
+        setAiError(null)
+
+        const prompt = `You are an assistant that turns spoken text into a concise written prompt.\n\n` +
+          `Live transcription:\n"""${fullText}"""\n\n` +
+          `Rewrite this as a clear, single text prompt the user could send to an AI assistant. ` +
+          `Do not add explanations, just return the final prompt text.`
+
+        try {
+            const localModel = unifiedLocalLLMService.getCurrentModel()
+            const replyText = localModel
+                ? await (async () => {
+                    const init = await unifiedLocalLLMService.initialize()
+                    if (!init.success) {
+                        throw new Error(init.message)
+                    }
+                    return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
+                })()
+                : await sendCloudMessageComplete(prompt)
+
+            const suggestion = replyText.trim()
+            setAiSuggestion(suggestion)
+
+            // Automatically insert into the main prompt input and send to AI
+            try {
+                window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: suggestion } }))
+                window.dispatchEvent(new Event('prompt-send-now'))
+            } catch (error) {
+                console.error('[AudioRecorderPill] Failed to auto-send generated prompt:', error)
+            }
+        } catch (error) {
+            console.error('[AudioRecorderPill] AI generation from live transcription failed:', error)
+            setAiError(error instanceof Error ? error.message : 'Failed to generate prompt from transcription')
+        } finally {
+            setIsGenerating(false)
+        }
+    }, [partialText, transcriptionText])
+
+    const handleInsertSuggestion = useCallback(() => {
+        if (!aiSuggestion.trim()) return
+
+        try {
+            const text = aiSuggestion.trim()
+            window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text } }))
+        } catch (error) {
+            console.error('[AudioRecorderPill] Failed to dispatch prompt-add-text event:', error)
+        }
+    }, [aiSuggestion])
 
     if (isCollapsed) {
         return (
@@ -722,25 +781,89 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         )}
                     </div>
                     
-                    {/* Action buttons */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: themeClasses.containerBorder }}>
-                        {(transcriptionText || partialText) && (
-                            <button
-                                onClick={() => {
-                                    setTranscriptionText('')
-                                    setPartialText('')
-                                }}
-                                className={cn(
-                                    "text-xs px-3 py-1.5 rounded transition-colors",
-                                    hoverClass
+                    {/* Action buttons and AI suggestion */}
+                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: themeClasses.containerBorder }}>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                {(transcriptionText || partialText) && (
+                                    <button
+                                        onClick={() => {
+                                            setTranscriptionText('')
+                                            setPartialText('')
+                                            setAiSuggestion('')
+                                            setAiError(null)
+                                        }}
+                                        className={cn(
+                                            "text-xs px-3 py-1.5 rounded transition-colors",
+                                            hoverClass
+                                        )}
+                                    >
+                                        Clear
+                                    </button>
                                 )}
-                            >
-                                Clear
-                            </button>
-                        )}
-                        <div className={cn("text-xs ml-auto", themeClasses.icon)}>
-                            {transcriptionText ? `${transcriptionText.split(' ').filter(w => w).length} words` : ''}
+                                {isAssemblyAIConfigured() && (transcriptionText || partialText) && (
+                                    <button
+                                        onClick={handleGenerateFromLiveTranscription}
+                                        disabled={isGenerating}
+                                        className={cn(
+                                            "text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1",
+                                            hoverClass
+                                        )}
+                                    >
+                                        {isGenerating ? (
+                                            <>
+                                                <Loader2 className="size-3 animate-spin" />
+                                                Generating…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="size-3" />
+                                                Prompt
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                            <div className={cn("text-xs ml-auto", themeClasses.icon)}>
+                                {transcriptionText ? `${transcriptionText.split(' ').filter(w => w).length} words` : ''}
+                            </div>
                         </div>
+
+                        {aiError && (
+                            <div className={cn("text-xs text-red-400", themeClasses.icon)}>
+                                {aiError}
+                            </div>
+                        )}
+
+                        {aiSuggestion && (
+                            <div className="space-y-2">
+                                <div className={cn(
+                                    "text-sm whitespace-pre-wrap rounded-md px-2 py-1",
+                                    isDarkTheme ? "bg-zinc-900/60" : "bg-zinc-100"
+                                )}>
+                                    {aiSuggestion}
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <InsertButton
+                                        text={aiSuggestion}
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-3 text-xs"
+                                        label="Insert"
+                                        showSuccess={true}
+                                    />
+                                    <button
+                                        onClick={handleInsertSuggestion}
+                                        className={cn(
+                                            "text-xs px-3 py-1.5 rounded transition-colors",
+                                            isDarkTheme ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-blue-500 text-white hover:bg-blue-600"
+                                        )}
+                                    >
+                                        Insert into prompt
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     </div>
                 </div>
