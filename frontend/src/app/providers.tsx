@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
-import { ThemeProvider } from '../contexts/ThemeContext'
-import { FeatureProvider } from '../contexts/FeatureContext'
-import { FeatureEffects } from '../features/FeatureEffects'
+import { ThemeProvider, FeatureProvider } from '@/shared/providers'
+import { FeatureEffects } from '@/features/FeatureEffects'
 
 interface AppProvidersProps {
   children: ReactNode
