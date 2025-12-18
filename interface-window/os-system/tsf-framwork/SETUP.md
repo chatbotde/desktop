@@ -15,7 +15,7 @@
 
 1. Navigate to the tsf-framework directory:
    ```powershell
-   cd buddy\chat-input\tsf-framwork
+   cd buddy\interface-window\os-system\tsf-framwork
    ```
 
 2. Install dependencies and build:
@@ -69,7 +69,7 @@ npm run build:debug
 
 1. In your main process (main.js or similar):
    ```javascript
-   const tsf = require('./chat-input/tsf-framwork');
+   const tsf = require('./interface-window/os-system/tsf-framwork');
    
    app.whenReady().then(async () => {
        await tsf.initialize();

@@ -1,6 +1,6 @@
 import { forwardRef } from "react"
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUp, ChevronsDown, Maximize2, Minimize2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export type ExpandButtonSize = "xs" | "sm" | "md" | "lg"

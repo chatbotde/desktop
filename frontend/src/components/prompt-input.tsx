@@ -10,8 +10,10 @@ interface PromptInputWithActionsProps {
   onVisibilityChange?: (visible: boolean) => void;
   isDarkTheme?: boolean;
   onSendMessage?: (message: string, attachments?: MediaAttachment[]) => void | Promise<void>;
+  onStop?: () => void;
   onAudioClick?: () => void;
   onMoreClick?: () => void;
+  onThemeChange?: (isDark: boolean) => void;
 }
 
 export function PromptInputWithActions({
@@ -19,8 +21,10 @@ export function PromptInputWithActions({
   onVisibilityChange,
   isDarkTheme = true,
   onSendMessage,
+  onStop,
   onAudioClick,
-  onMoreClick
+  onMoreClick,
+  onThemeChange
 }: PromptInputWithActionsProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -92,15 +96,29 @@ export function PromptInputWithActions({
   const handleSubmit = useCallback(async () => {
     if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
 
+    // Clear input immediately when send is pressed
+    const messageParts = [...clipboardItems, input].filter(Boolean)
+    const messageToSend = messageParts.join("\n\n")
+    const filesToSend = [...files]
+    const clipboardItemsToSend = [...clipboardItems]
+    
+    // Clear input state immediately
+    setInput("")
+    prevInputLengthRef.current = 0
+    setFiles([])
+    setClipboardItems([])
+    
+    // Emit input cleared event to reset auto-screenshot
+    window.dispatchEvent(new CustomEvent('prompt-input-cleared'))
+
     setIsLoading(true)
 
     try {
       // Convert files to MediaAttachment format
-      const attachments = files.length > 0 ? await convertFilesToAttachments(files) : undefined
+      const attachments = filesToSend.length > 0 ? await convertFilesToAttachments(filesToSend) : undefined
 
-      if ((input.trim() || clipboardItems.length > 0 || attachments) && onSendMessage) {
-        const messageParts = [...clipboardItems, input].filter(Boolean)
-        const message = messageParts.join("\n\n") || (attachments ? "See attached images" : "")
+      if ((messageToSend.trim() || clipboardItemsToSend.length > 0 || attachments) && onSendMessage) {
+        const message = messageToSend || (attachments ? "See attached images" : "")
         await onSendMessage(message, attachments)
       }
     } catch (error) {
@@ -108,14 +126,7 @@ export function PromptInputWithActions({
       // Could add user-facing error notification here
     } finally {
       setIsLoading(false)
-      setInput("")
-      prevInputLengthRef.current = 0
-      setFiles([])
-      setClipboardItems([])
       setIsExpanded(false)
-      
-      // Emit input cleared event to reset auto-screenshot
-      window.dispatchEvent(new CustomEvent('prompt-input-cleared'))
     }
   }, [input, files, clipboardItems, onSendMessage, convertFilesToAttachments])
 
@@ -243,6 +254,7 @@ export function PromptInputWithActions({
           files={files}
           clipboardItems={clipboardItems}
           onSubmit={handleSubmit}
+          onStop={onStop}
           onExpand={() => setIsExpanded(true)}
           onHide={() => setIsVisible(false)}
           isDarkTheme={isDarkTheme}
@@ -253,6 +265,7 @@ export function PromptInputWithActions({
           onRemoveFile={handleRemoveFile}
           onClipboardItemAdd={handleClipboardItemAdd}
           onRemoveClipboardItem={handleRemoveClipboardItem}
+          onThemeChange={onThemeChange}
         />
       ) : (
         <PromptInputExpanded
@@ -262,6 +275,7 @@ export function PromptInputWithActions({
           files={files}
           clipboardItems={clipboardItems}
           onSubmit={handleSubmit}
+          onStop={onStop}
           onCollapse={() => setIsExpanded(false)}
           onHide={() => setIsVisible(false)}
           onFileChange={handleFileChange}
@@ -272,6 +286,7 @@ export function PromptInputWithActions({
           onMoreClick={onMoreClick}
           onClipboardItemAdd={handleClipboardItemAdd}
           onRemoveClipboardItem={handleRemoveClipboardItem}
+          onThemeChange={onThemeChange}
         />
       )}
     </div>

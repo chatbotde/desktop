@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, Send, ArrowRight, HelpCircle, Replace } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/lib/utils'
 import { InsertButton } from '../insert-button'
 import { ReplaceButton } from '../replace-button'

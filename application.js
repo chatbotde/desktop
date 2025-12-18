@@ -13,18 +13,15 @@
 const { AppLifecycleManager } = require('./app-lifecycle-manager');
 const { GlobalShortcutRegistry } = require('./global-shortcut-registry');
 const { IpcHandlerRegistry } = require('./ipc-handler-registry');
-const { McpProcessManager } = require('./mcp-process-manager');
-const { MediaStreamManager } = require('./media-stream-manager');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 // const { ChatInputWindow } = require('./chat-input/chat-input-window'); // ISOLATED
 const { initializeAuth, authService, AuthWindow } = require('./auth');
-const { InterfaceWindow } = require('./interface-window/interface-window');
-const { ProtocolHandler } = require('./interface-window/protocol-handler');
+const { InterfaceWindow } = require('./interface-window/dist/interface-window');
+const { ProtocolHandler } = require('./interface-window/dist/protocol-handler');
 const { AutoStartupManager } = require('./startup');
-const { clipboardMonitor } = require('./clipboard-monitor');
 const { textSelectionMonitor } = require('./interface-window/monitor/text-selection-monitor');
-const { environmentConfig } = require('./utils/environment');
+const { environmentConfig } = require('./utils/dist/environment');
 // const { initializeTsf } = require('./chat-input/tsf-ipc-handlers'); // ISOLATED
 // const { setupSearchIpc } = require('./chat-input/search/search-handler'); // ISOLATED
 // const { MinimalModeManager } = require('./global-shortcut'); // ISOLATED
@@ -34,22 +31,16 @@ class Application {
    * @param {AppLifecycleManager} lifecycleManager
    * @param {GlobalShortcutRegistry} shortcutRegistry
    * @param {IpcHandlerRegistry} ipcRegistry
-   * @param {McpProcessManager} mcpManager
-   * @param {MediaStreamManager} mediaManager
    */
   constructor(
     lifecycleManager = null,
     shortcutRegistry = null,
-    ipcRegistry = null,
-    mcpManager = null,
-    mediaManager = null
+    ipcRegistry = null
   ) {
     // Dependency injection (DIP)
     this.lifecycleManager = lifecycleManager || new AppLifecycleManager();
     this.shortcutRegistry = shortcutRegistry || new GlobalShortcutRegistry();
     this.ipcRegistry = ipcRegistry || new IpcHandlerRegistry();
-    this.mcpManager = mcpManager || new McpProcessManager();
-    this.mediaManager = mediaManager || new MediaStreamManager();
 
     // Window instances
     // this.chatInputWindow = null; // ISOLATED
@@ -155,7 +146,6 @@ class Application {
       this.registerGlobalShortcuts();
 
       // Setup monitoring
-      this.setupClipboardMonitoring();
       this.setupTextSelectionMonitoring();
 
       // Register IPC handlers
@@ -188,17 +178,7 @@ class Application {
    * Create chat input window
    * @private
    */
-  /* ISOLATED
-  createChatInputWindow() {
-    if (!this.chatInputWindow) {
-      console.log('Application: Creating chat input window');
-      this.chatInputWindow = new ChatInputWindow();
-      this.chatInputWindow.createChatInputWindow();
-      this.chatInputWindow.show();
-      MinimalModeManager.initialize(this.chatInputWindow);
-    }
-  }
-  */
+  
 
   /**
    * Register global shortcuts
@@ -206,31 +186,12 @@ class Application {
    */
   registerGlobalShortcuts() {
     // Ctrl+H - Toggle chat input visibility
-    /* ISOLATED
-    this.shortcutRegistry.register(
-      'CommandOrControl+H',
-      () => this.toggleChatInput(),
-      'Toggle chat input visibility'
-    );
-    */
+   
 
-    // Ctrl+M - Toggle minimal mode
-    /* ISOLATED
-    this.shortcutRegistry.register(
-      'CommandOrControl+M',
-      () => MinimalModeManager.toggleMinimalMode(),
-      'Toggle minimal mode'
-    );
-    */
+    
 
-    // Ctrl+Shift+L - Show collapsed chat input
-    /* ISOLATED
-    this.shortcutRegistry.register(
-      'CommandOrControl+Shift+L',
-      () => this.showCollapsedChatInput(),
-      'Show collapsed chat input'
-    );
-    */
+    
+    
 
     // Ctrl+I - Toggle interface window
     this.shortcutRegistry.register(
@@ -265,84 +226,13 @@ class Application {
    * Toggle chat input window
    * @private
    */
-  /* ISOLATED
-  toggleChatInput() {
-    console.log('Application: Toggle chat input requested');
-
-    if (!this.chatInputWindow) {
-      this.createChatInputWindow();
-    } else if (this.chatInputWindow.getChatInputWindow()?.isVisible()) {
-      this.chatInputWindow.hide();
-    } else {
-      this.chatInputWindow.show();
-    }
-  }
-  */
+  
 
   /**
    * Show chat input in collapsed state
    * @private
    */
-  /* ISOLATED
-  showCollapsedChatInput() {
-    console.log('Application: Show collapsed chat input');
 
-    // Disable minimal mode if active
-    if (MinimalModeManager.getStatus()) {
-      MinimalModeManager.disableMinimalMode();
-    }
-
-    if (!this.chatInputWindow) {
-      this.createChatInputWindow();
-    }
-
-    this.chatInputWindow.show();
-
-    // Send message to renderer to ensure collapsed state
-    const window = this.chatInputWindow.getChatInputWindow();
-    if (window && !window.isDestroyed()) {
-      window.webContents.send('set-collapsed-state', true);
-    }
-  }
-  */
-
-  /**
-   * Setup clipboard monitoring
-   * @private
-   */
-  setupClipboardMonitoring() {
-    console.log('Application: Setting up clipboard monitoring');
-
-    clipboardMonitor.startMonitoring();
-
-    /* ISOLATED
-    clipboardMonitor.onChange((clipboardContent) => {
-      if (this.chatInputWindow?.getChatInputWindow()?.isVisible()) {
-        this.chatInputWindow.getChatInputWindow().webContents.send('clipboard-changed', clipboardContent);
-      }
-    });
-    */
-
-    // Register clipboard IPC handlers
-    this.ipcRegistry.register('start-clipboard-monitoring', () => {
-      clipboardMonitor.startMonitoring();
-      return true;
-    });
-
-    this.ipcRegistry.register('stop-clipboard-monitoring', () => {
-      clipboardMonitor.stopMonitoring();
-      return true;
-    });
-
-    this.ipcRegistry.register('get-clipboard-monitoring-status', () => {
-      return clipboardMonitor.isActive();
-    });
-
-    this.ipcRegistry.register('set-clipboard-check-interval', (event, intervalMs) => {
-      clipboardMonitor.setCheckInterval(intervalMs);
-      return true;
-    });
-  }
 
   /**
    * Setup text selection monitoring
@@ -384,28 +274,7 @@ class Application {
     const execFileAsync = promisify(execFile);
 
     // Chat input window handlers
-    /* ISOLATED
-    this.ipcRegistry.register('toggle-chat-input', () => {
-      this.toggleChatInput();
-    }, 'on');
-
-    this.ipcRegistry.register('hide-chat-input', () => {
-      this.chatInputWindow?.hide();
-    }, 'on');
-    */
-
-    // MCP handlers
-    this.ipcRegistry.register('mcp:connect', async (event, config) => {
-      return await this.mcpManager.connect(config, event.sender);
-    });
-
-    this.ipcRegistry.register('mcp:send', async (event, serverId, message) => {
-      return this.mcpManager.send(serverId, message);
-    });
-
-    this.ipcRegistry.register('mcp:disconnect', async (event, serverId) => {
-      this.mcpManager.disconnect(serverId);
-    });
+    
 
     // AI Model handlers
     this.ipcRegistry.register('get-all-ai-models', async () => {
@@ -454,40 +323,13 @@ class Application {
     this.ipcRegistry.register('get-frontend-url', () => environmentConfig.getFrontendURL());
     this.ipcRegistry.register('get-frontend-base-url', () => environmentConfig.getFrontendBaseURL());
     this.ipcRegistry.register('is-development', () => environmentConfig.isDev());
-
-    // Media stream handlers
-    this.ipcRegistry.register('media:open', (event, suggestedPath) => {
-      return this.mediaManager.open(suggestedPath);
-    });
-
-    this.ipcRegistry.register('media:write', async (event, { filePath, base64 }) => {
-      return await this.mediaManager.write(filePath, base64);
-    });
-
-    this.ipcRegistry.register('media:close', (event, filePath) => {
-      return this.mediaManager.close(filePath);
-    });
   }
 
   /**
    * Initialize TSF
    * @private
    */
-  /* ISOLATED
-  async initializeTsf() {
-    try {
-      console.log('Application: Initializing TSF...');
-      const success = await initializeTsf();
-      if (success) {
-        console.log('Application: TSF initialized successfully');
-      } else {
-        console.warn('Application: TSF initialization failed');
-      }
-    } catch (error) {
-      console.error('Application: TSF initialization error:', error);
-    }
-  }
-  */
+  
 
   /**
    * Handle auth success
@@ -539,8 +381,6 @@ class Application {
     console.log('Application: Cleaning up...');
 
     this.shortcutRegistry.unregisterAll();
-    this.mcpManager.disconnectAll();
-    this.mediaManager.closeAll();
     // this.chatInputWindow?.destroy(); // ISOLATED
 
     console.log('Application: Cleanup complete');

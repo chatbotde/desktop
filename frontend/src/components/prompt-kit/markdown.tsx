@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import 'katex/dist/katex.min.css'
@@ -121,9 +121,22 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
   }
 
   return (
-    <div className={cn("code-block-enhanced group", className)}>
+    <div className={cn(
+      "relative my-5 rounded-xl overflow-hidden border-2 border-indigo-500/30",
+      "bg-gradient-to-br from-[#0d1117] to-[#111827]",
+      "shadow-lg w-[98%] max-w-full transition-all duration-300",
+      "hover:border-indigo-500/50 hover:shadow-xl group",
+      className
+    )}>
       {/* Language label and action buttons */}
-      <div className="code-header cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
+      <div 
+        className={cn(
+          "bg-gradient-to-br from-[#1a1f2e] to-[#161b22] border-b-2 border-indigo-500/20",
+          "px-5 py-3 flex items-center justify-between transition-colors duration-200",
+          "hover:bg-gradient-to-br hover:from-[#1f2937] hover:to-[#1a1f2e] cursor-pointer"
+        )}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
         <div className="flex items-center gap-2">
           <svg 
             className={cn(
@@ -174,12 +187,21 @@ function CodeBlock({ code, language, className }: CodeBlockProps) {
 
       {/* Code content with Shiki highlighting */}
       {!isCollapsed && (
-        <div className="code-content">
+        <div className={cn(
+          "bg-[#0d1117] px-6 py-5 overflow-x-auto max-h-[600px] border-t border-gray-700/30",
+          "[&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar]:w-2.5",
+          "[&::-webkit-scrollbar-track]:bg-black/20 [&::-webkit-scrollbar-track]:rounded",
+          "[&::-webkit-scrollbar-thumb]:bg-gray-500/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-black/20",
+          "[&::-webkit-scrollbar-thumb]:hover:bg-gray-500/70"
+        )}>
           {html ? (
-            <div dangerouslySetInnerHTML={{ __html: html }} />
+            <div 
+              className="[&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-relaxed [&_code]:bg-transparent [&_code]:font-mono [&_.shiki]:bg-transparent [&_.shiki_pre]:bg-transparent [&_.shiki_pre]:m-0 [&_.shiki_pre]:p-0 [&_.shiki_code]:bg-transparent [&_.shiki_code]:font-mono [&_.shiki_code]:text-sm [&_.shiki_code]:leading-relaxed [&_.shiki_code]:block"
+              dangerouslySetInnerHTML={{ __html: html }} 
+            />
           ) : (
-            <pre>
-              <code>{code}</code>
+            <pre className="m-0 bg-transparent font-mono text-sm leading-relaxed">
+              <code className="bg-transparent font-mono">{code}</code>
             </pre>
           )}
         </div>
@@ -513,7 +535,20 @@ export function Markdown({ children, className }: MarkdownProps) {
   }
 
   return (
-    <div className={cn("markdown-content prose prose-invert max-w-none", className)}>
+    <div className={cn(
+      "prose prose-invert max-w-none",
+      "[&_h1]:text-slate-50 [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:my-8 [&_h1]:pb-2 [&_h1]:border-b-2 [&_h1]:border-blue-500/30",
+      "[&_h2]:text-slate-100 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:my-6 [&_h2]:mt-5",
+      "[&_h3]:text-slate-200 [&_h3]:text-xl [&_h3]:font-medium [&_h3]:my-5 [&_h3]:mt-4",
+      "[&_p]:text-slate-300 [&_p]:leading-relaxed [&_p]:mb-4",
+      "[&_ul]:text-slate-300 [&_ul]:my-4 [&_ul]:pl-6",
+      "[&_ol]:text-slate-300 [&_ol]:my-4 [&_ol]:pl-6",
+      "[&_li]:my-1 [&_li]:leading-relaxed",
+      "[&_blockquote]:border-l-4 [&_blockquote]:border-blue-500/50 [&_blockquote]:bg-blue-500/10 [&_blockquote]:p-4 [&_blockquote]:my-4 [&_blockquote]:rounded-r [&_blockquote]:text-slate-200 [&_blockquote]:italic",
+      "[&_code]:text-sky-300 [&_code]:font-mono [&_code]:text-sm",
+      "[&_a]:text-blue-400 [&_a]:underline [&_a]:transition-colors [&_a]:duration-200 [&_a]:hover:text-blue-300",
+      className
+    )}>
       {parseMarkdown(children)}
     </div>
   )

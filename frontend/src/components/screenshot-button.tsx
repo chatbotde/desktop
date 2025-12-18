@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Camera, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface ScreenshotButtonProps {

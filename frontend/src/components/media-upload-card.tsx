@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/shared/components/ui/card"
 import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
@@ -12,9 +12,10 @@ interface MediaUploadCardProps {
     isDarkTheme?: boolean
     onScreenshot?: (screenshot: { name: string; type: string; size: number; data: string }) => void
     onMoreClick?: () => void
+    onThemeChange?: (isDark: boolean) => void
 }
 
-export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot, onMoreClick }: MediaUploadCardProps) {
+export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot, onMoreClick, onThemeChange }: MediaUploadCardProps) {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const audioInputRef = useRef<HTMLInputElement>(null)
@@ -259,7 +260,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                 </CardContent>
             </Card>
 
-            <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} isDarkTheme={isDarkTheme} />
+            <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} isDarkTheme={isDarkTheme} onThemeChange={onThemeChange} />
         </>
     )
 }

@@ -2,12 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, Download, X, Trash2, Volume2, FileText, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getThemeClasses, getHoverClass } from './prompt-input-theme'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { TranscriptionResult } from '@/lib/audio'
 import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
-import { InsertButton } from '@/components/insert-button'
+import { QuickInsert } from '@/components/quick-insert'
+import { buildVoiceRewritePromptFromTranscription } from '@/lib/prompt'
 
 interface AudioPreviewProps {
   audioBlob: Blob
@@ -152,10 +153,7 @@ export function AudioPreview({
     setAiError(null)
 
     // Build a simple instruction-style prompt around the transcription
-    const prompt = `You are an assistant that turns spoken text into a concise written prompt.\n\n` +
-      `Transcribed audio:\n"""${text}"""\n\n` +
-      `Rewrite this as a clear, single text prompt the user could send to an AI assistant. ` +
-      `Do not add explanations, just return the final prompt text.`
+    const prompt = buildVoiceRewritePromptFromTranscription(text)
 
     try {
       const localModel = unifiedLocalLLMService.getCurrentModel()
@@ -379,13 +377,12 @@ export function AudioPreview({
                         {aiSuggestion}
                       </div>
                       <div className="flex justify-end gap-2">
-                        <InsertButton
+                        <QuickInsert
                           text={aiSuggestion}
-                          size="sm"
-                          variant="outline"
-                          className="h-7 px-3 text-xs"
-                          label="Insert"
-                          showSuccess={true}
+                          className={cn(
+                            "h-7 px-3 text-xs rounded-md border flex items-center",
+                            isDarkTheme ? "border-zinc-700" : "border-zinc-300"
+                          )}
                         />
                         <Button
                           size="sm"

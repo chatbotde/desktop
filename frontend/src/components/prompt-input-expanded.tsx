@@ -7,16 +7,15 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/shared/components/ui/popover"
 import { MediaUploadCard } from "./media-upload-card"
-import { Button } from "@/components/ui/button"
-import { ArrowUp, Paperclip, Square, X, Plus, Mic, ChevronUp, Image, Video, Music, FileText, WifiOff, Cpu, Power } from "lucide-react"
+import { Button } from "@/shared/components/ui/button"
+import { ArrowUp, Square, X, Plus, Mic, ChevronUp, Image, FileText, Cpu, Power } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback, useState } from "react"
 import { ModelSelectorPopover } from "./model-selector-popover"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
-import { ClipboardPill } from "./clipboard"
-import { useNetworkStatus } from "@/hooks/use-network-status"
+import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { useFeature } from "@/contexts/FeatureContext"
 import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
@@ -29,6 +28,7 @@ interface PromptInputExpandedProps {
   files: File[]
   clipboardItems?: string[]
   onSubmit: () => void
+  onStop?: () => void
   onCollapse: () => void
   onHide: () => void
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
@@ -39,6 +39,7 @@ interface PromptInputExpandedProps {
   onMoreClick?: () => void
   onClipboardItemAdd?: (text: string) => void
   onRemoveClipboardItem?: (index: number) => void
+  onThemeChange?: (isDark: boolean) => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -50,6 +51,7 @@ export function PromptInputExpanded({
   files,
   clipboardItems,
   onSubmit,
+  onStop,
   onCollapse,
   onHide,
   onRemoveFile,
@@ -59,12 +61,12 @@ export function PromptInputExpanded({
   onMoreClick,
   onClipboardItemAdd,
   onRemoveClipboardItem,
+  onThemeChange,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
   const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
-  const { isOnline } = useNetworkStatus()
   const { setFeatureEnabled } = useFeature()
   const imageUrlsRef = useRef<Map<File, string>>(new Map())
 
@@ -149,78 +151,20 @@ export function PromptInputExpanded({
   }, [onSubmit])
 
   const canSubmit = input.trim().length > 0 || files.length > 0 || (clipboardItems && clipboardItems.length > 0)
-  const getFileIcon = (file: File) => {
-    const fileType = file.type.toLowerCase()
 
-    if (fileType.startsWith('image/')) {
-      return <Image className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
-    } else if (fileType.startsWith('video/')) {
-      return <Video className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
-    } else if (fileType.startsWith('audio/')) {
-      return <Music className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
-    } else {
-      return <Paperclip className={`size-4 ${themeClasses.icon}`} aria-hidden="true" />
-    }
-  }
 
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items
-    const pastedFiles: File[] = []
-
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].kind === 'file') {
-        const file = items[i].getAsFile()
-        if (file) {
-          pastedFiles.push(file)
-        }
-      }
-    }
-
-    if (pastedFiles.length > 0 && onFilesAdded) {
-      e.preventDefault()
-      onFilesAdded(pastedFiles)
-    }
-  }, [onFilesAdded])
+  const handlePaste = usePasteHandler(onFilesAdded)
 
   return (
     <div className="relative flex items-start gap-3 mx-4 mb-0">
       {/* Network Status Icon - Outside and Centered */}
-      {!isOnline && (
-        <div
-          className={cn(
-            "absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full mb-2",
-            "flex h-8 w-8 items-center justify-center rounded-full shrink-0 z-50",
-            "opacity-90"
-          )}
-          title="No Internet Connection"
-          aria-label="No Internet Connection"
-        >
-          <WifiOff className={`size-5 ${themeClasses.icon} text-red-500`} />
-        </div>
-      )}
+      <NetworkOfflineIndicator themeClasses={themeClasses} />
 
-      <ClipboardPill
-        onAdd={(content) => {
-          // Handle string content (text, html text preview)
-          if (typeof content === 'string') {
-            onClipboardItemAdd ? onClipboardItemAdd(content) : setInput(input + (input ? " " : "") + content)
-          } else if (content.text) {
-            // Handle ClipboardContent object with text
-            onClipboardItemAdd ? onClipboardItemAdd(content.text) : setInput(input + (input ? " " : "") + content.text)
-          }
-        }}
-        onAddImage={(dataUrl) => {
-          if (onFilesAdded) {
-            // Convert data URL to File
-            fetch(dataUrl)
-              .then(res => res.blob())
-              .then(blob => {
-                const file = new File([blob], `clipboard-image-${Date.now()}.png`, { type: 'image/png' })
-                onFilesAdded([file])
-              })
-              .catch(err => console.error('Failed to convert clipboard image:', err))
-          }
-        }}
+      <SmartClipboardPill
+        onClipboardItemAdd={onClipboardItemAdd}
+        setInput={setInput}
+        input={input}
+        onFilesAdded={onFilesAdded}
         isDarkTheme={isDarkTheme}
       />
       <button
@@ -370,7 +314,7 @@ export function PromptInputExpanded({
                   )}
                   onClick={e => e.stopPropagation()}
                 >
-                  {getFileIcon(file)}
+                  {getFileIcon(file, themeClasses)}
                   <button
                     onClick={() => onRemoveFile(index)}
                     aria-label={`Remove ${file.name}`}
@@ -418,7 +362,7 @@ export function PromptInputExpanded({
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
-                  <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} />
+                  <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} onThemeChange={onThemeChange} />
                 </PopoverContent>
               </Popover>
             </PromptInputAction>
@@ -536,8 +480,8 @@ export function PromptInputExpanded({
                 variant="default"
                 size="icon"
                 className="h-8 w-8 rounded-full bg-blue-500 text-white hover:bg-blue-500/90"
-                onClick={onSubmit}
-                disabled={!canSubmit || isLoading}
+                onClick={isLoading && onStop ? onStop : onSubmit}
+                disabled={!isLoading && !canSubmit}
                 aria-label={isLoading ? "Stop generation" : "Send message"}
               >
                 {isLoading ? (

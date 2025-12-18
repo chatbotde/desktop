@@ -1,8 +1,8 @@
 import * as React from "react"
 import { X, ArrowUp, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/shared/components/ui/card"
+import { Button } from "@/shared/components/ui/button"
 
 export interface TextSelectionInputProps {
   /** The selected text to display/edit */

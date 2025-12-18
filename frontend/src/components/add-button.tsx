@@ -1,6 +1,6 @@
 import { forwardRef } from "react"
 import { Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export type AddButtonSize = "xs" | "sm" | "md" | "lg"

@@ -6,13 +6,14 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/shared/components/ui/tooltip"
 import { useDraggable } from './output-window/hooks'
 import { createStreamingService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { IStreamingTranscriptionService, TranscriptionEvent } from '@/lib/audio'
 import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
-import { InsertButton } from '@/components/insert-button'
+import { QuickInsert } from '@/components/quick-insert'
+import { buildVoiceRewritePromptFromLiveTranscription } from '@/lib/prompt'
 
 interface AudioRecorderPillProps {
     onClose: () => void
@@ -421,10 +422,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         setIsGenerating(true)
         setAiError(null)
 
-        const prompt = `You are an assistant that turns spoken text into a concise written prompt.\n\n` +
-          `Live transcription:\n"""${fullText}"""\n\n` +
-          `Rewrite this as a clear, single text prompt the user could send to an AI assistant. ` +
-          `Do not add explanations, just return the final prompt text.`
+        const prompt = buildVoiceRewritePromptFromLiveTranscription(fullText)
 
         try {
             const localModel = unifiedLocalLLMService.getCurrentModel()
@@ -844,13 +842,12 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                                     {aiSuggestion}
                                 </div>
                                 <div className="flex justify-end gap-2">
-                                    <InsertButton
+                                    <QuickInsert
                                         text={aiSuggestion}
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-7 px-3 text-xs"
-                                        label="Insert"
-                                        showSuccess={true}
+                                        className={cn(
+                                            "h-7 px-3 text-xs rounded-md border flex items-center",
+                                            isDarkTheme ? "border-zinc-700" : "border-zinc-300"
+                                        )}
                                     />
                                     <button
                                         onClick={handleInsertSuggestion}

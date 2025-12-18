@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createHighlighter } from 'shiki';
 import { Copy, Check, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Only bundle 30 most common languages
@@ -105,9 +105,22 @@ export function CodeEditor({
   };
 
   return (
-    <div className={cn("code-block-enhanced group", className)}>
+    <div className={cn(
+      "relative my-5 rounded-xl overflow-hidden border-2 border-indigo-500/30",
+      "bg-gradient-to-br from-[#0d1117] to-[#111827]",
+      "shadow-lg w-[98%] max-w-full transition-all duration-300",
+      "hover:border-indigo-500/50 hover:shadow-xl group",
+      className
+    )}>
       {/* Header */}
-      <div className="code-header cursor-pointer" onClick={() => setIsCollapsed(!isCollapsed)}>
+      <div 
+        className={cn(
+          "bg-gradient-to-br from-[#1a1f2e] to-[#161b22] border-b-2 border-indigo-500/20",
+          "px-5 py-3 flex items-center justify-between transition-colors duration-200",
+          "hover:bg-gradient-to-br hover:from-[#1f2937] hover:to-[#1a1f2e] cursor-pointer"
+        )}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
         <div className="flex items-center gap-2">
           <svg 
             className={cn(
@@ -185,16 +198,28 @@ export function CodeEditor({
 
       {/* Code Content */}
       {!isCollapsed && (
-        <div className="code-content">
+        <div className={cn(
+          "bg-[#0d1117] px-6 py-5 overflow-x-auto max-h-[600px] border-t border-gray-700/30",
+          "[&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar]:w-2.5",
+          "[&::-webkit-scrollbar-track]:bg-black/20 [&::-webkit-scrollbar-track]:rounded",
+          "[&::-webkit-scrollbar-thumb]:bg-gray-500/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-black/20",
+          "[&::-webkit-scrollbar-thumb]:hover:bg-gray-500/70"
+        )}>
           {html ? (
             <div 
               ref={codeRef}
-              className={cn(showLineNumbers && "line-numbers")}
+              className={cn(
+                showLineNumbers && "line-numbers",
+                "[&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-relaxed",
+                "[&_code]:bg-transparent [&_code]:font-mono",
+                "[&_.shiki]:bg-transparent [&_.shiki_pre]:bg-transparent [&_.shiki_pre]:m-0 [&_.shiki_pre]:p-0",
+                "[&_.shiki_code]:bg-transparent [&_.shiki_code]:font-mono [&_.shiki_code]:text-sm [&_.shiki_code]:leading-relaxed [&_.shiki_code]:block"
+              )}
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
-            <pre>
-              <code>{code}</code>
+            <pre className="m-0 bg-transparent font-mono text-sm leading-relaxed">
+              <code className="bg-transparent font-mono">{code}</code>
             </pre>
           )}
         </div>

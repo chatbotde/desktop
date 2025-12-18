@@ -5,14 +5,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from '@/shared/components/ui/select';
+import { Badge } from '@/shared/components/ui/badge';
+import { Button } from '@/shared/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from '@/shared/components/ui/popover';
 import { 
   Brain, 
   Zap, 
@@ -32,6 +32,7 @@ import {
   getAvailableModels,
   type AIModel,
 } from '@/lib/ai/model-config';
+import { getVisibleModels, MODEL_VISIBILITY_CHANGED_EVENT } from '@/lib/settings/model-visibility';
 
 interface ModelSelectorProps {
   className?: string;
@@ -87,11 +88,26 @@ export function ModelSelector({
 
   useEffect(() => {
     // Initialize models and selected model
-    const models = getAvailableModels();
+    const allModels = getAvailableModels();
+    const visibleModelIds = getVisibleModels();
+    const models = visibleModelIds === null ? allModels : allModels.filter((m) => visibleModelIds.includes(m.id));
     const currentModel = getSelectedModel();
     
     setAvailableModels(models);
     setSelectedModelState(currentModel);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      const allModels = getAvailableModels();
+      const visibleModelIds = getVisibleModels();
+      const models = visibleModelIds === null ? allModels : allModels.filter((m) => visibleModelIds.includes(m.id));
+      setAvailableModels(models);
+      setSelectedModelState(getSelectedModel());
+    };
+
+    window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
   }, []);
 
   const handleModelChange = (modelId: string) => {

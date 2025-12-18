@@ -8,7 +8,7 @@
  */
 
 const { app } = require('electron');
-const { ProtocolHandler } = require('./interface-window/protocol-handler');
+const { ProtocolHandler } = require('./interface-window/dist/protocol-handler');
 
 // Register custom protocol schemes BEFORE app is ready
 // This must be done synchronously at startup

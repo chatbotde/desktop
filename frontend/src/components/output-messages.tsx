@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/shared/components/ui/card"
 import { MessageBubble } from './output-window/MessageBubble'
 import { ThinkingIndicator } from './output-window/ThinkingIndicator'
 import { DragButton } from './output-window/DragButton'
@@ -22,10 +22,11 @@ interface OutputMessagesProps {
     onAddSelectedTextToPrompt?: (text: string) => void
     onAskSelectedText?: (text: string) => void | Promise<void>
     onExplainSelectedText?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
+    isDarkTheme?: boolean
 }
 
 export function OutputMessages({
-    onThemeChange,
+    onThemeChange: _onThemeChange,
     messages = [],
     isWaitingForResponse = false,
     onClearMessages,
@@ -34,10 +35,13 @@ export function OutputMessages({
     onAddSelectedTextToPrompt,
     onAskSelectedText,
     onExplainSelectedText,
+    isDarkTheme: propIsDarkTheme,
 }: OutputMessagesProps = {}) {
     const [internalIsVisible, setInternalIsVisible] = useState(true)
     const [isCollapsed, setIsCollapsed] = useState(false)
-    const [isDarkTheme, setIsDarkTheme] = useState(true)
+    
+    // Use prop theme if provided, otherwise default to true (dark theme)
+    const isDarkTheme = propIsDarkTheme !== undefined ? propIsDarkTheme : true
     
     // Center the output window on mount
     const defaultSize = { width: 600, height: 400 }
@@ -81,12 +85,6 @@ export function OutputMessages({
         onClearMessages?.()
     }
 
-    const handleThemeToggle = () => {
-        const newTheme = !isDarkTheme
-        setIsDarkTheme(newTheme)
-        onThemeChange?.(newTheme)
-    }
-
     const handleCollapseToggle = () => {
         setIsCollapsed(prev => {
             const newCollapsed = !prev
@@ -123,8 +121,6 @@ export function OutputMessages({
                 />
             </div>
             <WindowControls
-                isDarkTheme={isDarkTheme}
-                onThemeToggle={handleThemeToggle}
                 onClear={handleClear}
                 onClose={handleClose}
                 onCollapse={handleCollapseToggle}

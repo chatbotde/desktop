@@ -1,7 +1,7 @@
 import { useRef } from "react"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/shared/components/ui/button"
+import { Card } from "@/shared/components/ui/card"
 
 const videos = [
     { id: 1, thumbnail: "1.png" },

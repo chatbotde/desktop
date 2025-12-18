@@ -9,7 +9,8 @@ import CaptureBase from './utils/capture-base';
 import {
   ScreenshotOptions,
   ScreenshotResult,
-  SupportStatus
+  SupportStatus,
+  SelectionArea
 } from './types/capture.types';
 
 // Re-export SupportStatus
@@ -32,7 +33,7 @@ class CaptureAPI {
     return this.screenshotCapture.captureWindow(windowId, options);
   }
 
-  async takeAreaScreenshot(area: any, options: ScreenshotOptions = {}): Promise<ScreenshotResult> {
+  async takeAreaScreenshot(area: SelectionArea, options: ScreenshotOptions = {}): Promise<ScreenshotResult> {
     return this.screenshotCapture.captureArea(area, options);
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { X, Copy, Zap, Image, FileText, Code, FileImage } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useFeature } from "@/contexts/FeatureContext"
 import { AddButton } from "./add-button"

@@ -4,11 +4,12 @@ import * as React from "react"
 import { useEffect, useRef, useState, useCallback } from "react"
 
 import { cn } from "@/lib/utils"
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { Mic, Square, Loader2, Check, AlertCircle, X } from "lucide-react"
 import { createPrerecordedService, isAssemblyAIConfigured } from "@/lib/audio"
 import { sendMessageComplete as sendCloudMessageComplete } from "@/lib/ai"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
+import { buildVoiceRewritePromptFromTranscription } from "@/lib/prompt"
 // Demo components using an external Example wrapper have been removed
 // to avoid unused component and missing symbol errors. You can restore
 // them from version control if you still need the playground UI.
@@ -552,10 +553,7 @@ export function VoiceToPromptQuickInsert({ onCancel }: { onCancel?: () => void }
       const transcription = transcriptionResult.text.trim()
 
       // Step 2: Turn transcription into a clean, single prompt
-      const promptBuilder = `You are an assistant that turns spoken text into a concise written prompt.\n\n` +
-        `Transcribed audio:\n"""${transcription}"""\n\n` +
-        `Rewrite this as a clear, single text prompt the user could send to an AI assistant.\n` +
-        `Do not add explanations, just return the final prompt text.`
+      const promptBuilder = buildVoiceRewritePromptFromTranscription(transcription)
 
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const rewrittenPrompt = localModel

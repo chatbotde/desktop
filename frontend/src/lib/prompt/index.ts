@@ -39,6 +39,9 @@ export * from './model-behavior'
 // Templates
 export * from './templates'
 
+// Reusable prompt texts/builders (system prompts, voice prompt rewrites, etc.)
+export * from './prompts'
+
 // Re-export commonly used functions for convenience
 export {
   buildAskPrompt,

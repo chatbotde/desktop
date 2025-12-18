@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Maximize2, Minimize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/components/ui/button'
 import { MessageContent } from '@/components/prompt-kit/message'
 
 interface ExplanationProps {

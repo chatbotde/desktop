@@ -4,7 +4,7 @@ import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card"
+} from "@/shared/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 import { createContext, useContext } from "react"
 

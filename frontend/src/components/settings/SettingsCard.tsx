@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react"
 import { X } from "lucide-react"
 
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card } from "@/shared/components/ui/card"
+import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 import { getThemeClasses } from "@/components/prompt-input-theme"
 
@@ -12,6 +12,7 @@ import { PersonalizationSection, type PersonalizationValues } from "./sections/P
 import { GeneralSection } from "./sections/GeneralSection"
 import { AccountSection } from "./sections/AccountSection"
 import { LocalLLMSection } from "./sections/LocalLLMSection"
+import { ModelProfileListSection } from "./sections/ModelProfileListSection"
 import { BlockingSection } from "./sections/BlockingSection"
 import { FeaturesSection } from "./sections/FeaturesSection"
 
@@ -19,9 +20,10 @@ type SettingsCardProps = {
   isDarkTheme?: boolean
   initialSection?: SettingsSectionId
   onRequestClose?: () => void
+  onThemeChange?: (isDark: boolean) => void
 }
 
-export function SettingsCard({ isDarkTheme = false, initialSection = "personalization", onRequestClose }: SettingsCardProps) {
+export function SettingsCard({ isDarkTheme = false, initialSection = "personalization", onRequestClose, onThemeChange }: SettingsCardProps) {
   const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(initialSection)
@@ -102,9 +104,11 @@ export function SettingsCard({ isDarkTheme = false, initialSection = "personaliz
 
             {activeSection === "local-llm" && <LocalLLMSection isDarkTheme={isDarkTheme} />}
 
+            {activeSection === "model-profiles" && <ModelProfileListSection isDarkTheme={isDarkTheme} />}
+
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDarkTheme} />}
 
-            {activeSection === "features" && <FeaturesSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "features" && <FeaturesSection isDarkTheme={isDarkTheme} onThemeChange={onThemeChange} />}
           </div>
         </div>
       </div>
