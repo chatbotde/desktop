@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFeature } from '@/contexts/FeatureContext'
-import type { ChatMessage } from '@/components/output-window/types'
+import type { ChatMessage } from '@/features/output-window'
 
 interface UseAutoInsertOptions {
   /**

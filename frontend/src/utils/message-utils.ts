@@ -1,4 +1,4 @@
-import type { ChatMessage, MediaAttachment } from '@/components/output-window/types'
+import type { ChatMessage, MediaAttachment } from '@/features/output-window'
 
 // Helper function to generate unique message IDs
 export const generateMessageId = (): string => {

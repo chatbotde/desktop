@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react'
 import { Card, CardContent } from "@/shared/components/ui/card"
-import { MessageBubble } from './output-window/MessageBubble'
-import { ThinkingIndicator } from './output-window/ThinkingIndicator'
-import { DragButton } from './output-window/DragButton'
-import { ResizeHandle } from './output-window/ResizeHandle'
-import { WindowControls } from './output-window/WindowControls'
-import { useDraggable, useResizable, useAutoScroll } from './output-window/hooks'
-import { getThemeClasses } from './output-window/theme'
-import type { ChatMessage } from './output-window/types'
+import { MessageBubble } from '@/features/output-window/components/MessageBubble'
+import { ThinkingIndicator } from '@/features/output-window/components/ThinkingIndicator'
+import { DragButton } from '@/features/output-window/components/DragButton'
+import { ResizeHandle } from '@/features/output-window/components/ResizeHandle'
+import { WindowControls } from '@/features/output-window/components/WindowControls'
+import { useDraggable, useResizable, useAutoScroll } from '@/features/output-window/hooks'
+import { getThemeClasses } from '@/features/output-window/theme'
+import type { ChatMessage } from '@/features/output-window/types'
 
 // Re-export types for backward compatibility
 export type { ChatMessage }

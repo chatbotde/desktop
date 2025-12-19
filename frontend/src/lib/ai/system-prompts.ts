@@ -5,4 +5,4 @@
  * across the app. This file exists to preserve the original `@/lib/ai` exports.
  */
 
-export * from '../prompt/prompts/system-prompts';
+export * from '@/services/prompts/prompts/system-prompts';

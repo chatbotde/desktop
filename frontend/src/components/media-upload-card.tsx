@@ -3,7 +3,7 @@ import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp } fro
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
 import { getThemeClasses } from "./prompt-input-theme"
-import { SettingsModal } from "@/components/settings/SettingsModal"
+import { SettingsModal } from "@/features/settings"
 import { useFeature } from "@/contexts/FeatureContext"
 
 interface MediaUploadCardProps {

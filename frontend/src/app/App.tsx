@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { PromptInputWithActions } from '@/components'
 import ClickThrough from '@/components/click-through'
-import RightTransparent from '@/components/right-transparent'
+import { RightTransparent } from '@/shared/components/common'
 import { OutputMessages } from '../components/output-messages'
-import type { MediaAttachment } from '../components/output-window/types'
+import type { MediaAttachment } from '@/features/output-window'
 import { useFeature } from '@/contexts/FeatureContext'
 
-import { TextSelectionPopup } from '@/components/text-selection/TextSelectionPopup'
+import { TextSelectionPopup } from '@/features/text-selection'
 import {
   AudioRecordingSection,
   VideoScrollSection,

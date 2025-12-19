@@ -17,11 +17,12 @@ src/
 ├── shared/                       # 🔄 REUSABLE CODE ACROSS FEATURES
 │   ├── components/               # Shared UI components
 │   │   ├── ui/                   # shadcn primitives (Button, Dialog, etc.)
-│   │   ├── common/               # App-specific shared (LoadingSpinner, etc.)
+│   │   ├── common/               # App-specific shared (ClickThrough, etc.)
 │   │   ├── feedback/             # Toasts, alerts, notifications
 │   │   ├── layout/               # Layout components
 │   │   ├── media/                # Media preview components
 │   │   ├── markdown/             # Markdown rendering
+│   │   ├── message/              # Message components (MessageContent, etc.)
 │   │   ├── actions/              # Action buttons (Copy, Insert, Replace)
 │   │   └── index.ts
 │   ├── hooks/                    # Shared hooks (useDebounce, useLocalStorage)
@@ -57,12 +58,18 @@ src/
 │   │
 │   ├── output-window/            # 🪟 Output window feature
 │   │   ├── components/
-│   │   │   ├── OutputMessages.tsx
+│   │   │   ├── MessageBubble.tsx
 │   │   │   ├── WindowControls.tsx
 │   │   │   ├── DragButton.tsx
-│   │   │   └── ResizeHandle.tsx
+│   │   │   ├── ResizeHandle.tsx
+│   │   │   ├── ThinkingIndicator.tsx
+│   │   │   ├── TextSelectionActions.tsx
+│   │   │   └── index.ts
 │   │   ├── hooks/
-│   │   │   └── hooks.ts
+│   │   │   ├── useDraggable.ts
+│   │   │   ├── useResizable.ts
+│   │   │   ├── useAutoScroll.ts
+│   │   │   └── index.ts
 │   │   ├── types.ts
 │   │   ├── theme.ts
 │   │   └── index.ts
@@ -293,61 +300,105 @@ export const NEW_PROVIDER_MODELS = [
 
 ## Migration Checklist
 
-### Phase 1: Setup Shared Layer
-- [ ] Create `shared/` folder structure
-- [ ] Create `shared/components/ui/` (move existing shadcn)
-- [ ] Create `shared/components/common/`
-- [ ] Create `shared/components/markdown/`
-- [ ] Create `shared/components/media/`
-- [ ] Create `shared/components/actions/`
-- [ ] Create `shared/hooks/`
-- [ ] Create `shared/providers/`
-- [ ] Create `shared/lib/`
-- [ ] Create `shared/types/`
+### Phase 1: Setup Shared Layer ✅
+- [x] Create `shared/` folder structure
+- [x] Create `shared/components/ui/` (move existing shadcn)
+- [x] Create `shared/components/common/`
+- [x] Create `shared/components/markdown/`
+- [x] Create `shared/components/media/`
+- [x] Create `shared/components/actions/`
+- [x] Create `shared/hooks/`
+- [x] Create `shared/providers/`
+- [x] Create `shared/lib/`
+- [x] Create `shared/types/`
 
-### Phase 2: Move Shared Code
-- [ ] Move `components/ui/*` → `shared/components/ui/`
-- [ ] Move `lib/utils.ts` → `shared/lib/utils.ts`
-- [ ] Move `contexts/ThemeContext.tsx` → `shared/providers/ThemeProvider.tsx`
-- [ ] Move `contexts/FeatureContext.tsx` → `shared/providers/FeatureProvider.tsx`
-- [ ] Move `components/prompt-kit/markdown.tsx` → `shared/components/markdown/`
-- [ ] Move shared hooks → `shared/hooks/`
-- [ ] Move global types → `shared/types/`
+### Phase 2: Move Shared Code ✅
+- [x] Move `components/ui/*` → `shared/components/ui/`
+- [x] Move `lib/utils.ts` → `shared/lib/utils.ts`
+- [x] Move `contexts/ThemeContext.tsx` → `shared/providers/ThemeProvider.tsx`
+- [x] Move `contexts/FeatureContext.tsx` → `shared/providers/FeatureProvider.tsx`
+- [x] Move `components/prompt-kit/markdown.tsx` → `shared/components/markdown/`
+- [x] Move shared hooks → `shared/hooks/`
+- [x] Move global types → `shared/types/`
 
-### Phase 3: Create App Shell
-- [ ] Create `app/` folder
-- [ ] Move `App.tsx` → `app/App.tsx`
-- [ ] Move `main.tsx` → `app/main.tsx`
-- [ ] Create `app/providers.tsx`
+### Phase 3: Create App Shell ✅
+- [x] Create `app/` folder
+- [x] Move `App.tsx` → `app/App.tsx`
+- [x] Move `main.tsx` → `app/main.tsx`
+- [x] Create `app/providers.tsx`
 
-### Phase 4: Move Services
-- [ ] Create `services/` folder
-- [ ] Move `lib/ai/` → `services/ai/`
-- [ ] Move `lib/audio/` → `services/audio/`
-- [ ] Move `lib/prompt/` → `services/prompts/`
+### Phase 4: Move Services ✅
+- [x] Create `services/` folder
+- [x] Move `lib/ai/` → `services/ai/` (re-exports)
+- [x] Move `lib/audio/` → `services/audio/`
+- [x] Move `lib/prompt/` → `services/prompts/`
 
-### Phase 5: Organize Features
-- [ ] Create `features/chat/` and move message components
-- [ ] Create `features/prompt/` and move prompt input components
-- [ ] Create `features/output-window/` (already organized)
-- [ ] Create `features/capture/` and move screenshot components
-- [ ] Create `features/audio/` and move audio components
-- [ ] Create `features/text-selection/` and move selection components
-- [ ] Create `features/settings/` and move settings components
-- [ ] Rename current `features/` → `features/feature-flags/`
+### Phase 5: Organize Features ✅
+- [x] Create `features/chat/` and move message components
+- [x] Create `features/prompt/` and move prompt input components
+- [x] Create `features/output-window/` (already organized)
+- [x] Create `features/capture/` and move screenshot components
+- [x] Create `features/audio/` and move audio components
+- [x] Create `features/text-selection/` and move selection components
+- [x] Create `features/settings/` and move settings components
+- [x] Move feature-flags system to `features/feature-flags/`
 
-### Phase 6: Move Common Components to Shared
-- [ ] Move `click-through.tsx` → `shared/components/common/`
-- [ ] Move `container.tsx` → `shared/components/common/`
-- [ ] Move `right-transparent.tsx` → `shared/components/common/`
-- [ ] Move `insert-button.tsx` → `shared/components/actions/`
-- [ ] Move `replace-button.tsx` → `shared/components/actions/`
+### Phase 6: Move Common Components to Shared ✅
+- [x] Move `click-through.tsx` → `shared/components/common/`
+- [ ] Move `container.tsx` → `shared/components/common/` (skipped - feature-specific)
+- [x] Move `right-transparent.tsx` → `shared/components/common/`
+- [x] Move `insert-button.tsx` → `shared/components/actions/`
+- [x] Move `replace-button.tsx` → `shared/components/actions/`
 
-### Phase 7: Update Imports & Test
-- [ ] Update path aliases in `tsconfig.json`
-- [ ] Update all import paths
-- [ ] Run TypeScript check
-- [ ] Test application
+### Phase 7: Update Imports & Test ✅
+- [x] Update path aliases in `tsconfig.json`
+- [x] Update all import paths (gradual - old paths still work via re-exports)
+- [x] Run TypeScript check ✅
+- [x] Test application (dev server running)
+
+### Phase 8: Final Component Organization ✅
+- [x] Move output-window components to `features/output-window/components/`
+- [x] Move Message components to `shared/components/message/`
+- [x] Separate hooks into individual files in `features/output-window/hooks/`
+- [x] Create backwards-compatible re-exports in old locations
+
+### Phase 9: Cleanup & Optimization (NEXT)
+
+#### 9a: Clean up `components/` folder
+- [ ] `components/messages/` → Already re-exports from `features/chat/` (can delete)
+- [ ] `components/output-window/` → Already re-exports from `features/output-window/` (can delete)
+- [ ] `components/text-selection/` → Move to `features/text-selection/components/`
+- [ ] `components/settings/` → Move to `features/settings/components/`
+- [ ] `components/sections/` → Move to appropriate features or `shared/components/`
+- [ ] `components/prompt-kit/` → Move to `shared/components/prompt/` (used by multiple features)
+- [ ] `components/prompt-input*.tsx` → Move to `features/prompt/components/`
+- [ ] `components/ScreenCaptureModal.tsx` → Move to `features/capture/components/`
+- [ ] `components/audio-*.tsx` → Move to `features/audio/components/`
+- [ ] `components/animate-ui/` → Move to `shared/components/animate-ui/`
+
+#### 9b: Consolidate `hooks/` folder
+- [ ] `useMessageManager.ts` → Already in `features/chat/hooks/` (can delete)
+- [ ] `useChatManager.ts` → Move to `features/chat/hooks/`
+- [ ] `useAutoScreenshot.ts` → Move to `features/capture/hooks/`
+- [ ] `useAutoInsert.ts` → Move to `shared/hooks/`
+- [ ] `useTextSelectionActions.ts` → Move to `features/text-selection/hooks/`
+- [ ] `useUIState.ts` → Move to `shared/hooks/`
+- [ ] `useGlobalWindowAPI.ts` → Move to `shared/hooks/`
+
+#### 9c: Clean up `lib/` folder
+- [ ] `lib/ai/` → Already re-exports from `services/ai/` (can delete)
+- [ ] `lib/audio/` → Already re-exports from `services/audio/` (can delete)
+- [ ] `lib/prompt/` → Already re-exports from `services/prompts/` (can delete)
+- [ ] `lib/utils.ts` → Already re-exports from `shared/lib/` (can delete)
+- [ ] `lib/dashboard/` → Move to `features/dashboard/` or `services/dashboard/`
+- [ ] `lib/settings/` → Move to `features/settings/` or `services/settings/`
+- [ ] `lib/clickthrough.ts` → Move to `shared/lib/`
+
+#### 9d: Infrastructure & Documentation
+- [ ] Add CODEOWNERS file for feature ownership
+- [ ] Set up dependency-cruiser for import validation
+- [ ] Add feature-level README.md documentation
+- [ ] Delete empty re-export files after updating all imports
 
 ---
 

@@ -3,7 +3,7 @@
 import { Button } from "@/shared/components/ui/button"
 import { useFeature } from "@/contexts/FeatureContext"
 import { cn } from "@/lib/utils"
-import { getFeaturesForList } from "@/features/registry"
+import { getFeaturesForList } from "@/features/feature-flags"
 
 export function DynamicFeatureList() {
   const { isFeatureEnabled, toggleFeature } = useFeature()

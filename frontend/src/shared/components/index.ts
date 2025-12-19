@@ -3,16 +3,26 @@
  * 
  * @example
  * import { Button, Dialog } from '@/shared/components/ui'
- * import { LoadingSpinner } from '@/shared/components/common'
+ * import { Markdown } from '@/shared/components/markdown'
+ * import { InsertButton, ReplaceButton } from '@/shared/components/actions'
  */
 
 // UI primitives (shadcn)
 export * from './ui'
 
-// App-specific shared components
-// export * from './common'
+// Markdown rendering
+export * from './markdown'
+
+// Common components
+export * from './common'
+
+// Action buttons
+export * from './actions'
+
+// Message components
+export * from './message'
+
+// Ready for future use
 // export * from './feedback'
 // export * from './layout'
 // export * from './media'
-// export * from './markdown'
-// export * from './actions'

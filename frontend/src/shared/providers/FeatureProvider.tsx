@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
-import type { FeatureId } from '@/features/types'
-import { getDefaultEnabledFeatureIds } from '@/features/registry'
+import type { FeatureId } from '@/features/feature-flags'
+import { getDefaultEnabledFeatureIds } from '@/features/feature-flags'
 
 interface FeatureContextType {
   enabledFeatures: Set<FeatureId>
