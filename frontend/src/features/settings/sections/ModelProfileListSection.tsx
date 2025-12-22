@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Sparkles } from "lucide-react"
+import { Search, Sparkles } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { Switch } from "@/shared/components/ui/switch"
+import { Input } from "@/shared/components/ui/input"
 
 import { getAvailableModels, type AIModel } from "@/lib/ai/model-config"
 import {
@@ -13,6 +14,7 @@ import {
 export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?: boolean }) {
   const [allModels, setAllModels] = useState<AIModel[]>([])
   const [visibleModelIds, setVisibleModelIds] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Load models and visibility state
   useEffect(() => {
@@ -42,13 +44,13 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
 
     // Update local state
     setVisibleModelIds(newVisible)
-    
+
     // Save to localStorage and emit event
     setVisibleModels(newVisible)
   }
 
   // Sort models alphabetically
-  const sortedModels = [...allModels].sort((a, b) => 
+  const sortedModels = [...allModels].sort((a, b) =>
     a.displayName.localeCompare(b.displayName)
   )
 
@@ -71,18 +73,41 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
         </p>
       </div>
 
+      {/* Search Box */}
+      <div className={cn(
+        "sticky top-0 z-10 py-2 -mx-2 px-2",
+        isDarkTheme ? "bg-[#09090b]" : "bg-white"
+      )}>
+        <div className="relative">
+          <Search className={cn(
+            "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4",
+            isDarkTheme ? "text-zinc-400" : "text-zinc-500"
+          )} />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search models..."
+            className={cn(
+              "pl-9",
+              isDarkTheme && "bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-700"
+            )}
+          />
+        </div>
+      </div>
+
       {/* Model List */}
       <div className="space-y-1">
         {sortedModels.map((model) => {
           const isVisible = visibleModelIds.includes(model.id)
+          if (!model.displayName.toLowerCase().includes(searchQuery.toLowerCase())) return null
 
           return (
             <div
               key={model.id}
               className={cn(
                 "flex items-center justify-between gap-4 rounded-lg border px-4 py-3",
-                isDarkTheme 
-                  ? "border-zinc-800 hover:bg-zinc-800/30" 
+                isDarkTheme
+                  ? "border-zinc-800 hover:bg-zinc-800/30"
                   : "border-zinc-200 hover:bg-zinc-50"
               )}
             >
@@ -112,3 +137,10 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
     </div>
   )
 }
+
+
+
+
+
+
+

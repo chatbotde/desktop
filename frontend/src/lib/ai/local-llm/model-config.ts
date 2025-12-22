@@ -169,6 +169,20 @@ export const LOCAL_LLM_MODELS: LocalLLMModel[] = [
     recommended: true,
     size: '8B',
   },
+  {
+    id: 'gemma3:latest',
+    name: 'gemma3:latest',
+    displayName: 'Gemma 3 Latest',
+    description: 'Google Gemma 3 Latest - Latest version of Gemma 3',
+    category: 'text',
+    supportsImages: false,
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'code-generation'],
+    contextWindow: 8192,
+    recommended: true,
+    size: '3B',
+  },
 ];
 
 /**

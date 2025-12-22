@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, Monitor, Layers, Square, Circle, X, GripVertical, AudioWaveform, Minus, FileText, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/shared/lib"
-import { getThemeClasses, getHoverClass } from "@/components/prompt-input-theme"
+import { getThemeClasses, getHoverClass } from "@/features/prompt"
 import {
     Tooltip,
     TooltipContent,
@@ -66,7 +66,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
             'audio/mp4',
             'audio/wav'
         ]
-        
+
         for (const type of types) {
             if (MediaRecorder.isTypeSupported(type)) {
                 return type
@@ -158,7 +158,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                 }
 
                 const screenSource = sourcesResult.sources.find((s: any) => s.type === 'screen') || sourcesResult.sources[0]
-                
+
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         mandatory: {
@@ -202,7 +202,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         const sourcesResult = await (window.CaptureAPI as any).getScreenshotSources(false)
                         if (sourcesResult.success && sourcesResult.sources?.length) {
                             const screenSource = sourcesResult.sources.find((s: any) => s.type === 'screen') || sourcesResult.sources[0]
-                            
+
                             const sysStream = await navigator.mediaDevices.getUserMedia({
                                 audio: {
                                     mandatory: {
@@ -305,7 +305,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         (event: TranscriptionEvent) => {
                             const textPreview = event.text ? event.text.substring(0, 50) : 'no text'
                             console.log('[AudioRecorderPill] Transcription event:', event.type, textPreview)
-                            
+
                             // Use setTimeout to ensure state updates happen
                             setTimeout(() => {
                                 if (event.type === 'partial') {
@@ -493,7 +493,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         isRecording ? "text-red-500" : "text-blue-500"
                     )} />
                 </div>
-                
+
                 {isRecording && recordingDuration > 0 && (
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-zinc-400 whitespace-nowrap">
                         {recordingDuration}s
@@ -537,7 +537,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         disabled={isRecording}
                         className={cn(
                             "p-2 rounded-full transition-colors",
-                            source === 'mic' 
+                            source === 'mic'
                                 ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
                                 : hoverClass,
                             isRecording && "opacity-50 cursor-not-allowed"
@@ -566,7 +566,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         disabled={isRecording}
                         className={cn(
                             "p-2 rounded-full transition-colors",
-                            source === 'system' 
+                            source === 'system'
                                 ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
                                 : hoverClass,
                             isRecording && "opacity-50 cursor-not-allowed"
@@ -595,7 +595,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         disabled={isRecording}
                         className={cn(
                             "p-2 rounded-full transition-colors",
-                            source === 'both' 
+                            source === 'both'
                                 ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
                                 : hoverClass,
                             isRecording && "opacity-50 cursor-not-allowed"
@@ -631,13 +631,13 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
-                    {isRecording 
+                    {isRecording
                         ? `Stop Recording (${recordingDuration}s) - ${source === 'mic' ? 'Microphone' : source === 'system' ? 'System Audio' : 'Both'}`
                         : `Start Recording - ${source === 'mic' ? 'Microphone' : source === 'system' ? 'System Audio' : 'Both'}`
                     }
                 </TooltipContent>
             </Tooltip>
-            
+
             {isRecording && (
                 <div className="text-xs text-center mt-1 space-y-0.5">
                     <div className={cn(
@@ -693,7 +693,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
             {/* Transcription Display */}
             {showTranscription && (isRecording || transcriptionText || partialText) && (
-                <div 
+                <div
                     ref={transcriptionContainerRef}
                     className={cn(
                         "fixed bottom-24 left-1/2 -translate-x-1/2",
@@ -708,160 +708,160 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         "bg-opacity-95 backdrop-blur-sm",
                         "max-h-[40vh] flex flex-col"
                     )}
-                    style={{ backgroundColor: themeClasses.containerBg }}>
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <div className={cn(
-                                "size-2 rounded-full transition-colors",
-                                isTranscribing ? "bg-green-500 animate-pulse" : "bg-zinc-500"
-                            )} 
-                            title={isTranscribing ? "Connected" : "Not connected"} />
-                            <div className={cn("text-xs font-semibold", themeClasses.input)}>
-                                Live Transcription
+                        style={{ backgroundColor: themeClasses.containerBg }}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <div className={cn(
+                                    "size-2 rounded-full transition-colors",
+                                    isTranscribing ? "bg-green-500 animate-pulse" : "bg-zinc-500"
+                                )}
+                                    title={isTranscribing ? "Connected" : "Not connected"} />
+                                <div className={cn("text-xs font-semibold", themeClasses.input)}>
+                                    Live Transcription
+                                </div>
+                            </div>
+                            <div className={cn("text-xs flex items-center gap-1", themeClasses.icon)}>
+                                {isTranscribing ? (
+                                    <>
+                                        <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        <span>Connected</span>
+                                    </>
+                                ) : isRecording ? (
+                                    <>
+                                        <div className="size-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                                        <span>Connecting...</span>
+                                    </>
+                                ) : (
+                                    <span>Not connected</span>
+                                )}
                             </div>
                         </div>
-                        <div className={cn("text-xs flex items-center gap-1", themeClasses.icon)}>
-                            {isTranscribing ? (
-                                <>
-                                    <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    <span>Connected</span>
-                                </>
-                            ) : isRecording ? (
-                                <>
-                                    <div className="size-1.5 rounded-full bg-yellow-500 animate-pulse" />
-                                    <span>Connecting...</span>
-                                </>
-                            ) : (
-                                <span>Not connected</span>
+
+                        <div
+                            className={cn(
+                                "text-sm whitespace-pre-wrap overflow-y-auto flex-1",
+                                "scrollbar-thin",
+                                isDarkTheme
+                                    ? "scrollbar-thumb-zinc-600 scrollbar-track-zinc-800"
+                                    : "scrollbar-thumb-zinc-400 scrollbar-track-zinc-200",
+                                themeClasses.input
+                            )}
+                            style={{
+                                minHeight: '4rem',
+                            }}
+                        >
+                            {/* Accumulated final transcripts */}
+                            {transcriptionText && (
+                                <div className={cn("mb-2 leading-relaxed", themeClasses.input)}>
+                                    {transcriptionText}
+                                </div>
+                            )}
+
+                            {/* Current partial transcript (shown in different style) */}
+                            {partialText && partialText.trim() && (
+                                <div className={cn(
+                                    "leading-relaxed",
+                                    transcriptionText ? "text-zinc-400 italic" : themeClasses.input
+                                )}>
+                                    {partialText}
+                                    <span className="inline-block w-0.5 h-4 bg-current ml-0.5 animate-pulse" />
+                                </div>
+                            )}
+
+                            {/* Empty state */}
+                            {!transcriptionText && !partialText && isTranscribing && (
+                                <div className={cn("text-sm text-center py-4", themeClasses.icon)}>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        Waiting for speech...
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    </div>
-                    
-                    <div 
-                        className={cn(
-                            "text-sm whitespace-pre-wrap overflow-y-auto flex-1",
-                            "scrollbar-thin",
-                            isDarkTheme 
-                                ? "scrollbar-thumb-zinc-600 scrollbar-track-zinc-800" 
-                                : "scrollbar-thumb-zinc-400 scrollbar-track-zinc-200",
-                            themeClasses.input
-                        )}
-                        style={{ 
-                            minHeight: '4rem',
-                        }}
-                    >
-                        {/* Accumulated final transcripts */}
-                        {transcriptionText && (
-                            <div className={cn("mb-2 leading-relaxed", themeClasses.input)}>
-                                {transcriptionText}
-                            </div>
-                        )}
-                        
-                        {/* Current partial transcript (shown in different style) */}
-                        {partialText && partialText.trim() && (
-                            <div className={cn(
-                                "leading-relaxed",
-                                transcriptionText ? "text-zinc-400 italic" : themeClasses.input
-                            )}>
-                                {partialText}
-                                <span className="inline-block w-0.5 h-4 bg-current ml-0.5 animate-pulse" />
-                            </div>
-                        )}
-                        
-                        {/* Empty state */}
-                        {!transcriptionText && !partialText && isTranscribing && (
-                            <div className={cn("text-sm text-center py-4", themeClasses.icon)}>
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    Waiting for speech...
+
+                        {/* Action buttons and AI suggestion */}
+                        <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: themeClasses.containerBorder }}>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    {(transcriptionText || partialText) && (
+                                        <button
+                                            onClick={() => {
+                                                setTranscriptionText('')
+                                                setPartialText('')
+                                                setAiSuggestion('')
+                                                setAiError(null)
+                                            }}
+                                            className={cn(
+                                                "text-xs px-3 py-1.5 rounded transition-colors",
+                                                hoverClass
+                                            )}
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
+                                    {isAssemblyAIConfigured() && (transcriptionText || partialText) && (
+                                        <button
+                                            onClick={handleGenerateFromLiveTranscription}
+                                            disabled={isGenerating}
+                                            className={cn(
+                                                "text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1",
+                                                hoverClass
+                                            )}
+                                        >
+                                            {isGenerating ? (
+                                                <>
+                                                    <Loader2 className="size-3 animate-spin" />
+                                                    Generating…
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="size-3" />
+                                                    Prompt
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className={cn("text-xs ml-auto", themeClasses.icon)}>
+                                    {transcriptionText ? `${transcriptionText.split(' ').filter(w => w).length} words` : ''}
                                 </div>
                             </div>
-                        )}
-                    </div>
-                    
-                    {/* Action buttons and AI suggestion */}
-                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: themeClasses.containerBorder }}>
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                {(transcriptionText || partialText) && (
-                                    <button
-                                        onClick={() => {
-                                            setTranscriptionText('')
-                                            setPartialText('')
-                                            setAiSuggestion('')
-                                            setAiError(null)
-                                        }}
-                                        className={cn(
-                                            "text-xs px-3 py-1.5 rounded transition-colors",
-                                            hoverClass
-                                        )}
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                                {isAssemblyAIConfigured() && (transcriptionText || partialText) && (
-                                    <button
-                                        onClick={handleGenerateFromLiveTranscription}
-                                        disabled={isGenerating}
-                                        className={cn(
-                                            "text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1",
-                                            hoverClass
-                                        )}
-                                    >
-                                        {isGenerating ? (
-                                            <>
-                                                <Loader2 className="size-3 animate-spin" />
-                                                Generating…
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="size-3" />
-                                                Prompt
-                                            </>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                            <div className={cn("text-xs ml-auto", themeClasses.icon)}>
-                                {transcriptionText ? `${transcriptionText.split(' ').filter(w => w).length} words` : ''}
-                            </div>
+
+                            {aiError && (
+                                <div className={cn("text-xs text-red-400", themeClasses.icon)}>
+                                    {aiError}
+                                </div>
+                            )}
+
+                            {aiSuggestion && (
+                                <div className="space-y-2">
+                                    <div className={cn(
+                                        "text-sm whitespace-pre-wrap rounded-md px-2 py-1",
+                                        isDarkTheme ? "bg-zinc-900/60" : "bg-zinc-100"
+                                    )}>
+                                        {aiSuggestion}
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <QuickInsert
+                                            text={aiSuggestion}
+                                            className={cn(
+                                                "h-7 px-3 text-xs rounded-md border flex items-center",
+                                                isDarkTheme ? "border-zinc-700" : "border-zinc-300"
+                                            )}
+                                        />
+                                        <button
+                                            onClick={handleInsertSuggestion}
+                                            className={cn(
+                                                "text-xs px-3 py-1.5 rounded transition-colors",
+                                                isDarkTheme ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-blue-500 text-white hover:bg-blue-600"
+                                            )}
+                                        >
+                                            Insert into prompt
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-
-                        {aiError && (
-                            <div className={cn("text-xs text-red-400", themeClasses.icon)}>
-                                {aiError}
-                            </div>
-                        )}
-
-                        {aiSuggestion && (
-                            <div className="space-y-2">
-                                <div className={cn(
-                                    "text-sm whitespace-pre-wrap rounded-md px-2 py-1",
-                                    isDarkTheme ? "bg-zinc-900/60" : "bg-zinc-100"
-                                )}>
-                                    {aiSuggestion}
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <QuickInsert
-                                        text={aiSuggestion}
-                                        className={cn(
-                                            "h-7 px-3 text-xs rounded-md border flex items-center",
-                                            isDarkTheme ? "border-zinc-700" : "border-zinc-300"
-                                        )}
-                                    />
-                                    <button
-                                        onClick={handleInsertSuggestion}
-                                        className={cn(
-                                            "text-xs px-3 py-1.5 rounded transition-colors",
-                                            isDarkTheme ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-blue-500 text-white hover:bg-blue-600"
-                                        )}
-                                    >
-                                        Insert into prompt
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
                     </div>
                 </div>
             )}

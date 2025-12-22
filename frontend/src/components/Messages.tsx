@@ -1,9 +1,11 @@
-import { SmartMessage } from './messages/SmartMessage'
-import { MediaAttachmentComponent } from './messages/MediaAttachment'
-import { TypingIndicator } from './messages/TypingIndicator'
-import { StopStreamingButton } from './messages/StopStreamingButton'
-import { useAutoScroll } from './messages/hooks'
-import type { ChatMessage, MediaAttachment } from './messages/types'
+import {
+  SmartMessage,
+  MediaAttachmentComponent,
+  TypingIndicator,
+  StopStreamingButton,
+  useAutoScroll
+} from '@/features/chat'
+import type { ChatMessage, MediaAttachment } from '@/features/chat'
 
 // Re-export types for backward compatibility
 export type { ChatMessage, MediaAttachment }
@@ -21,9 +23,9 @@ interface MessagesProps {
 
 
 
-export function Messages({ 
-  messages, 
-  isTyping, 
+export function Messages({
+  messages,
+  isTyping,
   isStreaming,
   onCopyMessage,
   onStopStreaming,
@@ -42,22 +44,20 @@ export function Messages({
   return (
     <div className="flex flex-col relative h-full">
       {/* Messages Container */}
-      <div 
+      <div
         ref={messagesContainerRef}
         onScroll={onScroll}
         className="px-4 md:px-8 lg:px-12 py-6 space-y-6 min-h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
       >
         {messages.map((message) => (
-          <div 
-            key={message.id} 
+          <div
+            key={message.id}
             data-message-type={message.role}
-            className={`message-appear flex ${
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            }`}
+            className={`message-appear flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
           >
-            <div className={`break-words overflow-hidden ${
-              message.role === 'user' ? 'max-w-[85%] md:max-w-[75%] lg:max-w-[65%]' : 'max-w-[90%] md:max-w-[85%] lg:max-w-[75%]'
-            }`}>
+            <div className={`break-words overflow-hidden ${message.role === 'user' ? 'max-w-[85%] md:max-w-[75%] lg:max-w-[65%]' : 'max-w-[90%] md:max-w-[85%] lg:max-w-[75%]'
+              }`}>
               {/* Media attachments (if any) */}
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mb-3 space-y-2">
@@ -66,7 +66,7 @@ export function Messages({
                   ))}
                 </div>
               )}
-              
+
               {/* Message content */}
               {message.content && (
                 <SmartMessage

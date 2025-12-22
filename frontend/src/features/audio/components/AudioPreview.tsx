@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, Download, X, Trash2, Volume2, FileText, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/shared/lib'
-import { getThemeClasses, getHoverClass } from '@/components/prompt-input-theme'
+import { getThemeClasses, getHoverClass } from '@/features/prompt'
 import { Button } from '@/shared/components/ui/button'
 import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { TranscriptionResult } from '@/lib/audio'
@@ -20,14 +20,14 @@ interface AudioPreviewProps {
   isDarkTheme?: boolean
 }
 
-export function AudioPreview({ 
-  audioBlob, 
-  fileName, 
-  onClose, 
+export function AudioPreview({
+  audioBlob,
+  fileName,
+  onClose,
   onDelete,
   onUse,
   onTranscriptionComplete,
-  isDarkTheme = true 
+  isDarkTheme = true
 }: AudioPreviewProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
@@ -159,12 +159,12 @@ export function AudioPreview({
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const replyText = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) {
-              throw new Error(init.message)
-            }
-            return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) {
+            throw new Error(init.message)
+          }
+          return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
+        })()
         : await sendCloudMessageComplete(prompt)
 
       const suggestion = replyText.trim()

@@ -44,13 +44,13 @@ export class GeminiChatService {
     if (selectedModel && selectedModel.provider === 'google') {
       modelName = selectedModel.name;
     }
-    
+
     this.chat = ai.chats.create({
       model: modelName,
       history: this.chatHistory,
     });
   }
-  
+
   private ensureChatInitialized() {
     if (!this.chat) {
       this.initializeChat();
@@ -60,7 +60,7 @@ export class GeminiChatService {
   private async convertMediaToGeminiFormat(attachment: MediaAttachment) {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -94,7 +94,7 @@ export class GeminiChatService {
     if (!this.chat) throw new Error('Chat not initialized');
 
     const parts: any[] = [];
-    
+
     if (message?.trim()) {
       parts.push({ text: message });
     }
@@ -178,7 +178,7 @@ export const geminiChat = geminiService;
 
 // Convenience functions
 export const sendToGemini = (message: string) => geminiService.sendMessage(message);
-export const sendMediaToGemini = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToGemini = (message: string, attachments?: MediaAttachment[]) =>
   geminiService.sendMessageWithMedia(message, attachments);
 export const sendToGeminiComplete = (message: string) => geminiService.sendMessageComplete(message);
 
@@ -193,10 +193,10 @@ export function isGeminiConfigured(): boolean {
 
 export function getGeminiConfigStatus() {
   const isConfigured = isGeminiConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'Gemini API is configured and ready to use!'
       : 'Gemini API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

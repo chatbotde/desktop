@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { PromptInputWithActions } from '@/components'
+import { PromptInputWithActions, ImageGenerationWindow } from '@/components'
 import ClickThrough from '@/components/click-through'
 import { RightTransparent } from '@/shared/components/common'
 import { OutputMessages } from '../components/output-messages'
 import type { MediaAttachment } from '@/features/output-window'
 import { useFeature } from '@/contexts/FeatureContext'
+import { getSelectedModel } from '@/lib/ai/model-config'
 
 import { TextSelectionPopup } from '@/features/text-selection'
 import {
@@ -28,7 +29,11 @@ function App() {
   const uiState = useUIState(outputWindowEnabled)
 
   // Message management
-  const messageManager = useMessageManager(outputWindowEnabled)
+  const messageManager = useMessageManager(outputWindowEnabled, {
+    setGeneratedImages: uiState.setGeneratedImages,
+    setIsImageWindowVisible: uiState.setIsImageWindowVisible,
+    setIsGeneratingImages: uiState.setIsGeneratingImages,
+  })
 
   // Auto-screenshot feature - automatically takes screenshots when user starts typing
   useAutoScreenshot({
@@ -85,7 +90,20 @@ function App() {
 
   // Wrapper for handleSendMessage that also manages output window visibility
   const handleSendMessage = async (message: string, attachments?: MediaAttachment[]) => {
-    if (outputWindowEnabled) uiState.setIsOutputVisible(true)
+    // Check if it's an image generation model - don't open output window for images
+    const selectedModel = getSelectedModel()
+    const isImageModel = selectedModel?.category === 'image-generation' || selectedModel?.provider === 'replicate'
+    
+    // Show image window immediately for image models (before generation starts)
+    if (isImageModel) {
+      uiState.setIsImageWindowVisible(true)
+      uiState.setIsGeneratingImages(true)
+    }
+    
+    // Only open output window for non-image models
+    if (outputWindowEnabled && !isImageModel) {
+      uiState.setIsOutputVisible(true)
+    }
     await messageManager.handleSendMessage(message, attachments)
   }
 
@@ -183,6 +201,19 @@ function App() {
         onCancel={handleAreaScreenshotCancel}
       />
 
+      {/* Image Generation Window - Above Prompt Input */}
+      <ImageGenerationWindow
+        images={uiState.generatedImages}
+        isVisible={uiState.isImageWindowVisible}
+        isLoading={uiState.isGeneratingImages}
+        onClose={() => {
+          uiState.setIsImageWindowVisible(false)
+          uiState.setIsGeneratingImages(false)
+          uiState.setGeneratedImages([])
+        }}
+        isDarkTheme={uiState.isDarkTheme}
+      />
+
       {/* Prompt Input at Bottom */}
       <div
         className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
@@ -197,6 +228,8 @@ function App() {
           onAudioClick={() => uiState.setShowAudioRecorder(prev => !prev)}
           onMoreClick={() => uiState.setShowVideoScroll(true)}
           onThemeChange={uiState.setIsDarkTheme}
+          isOutputVisible={uiState.isOutputVisible}
+          onToggleOutput={() => uiState.setIsOutputVisible(!uiState.isOutputVisible)}
         />
       </div>
     </div>

@@ -20,4 +20,5 @@ export interface ChatMessage {
   content: string
   timestamp: Date
   attachments?: MediaAttachment[]
+  generatedImages?: string[] // URLs of AI-generated images
 }

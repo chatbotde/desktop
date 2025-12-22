@@ -137,7 +137,7 @@ export function TextSelectionInput({
               className={cn(
                 "h-7 w-7 p-0 rounded-full",
                 value.trim() && !isGenerating && !isLoading
-                  ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105" 
+                  ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
                   : "bg-zinc-700 text-zinc-500"
               )}
               aria-label="Generate"
@@ -157,8 +157,8 @@ export function TextSelectionInput({
             disabled={!canSend}
             className={cn(
               "h-7 w-7 p-0 rounded-full",
-              canSend 
-                ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105" 
+              canSend
+                ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
                 : "bg-zinc-700 text-zinc-500"
             )}
             aria-label="Send"

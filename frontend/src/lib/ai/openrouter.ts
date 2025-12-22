@@ -42,7 +42,7 @@ export class OpenRouterChatService {
   private async convertMediaToOpenAIFormat(attachment: MediaAttachment): Promise<OpenAI.Chat.ChatCompletionContentPartImage | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -78,7 +78,7 @@ export class OpenRouterChatService {
     const modelName = selectedModel?.name || 'anthropic/claude-3.5-sonnet';
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
-    
+
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
@@ -178,7 +178,7 @@ export const openRouterService = new OpenRouterChatService();
 
 // Convenience functions
 export const sendToOpenRouter = (message: string) => openRouterService.sendMessage(message);
-export const sendMediaToOpenRouter = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToOpenRouter = (message: string, attachments?: MediaAttachment[]) =>
   openRouterService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -194,10 +194,10 @@ export function isOpenRouterConfigured(): boolean {
 
 export function getOpenRouterConfigStatus() {
   const isConfigured = isOpenRouterConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'OpenRouter API is configured and ready to use!'
       : 'OpenRouter API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

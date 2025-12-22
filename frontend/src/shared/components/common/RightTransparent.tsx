@@ -18,7 +18,7 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
     <div
       onClick={onClick}
       data-no-clickthrough
-      title={showInputHint ? "Show chat input" : undefined}
+      title={showInputHint ? "" : undefined}
       className={`
         w-[10px] h-[120px]
         bg-transparent

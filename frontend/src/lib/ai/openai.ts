@@ -26,7 +26,7 @@ export class OpenAIChatService {
   private async convertMediaToOpenAIFormat(attachment: MediaAttachment): Promise<OpenAI.Chat.ChatCompletionContentPartImage | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -62,7 +62,7 @@ export class OpenAIChatService {
     const modelName = selectedModel?.name || 'gpt-4o';
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
-    
+
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
@@ -163,7 +163,7 @@ export const openaiService = new OpenAIChatService();
 
 // Convenience functions
 export const sendToOpenAI = (message: string) => openaiService.sendMessage(message);
-export const sendMediaToOpenAI = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToOpenAI = (message: string, attachments?: MediaAttachment[]) =>
   openaiService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -174,10 +174,10 @@ export function isOpenAIConfigured(): boolean {
 
 export function getOpenAIConfigStatus() {
   const isConfigured = isOpenAIConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'OpenAI API is configured and ready to use!'
       : 'OpenAI API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

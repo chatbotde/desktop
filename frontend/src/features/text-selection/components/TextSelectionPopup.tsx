@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import * as React from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { X } from 'lucide-react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
 import { AddToPromptButton } from '@/components/add-button'
@@ -35,6 +37,36 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const { isFeatureEnabled } = useFeature()
 
+  const popupRef = useRef<HTMLDivElement>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const stopAutoHide = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const startAutoHide = useCallback(() => {
+    stopAutoHide()
+    // Only auto-hide if not expanded or generating
+    if (!isExpanded && !isGenerating && !isLoading) {
+      timerRef.current = setTimeout(() => {
+        setIsVisible(false)
+      }, 6000) // 6 seconds
+    }
+  }, [isExpanded, isGenerating, isLoading, stopAutoHide])
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false)
+    setIsExpanded(false)
+    setPrompt('')
+    setIsLoading(false)
+    setIsGenerating(false)
+    setGeneratedOutput(null)
+    stopAutoHide()
+  }, [stopAutoHide])
+
   useEffect(() => {
     // Don't listen for text selection if feature is disabled
     if (!isFeatureEnabled('text-selection')) {
@@ -49,36 +81,27 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
         return
       }
 
-      if (!data?.text?.trim()) return
+      if (!data?.text?.trim()) {
+        setIsVisible(false)
+        return
+      }
 
       setSelectionData(data)
       setPrompt('')
       setIsExpanded(false) // Reset to pill mode for new selection
 
-      const popupWidth = 400
-      const popupHeight = 120
-
+      // Initial rough positioning - will be refined by useLayoutEffect
       const mouseX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? window.innerWidth / 2
       const mouseY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? window.innerHeight / 2
 
-      let x = mouseX
-      let y = mouseY + 15
-
-      if (x + popupWidth > window.innerWidth) {
-        x = window.innerWidth - popupWidth - 20
-      }
-      if (x < 20) {
-        x = 20
-      }
-      if (y + popupHeight > window.innerHeight) {
-        y = mouseY - popupHeight - 15
-      }
-      if (y < 10) {
-        y = 10
-      }
-
-      setPosition({ top: y, left: x })
+      setPosition({ top: mouseY + 15, left: mouseX })
       setIsVisible(true)
+
+      // Start auto-hide timer for new selection
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        setIsVisible(false)
+      }, 6000)
     }
 
     if (window.interfaceAPI?.onMessage) {
@@ -90,17 +113,75 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
       if (window.interfaceAPI?.removeMessageListener) {
         window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
       }
+      stopAutoHide()
     }
-  }, [isFeatureEnabled])
+  }, [isFeatureEnabled, stopAutoHide])
 
-  const handleClose = useCallback(() => {
-    setIsVisible(false)
-    setIsExpanded(false)
-    setPrompt('')
-    setIsLoading(false)
-    setIsGenerating(false)
-    setGeneratedOutput(null)
-  }, [])
+  // Smart positioning to prevent overflow
+  React.useLayoutEffect(() => {
+    if (!isVisible || !popupRef.current || !selectionData) return
+
+    const rect = popupRef.current.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const padding = 20
+
+    // Determine anchors
+    // Default to mouse positions if structured text coordinates aren't available
+    const mouseX = selectionData.mousePosEnd?.x ?? selectionData.mousePosStart?.x ?? viewportWidth / 2
+    const mouseY = selectionData.mousePosEnd?.y ?? selectionData.mousePosStart?.y ?? viewportHeight / 2
+
+    // Anchor points for "Below" and "Above" placement
+    // We prefer using the selection bounds if available to avoid covering text
+    const anchorBottomY = selectionData.endBottom?.y ?? mouseY
+    const anchorTopY = selectionData.startTop?.y ?? mouseY
+    const anchorX = selectionData.endBottom?.x ?? selectionData.startTop?.x ?? mouseX
+
+    // Candidates
+    const posBelow = anchorBottomY + 15
+    const posAbove = anchorTopY - rect.height - 15
+
+    let finalTop = posBelow
+    let finalLeft = anchorX
+
+    // Vertical Positioning Logic
+    const spaceBelow = viewportHeight - posBelow
+    const spaceAbove = anchorTopY
+
+    // If it doesn't fit below, or if we have significantly more space above and it's tight below
+    if (posBelow + rect.height > viewportHeight - padding) {
+      if (spaceAbove > rect.height + padding || spaceAbove > spaceBelow) {
+        // Place above
+        finalTop = posAbove
+      } else {
+        // If it fits nowhere, clamp to bottom
+        finalTop = viewportHeight - rect.height - padding
+      }
+    }
+
+    // Constraint Vertical top edge
+    if (finalTop < padding) {
+      finalTop = padding
+    }
+
+    // Horizontal Positioning Logic
+    // Try to align left edge with anchor, but keep within bounds
+    if (finalLeft + rect.width > viewportWidth - padding) {
+      finalLeft = viewportWidth - rect.width - padding
+    }
+    if (finalLeft < padding) {
+      finalLeft = padding
+    }
+
+    // Only update if significantly different to avoid loops/jitters
+    // (rounding to reduce sensitivity)
+    if (
+      Math.abs(finalTop - position.top) > 5 ||
+      Math.abs(finalLeft - position.left) > 5
+    ) {
+      setPosition({ top: finalTop, left: finalLeft })
+    }
+  }, [isVisible, isExpanded, generatedOutput, selectionData?.text, position.top, position.left]) // Recalculate when size-affecting state changes
 
   // Hide popup if feature is disabled
   useEffect(() => {
@@ -139,6 +220,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
 
     setIsGenerating(true)
     setGeneratedOutput(null)
+    stopAutoHide()
 
     try {
       // Use the same AI service logic as handleSendMessage
@@ -169,7 +251,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     } finally {
       setIsGenerating(false)
     }
-  }, [prompt, selectionData, isGenerating, isLoading])
+  }, [prompt, selectionData, isGenerating, isLoading, stopAutoHide])
 
   const handleInsert = useCallback(async () => {
     if (!generatedOutput) return
@@ -198,24 +280,31 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     console.log('Content copied to clipboard')
   }, [])
 
-  // Don't render if feature is disabled or not visible
-  if (!isFeatureEnabled('text-selection') || !isVisible) return null
-
-  // Calculate theme classes (assuming same logic as other components or just standard slate)
-  // Since we don't have isDarkTheme prop passed explicitly, defaults might need adjustment or we use system preference/standard dark
-  // TextSelectionPopup seems to rely on global 'dark' class or specific styles? 
-  // The current component uses tailwind classes.
-
-  const handleAddToPrompt = () => {
+  const handleAddToPromptSelection = () => {
     if (selectionData?.text && onAddToPrompt) {
       onAddToPrompt(selectionData.text)
       handleClose()
     }
   }
 
+  // Clear timer when expanded
+  useEffect(() => {
+    if (isExpanded) {
+      stopAutoHide()
+    } else if (isVisible) {
+      startAutoHide()
+    }
+  }, [isExpanded, isVisible, startAutoHide, stopAutoHide])
+
+  // Don't render if feature is disabled or not visible
+  if (!isFeatureEnabled('text-selection') || !isVisible) return null
+
   if (!isExpanded) {
     return (
       <div
+        ref={popupRef}
+        onMouseEnter={stopAutoHide}
+        onMouseLeave={startAutoHide}
         style={{
           position: 'absolute',
           top: position.top,
@@ -227,7 +316,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
         data-no-clickthrough
       >
         <AddToPromptButton
-          onClick={handleAddToPrompt}
+          onClick={handleAddToPromptSelection}
           isDarkTheme={true}
         />
         <div className="w-px h-4 bg-slate-700/50 mx-0.5" />
@@ -237,12 +326,23 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
           isDarkTheme={true}
           tooltip="Expand to ask AI"
         />
+        <div className="w-px h-4 bg-slate-700/50 mx-0.5" />
+        <button
+          onClick={handleClose}
+          className="p-1 px-1.5 rounded-full hover:bg-slate-700/50 text-slate-400 hover:text-red-400 transition-colors"
+          title="Dismiss"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
     )
   }
 
   return (
     <div
+      ref={popupRef}
+      onMouseEnter={stopAutoHide}
+      onMouseLeave={startAutoHide}
       style={{
         position: 'absolute',
         top: position.top,
@@ -264,9 +364,10 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
           isLoading={isLoading}
           isGenerating={isGenerating}
         />
-        {generatedOutput && (
+        {(generatedOutput || isGenerating) && (
           <TextSelectionOutput
-            content={generatedOutput}
+            content={generatedOutput || ""}
+            isStreaming={isGenerating}
             onInsert={handleInsert}
             onCopy={handleCopy}
           />
@@ -275,3 +376,4 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     </div>
   )
 }
+

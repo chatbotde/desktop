@@ -46,7 +46,7 @@ export class XAIChatService {
   private async convertMediaToOpenAIFormat(attachment: MediaAttachment): Promise<OpenAI.Chat.ChatCompletionContentPartImage | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -82,7 +82,7 @@ export class XAIChatService {
     const modelName = selectedModel?.name || 'grok-4';
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
-    
+
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
@@ -188,7 +188,7 @@ export const xaiService = new XAIChatService();
 
 // Convenience functions
 export const sendToXAI = (message: string) => xaiService.sendMessage(message);
-export const sendMediaToXAI = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToXAI = (message: string, attachments?: MediaAttachment[]) =>
   xaiService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -204,10 +204,10 @@ export function isXAIConfigured(): boolean {
 
 export function getXAIConfigStatus() {
   const isConfigured = isXAIConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'xAI (Grok) API is configured and ready to use!'
       : 'xAI (Grok) API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

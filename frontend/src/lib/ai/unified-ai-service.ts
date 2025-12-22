@@ -7,6 +7,7 @@ import { cerebrasService, isCerebrasConfigured } from './cerebras';
 import { deepseekService, isDeepSeekConfigured } from './deepseek';
 import { kimiService, isKimiConfigured } from './kimi';
 import { xaiService, isXAIConfigured } from './xai';
+import { generateImages } from '../image/replicate';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 import { checkRateLimit, logUsage } from './usage-tracker';
@@ -214,8 +215,31 @@ export class UnifiedAIService {
         }
         return trackedGenerator(await xaiService.sendMessageWithMedia(message, attachments));
 
+      case 'replicate':
+        // For image generation models, we need special handling
+        // This will be handled separately in the message manager
+        throw new Error('Image generation models should be handled through the image generation service.');
+
       default:
         throw new Error(`Unsupported AI provider: ${provider}. Please select a different model.`);
+    }
+  }
+
+  /**
+   * Generate images using Replicate API
+   * Returns an array of image URLs
+   */
+  async generateImages(prompt: string, modelName?: string): Promise<string[]> {
+    try {
+      const result = await generateImages({
+        prompt,
+        model: modelName,
+        num_outputs: 1, // Generate 1 image by default
+      });
+      return result.images;
+    } catch (error) {
+      console.error('[UnifiedAIService] Image generation failed:', error);
+      throw error;
     }
   }
 

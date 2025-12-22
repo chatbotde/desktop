@@ -1,5 +1,5 @@
-
 import { globalShortcut } from 'electron';
+import { spawn } from 'child_process';
 import { IGlobalShortcutService } from './IGlobalShortcutService';
 
 export class ElectronGlobalShortcutService implements IGlobalShortcutService {
@@ -21,5 +21,29 @@ export class ElectronGlobalShortcutService implements IGlobalShortcutService {
 
     public unregisterAll(): void {
         globalShortcut.unregisterAll();
+    }
+
+    public async simulatePaste(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const ps = spawn('powershell', [
+                '-NoProfile',
+                '-NonInteractive',
+                '-Command',
+                "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"
+            ]);
+
+            ps.on('error', (err) => {
+                console.error('Failed to simulate paste:', err);
+                reject(err);
+            });
+
+            ps.on('close', (code) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(new Error(`PowerShell process exited with code ${code}`));
+                }
+            });
+        });
     }
 }

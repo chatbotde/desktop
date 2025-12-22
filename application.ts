@@ -271,8 +271,8 @@ export class Application {
     // AI Model handlers
     this.ipcRegistry.register('get-all-ai-models', async () => {
       try {
-        const modelConfig = require('./frontend/src/lib/ai/model-config-export.cjs');
-        return modelConfig.getAllModels();
+        const { AVAILABLE_MODELS } = await import('./frontend/src/lib/ai/model-config');
+        return AVAILABLE_MODELS.filter((model: any) => model.isAvailable);
       } catch (error) {
         console.error('Application: Error getting AI models:', error);
         return [];

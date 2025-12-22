@@ -35,7 +35,7 @@ export class AnthropicChatService {
   private async convertMediaToAnthropicFormat(attachment: MediaAttachment): Promise<Anthropic.ImageBlockParam | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -80,7 +80,7 @@ export class AnthropicChatService {
     const modelName = selectedModel?.name || 'claude-3-5-sonnet-20241022';
 
     const content: (Anthropic.TextBlockParam | Anthropic.ImageBlockParam)[] = [];
-    
+
     // Add image attachments first if the model supports them
     if (attachments?.length && selectedModel?.supportsImages) {
       for (const attachment of attachments) {
@@ -182,7 +182,7 @@ export const anthropicService = new AnthropicChatService();
 
 // Convenience functions
 export const sendToAnthropic = (message: string) => anthropicService.sendMessage(message);
-export const sendMediaToAnthropic = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToAnthropic = (message: string, attachments?: MediaAttachment[]) =>
   anthropicService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -198,10 +198,10 @@ export function isAnthropicConfigured(): boolean {
 
 export function getAnthropicConfigStatus() {
   const isConfigured = isAnthropicConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'Anthropic API is configured and ready to use!'
       : 'Anthropic API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

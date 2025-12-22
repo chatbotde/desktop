@@ -219,6 +219,7 @@ export function MessageBubble({
             ))}
           </div>
         )}
+
         <div
           className={messageStyles}
           ref={contentContainerRef}

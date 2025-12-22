@@ -1,10 +1,20 @@
 import { useState, useCallback, useRef } from 'react'
 import { createChatMessage } from '@/utils/message-utils'
 import type { ChatMessage, MediaAttachment } from '../types'
-import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { sendMessageComplete as sendCloudMessageComplete, unifiedAIService } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { getSelectedModel } from '@/lib/ai/model-config'
 
-export const useMessageManager = (_outputWindowEnabled: boolean) => {
+interface UseMessageManagerProps {
+  setGeneratedImages?: (images: string[]) => void
+  setIsImageWindowVisible?: (visible: boolean) => void
+  setIsGeneratingImages?: (loading: boolean) => void
+}
+
+export const useMessageManager = (
+  _outputWindowEnabled: boolean,
+  callbacks?: UseMessageManagerProps
+) => {
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -14,10 +24,17 @@ export const useMessageManager = (_outputWindowEnabled: boolean) => {
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Add user message immediately
-    const userMessage = createChatMessage(message, 'user', attachments)
-    setOutputMessages(prev => [...prev, userMessage])
-    setIsWaitingForResponse(true)
+    // Check if selected model is an image generation model BEFORE adding messages
+    const selectedModel = getSelectedModel()
+    const isImageModel = selectedModel?.category === 'image-generation' || selectedModel?.provider === 'replicate'
+
+    // Only add user message to output if NOT an image model
+    // Image generation is handled separately and doesn't use the output window
+    if (!isImageModel) {
+      const userMessage = createChatMessage(message, 'user', attachments)
+      setOutputMessages(prev => [...prev, userMessage])
+      setIsWaitingForResponse(true)
+    }
 
     // Convert MediaAttachment to the format expected by AI service
     const aiAttachments: import('@/lib/ai/gemini').MediaAttachment[] | undefined = attachments?.map(att => ({
@@ -39,33 +56,77 @@ export const useMessageManager = (_outputWindowEnabled: boolean) => {
         return
       }
 
-      // If a local model is selected, use Ollama (local LLM). Otherwise use cloud router.
-      const localModel = unifiedLocalLLMService.getCurrentModel()
-      const replyText = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) {
-            throw new Error(init.message)
-          }
-          // Check if aborted
+      if (isImageModel) {
+        // Show loading state and window immediately
+        if (callbacks?.setIsImageWindowVisible) {
+          callbacks.setIsImageWindowVisible(true)
+        }
+        if (callbacks?.setIsGeneratingImages) {
+          callbacks.setIsGeneratingImages(true)
+        }
+
+        try {
+          // Handle image generation - don't add to output messages
+          const modelName = selectedModel?.name
+          const generatedImages = await unifiedAIService.generateImages(message, modelName)
+          
+          // Check if aborted before adding response
           if (abortController.signal.aborted) {
-            return ''
+            if (callbacks?.setIsGeneratingImages) {
+              callbacks.setIsGeneratingImages(false)
+            }
+            return
           }
-          return await unifiedLocalLLMService.sendMessageComplete(
-            message,
-            aiAttachments,
-            localModel.name
-          )
-        })()
-        : await sendCloudMessageComplete(message, aiAttachments)
 
-      // Check if aborted before adding response
-      if (abortController.signal.aborted) {
-        return
+          // Store images in UI state
+          if (callbacks?.setGeneratedImages) {
+            callbacks.setGeneratedImages(generatedImages)
+          }
+          
+          // Hide loading state
+          if (callbacks?.setIsGeneratingImages) {
+            callbacks.setIsGeneratingImages(false)
+          }
+
+          // Don't add image generation to messages - it's shown separately
+          return
+        } catch (error) {
+          // Hide loading state on error
+          if (callbacks?.setIsGeneratingImages) {
+            callbacks.setIsGeneratingImages(false)
+          }
+          // Re-throw to be handled by outer catch
+          throw error
+        }
+      } else {
+        // If a local model is selected, use Ollama (local LLM). Otherwise use cloud router.
+        const localModel = unifiedLocalLLMService.getCurrentModel()
+        const replyText = localModel
+          ? await (async () => {
+            const init = await unifiedLocalLLMService.initialize()
+            if (!init.success) {
+              throw new Error(init.message)
+            }
+            // Check if aborted
+            if (abortController.signal.aborted) {
+              return ''
+            }
+            return await unifiedLocalLLMService.sendMessageComplete(
+              message,
+              aiAttachments,
+              localModel.name
+            )
+          })()
+          : await sendCloudMessageComplete(message, aiAttachments)
+
+        // Check if aborted before adding response
+        if (abortController.signal.aborted) {
+          return
+        }
+
+        const assistantMessage = createChatMessage(replyText, 'assistant')
+        setOutputMessages(prev => [...prev, assistantMessage])
       }
-
-      const assistantMessage = createChatMessage(replyText, 'assistant')
-      setOutputMessages(prev => [...prev, assistantMessage])
     } catch (err) {
       // Don't show error if request was aborted
       if (abortController.signal.aborted) {
@@ -78,6 +139,19 @@ export const useMessageManager = (_outputWindowEnabled: boolean) => {
           ? err
           : 'Unknown error'
 
+      // For image generation errors, show in console but don't add to output window
+      if (isImageModel) {
+        console.error('Image generation failed:', err)
+        // Hide loading state
+        if (callbacks?.setIsGeneratingImages) {
+          callbacks.setIsGeneratingImages(false)
+        }
+        // Optionally show error in image window or a toast notification
+        // For now, just log it
+        return
+      }
+
+      // For regular messages, add error to output window
       const errorResponse = createChatMessage(
         `Sorry, I could not get a response right now. (${errorMessage})`,
         'assistant'
@@ -85,7 +159,10 @@ export const useMessageManager = (_outputWindowEnabled: boolean) => {
       setOutputMessages(prev => [...prev, errorResponse])
       console.error('AI response failed:', err)
     } finally {
-      setIsWaitingForResponse(false)
+      // Only set waiting to false if we were actually waiting (not image model)
+      if (!isImageModel) {
+        setIsWaitingForResponse(false)
+      }
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null
       }

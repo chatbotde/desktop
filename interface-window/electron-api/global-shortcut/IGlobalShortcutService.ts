@@ -5,4 +5,5 @@ export interface IGlobalShortcutService {
     isRegistered(accelerator: string): boolean;
     unregister(accelerator: string): void;
     unregisterAll(): void;
+    simulatePaste(): Promise<void>;
 }

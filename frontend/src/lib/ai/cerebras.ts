@@ -136,7 +136,7 @@ export const cerebrasService = new CerebrasChatService();
 
 // Convenience functions
 export const sendToCerebras = (message: string) => cerebrasService.sendMessage(message);
-export const sendMediaToCerebras = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToCerebras = (message: string, attachments?: MediaAttachment[]) =>
   cerebrasService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -152,10 +152,10 @@ export function isCerebrasConfigured(): boolean {
 
 export function getCerebrasConfigStatus() {
   const isConfigured = isCerebrasConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'Cerebras API is configured and ready to use!'
       : 'Cerebras API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

@@ -9,13 +9,15 @@ export const generateMessageId = (): string => {
 export const createChatMessage = (
   content: string,
   role: 'user' | 'assistant' = 'assistant',
-  attachments?: MediaAttachment[]
+  attachments?: MediaAttachment[],
+  generatedImages?: string[]
 ): ChatMessage => {
   return {
     id: generateMessageId(),
     role,
     content,
     timestamp: new Date(),
-    attachments
+    attachments,
+    generatedImages
   }
 }

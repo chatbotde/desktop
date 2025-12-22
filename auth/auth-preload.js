@@ -100,6 +100,15 @@ contextBridge.exposeInMainWorld('authAPI', {
     return ipcRenderer.invoke('auth:get-config');
   },
 
+  /**
+   * Clear all tokens directly (for testing/debugging)
+   * This clears tokens without notifying the server
+   * @returns {Promise<Object>} Success status
+   */
+  clearTokens: () => {
+    return ipcRenderer.invoke('auth:clear-tokens');
+  },
+
   // ===========================================
   // EVENT LISTENERS
   // ===========================================

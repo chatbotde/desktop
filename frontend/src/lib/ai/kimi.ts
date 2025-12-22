@@ -45,7 +45,7 @@ export class KimiChatService {
   private async convertMediaToOpenAIFormat(attachment: MediaAttachment): Promise<OpenAI.Chat.ChatCompletionContentPartImage | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -81,7 +81,7 @@ export class KimiChatService {
     const modelName = selectedModel?.name || 'kimi-k2-turbo-preview';
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
-    
+
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
@@ -187,7 +187,7 @@ export const kimiService = new KimiChatService();
 
 // Convenience functions
 export const sendToKimi = (message: string) => kimiService.sendMessage(message);
-export const sendMediaToKimi = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToKimi = (message: string, attachments?: MediaAttachment[]) =>
   kimiService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -203,10 +203,10 @@ export function isKimiConfigured(): boolean {
 
 export function getKimiConfigStatus() {
   const isConfigured = isKimiConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'Kimi (Moonshot AI) API is configured and ready to use!'
       : 'Kimi (Moonshot AI) API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

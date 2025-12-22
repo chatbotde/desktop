@@ -43,7 +43,14 @@ declare global {
       autoUpdater: any;
       clipboard: any;
       desktopCapturer: any;
-      globalShortcut: any;
+      globalShortcut: {
+        register: (accelerator: string, callback: () => void) => boolean;
+        registerAll: (accelerators: string[], callback: () => void) => void;
+        isRegistered: (accelerator: string) => boolean;
+        unregister: (accelerator: string) => void;
+        unregisterAll: () => void;
+        simulatePaste: () => Promise<void>;
+      };
       ipcMain: any;
       net: any;
       ollama?: {
@@ -119,14 +126,40 @@ declare global {
       removeWebsite: (url: string) => Promise<{ success: boolean; message?: string; error?: string }>;
       getApps: () => Promise<{ success: boolean; apps: string[]; error?: string }>;
       getWebsites: () => Promise<{ success: boolean; websites: string[]; error?: string }>;
-      getStatus: () => Promise<{ 
-        success: boolean; 
-        status: { isLocked: boolean; blockedApp?: string; blockedWebsite?: string } | null; 
-        lockEnabled: boolean; 
-        error?: string 
+      getStatus: () => Promise<{
+        success: boolean;
+        status: { isLocked: boolean; blockedApp?: string; blockedWebsite?: string } | null;
+        lockEnabled: boolean;
+        error?: string
       }>;
       setEnabled: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
       onLockChanged: (callback: (status: { isLocked: boolean; blockedApp?: string; blockedWebsite?: string }) => void) => () => void;
+    };
+
+    /**
+     * Authentication API for user login, logout, and session management
+     */
+    authAPI?: {
+      login: (options?: Record<string, any>) => void;
+      signup: (options?: Record<string, any>) => void;
+      logout: () => void;
+      isAuthenticated: () => Promise<boolean>;
+      getUser: () => Promise<{ id: string; email?: string; name?: string; image?: string } | null>;
+      getToken: () => Promise<string | null>;
+      validateSession: () => Promise<boolean>;
+      refreshTokens: () => Promise<boolean>;
+      submitManualToken: (token: string) => Promise<any>;
+      getConfig: () => Promise<any>;
+      clearTokens: () => Promise<{ success: boolean; error?: string }>;
+      subscribe: () => void;
+      unsubscribe: () => void;
+      onAuthSuccess: (callback: (user: any) => void) => () => void;
+      onAuthError: (callback: (error: any) => void) => () => void;
+      onLogout: (callback: () => void) => () => void;
+      onSessionExpired: (callback: () => void) => () => void;
+      onStateChange: (callback: (state: { isAuthenticated: boolean; user: any }) => void) => () => void;
+      onAuthRequired: (callback: () => void) => () => void;
+      onSessionRestored: (callback: (user: any) => void) => () => void;
     };
 
   }

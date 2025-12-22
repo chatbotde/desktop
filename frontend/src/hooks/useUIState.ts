@@ -11,6 +11,9 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
   const [explanation, setExplanation] = useState<string | undefined>(undefined)
   const [explanationPosition, setExplanationPosition] = useState<{ x: number; y: number } | undefined>(undefined)
+  const [generatedImages, setGeneratedImages] = useState<string[]>([])
+  const [isImageWindowVisible, setIsImageWindowVisible] = useState(false)
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false)
 
   // If the user disables the Output Window feature, hide the window immediately.
   useEffect(() => {
@@ -53,6 +56,12 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setExplanation,
     explanationPosition,
     setExplanationPosition,
-    clearExplanation
+    clearExplanation,
+    generatedImages,
+    setGeneratedImages,
+    isImageWindowVisible,
+    setIsImageWindowVisible,
+    isGeneratingImages,
+    setIsGeneratingImages,
   }
 }

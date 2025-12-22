@@ -3,7 +3,7 @@ import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 
 
-import type { MediaAttachment } from './output-window/types'
+import type { MediaAttachment } from '@/features/chat'
 
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
@@ -14,6 +14,8 @@ interface PromptInputWithActionsProps {
   onAudioClick?: () => void;
   onMoreClick?: () => void;
   onThemeChange?: (isDark: boolean) => void;
+  isOutputVisible?: boolean;
+  onToggleOutput?: () => void;
 }
 
 export function PromptInputWithActions({
@@ -24,7 +26,9 @@ export function PromptInputWithActions({
   onStop,
   onAudioClick,
   onMoreClick,
-  onThemeChange
+  onThemeChange,
+  isOutputVisible,
+  onToggleOutput
 }: PromptInputWithActionsProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -37,7 +41,7 @@ export function PromptInputWithActions({
   // Convert files to MediaAttachment format
   const convertFilesToAttachments = useCallback(async (filesToConvert: File[]): Promise<MediaAttachment[]> => {
     const attachments: MediaAttachment[] = []
-    
+
     for (const file of filesToConvert) {
       // Only process image files for now
       if (file.type.startsWith('image/')) {
@@ -74,21 +78,21 @@ export function PromptInputWithActions({
         }
       }
     }
-    
+
     return attachments
   }, [])
 
   const handleInputChange = useCallback((value: string) => {
     const prevLength = prevInputLengthRef.current
     prevInputLengthRef.current = value.length
-    
+
     setInput(value)
-    
+
     // Emit typing start event when user starts typing (first character)
     if (value.length === 1 && prevLength === 0) {
       console.log('[PromptInput] Typing started, dispatching prompt-typing-start event')
-      window.dispatchEvent(new CustomEvent('prompt-typing-start', { 
-        detail: { inputValue: value } 
+      window.dispatchEvent(new CustomEvent('prompt-typing-start', {
+        detail: { inputValue: value }
       }))
     }
   }, [])
@@ -101,13 +105,13 @@ export function PromptInputWithActions({
     const messageToSend = messageParts.join("\n\n")
     const filesToSend = [...files]
     const clipboardItemsToSend = [...clipboardItems]
-    
+
     // Clear input state immediately
     setInput("")
     prevInputLengthRef.current = 0
     setFiles([])
     setClipboardItems([])
-    
+
     // Emit input cleared event to reset auto-screenshot
     window.dispatchEvent(new CustomEvent('prompt-input-cleared'))
 
@@ -266,6 +270,8 @@ export function PromptInputWithActions({
           onClipboardItemAdd={handleClipboardItemAdd}
           onRemoveClipboardItem={handleRemoveClipboardItem}
           onThemeChange={onThemeChange}
+          isOutputVisible={isOutputVisible}
+          onToggleOutput={onToggleOutput}
         />
       ) : (
         <PromptInputExpanded
@@ -287,6 +293,8 @@ export function PromptInputWithActions({
           onClipboardItemAdd={handleClipboardItemAdd}
           onRemoveClipboardItem={handleRemoveClipboardItem}
           onThemeChange={onThemeChange}
+          isOutputVisible={isOutputVisible}
+          onToggleOutput={onToggleOutput}
         />
       )}
     </div>

@@ -175,6 +175,7 @@
     "ref-napi": "^3.0.3",
     "ref-struct-napi": "^1.1.1",
     "ref-union-napi": "^1.0.2",
+    "replicate": "^1.4.0",
     "selection-hook": "^1.0.12",
     "tesseract.js": "^5.1.1",
     "tslib": "^2.8.1",

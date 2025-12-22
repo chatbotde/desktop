@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/shared/components/ui/card"
 import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
-import { getThemeClasses } from "./prompt-input-theme"
+import { getThemeClasses } from "@/features/prompt"
 import { SettingsModal } from "@/features/settings"
 import { useFeature } from "@/contexts/FeatureContext"
 

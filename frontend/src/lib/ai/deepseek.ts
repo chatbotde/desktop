@@ -45,7 +45,7 @@ export class DeepSeekChatService {
   private async convertMediaToOpenAIFormat(attachment: MediaAttachment): Promise<OpenAI.Chat.ChatCompletionContentPartImage | null> {
     try {
       let data = attachment.data;
-      
+
       // Convert blob URLs to base64
       if (data.startsWith('blob:') || data.startsWith('http')) {
         const response = await fetch(data);
@@ -81,7 +81,7 @@ export class DeepSeekChatService {
     const modelName = selectedModel?.name || 'deepseek-chat';
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
-    
+
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
@@ -187,7 +187,7 @@ export const deepseekService = new DeepSeekChatService();
 
 // Convenience functions
 export const sendToDeepSeek = (message: string) => deepseekService.sendMessage(message);
-export const sendMediaToDeepSeek = (message: string, attachments?: MediaAttachment[]) => 
+export const sendMediaToDeepSeek = (message: string, attachments?: MediaAttachment[]) =>
   deepseekService.sendMessageWithMedia(message, attachments);
 
 // Utility functions
@@ -203,10 +203,10 @@ export function isDeepSeekConfigured(): boolean {
 
 export function getDeepSeekConfigStatus() {
   const isConfigured = isDeepSeekConfigured();
-  
+
   return {
     isConfigured,
-    message: isConfigured 
+    message: isConfigured
       ? 'DeepSeek API is configured and ready to use!'
       : 'DeepSeek API key not configured. Please add your API key to the .env file.',
     instructions: isConfigured ? null : [

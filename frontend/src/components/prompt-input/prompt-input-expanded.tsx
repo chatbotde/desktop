@@ -8,14 +8,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { MediaUploadCard } from "./media-upload-card"
+import { MediaUploadCard } from "../media-upload-card"
 import { Button } from "@/shared/components/ui/button"
 import { ArrowUp, Square, X, Plus, Mic, ChevronUp, Image, FileText, Cpu, Power } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback, useState } from "react"
-import { ModelSelectorPopover } from "./model-selector-popover"
+import { ModelSelectorPopover } from "../model-selector-popover"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
-import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler } from "./prompt-shared"
+import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler, WindowActionControls } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { useFeature } from "@/contexts/FeatureContext"
 import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
@@ -40,6 +40,8 @@ interface PromptInputExpandedProps {
   onClipboardItemAdd?: (text: string) => void
   onRemoveClipboardItem?: (index: number) => void
   onThemeChange?: (isDark: boolean) => void
+  isOutputVisible?: boolean
+  onToggleOutput?: () => void
 }
 
 const MAX_TEXTAREA_HEIGHT = 200
@@ -62,6 +64,8 @@ export function PromptInputExpanded({
   onClipboardItemAdd,
   onRemoveClipboardItem,
   onThemeChange,
+  isOutputVisible,
+  onToggleOutput,
 }: PromptInputExpandedProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -167,19 +171,6 @@ export function PromptInputExpanded({
         onFilesAdded={onFilesAdded}
         isDarkTheme={isDarkTheme}
       />
-      <button
-        onClick={onHide}
-        aria-label="Hide input"
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0 mt-2 border",
-          themeClasses.buttonBorder,
-          themeClasses.buttonHover
-        )}
-        style={{ backgroundColor: themeClasses.buttonBg }}
-      >
-        <X className={`size-4 ${themeClasses.icon}`} />
-      </button>
-
       <PromptInput
         value={input}
         onValueChange={setInput}
@@ -492,8 +483,15 @@ export function PromptInputExpanded({
               </Button>
             </PromptInputAction>
           </div>
+
         </PromptInputActions>
       </PromptInput>
+      <WindowActionControls
+        onHide={onHide}
+        onToggleOutput={onToggleOutput}
+        isOutputVisible={isOutputVisible}
+        themeClasses={themeClasses}
+      />
     </div>
   )
 }

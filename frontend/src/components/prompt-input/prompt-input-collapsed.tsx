@@ -1,15 +1,16 @@
 import { Button } from "@/shared/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, X, ChevronsUp, FileText } from "lucide-react"
+import { ArrowUp, Plus, Mic, Square, ChevronsUp, FileText } from "lucide-react"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { MediaUploadCard } from "./media-upload-card"
+import { MediaUploadCard } from "../media-upload-card"
 import { useRef, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
-import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler } from "./prompt-shared"
+import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler, WindowActionControls } from "./prompt-shared"
+
 
 interface PromptInputCollapsedProps {
   input: string
@@ -30,6 +31,8 @@ interface PromptInputCollapsedProps {
   onClipboardItemAdd?: (text: string) => void
   onRemoveClipboardItem?: (index: number) => void
   onThemeChange?: (isDark: boolean) => void
+  isOutputVisible?: boolean
+  onToggleOutput?: () => void
 }
 
 export function PromptInputCollapsed({
@@ -50,6 +53,8 @@ export function PromptInputCollapsed({
   onClipboardItemAdd,
   onRemoveClipboardItem,
   onThemeChange,
+  isOutputVisible,
+  onToggleOutput,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -81,20 +86,6 @@ export function PromptInputCollapsed({
         onFilesAdded={onFilesAdded}
         isDarkTheme={isDarkTheme}
       />
-      <button
-        onClick={onHide}
-        aria-label="Hide input"
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full transition-colors shrink-0 border",
-          themeClasses.buttonBorder,
-          themeClasses.buttonHover
-        )}
-        style={{ backgroundColor: themeClasses.buttonBg }}
-        data-no-clickthrough
-      >
-        <X className={`size-4 ${themeClasses.icon}`} />
-      </button>
-
       <div
         className={cn(
           "flex items-center gap-2 rounded-full px-2 py-1 border flex-1",
@@ -194,10 +185,10 @@ export function PromptInputCollapsed({
               : canSubmit
                 ? onSubmit
                 : () => {
-                    if (typeof onExpand === "function") {
-                      onExpand();
-                    }
+                  if (typeof onExpand === "function") {
+                    onExpand();
                   }
+                }
           }
           disabled={!isLoading && !canSubmit && !onExpand}
           aria-label={
@@ -217,6 +208,12 @@ export function PromptInputCollapsed({
           )}
         </Button>
       </div>
+      <WindowActionControls
+        onHide={onHide}
+        onToggleOutput={onToggleOutput}
+        isOutputVisible={isOutputVisible}
+        themeClasses={themeClasses}
+      />
     </div>
   )
 }

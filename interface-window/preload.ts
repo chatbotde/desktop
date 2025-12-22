@@ -121,6 +121,29 @@ interface BlockAPI {
   onLockChanged: (callback: (status: any) => void) => () => void;
 }
 
+interface AuthAPI {
+  login: (options?: Record<string, any>) => void;
+  signup: (options?: Record<string, any>) => void;
+  logout: () => void;
+  isAuthenticated: () => Promise<boolean>;
+  getUser: () => Promise<{ id: string; email?: string; name?: string; image?: string } | null>;
+  getToken: () => Promise<string | null>;
+  validateSession: () => Promise<boolean>;
+  refreshTokens: () => Promise<boolean>;
+  submitManualToken: (token: string) => Promise<any>;
+  getConfig: () => Promise<any>;
+  clearTokens: () => Promise<{ success: boolean; error?: string }>;
+  subscribe: () => void;
+  unsubscribe: () => void;
+  onAuthSuccess: (callback: (user: any) => void) => () => void;
+  onAuthError: (callback: (error: any) => void) => () => void;
+  onLogout: (callback: () => void) => () => void;
+  onSessionExpired: (callback: () => void) => () => void;
+  onStateChange: (callback: (state: { isAuthenticated: boolean; user: any }) => void) => () => void;
+  onAuthRequired: (callback: () => void) => () => void;
+  onSessionRestored: (callback: (user: any) => void) => () => void;
+}
+
 // Expose interfaceAPI
 try {
   const interfaceAPI: InterfaceAPI = {
@@ -525,6 +548,96 @@ try {
   console.log('[Preload] blockAPI exposed successfully');
 } catch (error) {
   console.error('[Preload] Error exposing blockAPI:', error);
+}
+
+// Expose Auth API
+try {
+  const authAPI: AuthAPI = {
+    // LOGIN / SIGNUP / LOGOUT
+    login: (options = {}) => {
+      ipcRenderer.send('auth:login', options);
+    },
+    signup: (options = {}) => {
+      ipcRenderer.send('auth:signup', options);
+    },
+    logout: () => {
+      ipcRenderer.send('auth:logout');
+    },
+
+    // SESSION & USER INFO
+    isAuthenticated: () => {
+      return ipcRenderer.invoke('auth:is-authenticated');
+    },
+    getUser: () => {
+      return ipcRenderer.invoke('auth:get-user');
+    },
+    getToken: () => {
+      return ipcRenderer.invoke('auth:get-token');
+    },
+    validateSession: () => {
+      return ipcRenderer.invoke('auth:validate-session');
+    },
+    refreshTokens: () => {
+      return ipcRenderer.invoke('auth:refresh-tokens');
+    },
+    submitManualToken: (token: string) => {
+      return ipcRenderer.invoke('auth:submit-manual-token', token);
+    },
+    getConfig: () => {
+      return ipcRenderer.invoke('auth:get-config');
+    },
+    clearTokens: () => {
+      return ipcRenderer.invoke('auth:clear-tokens');
+    },
+
+    // EVENT LISTENERS
+    subscribe: () => {
+      ipcRenderer.send('auth:subscribe');
+    },
+    unsubscribe: () => {
+      ipcRenderer.send('auth:unsubscribe');
+    },
+    onAuthSuccess: (callback: (user: any) => void) => {
+      const handler = (_event: IpcRendererEvent, user: any) => callback(user);
+      ipcRenderer.on('auth:success', handler);
+      return () => ipcRenderer.removeListener('auth:success', handler);
+    },
+    onAuthError: (callback: (error: any) => void) => {
+      const handler = (_event: IpcRendererEvent, error: any) => callback(error);
+      ipcRenderer.on('auth:error', handler);
+      return () => ipcRenderer.removeListener('auth:error', handler);
+    },
+    onLogout: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('auth:logout-complete', handler);
+      return () => ipcRenderer.removeListener('auth:logout-complete', handler);
+    },
+    onSessionExpired: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('auth:session-expired', handler);
+      return () => ipcRenderer.removeListener('auth:session-expired', handler);
+    },
+    onStateChange: (callback: (state: { isAuthenticated: boolean; user: any }) => void) => {
+      const handler = (_event: IpcRendererEvent, state: { isAuthenticated: boolean; user: any }) => callback(state);
+      ipcRenderer.on('auth:state-changed', handler);
+      return () => ipcRenderer.removeListener('auth:state-changed', handler);
+    },
+    onAuthRequired: (callback: () => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('auth:required', handler);
+      return () => ipcRenderer.removeListener('auth:required', handler);
+    },
+    onSessionRestored: (callback: (user: any) => void) => {
+      const handler = (_event: IpcRendererEvent, user: any) => callback(user);
+      ipcRenderer.on('auth:restored', handler);
+      return () => ipcRenderer.removeListener('auth:restored', handler);
+    }
+  };
+
+  contextBridge.exposeInMainWorld('authAPI', authAPI);
+  console.log('[Preload] authAPI exposed successfully');
+} catch (error) {
+  console.error('[Preload] Error exposing authAPI:', error);
 }
 
 console.log('[Preload] All APIs exposed, preload script complete');

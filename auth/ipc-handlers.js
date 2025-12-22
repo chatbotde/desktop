@@ -192,6 +192,34 @@ function registerAuthIpcHandlers() {
     });
   }
 
+  /**
+   * Clear all tokens (for testing/debugging)
+   * This directly clears stored tokens without notifying the server
+   */
+  ipcMain.handle('auth:clear-tokens', async () => {
+    console.log('Auth IPC: Clearing tokens (direct clear)');
+    try {
+      // Stop session monitoring
+      authService.stopSessionMonitoring();
+      
+      // Clear stored credentials
+      await tokenStore.clearAll();
+      
+      // Reset auth service state
+      authService.user = null;
+      authService.isAuthenticated = false;
+      
+      // Broadcast state change
+      broadcastAuthEvent('auth:state-changed', { isAuthenticated: false, user: null });
+      
+      console.log('Auth IPC: Tokens cleared successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Auth IPC: Clear tokens error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Listen to auth service events and broadcast
   authService.on('auth:success', (user) => {
     broadcastAuthEvent('auth:state-changed', { isAuthenticated: true, user });
@@ -248,6 +276,7 @@ function unregisterAuthIpcHandlers() {
   ipcMain.removeHandler('auth:refresh-tokens');
   ipcMain.removeHandler('auth:submit-manual-token');
   ipcMain.removeHandler('auth:get-config');
+  ipcMain.removeHandler('auth:clear-tokens');
 
   // Note: ipcMain.on handlers cannot be easily removed by channel name
   // They would need to store references to the handlers

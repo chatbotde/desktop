@@ -126,7 +126,35 @@ export function QuickInsert({
         }
 
         setStatus("inserting")
-        const ok = await window.tsfAPI.focusAndInsertText(normalizedText)
+
+        let ok = false
+        try {
+          if (window.electronAPI?.globalShortcut?.simulatePaste) {
+            console.log("Using clipboard+paste for quick insert...")
+
+            // 1. Copy text to clipboard
+            await window.electronAPI.clipboard.writeText(normalizedText)
+
+            // 2. Ensure focus is on the target window
+            const focusRestored = await window.tsfAPI.focusLastWindow()
+            if (!focusRestored) {
+              console.warn("Could not restore focus to target window")
+            }
+
+            // 3. Simulate Ctrl+V
+            await window.electronAPI.globalShortcut.simulatePaste()
+
+            // Assume success if no error thrown
+            ok = true
+          } else {
+            console.warn("Clipboard paste not available, falling back to TSF insert")
+            // Fallback to legacy TSF insert if simulatePaste is missing
+            ok = await window.tsfAPI.focusAndInsertText(normalizedText)
+          }
+        } catch (err) {
+          console.error("Quick insert failed:", err)
+          ok = false
+        }
 
         if (cancelled) return
 
