@@ -1,32 +1,48 @@
+import { useState } from 'react'
+import { HistoryDropdown } from '@/components/history/HistoryDropdown'
+
 interface WindowControlsProps {
   onClear: () => void
   onClose: () => void
   onCollapse?: () => void
   isCollapsed?: boolean
   iconButtonClass: string
+  onSave?: () => void
+  onSelectHistory?: (messages: any[], id?: string) => void
 }
 
-export function WindowControls({ 
-  onClear, 
+export function WindowControls({
+  onClear,
   onClose,
   onCollapse,
   isCollapsed = false,
-  iconButtonClass 
+  iconButtonClass,
+  onSave,
+  onSelectHistory
 }: WindowControlsProps) {
+  const [showHistory, setShowHistory] = useState(false)
+
   return (
     <div className="absolute top-2 right-2 flex gap-1 z-50">
-      <button 
-        className={iconButtonClass}
-        onClick={() => {/* TODO: Show history */}}
-        title="History"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-          <path d="M3 3v5h5"></path>
-          <path d="M12 7v5l4 2"></path>
-        </svg>
-      </button>
-      <button 
+      <div className="relative">
+        <button
+          className={iconButtonClass}
+          onClick={() => setShowHistory(!showHistory)}
+          title="History"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <path d="M12 7v5l4 2"></path>
+          </svg>
+        </button>
+        <HistoryDropdown
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          onSelect={onSelectHistory}
+        />
+      </div>
+      <button
         className={iconButtonClass}
         onClick={onClear}
         title="Clear messages"
@@ -37,7 +53,7 @@ export function WindowControls({
         </svg>
       </button>
       {onCollapse && (
-        <button 
+        <button
           className={iconButtonClass}
           onClick={onCollapse}
           title={isCollapsed ? "Expand" : "Collapse"}
@@ -53,7 +69,7 @@ export function WindowControls({
           )}
         </button>
       )}
-      <button 
+      <button
         className={iconButtonClass}
         onClick={onClose}
         title="Close"

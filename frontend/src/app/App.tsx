@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { PromptInputWithActions, ImageGenerationWindow } from '@/components'
 import ClickThrough from '@/components/click-through'
 import { RightTransparent } from '@/shared/components/common'
@@ -20,6 +20,7 @@ import { useMessageManager } from '@/hooks/useMessageManager'
 import { useUIState } from '@/hooks/useUIState'
 import { useTextSelectionActions } from '@/hooks/useTextSelectionActions'
 import { useGlobalWindowAPI } from '@/hooks/useGlobalWindowAPI'
+import { useChatHistory } from '@/hooks/useChatHistory'
 
 function App() {
   const { isFeatureEnabled } = useFeature()
@@ -34,6 +35,76 @@ function App() {
     setIsImageWindowVisible: uiState.setIsImageWindowVisible,
     setIsGeneratingImages: uiState.setIsGeneratingImages,
   })
+
+  // Chat History
+  const { saveChat, updateChat } = useChatHistory()
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+  const isAutoSavingRef = useRef(false)
+  const messagesLengthRef = useRef(0)
+
+  // Autosave when messages change
+  useEffect(() => {
+    // Skip if messages haven't changed length (avoid redundant saves on re-renders)
+    // or if empty
+    if (messageManager.outputMessages.length === 0) {
+      if (messagesLengthRef.current > 0) {
+        // Just cleared
+        messagesLengthRef.current = 0
+        // Logic for clear is handled in handleClearMessages
+      }
+      return
+    }
+
+    if (messageManager.outputMessages.length === messagesLengthRef.current) {
+      return
+    }
+
+    // Debounce save
+    const timeoutId = setTimeout(async () => {
+      if (isAutoSavingRef.current) return
+      isAutoSavingRef.current = true
+
+      try {
+        if (currentChatId) {
+          await updateChat(currentChatId, messageManager.outputMessages)
+        } else if (messageManager.outputMessages.length > 0) {
+          // Create new chat if not exists
+          const firstUserMessage = messageManager.outputMessages.find(m => m.role === 'user')
+          const title = firstUserMessage ? firstUserMessage.content.slice(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '') : 'New Chat'
+          const newId = await saveChat(title, messageManager.outputMessages)
+          if (newId) setCurrentChatId(newId)
+        }
+        messagesLengthRef.current = messageManager.outputMessages.length
+      } catch (e) {
+        console.error('Autosave failed:', e)
+      } finally {
+        isAutoSavingRef.current = false
+      }
+    }, 2000) // 2 second debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [messageManager.outputMessages, currentChatId, saveChat, updateChat])
+
+  const handleLoadHistory = (messages: any[], chatId?: string) => {
+    // Parse dates if necessary
+    const parsedMessages = messages.map(msg => ({
+      ...msg,
+      timestamp: new Date(msg.timestamp)
+    }))
+    messageManager.setOutputMessages(parsedMessages)
+    if (chatId) setCurrentChatId(chatId) // Set current ID to allow updates
+    else setCurrentChatId(null) // Should not happen usually
+
+    messagesLengthRef.current = parsedMessages.length // Sync ref to avoid immediate resave
+    uiState.setIsOutputVisible(true)
+  }
+
+  const handleClearMessages = () => {
+    messageManager.clearMessages()
+    setCurrentChatId(null)
+    messagesLengthRef.current = 0
+    uiState.clearExplanation()
+  }
 
   // Auto-screenshot feature - automatically takes screenshots when user starts typing
   useAutoScreenshot({
@@ -93,13 +164,13 @@ function App() {
     // Check if it's an image generation model - don't open output window for images
     const selectedModel = getSelectedModel()
     const isImageModel = selectedModel?.category === 'image-generation' || selectedModel?.provider === 'replicate'
-    
+
     // Show image window immediately for image models (before generation starts)
     if (isImageModel) {
       uiState.setIsImageWindowVisible(true)
       uiState.setIsGeneratingImages(true)
     }
-    
+
     // Only open output window for non-image models
     if (outputWindowEnabled && !isImageModel) {
       uiState.setIsOutputVisible(true)
@@ -109,11 +180,6 @@ function App() {
 
   const handleStop = () => {
     messageManager.handleStop()
-  }
-
-  const handleClearMessages = () => {
-    messageManager.clearMessages()
-    uiState.clearExplanation()
   }
 
   const handleAreaScreenshotCapture = async (area: { x: number; y: number; width: number; height: number }) => {
@@ -168,6 +234,7 @@ function App() {
           onAskSelectedText={textSelectionActions.handleAskSelectedText}
           onExplainSelectedText={textSelectionActions.handleExplainSelectedText}
           isDarkTheme={uiState.isDarkTheme}
+          onSelectHistory={handleLoadHistory}
         />
       )}
 

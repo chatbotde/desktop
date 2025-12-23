@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react'
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { MessageBubble } from '@/features/output-window/components/MessageBubble'
@@ -23,6 +24,7 @@ interface OutputMessagesProps {
     onAskSelectedText?: (text: string) => void | Promise<void>
     onExplainSelectedText?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
     isDarkTheme?: boolean
+    onSelectHistory?: (messages: any[], id?: string) => void
 }
 
 export function OutputMessages({
@@ -36,13 +38,14 @@ export function OutputMessages({
     onAskSelectedText,
     onExplainSelectedText,
     isDarkTheme: propIsDarkTheme,
+    onSelectHistory
 }: OutputMessagesProps = {}) {
     const [internalIsVisible, setInternalIsVisible] = useState(true)
     const [isCollapsed, setIsCollapsed] = useState(false)
-    
+
     // Use prop theme if provided, otherwise default to true (dark theme)
     const isDarkTheme = propIsDarkTheme !== undefined ? propIsDarkTheme : true
-    
+
     // Center the output window on mount
     const defaultSize = { width: 600, height: 400 }
     const collapsedSize = { width: 600, height: 60 } // Just header height when collapsed
@@ -126,37 +129,38 @@ export function OutputMessages({
                 onCollapse={handleCollapseToggle}
                 isCollapsed={isCollapsed}
                 iconButtonClass={themeClasses.iconButton}
+                onSelectHistory={onSelectHistory}
             />
 
             {!isCollapsed && (
-                <CardContent 
+                <CardContent
                     ref={contentRef}
-                    className={themeClasses.content} 
+                    className={themeClasses.content}
                     style={{ height: 'calc(100%-1px)', backgroundColor: themeClasses.contentBg }}
                 >
-                {messages.length === 0 ? (
-                    <p className={themeClasses.emptyText}>Welcome to future</p>
-                ) : (
-                    <div className="w-full space-y-10 flex flex-col">
-                        {messages.map((msg) => (
-                            <MessageBubble
-                                key={msg.id}
-                                id={`message-${msg.id}`}
-                                message={msg}
-                                isDarkTheme={isDarkTheme}
-                                onAddSelectedText={onAddSelectedTextToPrompt}
-                                onAskSelectedText={onAskSelectedText}
-                                onExplainSelectedText={onExplainSelectedText}
-                            />
-                        ))}
-                        {/* Show thinking indicator if waiting for response and last message is from user */}
-                        {isWaitingForResponse && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
-                            <ThinkingIndicator isDarkTheme={isDarkTheme} />
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
-            </CardContent>
+                    {messages.length === 0 ? (
+                        <p className={themeClasses.emptyText}>Welcome to future</p>
+                    ) : (
+                        <div className="w-full space-y-10 flex flex-col">
+                            {messages.map((msg) => (
+                                <MessageBubble
+                                    key={msg.id}
+                                    id={`message-${msg.id}`}
+                                    message={msg}
+                                    isDarkTheme={isDarkTheme}
+                                    onAddSelectedText={onAddSelectedTextToPrompt}
+                                    onAskSelectedText={onAskSelectedText}
+                                    onExplainSelectedText={onExplainSelectedText}
+                                />
+                            ))}
+                            {/* Show thinking indicator if waiting for response and last message is from user */}
+                            {isWaitingForResponse && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
+                                <ThinkingIndicator isDarkTheme={isDarkTheme} />
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    )}
+                </CardContent>
             )}
             {!isCollapsed && (
                 <ResizeHandle
