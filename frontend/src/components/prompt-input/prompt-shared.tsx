@@ -95,7 +95,7 @@ export function NetworkOfflineIndicator({ themeClasses }: { themeClasses: any })
         <div
             className={cn(
                 "absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full mb-2",
-                "flex h-8 w-8 items-center justify-center rounded-full shrink-0 z-50",
+                "flex h-8 w-8 items-center justify-center rounded-full shrink-0 z-[50]",
                 "opacity-90"
             )}
             title="No Internet Connection"

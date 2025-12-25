@@ -7,17 +7,13 @@ interface WindowControlsProps {
   onCollapse?: () => void
   isCollapsed?: boolean
   iconButtonClass: string
-  onSave?: () => void
   onSelectHistory?: (messages: any[], id?: string) => void
 }
 
 export function WindowControls({
   onClear,
   onClose,
-  onCollapse,
-  isCollapsed = false,
   iconButtonClass,
-  onSave,
   onSelectHistory
 }: WindowControlsProps) {
   const [showHistory, setShowHistory] = useState(false)
@@ -52,23 +48,7 @@ export function WindowControls({
           <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"></path>
         </svg>
       </button>
-      {onCollapse && (
-        <button
-          className={iconButtonClass}
-          onClick={onCollapse}
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6"></path>
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m18 15-6-6-6 6"></path>
-            </svg>
-          )}
-        </button>
-      )}
+
       <button
         className={iconButtonClass}
         onClick={onClose}

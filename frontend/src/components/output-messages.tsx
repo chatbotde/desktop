@@ -1,9 +1,8 @@
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { MessageBubble } from '@/features/output-window/components/MessageBubble'
 import { ThinkingIndicator } from '@/features/output-window/components/ThinkingIndicator'
-import { DragButton } from '@/features/output-window/components/DragButton'
 import { ResizeHandle } from '@/features/output-window/components/ResizeHandle'
 import { WindowControls } from '@/features/output-window/components/WindowControls'
 import { useDraggable, useResizable, useAutoScroll } from '@/features/output-window/hooks'
@@ -47,36 +46,52 @@ export function OutputMessages({
     const isDarkTheme = propIsDarkTheme !== undefined ? propIsDarkTheme : true
 
     // Center the output window on mount
-    const defaultSize = { width: 600, height: 400 }
+    const defaultSize = { width: 535, height: 300 }
     const collapsedSize = { width: 600, height: 60 } // Just header height when collapsed
     const [size, setSize] = useState(defaultSize)
 
-    // Center position based on window size (run code at mount)
-    const getCenteredPosition = () => {
+    // Position the window 20px above the bottom and centered horizontally
+    const getCenteredPosition = (windowSize = size) => {
         const width = typeof window !== "undefined" ? window.innerWidth : 1200;
         const height = typeof window !== "undefined" ? window.innerHeight : 800;
         return {
-            x: Math.max(0, Math.round((width - size.width) / 2)),
-            y: Math.max(0, Math.round((height - size.height) / 2)),
+            x: Math.max(0, Math.round((width - windowSize.width) / 2) - 26),
+            y: Math.max(0, height - windowSize.height - 10),
         };
     };
     const [position, setPosition] = useState(getCenteredPosition)
     const cardRef = useRef<HTMLDivElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
+    const wasClosedRef = useRef(false) // Track if window was closed (not just hidden)
 
     // Use custom hooks for drag, resize, and auto-scroll
     const { handleDragMouseDown } = useDraggable(setPosition, cardRef)
-    const { handleResizeMouseDown } = useResizable(size, setSize)
+    const { handleResizeMouseDown } = useResizable(size, setSize, position, setPosition)
     useAutoScroll(messages)
 
     const isVisible = propIsVisible !== undefined ? propIsVisible : internalIsVisible
+
+    // Reset position and size to default when window becomes visible after being closed
+    useEffect(() => {
+        // Only reset if window was closed (not just hidden) and is now visible
+        if (wasClosedRef.current && isVisible) {
+            setIsCollapsed(false)
+            setSize(defaultSize)
+            // Calculate position with the new default size
+            setPosition(getCenteredPosition(defaultSize))
+            // Reset the flag
+            wasClosedRef.current = false
+        }
+    }, [isVisible])
 
     if (!isVisible) {
         return null
     }
 
     const handleClose = () => {
+        // Mark that window was closed (not just hidden)
+        wasClosedRef.current = true
         if (propOnClose) {
             propOnClose()
         } else {
@@ -113,16 +128,15 @@ export function OutputMessages({
                 top: `${position.y}px`,
                 width: `${size.width}px`,
                 height: `${size.height}px`,
-                zIndex: 1000,
+                zIndex: 0,
                 backgroundColor: themeClasses.cardBg
             }}
         >
-            <div className="absolute top-2 left-2">
-                <DragButton
-                    onMouseDown={handleDragMouseDown}
-                    className={themeClasses.dragButton}
-                />
-            </div>
+            {/* Drag area spanning from left edge to history button */}
+            <div 
+                className="absolute top-0 left-0 right-24 h-12 z-30"
+                onMouseDown={handleDragMouseDown}
+            />
             <WindowControls
                 onClear={handleClear}
                 onClose={handleClose}
@@ -136,7 +150,7 @@ export function OutputMessages({
                 <CardContent
                     ref={contentRef}
                     className={themeClasses.content}
-                    style={{ height: 'calc(100%-1px)', backgroundColor: themeClasses.contentBg }}
+                    style={{ height: 'calc(100%-30px)', backgroundColor: themeClasses.contentBg }}
                 >
                     {messages.length === 0 ? (
                         <p className={themeClasses.emptyText}>Welcome to future</p>
@@ -163,10 +177,42 @@ export function OutputMessages({
                 </CardContent>
             )}
             {!isCollapsed && (
-                <ResizeHandle
-                    onMouseDown={handleResizeMouseDown}
-                    className={themeClasses.resizeIcon}
-                />
+                <>
+                    {/* Border resize handles */}
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="n"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="s"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="e"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="w"
+                    />
+                    {/* Corner resize handles */}
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="ne"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="nw"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="se"
+                    />
+                    <ResizeHandle
+                        onMouseDown={handleResizeMouseDown}
+                        direction="sw"
+                    />
+                </>
             )}
         </Card>
     )

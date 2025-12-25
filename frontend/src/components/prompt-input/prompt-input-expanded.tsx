@@ -160,7 +160,7 @@ export function PromptInputExpanded({
   const handlePaste = usePasteHandler(onFilesAdded)
 
   return (
-    <div className="relative flex items-start gap-3 mx-4 mb-0">
+    <div className="relative flex items-start gap-3 mx-8 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: 49 }}>
       {/* Network Status Icon - Outside and Centered */}
       <NetworkOfflineIndicator themeClasses={themeClasses} />
 
@@ -177,21 +177,23 @@ export function PromptInputExpanded({
         isLoading={isLoading}
         onSubmit={onSubmit}
         className={cn(
-          "flex-1 rounded-2xl border px-3 py-2",
+          "flex-1 rounded-2xl border px-3 py-2 transition-all duration-300 ease-in-out",
           themeClasses.containerBorder
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
       >
-        <button
-          onClick={onCollapse}
-          aria-label="Collapse input"
-          className={cn(
-            "absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full transition-colors",
-            hoverClass
-          )}
-        >
-          <ChevronUp className={`size-4 ${themeClasses.icon} rotate-180`} />
-        </button>
+        {files.length === 0 && (
+          <button
+            onClick={onCollapse}
+            aria-label="Collapse input"
+            className={cn(
+              "absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full transition-colors",
+              hoverClass
+            )}
+          >
+            <ChevronUp className={`size-4 ${themeClasses.icon} rotate-180`} />
+          </button>
+        )}
 
         {(!!selectedLocalModelName || files.length > 0 || (clipboardItems && clipboardItems.length > 0)) && (
           <div className="flex flex-wrap gap-2 pb-1 max-h-[80px] overflow-y-auto">
@@ -352,7 +354,7 @@ export function PromptInputExpanded({
                     <Plus className={`size-5 ${themeClasses.icon}`} />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
+                <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2 z-[1002]" align="start">
                   <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} onThemeChange={onThemeChange} />
                 </PopoverContent>
               </Popover>
@@ -382,7 +384,7 @@ export function PromptInputExpanded({
                   </PopoverTrigger>
                   <PopoverContent
                     className={cn(
-                      "w-60 p-0 border",
+                      "w-60 p-0 border z-[1002]",
                       isDarkTheme ? "border-zinc-700" : "border-zinc-200"
                     )}
                     style={{ backgroundColor: themeClasses.containerBg }}

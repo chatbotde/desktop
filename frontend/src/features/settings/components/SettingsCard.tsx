@@ -5,6 +5,8 @@ import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/shared/lib"
 import { getThemeClasses } from "@/features/prompt/theme"
+import { useIsDark } from "@/shared/providers"
+import { getThemeClasses as getThemeUtils } from "@/shared/utils/theme"
 
 import { SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
 import { SettingsSidebar } from "./SettingsSidebar"
@@ -20,14 +22,13 @@ import {
 } from "../sections"
 
 type SettingsCardProps = {
-  isDarkTheme?: boolean
   initialSection?: SettingsSectionId
   onRequestClose?: () => void
-  onThemeChange?: (isDark: boolean) => void
 }
 
-export function SettingsCard({ isDarkTheme = false, initialSection = "personalization", onRequestClose, onThemeChange }: SettingsCardProps) {
-  const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
+export function SettingsCard({ initialSection = "personalization", onRequestClose }: SettingsCardProps) {
+  const isDark = useIsDark()
+  const themeClasses = useMemo(() => getThemeClasses(isDark), [isDark])
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(initialSection)
 
@@ -54,21 +55,27 @@ export function SettingsCard({ isDarkTheme = false, initialSection = "personaliz
           items={SETTINGS_MENU_ITEMS}
           activeSection={activeSection}
           onSelect={setActiveSection}
-          isDarkTheme={isDarkTheme}
+          isDarkTheme={isDark}
         />
 
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           <div
-            className={cn(
-              "flex items-center justify-between px-6 py-4 border-b",
-              isDarkTheme ? "border-zinc-800" : "border-zinc-200"
-            )}
+            className={getThemeUtils(isDark, {
+              dark: "border-zinc-800",
+              light: "border-zinc-200"
+            }, "flex items-center justify-between px-6 py-4 border-b")}
           >
             <div className="min-w-0">
-              <h2 className={cn("text-lg font-semibold truncate", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
+              <h2 className={getThemeUtils(isDark, {
+                dark: "text-zinc-100",
+                light: "text-zinc-900"
+              }, "text-lg font-semibold truncate")}>
                 {activeLabel}
               </h2>
-              <p className={cn("text-xs", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+              <p className={getThemeUtils(isDark, {
+                dark: "text-zinc-400",
+                light: "text-zinc-600"
+              }, "text-xs")}>
                 Manage preferences and behavior
               </p>
             </div>
@@ -78,7 +85,10 @@ export function SettingsCard({ isDarkTheme = false, initialSection = "personaliz
                 variant="ghost"
                 size="icon"
                 onClick={onRequestClose}
-                className={cn(isDarkTheme ? "text-zinc-300 hover:bg-zinc-800" : "text-zinc-600 hover:bg-zinc-100")}
+                className={getThemeUtils(isDark, {
+                  dark: "text-zinc-300 hover:bg-zinc-800",
+                  light: "text-zinc-600 hover:bg-zinc-100"
+                })}
                 aria-label="Close settings"
               >
                 <X className="w-4 h-4" />
@@ -97,21 +107,21 @@ export function SettingsCard({ isDarkTheme = false, initialSection = "personaliz
                   onNicknameChange: (nickname) => setPersonalization((p) => ({ ...p, nickname })),
                   onOccupationChange: (occupation) => setPersonalization((p) => ({ ...p, occupation })),
                 }}
-                isDarkTheme={isDarkTheme}
+                isDarkTheme={isDark}
               />
             )}
 
-            {activeSection === "general" && <GeneralSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "general" && <GeneralSection isDarkTheme={isDark} />}
 
-            {activeSection === "account" && <AccountSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "account" && <AccountSection isDarkTheme={isDark} />}
 
-            {activeSection === "local-llm" && <LocalLLMSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "local-llm" && <LocalLLMSection isDarkTheme={isDark} />}
 
-            {activeSection === "model-profiles" && <ModelProfileListSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "model-profiles" && <ModelProfileListSection isDarkTheme={isDark} />}
 
-            {activeSection === "blocking" && <BlockingSection isDarkTheme={isDarkTheme} />}
+            {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 
-            {activeSection === "features" && <FeaturesSection isDarkTheme={isDarkTheme} onThemeChange={onThemeChange} />}
+            {activeSection === "features" && <FeaturesSection />}
           </div>
         </div>
       </div>

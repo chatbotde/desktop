@@ -27,6 +27,8 @@ export interface TextSelectionInputProps {
   minHeight?: number
   /** Additional class names */
   className?: string
+  /** Whether to use dark theme styling */
+  isDarkTheme?: boolean
 }
 
 export function TextSelectionInput({
@@ -41,6 +43,7 @@ export function TextSelectionInput({
   maxHeight = 100,
   minHeight = 10,
   className,
+  isDarkTheme = true,
 }: TextSelectionInputProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
@@ -80,11 +83,14 @@ export function TextSelectionInput({
   return (
     <Card
       className={cn(
-        "relative gap-0 py-0 border-zinc-700/80 shadow-2xl backdrop-blur-xl",
+        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl",
         "w-full max-w-md",
+        isDarkTheme ? "border-zinc-700/80" : "border-zinc-200/80",
         className,
       )}
-      style={{ backgroundColor: "oklch(0.14 0.00 0 / 1)" }}
+      style={{ 
+        backgroundColor: isDarkTheme ? "oklch(0.14 0.00 0 / 1)" : "oklch(0.98 0.00 0 / 1)"
+      }}
     >
       {/* Close button */}
       <button
@@ -92,10 +98,11 @@ export function TextSelectionInput({
         className={cn(
           "absolute -top-2 -right-2 z-10",
           "flex h-6 w-6 items-center justify-center rounded-full",
-          "bg-zinc-800 hover:bg-zinc-700 border border-zinc-600",
-          "text-zinc-400 hover:text-zinc-200",
-          "transition-all duration-150",
+          "border transition-all duration-150",
           "shadow-md hover:shadow-lg hover:scale-105",
+          isDarkTheme
+            ? "bg-zinc-800 hover:bg-zinc-700 border-zinc-600 text-zinc-400 hover:text-zinc-200"
+            : "bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-600 hover:text-zinc-800"
         )}
         aria-label="Close"
       >
@@ -113,9 +120,11 @@ export function TextSelectionInput({
           disabled={isLoading}
           className={cn(
             "w-full resize-none bg-transparent text-sm leading-relaxed",
-            "text-zinc-200 placeholder:text-zinc-500",
             "focus:outline-none",
             "disabled:opacity-50 disabled:cursor-not-allowed",
+            isDarkTheme
+              ? "text-zinc-200 placeholder:text-zinc-500"
+              : "text-zinc-900 placeholder:text-zinc-500"
           )}
           style={{ minHeight: `${minHeight}px`, maxHeight: `${maxHeight}px` }}
           rows={1}
@@ -123,7 +132,10 @@ export function TextSelectionInput({
       </div>
 
       {/* Actions bar */}
-      <div className="flex items-center justify-between gap-1  border-zinc-700/50 px-2 py-1">
+      <div className={cn(
+        "flex items-center justify-between gap-1 px-2 py-1",
+        isDarkTheme ? "border-zinc-700/50" : "border-zinc-200/50"
+      )}>
         <div className="flex items-center gap-1">
         </div>
 
@@ -137,8 +149,12 @@ export function TextSelectionInput({
               className={cn(
                 "h-7 w-7 p-0 rounded-full",
                 value.trim() && !isGenerating && !isLoading
-                  ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
-                  : "bg-zinc-700 text-zinc-500"
+                  ? isDarkTheme
+                    ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
+                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-md hover:scale-105"
+                  : isDarkTheme
+                    ? "bg-zinc-700 text-zinc-500"
+                    : "bg-zinc-200 text-zinc-400"
               )}
               aria-label="Generate"
             >
@@ -158,8 +174,12 @@ export function TextSelectionInput({
             className={cn(
               "h-7 w-7 p-0 rounded-full",
               canSend
-                ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
-                : "bg-zinc-700 text-zinc-500"
+                ? isDarkTheme
+                  ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
+                  : "bg-blue-600 hover:bg-blue-500 text-white shadow-md hover:scale-105"
+                : isDarkTheme
+                  ? "bg-zinc-700 text-zinc-500"
+                  : "bg-zinc-200 text-zinc-400"
             )}
             aria-label="Send"
           >

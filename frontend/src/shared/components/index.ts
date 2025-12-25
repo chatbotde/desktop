@@ -22,6 +22,9 @@ export * from './actions'
 // Message components
 export * from './message'
 
+// Math rendering components
+export * from './math'
+
 // Ready for future use
 // export * from './feedback'
 // export * from './layout'

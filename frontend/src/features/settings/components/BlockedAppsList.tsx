@@ -244,3 +244,5 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
 
 
 
+
+

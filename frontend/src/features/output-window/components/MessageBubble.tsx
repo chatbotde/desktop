@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { MessageContent } from '@/shared/components/message'
@@ -14,8 +14,6 @@ interface MessageBubbleProps {
   onExplainSelectedText?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
 }
 
-const LONG_CONTENT_CHAR_THRESHOLD = 450
-
 export function MessageBubble({
   message,
   isDarkTheme,
@@ -29,12 +27,43 @@ export function MessageBubble({
   const [isInserting, setIsInserting] = useState(false)
   const [insertSuccess, setInsertSuccess] = useState(false)
   const contentContainerRef = useRef<HTMLDivElement>(null)
+  const [isSingleLine, setIsSingleLine] = useState(true)
 
   const [selectionText, setSelectionText] = useState('')
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [isSelectionVisible, setIsSelectionVisible] = useState(false)
 
-  const isLongContent = message.role === 'user' && message.content.length > LONG_CONTENT_CHAR_THRESHOLD
+  const isUser = message.role === 'user'
+
+  // Detect if message is single line or multi-line
+  useEffect(() => {
+    if (isUser) {
+      // Check if content has newlines or would wrap
+      const plainText = getPlainText(message.content)
+      const hasNewlines = plainText.includes('\n')
+      const estimatedWidth = plainText.length * 8 // rough estimate: ~8px per character
+      const maxWidth = 0.85 * (typeof window !== 'undefined' ? window.innerWidth : 1200) // 85% of screen width
+      
+      // Single line if no newlines and content fits in one line
+      setIsSingleLine(!hasNewlines && estimatedWidth < maxWidth)
+    }
+  }, [message.content, isUser])
+
+  // Also check after render using ResizeObserver for more accurate detection
+  useEffect(() => {
+    if (!isUser || !contentContainerRef.current) return
+
+    const container = contentContainerRef.current
+    const resizeObserver = new ResizeObserver(() => {
+      const lineHeight = parseFloat(getComputedStyle(container).lineHeight) || 25.5
+      const height = container.scrollHeight
+      // Consider it single line if height is less than 2x line height
+      setIsSingleLine(height <= lineHeight * 2.2)
+    })
+
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [isUser, message.content])
 
   // Extract plain text from message content (removes markdown formatting)
   const getPlainText = (content: string): string => {
@@ -108,8 +137,6 @@ export function MessageBubble({
     }
   }
 
-  const isUser = message.role === 'user'
-
   const hideSelectionActions = useCallback(() => {
     setIsSelectionVisible(false)
     setSelectionText('')
@@ -164,16 +191,16 @@ export function MessageBubble({
       ? cn(
         'text-white',
         'bg-blue-600',
-        'rounded-2xl',
+        isSingleLine ? 'rounded-full' : 'rounded-2xl',
         'border border-blue-600',
         'shadow-lg shadow-blue-500/20',
-        'px-4 py-2',
+        'px-5 py-2.5',
         'hover:shadow-xl hover:shadow-blue-500/30',
         'transition-all duration-300 ease-in-out'
       )
       : cn(
-        'bg-transparent px-4 py-3',
-        isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
+        'bg-transparent',
+        isDarkTheme ? 'px-4 py-3 text-zinc-100' : 'px-5 py-4 text-zinc-900'
       )
   )
 
@@ -184,11 +211,11 @@ export function MessageBubble({
     )}>
       <div className={cn(
         isUser
-          ? "max-w-[85%] md:max-w-[75%] lg:max-w-[65%] break-words relative"
+          ? "max-w-[85%] break-words relative"
           : "w-full break-words relative",
         isUser ? "items-end" : "items-start"
       )}>
-        {/* Display attachments (images) */}
+        {/* Display attachments (images) - compact state only */}
         {message.attachments && message.attachments.length > 0 && (
           <div className={cn(
             "mb-2 space-y-2",
@@ -200,18 +227,15 @@ export function MessageBubble({
                   key={attachment.id}
                   className={cn(
                     "rounded-lg overflow-hidden",
-                    isUser ? "max-w-full" : "max-w-full",
-                    "shadow-md"
+                    "border-2",
+                    isDarkTheme ? "border-zinc-700" : "border-zinc-200",
+                    "shadow-sm"
                   )}
                 >
                   <img
                     src={attachment.data}
                     alt={attachment.name}
-                    className={cn(
-                      "max-w-full h-auto",
-                      "max-h-[400px] object-contain",
-                      isUser ? "rounded-lg" : "rounded-lg"
-                    )}
+                    className="w-16 h-16 object-cover"
                     loading="lazy"
                   />
                 </div>
@@ -229,7 +253,7 @@ export function MessageBubble({
         >
           <div className={cn(
             "relative",
-            !isExpanded && isLongContent ? "max-h-48 overflow-hidden" : ""
+            !isExpanded && isUser && !isSingleLine ? "line-clamp-3" : ""
           )}>
             <MessageContent
               markdown={message.role === 'assistant'}
@@ -248,24 +272,30 @@ export function MessageBubble({
                 "[&_pre]:my-3 [&_pre]:rounded-lg",
                 "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
                 "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
-                // Only override main text elements for theme
+                // Math equation styling - allow multi-line rendering
+                "[&_.math-block]:my-4 [&_.math-block]:w-full [&_.math-block]:overflow-x-auto [&_.math-block]:overflow-y-visible",
+                "[&_.math-inline]:inline [&_.math-inline]:align-middle",
+                "[&_.katex]:!text-current [&_.katex-display]:!block [&_.katex-display]:!w-full",
+                "[&_.katex-display_.katex]:!max-w-full [&_.katex-display_.katex]:!overflow-x-auto",
+                isDarkTheme
+                  ? "[&_.katex]:!text-zinc-100 [&_.math-block]:bg-zinc-800/30 [&_.math-inline]:bg-zinc-800/20"
+                  : "[&_.katex]:!text-zinc-950 [&_.math-block]:bg-zinc-100/50 [&_.math-inline]:bg-zinc-100/40 [&_.math-block]:border [&_.math-block]:border-zinc-200",
+                // Improve text readability near math blocks in light theme - target text in same container
+                isDarkTheme
+                  ? ""
+                  : "[&_p:has(_.math-block)]:!text-zinc-800 [&_p:has(_.math-inline)]:!text-zinc-800 [&_p:has(_.katex)]:!text-zinc-800 [&_span:has(_.katex)]:!text-zinc-800 [&_span:has(_.math-inline)]:!text-zinc-800 [&_*:has(_.math-block)]:!text-zinc-800",
+                // Only override main text elements for theme - improved contrast for light theme
                 isDarkTheme
                   ? "[&_p]:!text-zinc-100 [&_h1]:!text-zinc-100 [&_h2]:!text-zinc-100 [&_h3]:!text-zinc-100 [&_strong]:!text-white [&_code]:!text-zinc-100"
-                  : "[&_p]:!text-zinc-900 [&_h1]:!text-zinc-900 [&_h2]:!text-zinc-900 [&_h3]:!text-zinc-900 [&_strong]:!text-zinc-900 [&_code]:!text-zinc-900"
+                  : "[&_p]:!text-zinc-800 [&_h1]:!text-zinc-900 [&_h2]:!text-zinc-900 [&_h3]:!text-zinc-900 [&_strong]:!text-zinc-950 [&_code]:!text-zinc-800 [&_span]:!text-zinc-800 [&_li]:!text-zinc-800",
+                // Ensure all text near math has good contrast in light theme
+                isDarkTheme
+                  ? ""
+                  : "[&_p_.math-block+span]:!text-zinc-800 [&_p_span:not(:has(_.katex))]:!text-zinc-800 [&_p:has(_.math-block)_span]:!text-zinc-800 [&_p:has(_.math-inline)_span]:!text-zinc-800"
               )}
             >
               {message.content}
             </MessageContent>
-            {!isExpanded && isLongContent && (
-              <div
-                className={cn(
-                  "absolute inset-x-0 bottom-0 h-16 pointer-events-none bg-gradient-to-t",
-                  isDarkTheme
-                    ? "from-black/60 via-black/20 to-transparent"
-                    : "from-white via-white/70 to-transparent"
-                )}
-              />
-            )}
           </div>
         </div>
 
@@ -300,16 +330,12 @@ export function MessageBubble({
           }
           isDarkTheme={isDarkTheme}
         />
-        {isLongContent && (
+        {isUser && !isSingleLine && (
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
             className={cn(
               "mt-2 text-xs font-medium transition-colors",
-              isUser
-                ? "text-blue-100 hover:text-white"
-                : isDarkTheme
-                  ? "text-zinc-300 hover:text-white"
-                  : "text-zinc-600 hover:text-zinc-900"
+              "text-blue-100 hover:text-white"
             )}
           >
             {isExpanded ? 'Show less' : 'Show more'}

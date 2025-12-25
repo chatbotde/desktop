@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Copy, Check, Download, Sparkles } from "lucide-react"
+import { Copy, Check, Download, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
@@ -18,23 +18,28 @@ export interface TextSelectionOutputProps {
   className?: string
   /** Speed of the typewriter effect (characters per second) */
   streamingSpeed?: number
+  /** Whether to use dark theme styling */
+  isDarkTheme?: boolean
 }
 
 // Loading skeleton component
-function LoadingSkeleton() {
+function LoadingSkeleton({ isDarkTheme = true }: { isDarkTheme?: boolean }) {
   return (
     <div className="space-y-2 animate-pulse">
-      <div className="h-3 bg-zinc-700/50 rounded w-3/4" />
-      <div className="h-3 bg-zinc-700/50 rounded w-full" />
-      <div className="h-3 bg-zinc-700/50 rounded w-5/6" />
+      <div className={cn("h-3 rounded w-3/4", isDarkTheme ? "bg-zinc-700/50" : "bg-zinc-200/50")} />
+      <div className={cn("h-3 rounded w-full", isDarkTheme ? "bg-zinc-700/50" : "bg-zinc-200/50")} />
+      <div className={cn("h-3 rounded w-5/6", isDarkTheme ? "bg-zinc-700/50" : "bg-zinc-200/50")} />
     </div>
   )
 }
 
 // Streaming cursor component
-function StreamingCursor() {
+function StreamingCursor({ isDarkTheme = true }: { isDarkTheme?: boolean }) {
   return (
-    <span className="inline-block w-2 h-4 ml-0.5 bg-purple-400 animate-pulse rounded-sm" />
+    <span className={cn(
+      "inline-block w-2 h-4 ml-0.5 animate-pulse rounded-sm",
+      isDarkTheme ? "bg-purple-400" : "bg-purple-600"
+    )} />
   )
 }
 
@@ -45,12 +50,15 @@ export function TextSelectionOutput({
   onCopy,
   className,
   streamingSpeed = 80, // characters per second
+  isDarkTheme = true,
 }: TextSelectionOutputProps) {
   const [copied, setCopied] = React.useState(false)
   const [displayedContent, setDisplayedContent] = React.useState("")
   const [isAnimating, setIsAnimating] = React.useState(false)
   const [showContent, setShowContent] = React.useState(false)
+  const [isCollapsed, setIsCollapsed] = React.useState(false)
   const contentRef = React.useRef<HTMLDivElement>(null)
+  const containerRef = React.useRef<HTMLDivElement>(null)
   const animationRef = React.useRef<number | null>(null)
   const lastContentRef = React.useRef<string>("")
 
@@ -59,6 +67,37 @@ export function TextSelectionOutput({
     const timer = setTimeout(() => setShowContent(true), 50)
     return () => clearTimeout(timer)
   }, [])
+
+  // Calculate max height to ensure 20px from bottom
+  React.useEffect(() => {
+    if (!containerRef.current || !showContent) return
+
+    const updateMaxHeight = () => {
+      const container = containerRef.current
+      if (!container || !contentRef.current) return
+
+      const rect = container.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const distanceFromBottom = viewportHeight - rect.top
+      const maxHeight = distanceFromBottom - 20 // 20px from bottom
+
+      contentRef.current.style.maxHeight = `${Math.max(200, maxHeight)}px`
+    }
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      updateMaxHeight()
+    })
+
+    window.addEventListener('resize', updateMaxHeight)
+    window.addEventListener('scroll', updateMaxHeight)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', updateMaxHeight)
+      window.removeEventListener('scroll', updateMaxHeight)
+    }
+  }, [showContent, isCollapsed, displayedContent])
 
   // Typewriter streaming effect
   React.useEffect(() => {
@@ -134,62 +173,113 @@ export function TextSelectionOutput({
 
   return (
     <Card
+      ref={containerRef}
       className={cn(
-        "relative gap-0 py-0 border-zinc-700/80 shadow-2xl backdrop-blur-xl",
-        "w-full max-w-md mt-2",
+        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl mt-2",
+        "w-full max-w-md",
         "transition-all duration-300 ease-out",
         showContent
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-2",
+        isDarkTheme
+          ? "border-zinc-700/80"
+          : "border-zinc-200/80",
         className,
       )}
-      style={{ backgroundColor: "oklch(0.14 0.00 0 / 1)" }}
+      style={{ 
+        backgroundColor: isDarkTheme ? "oklch(0.14 0.00 0 / 1)" : "oklch(0.98 0.00 0 / 1)"
+      }}
     >
-      {/* Header with streaming indicator */}
-      {(isAnimating || isStreaming) && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-700/30">
-          <Sparkles className="h-3.5 w-3.5 text-purple-400 animate-pulse" />
-          <span className="text-xs text-zinc-400">
-            {isStreaming ? "Generating..." : "Revealing..."}
-          </span>
-          {isAnimating && !isStreaming && (
-            <button
-              onClick={handleSkipAnimation}
-              className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Skip
-            </button>
+      {/* Header with streaming indicator and collapse button */}
+      <div className={cn(
+        "flex items-center gap-2 px-4 py-2 border-b",
+        isDarkTheme ? "border-zinc-700/30" : "border-zinc-200/30"
+      )}>
+        {(isAnimating || isStreaming) && (
+          <>
+            <Sparkles className={cn(
+              "h-3.5 w-3.5 animate-pulse",
+              isDarkTheme ? "text-purple-400" : "text-purple-600"
+            )} />
+            <span className={cn(
+              "text-xs",
+              isDarkTheme ? "text-zinc-400" : "text-zinc-600"
+            )}>
+              {isStreaming ? "Generating..." : "Revealing..."}
+            </span>
+            {isAnimating && !isStreaming && (
+              <button
+                onClick={handleSkipAnimation}
+                className={cn(
+                  "ml-auto text-xs transition-colors",
+                  isDarkTheme 
+                    ? "text-zinc-500 hover:text-zinc-300" 
+                    : "text-zinc-500 hover:text-zinc-700"
+                )}
+              >
+                Skip
+              </button>
+            )}
+          </>
+        )}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={cn(
+            "ml-auto p-1 rounded-md transition-all duration-200",
+            isDarkTheme
+              ? "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+              : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
+          )}
+          title={isCollapsed ? "Expand" : "Collapse"}
+          aria-label={isCollapsed ? "Expand" : "Collapse"}
+        >
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
+      {/* Content area with smooth height transition */}
+      {!isCollapsed && (
+        <div
+          ref={contentRef}
+          className={cn(
+            "px-4 py-3 overflow-y-auto",
+            "transition-all duration-200 ease-out",
+            "scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent"
+          )}
+          style={{ maxHeight: '400px' }}
+        >
+          {!displayedContent && isStreaming ? (
+            <LoadingSkeleton isDarkTheme={isDarkTheme} />
+          ) : (
+            <div className="relative">
+              <Markdown className={cn(
+                "text-sm",
+                isDarkTheme ? "text-zinc-200" : "text-zinc-900",
+                "prose prose-sm max-w-none",
+                isDarkTheme 
+                  ? "prose-invert prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-100 prose-strong:text-white prose-code:text-zinc-100"
+                  : "prose-zinc prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900"
+              )}>
+                {displayedContent}
+              </Markdown>
+              {(isAnimating || isStreaming) && displayedContent && (
+              <StreamingCursor isDarkTheme={isDarkTheme} />
+            )}
+            </div>
           )}
         </div>
       )}
 
-      {/* Content area with smooth height transition */}
-      <div
-        ref={contentRef}
-        className={cn(
-          "px-4 py-3 max-h-[400px] overflow-y-auto",
-          "transition-all duration-200 ease-out"
-        )}
-      >
-        {!displayedContent && isStreaming ? (
-          <LoadingSkeleton />
-        ) : (
-          <div className="relative">
-            <Markdown className="text-sm text-zinc-200">
-              {displayedContent}
-            </Markdown>
-            {(isAnimating || isStreaming) && displayedContent && (
-              <StreamingCursor />
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Actions bar with fade-in when complete */}
       <div
         className={cn(
-          "flex items-center justify-between gap-2 border-t border-zinc-700/50 px-3 py-2",
+          "flex items-center justify-between gap-2 border-t px-3 py-2",
           "transition-all duration-300",
+          isDarkTheme ? "border-zinc-700/50" : "border-zinc-200/50",
           isComplete ? "opacity-100" : "opacity-50"
         )}
       >
@@ -202,15 +292,20 @@ export function TextSelectionOutput({
             disabled={!isComplete}
             className={cn(
               "h-7 px-2 text-xs transition-all duration-200",
-              "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800",
+              isDarkTheme
+                ? "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100",
               !isComplete && "cursor-not-allowed"
             )}
             aria-label="Copy"
           >
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5 mr-1 text-green-400" />
-                <span className="text-green-400">Copied</span>
+                <Check className={cn(
+                  "h-3.5 w-3.5 mr-1",
+                  isDarkTheme ? "text-green-400" : "text-green-600"
+                )} />
+                <span className={isDarkTheme ? "text-green-400" : "text-green-600"}>Copied</span>
               </>
             ) : (
               <>
@@ -229,8 +324,12 @@ export function TextSelectionOutput({
               className={cn(
                 "h-7 px-3 text-xs rounded-md transition-all duration-200",
                 isComplete
-                  ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
-                  : "bg-zinc-700 text-zinc-500 cursor-not-allowed",
+                  ? isDarkTheme
+                    ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
+                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-md hover:scale-105"
+                  : isDarkTheme
+                    ? "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                    : "bg-zinc-200 text-zinc-400 cursor-not-allowed",
               )}
               aria-label="Insert"
             >

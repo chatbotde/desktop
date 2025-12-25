@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, Monitor, Layers, Square, Circle, X, GripVertical, AudioWaveform, Minus, FileText, Sparkles, Loader2 } from "lucide-react"
+import { Mic, Monitor, Layers, Square, X, FileText, Sparkles, Loader2, Pause, Play, GripVertical } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { getThemeClasses, getHoverClass } from "@/features/prompt"
 import {
@@ -24,7 +24,7 @@ interface AudioRecorderPillProps {
 
 export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComplete, onTranscriptionUpdate }: AudioRecorderPillProps) {
     const [isRecording, setIsRecording] = useState(false)
-    const [isCollapsed, setIsCollapsed] = useState(false)
+    const [isPaused, setIsPaused] = useState(false)
     const [source, setSource] = useState<'mic' | 'system' | 'both'>('mic')
     const [recordingDuration, setRecordingDuration] = useState(0)
     const [transcriptionText, setTranscriptionText] = useState('')
@@ -38,6 +38,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Transcription service
     const transcriptionServiceRef = useRef<IStreamingTranscriptionService | null>(null)
+    const transcriptionStreamRef = useRef<MediaStream | null>(null)
 
     // Refs for recording
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -48,14 +49,32 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     const destinationNodeRef = useRef<MediaStreamAudioDestinationNode | null>(null)
     const chunksRef = useRef<Blob[]>([])
     const durationIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const recordingStartTimeRef = useRef<number>(0)
+    const pausedTimeRef = useRef<number>(0)
+    const pauseStartTimeRef = useRef<number>(0)
+    const isPausedRef = useRef<boolean>(false)
 
-    // Initial position bottom-rightish
-    const [position, setPosition] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 300 })
+    // Initial position left side
+    const [position, setPosition] = useState({ x: 20, y: window.innerHeight / 2 - 100 })
+    const containerRef = useRef<HTMLDivElement>(null)
     const cardRef = useRef<HTMLDivElement>(null)
-    const { handleDragMouseDown } = useDraggable(setPosition, cardRef)
+    const { handleDragMouseDown } = useDraggable(setPosition, containerRef)
 
     const themeClasses = getThemeClasses(isDarkTheme)
     const hoverClass = getHoverClass(isDarkTheme)
+
+    // Format duration from seconds to readable format (HH:MM:SS or MM:SS)
+    const formatDuration = useCallback((seconds: number): string => {
+        const hours = Math.floor(seconds / 3600)
+        const minutes = Math.floor((seconds % 3600) / 60)
+        const secs = seconds % 60
+
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        } else {
+            return `${minutes}:${secs.toString().padStart(2, '0')}`
+        }
+    }, [])
 
     // Get supported MIME type for audio recording
     const getSupportedMimeType = useCallback(() => {
@@ -86,6 +105,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
             }
             transcriptionServiceRef.current = null
         }
+        transcriptionStreamRef.current = null
         setIsTranscribing(false)
         setTranscriptionText('')
 
@@ -124,6 +144,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
         chunksRef.current = []
         setRecordingDuration(0)
+        setIsPaused(false)
     }, [])
 
     // Start recording
@@ -281,9 +302,16 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
             mediaRecorderRef.current = recorder
 
             // Start duration timer
-            const startTime = Date.now()
+            recordingStartTimeRef.current = Date.now()
+            pausedTimeRef.current = 0
+            pauseStartTimeRef.current = 0
+            isPausedRef.current = false
             durationIntervalRef.current = setInterval(() => {
-                setRecordingDuration(Math.floor((Date.now() - startTime) / 1000))
+                if (!isPausedRef.current) {
+                    const elapsed = Date.now() - recordingStartTimeRef.current - pausedTimeRef.current
+                    setRecordingDuration(Math.floor(elapsed / 1000))
+                }
+                // When paused, don't update the duration - it stays at the last value
             }, 1000)
 
             // Start real-time transcription if available
@@ -292,6 +320,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                     console.log('[AudioRecorderPill] Starting real-time transcription...')
                     const service = createStreamingService()
                     transcriptionServiceRef.current = service
+                    transcriptionStreamRef.current = finalStream
                     // Don't set isTranscribing to true yet - wait for connection confirmation
                     setIsTranscribing(false)
 
@@ -362,7 +391,79 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
             alert(`Failed to start recording: ${error instanceof Error ? error.message : String(error)}`)
             cleanup()
         }
-    }, [source, getSupportedMimeType, onRecordingComplete, cleanup])
+    }, [source, getSupportedMimeType, onRecordingComplete, cleanup, showTranscription, onTranscriptionUpdate])
+
+    // Pause recording
+    const pauseRecording = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.pause()
+            pauseStartTimeRef.current = Date.now()
+            isPausedRef.current = true
+            setIsPaused(true)
+            // Pause transcription if active
+            if (transcriptionServiceRef.current && transcriptionServiceRef.current.isStreaming()) {
+                transcriptionServiceRef.current.stop().catch(console.error)
+            }
+        }
+    }, [])
+
+    // Resume recording
+    const resumeRecording = useCallback(async () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+            mediaRecorderRef.current.resume()
+            // Update paused time before resuming - add the duration of this pause
+            const pauseDuration = Date.now() - pauseStartTimeRef.current
+            pausedTimeRef.current += pauseDuration
+            isPausedRef.current = false
+            setIsPaused(false)
+            // Immediately update the duration display
+            const elapsed = Date.now() - recordingStartTimeRef.current - pausedTimeRef.current
+            setRecordingDuration(Math.floor(elapsed / 1000))
+            // Resume transcription if needed
+            if (showTranscription && isAssemblyAIConfigured() && transcriptionStreamRef.current) {
+                try {
+                    const service = createStreamingService()
+                    transcriptionServiceRef.current = service
+                    await service.start(
+                        transcriptionStreamRef.current,
+                        {
+                            sampleRate: 16000,
+                            punctuate: true,
+                            formatText: true,
+                        },
+                        (event: TranscriptionEvent) => {
+                            setTimeout(() => {
+                                if (event.type === 'partial') {
+                                    if (event.text && event.text.trim()) {
+                                        setPartialText(event.text)
+                                        onTranscriptionUpdate?.(event.text, false)
+                                    }
+                                } else if (event.type === 'final') {
+                                    if (event.text && event.text.trim()) {
+                                        setTranscriptionText((prev) => {
+                                            const newText = prev ? `${prev} ${event.text}`.trim() : (event.text || '').trim()
+                                            return newText
+                                        })
+                                        setPartialText('')
+                                        onTranscriptionUpdate?.(event.text, true)
+                                    }
+                                } else if (event.type === 'connected') {
+                                    setIsTranscribing(true)
+                                } else if (event.type === 'error') {
+                                    setIsTranscribing(false)
+                                } else if (event.type === 'disconnected') {
+                                    setIsTranscribing(false)
+                                    setPartialText('')
+                                }
+                            }, 0)
+                        }
+                    )
+                } catch (error) {
+                    console.error('Failed to resume transcription:', error)
+                }
+            }
+        }
+    }, [showTranscription, onTranscriptionUpdate])
 
     // Stop recording
     const stopRecording = useCallback(async () => {
@@ -372,15 +473,15 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
             await cleanup()
         }
         setIsRecording(false)
+        setIsPaused(false)
     }, [cleanup])
 
-    const handleToggleRecord = useCallback(() => {
-        if (isRecording) {
-            stopRecording()
-        } else {
-            startRecording()
-        }
-    }, [isRecording, startRecording, stopRecording])
+    // Handle source button click - starts recording immediately
+    const handleSourceClick = useCallback(async (selectedSource: 'mic' | 'system' | 'both') => {
+        if (isRecording) return
+        setSource(selectedSource)
+        await startRecording()
+    }, [isRecording, startRecording])
 
     // Cleanup on unmount
     useEffect(() => {
@@ -412,7 +513,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Adjust initial position on mount to be safe
     useEffect(() => {
-        setPosition({ x: window.innerWidth - 80, y: window.innerHeight - 350 })
+        setPosition({ x: 20, y: window.innerHeight / 2 - 100 })
     }, [])
 
     const handleGenerateFromLiveTranscription = useCallback(async () => {
@@ -465,230 +566,230 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         }
     }, [aiSuggestion])
 
-    if (isCollapsed) {
-        return (
-            <div
-                ref={cardRef}
-                className={cn(
-                    "relative flex items-center justify-center p-4 rounded-full border shadow-lg fixed z-50 cursor-move transition-all duration-300",
-                    themeClasses.containerBorder
-                )}
-                style={{
-                    backgroundColor: themeClasses.containerBg,
-                    left: `${position.x}px`,
-                    top: `${position.y}px`,
-                }}
-                onMouseDown={handleDragMouseDown}
-                onDoubleClick={() => setIsCollapsed(false)}
-            >
-                {/* Wave animation effect */}
-                <div className={cn(
-                    "absolute inset-0 rounded-full animate-ping",
-                    isRecording ? "bg-red-500/20" : "bg-blue-500/20"
-                )} />
-
-                <div className="relative z-10 animate-pulse">
-                    <AudioWaveform className={cn(
-                        "size-6",
-                        isRecording ? "text-red-500" : "text-blue-500"
-                    )} />
-                </div>
-
-                {isRecording && recordingDuration > 0 && (
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-zinc-400 whitespace-nowrap">
-                        {recordingDuration}s
-                    </div>
-                )}
-            </div>
-        )
-    }
-
     return (
         <div
-            ref={cardRef}
-            className={cn(
-                "flex flex-col items-center gap-2 p-2 rounded-full border shadow-lg fixed z-50 transition-all duration-300",
-                themeClasses.containerBorder
-            )}
+            ref={containerRef}
+            className="fixed z-[50] flex flex-row items-center gap-2"
             style={{
-                backgroundColor: themeClasses.containerBg,
                 left: `${position.x}px`,
                 top: `${position.y}px`,
             }}
         >
-            <div
-                className={cn("cursor-move p-1 rounded-full", hoverClass)}
-                onMouseDown={handleDragMouseDown}
-            >
-                <GripVertical className={cn("size-4", themeClasses.icon)} />
-            </div>
-
-            <div className={cn("w-4 h-px my-0", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")} />
-
+            {/* Drag handle - outside the main UI */}
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <button
-                        onClick={() => {
-                            if (!isRecording) {
-                                console.log('[AudioRecorderPill] Source changed to: mic')
-                                setSource('mic')
-                            }
-                        }}
-                        disabled={isRecording}
+                    <div
                         className={cn(
-                            "p-2 rounded-full transition-colors",
-                            source === 'mic'
-                                ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
-                                : hoverClass,
-                            isRecording && "opacity-50 cursor-not-allowed"
-                        )}
-                    >
-                        <Mic className={cn(
-                            "size-4",
-                            source === 'mic' ? "text-blue-500" : themeClasses.icon
-                        )} />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    {source === 'mic' ? '✓ Microphone' : 'Microphone'}
-                </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        onClick={() => {
-                            if (!isRecording) {
-                                console.log('[AudioRecorderPill] Source changed to: system')
-                                setSource('system')
-                            }
-                        }}
-                        disabled={isRecording}
-                        className={cn(
-                            "p-2 rounded-full transition-colors",
-                            source === 'system'
-                                ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
-                                : hoverClass,
-                            isRecording && "opacity-50 cursor-not-allowed"
-                        )}
-                    >
-                        <Monitor className={cn(
-                            "size-4",
-                            source === 'system' ? "text-blue-500" : themeClasses.icon
-                        )} />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    {source === 'system' ? '✓ System Audio' : 'System Audio'}
-                </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        onClick={() => {
-                            if (!isRecording) {
-                                console.log('[AudioRecorderPill] Source changed to: both')
-                                setSource('both')
-                            }
-                        }}
-                        disabled={isRecording}
-                        className={cn(
-                            "p-2 rounded-full transition-colors",
-                            source === 'both'
-                                ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
-                                : hoverClass,
-                            isRecording && "opacity-50 cursor-not-allowed"
-                        )}
-                    >
-                        <Layers className={cn(
-                            "size-4",
-                            source === 'both' ? "text-blue-500" : themeClasses.icon
-                        )} />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                    {source === 'both' ? '✓ Both (Mic + System)' : 'Both (Mic + System)'}
-                </TooltipContent>
-            </Tooltip>
-
-            <div className={cn("w-4 h-px my-0", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")} />
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        onClick={handleToggleRecord}
-                        className={cn(
-                            "p-2 rounded-full transition-colors",
+                            "p-1.5 rounded-full border shadow-lg transition-colors flex items-center justify-center",
+                            themeClasses.containerBorder,
                             hoverClass
                         )}
+                        style={{
+                            backgroundColor: themeClasses.containerBg,
+                        }}
+                        onMouseDown={handleDragMouseDown}
                     >
-                        {isRecording ? (
-                            <Square className="size-4 text-red-500 fill-current" />
-                        ) : (
-                            <Circle className="size-4 text-red-500" />
-                        )}
-                    </button>
+                        <GripVertical className={cn("size-3.5", themeClasses.icon)} />
+                    </div>
                 </TooltipTrigger>
-                <TooltipContent side="left">
-                    {isRecording
-                        ? `Stop Recording (${recordingDuration}s) - ${source === 'mic' ? 'Microphone' : source === 'system' ? 'System Audio' : 'Both'}`
-                        : `Start Recording - ${source === 'mic' ? 'Microphone' : source === 'system' ? 'System Audio' : 'Both'}`
-                    }
+                <TooltipContent 
+                    side="top" 
+                    className={cn(
+                        isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                    )}
+                >
+                    Drag to move
                 </TooltipContent>
             </Tooltip>
 
-            {isRecording && (
-                <div className="text-xs text-center mt-1 space-y-0.5">
+            {/* Main UI */}
+            <div
+                ref={cardRef}
+                className={cn(
+                    "flex flex-row items-center gap-1.5 p-1.5 rounded-full border shadow-lg transition-all duration-300",
+                    themeClasses.containerBorder
+                )}
+                style={{
+                    backgroundColor: themeClasses.containerBg,
+                }}
+            >
+            {!isRecording ? (
+                <>
+                    {/* Source selection buttons - clicking starts recording */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => handleSourceClick('mic')}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    source === 'mic'
+                                        ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
+                                        : hoverClass
+                                )}
+                            >
+                                <Mic className={cn(
+                                    "size-3.5",
+                                    source === 'mic' ? "text-blue-500" : themeClasses.icon
+                                )} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            Start Recording with Microphone
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => handleSourceClick('system')}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    source === 'system'
+                                        ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
+                                        : hoverClass
+                                )}
+                            >
+                                <Monitor className={cn(
+                                    "size-3.5",
+                                    source === 'system' ? "text-blue-500" : themeClasses.icon
+                                )} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            Start Recording with System Audio
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => handleSourceClick('both')}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    source === 'both'
+                                        ? (isDarkTheme ? "bg-blue-600/30 border-2 border-blue-500" : "bg-blue-100 border-2 border-blue-500")
+                                        : hoverClass
+                                )}
+                            >
+                                <Layers className={cn(
+                                    "size-3.5",
+                                    source === 'both' ? "text-blue-500" : themeClasses.icon
+                                )} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            Start Recording with Both (Mic + System)
+                        </TooltipContent>
+                    </Tooltip>
+                </>
+            ) : (
+                <>
+                    {/* Time display when recording */}
                     <div className={cn(
-                        "font-semibold",
-                        isDarkTheme ? "text-red-400" : "text-red-600"
+                        "px-2.5 py-1 rounded-full text-xs font-semibold",
+                        isPaused 
+                            ? (isDarkTheme ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-700")
+                            : (isDarkTheme ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-700")
                     )}>
-                        {recordingDuration}s
+                        {formatDuration(recordingDuration)}
                     </div>
-                    <div className={cn("text-xs", themeClasses.icon)}>
-                        {source === 'mic' ? 'Mic' : source === 'system' ? 'System' : 'Both'}
-                    </div>
-                    {isTranscribing && (
-                        <div className={cn("text-xs flex items-center justify-center gap-1", themeClasses.icon)}>
-                            <div className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Transcribing
-                        </div>
-                    )}
-                </div>
+
+                    {/* Pause/Resume and Stop buttons when recording */}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={isPaused ? resumeRecording : pauseRecording}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    hoverClass
+                                )}
+                            >
+                                {isPaused ? (
+                                    <Play className="size-3.5 text-yellow-500 fill-current" />
+                                ) : (
+                                    <Pause className="size-3.5 text-yellow-500 fill-current" />
+                                )}
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            {isPaused ? 'Resume Recording' : 'Pause Recording'}
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={stopRecording}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    hoverClass
+                                )}
+                            >
+                                <Square className="size-3.5 text-red-500 fill-current" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            Stop Recording
+                        </TooltipContent>
+                    </Tooltip>
+                </>
             )}
 
-            <div className={cn("w-4 h-px my-0", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")} />
-
-            {/* Transcription Toggle */}
-            {isAssemblyAIConfigured() && (
+            {/* Transcription Toggle - only show when not recording */}
+            {!isRecording && isAssemblyAIConfigured() && (
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             onClick={() => {
-                                if (!isRecording) {
-                                    setShowTranscription(!showTranscription)
-                                }
+                                setShowTranscription(!showTranscription)
                             }}
-                            disabled={isRecording}
                             className={cn(
-                                "p-2 rounded-full transition-colors",
+                                "p-1.5 rounded-full transition-colors",
                                 showTranscription
                                     ? (isDarkTheme ? "bg-green-600/30 border-2 border-green-500" : "bg-green-100 border-2 border-green-500")
-                                    : hoverClass,
-                                isRecording && "opacity-50 cursor-not-allowed"
+                                    : hoverClass
                             )}
                         >
                             <FileText className={cn(
-                                "size-4",
+                                "size-3.5",
                                 showTranscription ? "text-green-500" : themeClasses.icon
                             )} />
                         </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">
-                        {showTranscription ? '✓ Real-time Transcription' : 'Enable Real-time Transcription'}
-                    </TooltipContent>
-                </Tooltip>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            {showTranscription ? '✓ Real-time Transcription' : 'Enable Real-time Transcription'}
+                        </TooltipContent>
+                    </Tooltip>
             )}
 
             {/* Transcription Display */}
@@ -698,7 +799,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                     className={cn(
                         "fixed bottom-24 left-1/2 -translate-x-1/2",
                         "w-full max-w-2xl px-4",
-                        "z-[100]"
+                        "z-[50]"
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -866,37 +967,33 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                 </div>
             )}
 
-            <div className={cn("w-4 h-px my-0", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")} />
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        onClick={() => setIsCollapsed(true)}
-                        className={cn(
-                            "p-2 rounded-full transition-colors",
-                            hoverClass
-                        )}
-                    >
-                        <Minus className={cn("size-4", themeClasses.icon)} />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">Minimize</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <button
-                        onClick={onClose}
-                        className={cn(
-                            "p-2 rounded-full transition-colors",
-                            hoverClass
-                        )}
-                    >
-                        <X className={cn("size-4", themeClasses.icon)} />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">Close</TooltipContent>
-            </Tooltip>
+            {/* Close button - only show when not recording */}
+            {!isRecording && (
+                <>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={onClose}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-colors",
+                                    hoverClass
+                                )}
+                            >
+                                <X className={cn("size-3.5", themeClasses.icon)} />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                            side="top"
+                            className={cn(
+                                isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                            )}
+                        >
+                            Close
+                        </TooltipContent>
+                    </Tooltip>
+                </>
+            )}
+            </div>
         </div>
     )
 }

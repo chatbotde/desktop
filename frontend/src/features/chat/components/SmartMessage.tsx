@@ -70,6 +70,14 @@ export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
               "[&_pre]:my-3 [&_pre]:rounded-lg",
               "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
               "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
+              // Math equation styling - allow multi-line rendering
+              "[&_.math-block]:my-4 [&_.math-block]:w-full [&_.math-block]:overflow-x-auto [&_.math-block]:overflow-y-visible",
+              "[&_.math-inline]:inline [&_.math-inline]:align-middle",
+              "[&_.katex]:!text-current [&_.katex-display]:!block [&_.katex-display]:!w-full",
+              "[&_.katex-display_.katex]:!max-w-full [&_.katex-display_.katex]:!overflow-x-auto",
+              role === 'assistant' 
+                ? "[&_.katex]:!text-white [&_.math-block]:bg-white/5 [&_.math-inline]:bg-white/5"
+                : "[&_.katex]:!text-white [&_.math-block]:bg-white/10 [&_.math-inline]:bg-white/10",
               // Force white text for assistant messages on dark background
               role === 'assistant' && "!text-white [&_*]:!text-white [&_p]:!text-white [&_span]:!text-white [&_div]:!text-white [&_strong]:!text-white [&_code]:!text-white"
             )}

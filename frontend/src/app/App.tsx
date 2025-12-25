@@ -215,6 +215,7 @@ function App() {
       <TextSelectionPopup
         onSendMessage={handleSendMessage}
         onAddToPrompt={textSelectionActions.handleAddSelectedTextToPrompt}
+        isDarkTheme={uiState.isDarkTheme}
       />
       {/* Right Transparent Panel - Above everything */}
       <RightTransparent
@@ -224,7 +225,6 @@ function App() {
       />
       {outputWindowEnabled && (
         <OutputMessages
-          onThemeChange={uiState.setIsDarkTheme}
           messages={messageManager.outputMessages}
           isWaitingForResponse={messageManager.isWaitingForResponse}
           onClearMessages={handleClearMessages}
@@ -283,7 +283,7 @@ function App() {
 
       {/* Prompt Input at Bottom */}
       <div
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
+        className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-[1001]"
         data-no-clickthrough
       >
         <PromptInputWithActions
@@ -294,7 +294,6 @@ function App() {
           onStop={handleStop}
           onAudioClick={() => uiState.setShowAudioRecorder(prev => !prev)}
           onMoreClick={() => uiState.setShowVideoScroll(true)}
-          onThemeChange={uiState.setIsDarkTheme}
           isOutputVisible={uiState.isOutputVisible}
           onToggleOutput={() => uiState.setIsOutputVisible(!uiState.isOutputVisible)}
         />

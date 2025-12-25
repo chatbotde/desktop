@@ -164,7 +164,7 @@ export function SystemPromptSelector() {
           right: 0;
           bottom: 0;
           background: rgba(0, 0, 0, 0.5);
-          z-index: 999;
+          z-index: 49;
         }
 
         .prompt-selector-dropdown {
@@ -178,7 +178,7 @@ export function SystemPromptSelector() {
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          z-index: 1000;
+          z-index: 50;
           backdrop-filter: blur(12px);
         }
 

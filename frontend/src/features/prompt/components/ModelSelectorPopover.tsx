@@ -92,7 +92,7 @@ export function ModelSelectorPopover({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-60 p-0 border",
+          "w-60 p-0 border z-[1002]",
           isDarkTheme ? "border-zinc-700" : "border-zinc-200"
         )}
         style={{ backgroundColor: themeClasses.containerBg }}

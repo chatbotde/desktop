@@ -190,34 +190,196 @@
 }
 
 /* ============================================
-   Math & KaTeX Styling
+   Math & KaTeX Styling - Enhanced for Multi-line Rendering
    ============================================ */
 
+/* Base KaTeX styles - Enhanced for better rendering */
 .katex {
-  font-size: 1.1em;
+  font-size: 1.15em;
   color: #f8f8f2;
+  line-height: 1.8;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Inline math styling - allow natural wrapping */
+.katex:not(.katex-display) {
+  font-size: 1.05em;
+  vertical-align: baseline;
+  line-height: 1.2;
+  padding: 0.1em 0;
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Block/Display math styling - allow multi-line */
 .katex-display {
-  margin: 1.5em 0;
+  margin: 1.75em 0;
   text-align: center;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0.5em 0;
+  position: relative;
+  width: 100%;
+  display: block;
 }
 
 .katex-display .katex {
-  font-size: 1.2em;
+  font-size: 1.35em;
+  display: inline-block;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
+/* Better spacing for math elements */
+.katex .base {
+  margin: 0.2em 0;
+}
+
+.katex .strut {
+  display: inline-block;
+}
+
+/* Improve fractions rendering - better vertical spacing */
+.katex .frac-line {
+  border-bottom-width: 0.08em;
+}
+
+.katex .frac {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+  margin: 0.1em 0.2em;
+}
+
+.katex .frac > span {
+  display: block;
+  padding: 0.1em 0;
+}
+
+/* Better superscript/subscript */
+.katex .msupsub {
+  text-align: left;
+}
+
+/* Improve spacing around operators */
+.katex .mop {
+  margin: 0 0.2em;
+}
+
+/* Better integral and summation symbols */
+.katex .mop.op-symbol {
+  margin: 0 0.15em;
+}
+
+/* Block math container - allow natural height */
 .math-block {
   background: rgba(68, 71, 90, 0.3);
   border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
   border: 1px solid rgba(68, 71, 90, 0.5);
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  width: 100%;
+  min-height: auto;
 }
 
+.math-block-wrapper {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  text-align: center;
+}
+
+/* Inline math styles - allow wrapping */
 .math-inline {
-  padding: 0.2em 0.4em;
-  background: rgba(68, 71, 90, 0.2);
+  padding: 0.15em 0.3em;
+  background: rgba(68, 71, 90, 0.25);
   border-radius: 4px;
+  margin: 0 0.15em;
+  display: inline;
+  vertical-align: baseline;
+  border: 1px solid rgba(68, 71, 90, 0.3);
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Math error display */
+.math-block-error {
+  font-family: 'Courier New', monospace;
+}
+
+/* Better rendering for complex expressions */
+.katex .vlist-t {
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+.katex .vlist-s {
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+/* Improve matrix and array rendering */
+.katex .arraycolsep {
+  display: inline-block;
+}
+
+.katex .delimsizing {
+  font-size: 1.2em;
+}
+
+/* Responsive math - allow natural sizing */
+@media (max-width: 768px) {
+  .katex {
+    font-size: 1em;
+  }
+  
+  .katex-display .katex {
+    font-size: 1.1em;
+  }
+  
+  .math-block {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  
+  .katex .frac {
+    font-size: 0.9em;
+  }
+}
+
+/* Theme-aware math colors (for light mode support) */
+:root {
+  --katex-text-color: #f8f8f2;
+  --math-bg: rgba(68, 71, 90, 0.3);
+  --math-border: rgba(68, 71, 90, 0.5);
+  --math-inline-bg: rgba(68, 71, 90, 0.25);
+}
+
+/* Light mode overrides (if needed) */
+.light .katex,
+[data-theme="light"] .katex {
+  color: #1a1a1a;
+}
+
+.light .math-block,
+[data-theme="light"] .math-block {
+  background: rgba(200, 200, 220, 0.2);
+  border-color: rgba(200, 200, 220, 0.4);
+}
+
+.light .math-inline,
+[data-theme="light"] .math-inline {
+  background: rgba(200, 200, 220, 0.15);
+  border-color: rgba(200, 200, 220, 0.3);
   border: 1px solid rgba(68, 71, 90, 0.3);
 }

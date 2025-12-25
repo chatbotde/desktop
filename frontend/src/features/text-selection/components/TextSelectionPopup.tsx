@@ -8,6 +8,7 @@ import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { cn } from '@/lib/utils'
 
 interface SelectionData {
   text: string
@@ -24,9 +25,11 @@ interface SelectionData {
 interface TextSelectionPopupProps {
   onSendMessage: (message: string) => Promise<void>
   onAddToPrompt?: (text: string) => void
+  /** Whether to use dark theme styling */
+  isDarkTheme?: boolean
 }
 
-export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelectionPopupProps) {
+export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme = true }: TextSelectionPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectionData, setSelectionData] = useState<SelectionData | null>(null)
@@ -90,11 +93,33 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
       setPrompt('')
       setIsExpanded(false) // Reset to pill mode for new selection
 
-      // Initial rough positioning - will be refined by useLayoutEffect
-      const mouseX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? window.innerWidth / 2
-      const mouseY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? window.innerHeight / 2
+      // Initial positioning - prioritize cursor/mouse position for better UX
+      // Use mousePosEnd (cursor at end of selection) as primary anchor, then mousePosStart, then selection bounds
+      let anchorX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? data.endBottom?.x ?? data.startTop?.x
+      let anchorY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? data.endBottom?.y ?? data.startTop?.y
 
-      setPosition({ top: mouseY + 15, left: mouseX })
+      // Validate coordinates are reasonable (within viewport bounds)
+      const isValidCoordinate = (val: number | undefined): boolean => {
+        return val !== undefined && 
+               !isNaN(val) && 
+               isFinite(val) && 
+               val >= 0 && 
+               val <= window.innerWidth + 1000 // Allow some margin for multi-monitor setups
+      }
+
+      // Only use center as last resort if no valid coordinates are available
+      if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
+        anchorX = window.innerWidth / 2
+        anchorY = window.innerHeight / 2
+      }
+
+      // Safely set the position if anchorX and anchorY are valid numbers
+      if (typeof anchorX === 'number' && typeof anchorY === 'number') {
+        setPosition({ top: anchorY + 15, left: anchorX })
+      } else {
+        // Fallback to center of viewport
+        setPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 })
+      }
       setIsVisible(true)
 
       // Start auto-hide timer for new selection
@@ -117,7 +142,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     }
   }, [isFeatureEnabled, stopAutoHide])
 
-  // Smart positioning to prevent overflow
+  // Smart positioning to prevent overflow and position near cursor
   React.useLayoutEffect(() => {
     if (!isVisible || !popupRef.current || !selectionData) return
 
@@ -125,47 +150,91 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
     const padding = 20
+    const offset = 15 // Distance from cursor
 
-    // Determine anchors
-    // Default to mouse positions if structured text coordinates aren't available
-    const mouseX = selectionData.mousePosEnd?.x ?? selectionData.mousePosStart?.x ?? viewportWidth / 2
-    const mouseY = selectionData.mousePosEnd?.y ?? selectionData.mousePosStart?.y ?? viewportHeight / 2
+    // Prioritize cursor/mouse position for better UX - cursor is where user's attention is
+    // Use mousePosEnd (cursor at end of selection) as primary anchor point
+    let anchorX = selectionData.mousePosEnd?.x ?? selectionData.mousePosStart?.x
+    let anchorY = selectionData.mousePosEnd?.y ?? selectionData.mousePosStart?.y
 
-    // Anchor points for "Below" and "Above" placement
-    // We prefer using the selection bounds if available to avoid covering text
-    const anchorBottomY = selectionData.endBottom?.y ?? mouseY
-    const anchorTopY = selectionData.startTop?.y ?? mouseY
-    const anchorX = selectionData.endBottom?.x ?? selectionData.startTop?.x ?? mouseX
+    // Fallback to selection bounds if mouse positions aren't available
+    if (anchorX === undefined || anchorY === undefined) {
+      anchorX = selectionData.endBottom?.x ?? selectionData.startTop?.x
+      anchorY = selectionData.endBottom?.y ?? selectionData.startTop?.y
+    }
 
-    // Candidates
-    const posBelow = anchorBottomY + 15
-    const posAbove = anchorTopY - rect.height - 15
+    // Validate coordinates are reasonable (within viewport bounds)
+    // Check if coordinates are valid numbers and within reasonable bounds
+    const isValidCoordinate = (val: number | undefined): boolean => {
+      return val !== undefined && 
+             !isNaN(val) && 
+             isFinite(val) && 
+             val >= 0 && 
+             val <= viewportWidth + 1000 // Allow some margin for multi-monitor setups
+    }
+
+    // Only use viewport center as absolute last resort if coordinates are invalid
+    if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
+      // If coordinates are invalid, try to get from current position if it's reasonable
+      if (isValidCoordinate(position.left) && isValidCoordinate(position.top)) {
+        anchorX = position.left
+        anchorY = position.top
+      } else {
+        // Last resort: use viewport center
+        anchorX = viewportWidth / 2
+        anchorY = viewportHeight / 2
+      }
+    }
+
+    // Get top anchor for "above" placement calculation
+    const anchorTopY = selectionData.startTop?.y ?? anchorY
+
+    // Calculate position candidates, guarding against possibly undefined anchor values
+    const safeAnchorY = anchorY ?? 0
+    const safeAnchorTopY = anchorTopY ?? 0
+
+    const posBelow = safeAnchorY + offset
+    const posAbove = safeAnchorTopY - rect.height - offset
 
     let finalTop = posBelow
-    let finalLeft = anchorX
+    let finalLeft = anchorX ?? 0
 
-    // Vertical Positioning Logic
+
+    // Vertical Positioning Logic - prefer below, but place above if needed
     const spaceBelow = viewportHeight - posBelow
     const spaceAbove = anchorTopY
 
-    // If it doesn't fit below, or if we have significantly more space above and it's tight below
+    // If it doesn't fit below, try above
     if (posBelow + rect.height > viewportHeight - padding) {
-      if (spaceAbove > rect.height + padding || spaceAbove > spaceBelow) {
-        // Place above
+      // Ensure spaceAbove is defined and a valid number
+      const safeSpaceAbove = spaceAbove ?? 0
+      if (safeSpaceAbove > rect.height + padding || safeSpaceAbove > spaceBelow) {
+        // Place above the selection
         finalTop = posAbove
       } else {
-        // If it fits nowhere, clamp to bottom
+        // If it fits nowhere, clamp to bottom of viewport
         finalTop = viewportHeight - rect.height - padding
       }
     }
 
-    // Constraint Vertical top edge
+    // Ensure we don't go above viewport
     if (finalTop < padding) {
       finalTop = padding
     }
 
     // Horizontal Positioning Logic
-    // Try to align left edge with anchor, but keep within bounds
+    // Center the popup horizontally relative to the anchor point
+    // For pill mode (collapsed), align left edge with anchor
+    // For expanded mode, center it better
+    if (isExpanded) {
+      // Center the expanded popup on the anchor point, guard against undefined anchorX
+      finalLeft = (anchorX ?? 0) - (rect.width / 2)
+    } else {
+      // For pill mode, align left edge with anchor, guard against undefined anchorX
+      finalLeft = anchorX ?? 0
+    }
+
+    // Keep within horizontal bounds
     if (finalLeft + rect.width > viewportWidth - padding) {
       finalLeft = viewportWidth - rect.width - padding
     }
@@ -174,14 +243,13 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
     }
 
     // Only update if significantly different to avoid loops/jitters
-    // (rounding to reduce sensitivity)
     if (
       Math.abs(finalTop - position.top) > 5 ||
       Math.abs(finalLeft - position.left) > 5
     ) {
       setPosition({ top: finalTop, left: finalLeft })
     }
-  }, [isVisible, isExpanded, generatedOutput, selectionData?.text, position.top, position.left]) // Recalculate when size-affecting state changes
+  }, [isVisible, isExpanded, generatedOutput, selectionData, position.top, position.left]) // Recalculate when size-affecting state changes
 
   // Hide popup if feature is disabled
   useEffect(() => {
@@ -299,45 +367,6 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
   // Don't render if feature is disabled or not visible
   if (!isFeatureEnabled('text-selection') || !isVisible) return null
 
-  if (!isExpanded) {
-    return (
-      <div
-        ref={popupRef}
-        onMouseEnter={stopAutoHide}
-        onMouseLeave={startAutoHide}
-        style={{
-          position: 'absolute',
-          top: position.top,
-          left: position.left,
-          zIndex: 9999,
-          pointerEvents: 'auto',
-        }}
-        className="flex items-center gap-1 p-1 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl backdrop-blur-md transition-all duration-200 ease-out animate-in fade-in zoom-in-95"
-        data-no-clickthrough
-      >
-        <AddToPromptButton
-          onClick={handleAddToPromptSelection}
-          isDarkTheme={true}
-        />
-        <div className="w-px h-4 bg-slate-700/50 mx-0.5" />
-        <ExpandButton
-          isExpanded={false}
-          onClick={() => setIsExpanded(true)}
-          isDarkTheme={true}
-          tooltip="Expand to ask AI"
-        />
-        <div className="w-px h-4 bg-slate-700/50 mx-0.5" />
-        <button
-          onClick={handleClose}
-          className="p-1 px-1.5 rounded-full hover:bg-slate-700/50 text-slate-400 hover:text-red-400 transition-colors"
-          title="Dismiss"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    )
-  }
-
   return (
     <div
       ref={popupRef}
@@ -350,10 +379,64 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
         zIndex: 9999,
         pointerEvents: 'auto',
       }}
-      className="w-[400px] transition-all duration-200 ease-out animate-in fade-in slide-in-from-bottom-2"
+      className="animate-in fade-in zoom-in-95"
       data-no-clickthrough
     >
-      <div className="flex flex-col gap-0">
+      {/* Collapsed state (pill) */}
+      <div
+        className={cn(
+          "flex items-center gap-1 p-1 rounded-full shadow-xl backdrop-blur-md",
+          "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          isExpanded 
+            ? "opacity-0 scale-90 -translate-y-2 pointer-events-none absolute" 
+            : "opacity-100 scale-100 translate-y-0 relative",
+          isDarkTheme
+            ? "bg-slate-900/90 border border-slate-700"
+            : "bg-white/90 border border-slate-200"
+        )}
+      >
+        <AddToPromptButton
+          onClick={handleAddToPromptSelection}
+          isDarkTheme={isDarkTheme}
+        />
+        <div className={cn(
+          "w-px h-4 mx-0.5",
+          isDarkTheme ? "bg-slate-700/50" : "bg-slate-200/50"
+        )} />
+        <ExpandButton
+          isExpanded={false}
+          onClick={() => setIsExpanded(true)}
+          isDarkTheme={isDarkTheme}
+          tooltip="Expand to ask AI"
+        />
+        <div className={cn(
+          "w-px h-4 mx-0.5",
+          isDarkTheme ? "bg-slate-700/50" : "bg-slate-200/50"
+        )} />
+        <button
+          onClick={handleClose}
+          className={cn(
+            "p-1 px-1.5 rounded-full transition-colors",
+            isDarkTheme
+              ? "hover:bg-slate-700/50 text-slate-400 hover:text-red-400"
+              : "hover:bg-slate-100/50 text-slate-600 hover:text-red-500"
+          )}
+          title="Dismiss"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Expanded state */}
+      <div
+        className={cn(
+          "flex flex-col gap-0 w-[400px]",
+          "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          isExpanded 
+            ? "opacity-100 scale-100 translate-y-0 relative" 
+            : "opacity-0 scale-90 translate-y-2 pointer-events-none absolute"
+        )}
+      >
         <TextSelectionInput
           value={prompt}
           onChange={setPrompt}
@@ -363,6 +446,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
           placeholder="Ask about this..."
           isLoading={isLoading}
           isGenerating={isGenerating}
+          isDarkTheme={isDarkTheme}
         />
         {(generatedOutput || isGenerating) && (
           <TextSelectionOutput
@@ -370,6 +454,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt }: TextSelecti
             isStreaming={isGenerating}
             onInsert={handleInsert}
             onCopy={handleCopy}
+            isDarkTheme={isDarkTheme}
           />
         )}
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useIsDark } from '@/shared/providers'
 
 export const useUIState = (outputWindowEnabled: boolean) => {
   const [isInputVisible, setIsInputVisible] = useState(false)
@@ -7,7 +8,8 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [showVideoScroll, setShowVideoScroll] = useState(false)
   const [showAreaScreenshot, setShowAreaScreenshot] = useState(false)
   const [areaScreenshotCallback, setAreaScreenshotCallback] = useState<((area: { x: number; y: number; width: number; height: number }) => void) | null>(null)
-  const [isDarkTheme, setIsDarkTheme] = useState(true)
+  // Use global theme from ThemeProvider instead of local state
+  const isDarkTheme = useIsDark()
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
   const [explanation, setExplanation] = useState<string | undefined>(undefined)
   const [explanationPosition, setExplanationPosition] = useState<{ x: number; y: number } | undefined>(undefined)
@@ -22,13 +24,7 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     }
   }, [outputWindowEnabled, isOutputVisible])
 
-  // Keep shadcn/tailwind theme tokens consistent globally.
-  // Many UI components (Select/Popover/Dialog) rely on `.dark` + CSS variables for correct colors.
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDarkTheme) root.classList.add('dark')
-    else root.classList.remove('dark')
-  }, [isDarkTheme])
+  // Theme is now managed globally by ThemeProvider, no need for local theme management
 
   const clearExplanation = useCallback(() => {
     setExplanation(undefined)
@@ -49,7 +45,6 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     areaScreenshotCallback,
     setAreaScreenshotCallback,
     isDarkTheme,
-    setIsDarkTheme,
     recordedAudio,
     setRecordedAudio,
     explanation,

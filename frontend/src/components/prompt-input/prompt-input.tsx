@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
-
+import { toast } from "sonner"
+import { validateMessage } from '@/lib/ai/capabilities'
+import { getSelectedModel } from '@/lib/ai/model-config'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { X, AlertCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import type { MediaAttachment } from '@/features/chat'
 
@@ -37,6 +42,8 @@ export function PromptInputWithActions({
   const [internalVisible, setInternalVisible] = useState(true)
   const [clipboardItems, setClipboardItems] = useState<string[]>([])
   const prevInputLengthRef = useRef<number>(0)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const inputContainerRef = useRef<HTMLDivElement>(null)
 
   // Convert files to MediaAttachment format
   const convertFilesToAttachments = useCallback(async (filesToConvert: File[]): Promise<MediaAttachment[]> => {
@@ -87,6 +94,11 @@ export function PromptInputWithActions({
     prevInputLengthRef.current = value.length
 
     setInput(value)
+    
+    // Clear validation error when user starts typing
+    if (validationError) {
+      setValidationError(null)
+    }
 
     // Emit typing start event when user starts typing (first character)
     if (value.length === 1 && prevLength === 0) {
@@ -95,18 +107,52 @@ export function PromptInputWithActions({
         detail: { inputValue: value }
       }))
     }
-  }, [])
+  }, [validationError])
 
   const handleSubmit = useCallback(async () => {
     if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
 
-    // Clear input immediately when send is pressed
+    // Prepare message and files
     const messageParts = [...clipboardItems, input].filter(Boolean)
     const messageToSend = messageParts.join("\n\n")
     const filesToSend = [...files]
     const clipboardItemsToSend = [...clipboardItems]
 
-    // Clear input state immediately
+    // Convert files to MediaAttachment format for validation
+    const attachments = filesToSend.length > 0 ? await convertFilesToAttachments(filesToSend) : undefined
+
+    // Check if local model is selected
+    const localModel = unifiedLocalLLMService.getCurrentModel()
+    const cloudModel = getSelectedModel()
+    
+    // Use cloud model for validation (local models typically don't support images)
+    const modelToValidate = cloudModel || null
+
+    // Validate message and attachments before sending
+    // If local model is selected and attachments are present, it likely doesn't support images
+    if (attachments && attachments.length > 0 && localModel) {
+      // Show simple popup above input
+      setValidationError(`${localModel.displayName} doesn't support images`)
+      return // Don't send the message
+    }
+
+    // Validate message (this also checks if model is selected)
+    const validation = validateMessage(messageToSend, attachments, modelToValidate)
+    
+    if (!validation.isValid) {
+      // Get the first error message for simplicity
+      const firstError = validation.errors[0]
+      const errorMessage = firstError?.message || "This model doesn't support the requested capability"
+      
+      // Show simple popup above input
+      setValidationError(errorMessage)
+      return // Don't send the message
+    }
+
+    // Clear validation error if validation passes
+    setValidationError(null)
+
+    // Clear input state only after validation passes
     setInput("")
     prevInputLengthRef.current = 0
     setFiles([])
@@ -118,16 +164,18 @@ export function PromptInputWithActions({
     setIsLoading(true)
 
     try {
-      // Convert files to MediaAttachment format
-      const attachments = filesToSend.length > 0 ? await convertFilesToAttachments(filesToSend) : undefined
-
       if ((messageToSend.trim() || clipboardItemsToSend.length > 0 || attachments) && onSendMessage) {
         const message = messageToSend || (attachments ? "See attached images" : "")
         await onSendMessage(message, attachments)
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      // Could add user-facing error notification here
+      // Show error toast if sending fails
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
+      toast.error('Failed to send message', {
+        description: errorMessage,
+        duration: 4000,
+      })
     } finally {
       setIsLoading(false)
       setIsExpanded(false)
@@ -153,7 +201,11 @@ export function PromptInputWithActions({
 
   const handleRemoveFile = useCallback((index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index))
-  }, [])
+    // Clear validation error when files are removed
+    if (validationError) {
+      setValidationError(null)
+    }
+  }, [validationError])
 
   const handleClipboardItemAdd = useCallback((text: string) => {
     setClipboardItems((prev) => [...prev, text])
@@ -238,6 +290,17 @@ export function PromptInputWithActions({
     return () => window.removeEventListener('prompt-add-files', handler as EventListener)
   }, [handleFilesAdded, setIsVisible])
 
+  // Auto-dismiss validation error after 8 seconds
+  useEffect(() => {
+    if (!validationError) return
+
+    const timer = setTimeout(() => {
+      setValidationError(null)
+    }, 8000)
+
+    return () => clearTimeout(timer)
+  }, [validationError])
+
   // Hidden state - return null (RightTransparent will show the input)
   if (!isVisible) {
     return null
@@ -245,10 +308,48 @@ export function PromptInputWithActions({
 
   return (
     <div
-      className="relative w-full"
+      ref={inputContainerRef}
+      className="relative w-full transition-all duration-300 ease-in-out"
+      style={{ zIndex: 49 }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      {/* Validation Error Popup - appears above the input */}
+      {validationError && (
+        <div
+          className={cn(
+            "fixed z-[60] max-w-sm mx-auto left-1/2 -translate-x-1/2",
+            "animate-in fade-in slide-in-from-bottom-2 duration-200",
+            isExpanded ? "bottom-32" : "bottom-24"
+          )}
+          data-no-clickthrough
+        >
+          <div
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg border",
+              "text-sm",
+              isDarkTheme
+                ? "bg-red-950/95 border-red-800 backdrop-blur-sm text-red-200"
+                : "bg-red-50/95 border-red-300 backdrop-blur-sm text-red-800"
+            )}
+          >
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+            <p className="flex-1 text-xs leading-tight">{validationError}</p>
+            <button
+              onClick={() => setValidationError(null)}
+              className={cn(
+                "p-0.5 rounded transition-colors shrink-0",
+                isDarkTheme
+                  ? "hover:bg-red-900/50 text-red-400"
+                  : "hover:bg-red-100 text-red-600"
+              )}
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {!isExpanded ? (
         <PromptInputCollapsed

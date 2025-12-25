@@ -15,7 +15,7 @@ interface MediaUploadCardProps {
     onThemeChange?: (isDark: boolean) => void
 }
 
-export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot, onMoreClick, onThemeChange }: MediaUploadCardProps) {
+export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, onScreenshot, onMoreClick }: MediaUploadCardProps) {
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const audioInputRef = useRef<HTMLInputElement>(null)
@@ -194,7 +194,7 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                     themeClasses.containerBorder,
                     className
                 )}
-                style={{ backgroundColor: themeClasses.containerBg }}
+                style={{ backgroundColor: themeClasses.containerBg, zIndex: 1002 }}
                 data-no-clickthrough
             >
                 <input
@@ -260,7 +260,8 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
                 </CardContent>
             </Card>
 
-            <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} isDarkTheme={isDarkTheme} onThemeChange={onThemeChange} />
+            {/* Removed "onThemeChange" prop to match SettingsModalProps */}
+            <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
         </>
     )
 }
