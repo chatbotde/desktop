@@ -23,6 +23,7 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
   private isStreamingActive = false
   private eventHandler: TranscriptionEventHandler | null = null
   private connectionTimeout: NodeJS.Timeout | null = null
+  private scriptProcessor: ScriptProcessorNode | null = null
 
   /**
    * Check if the service is available/configured
@@ -65,6 +66,7 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
       // Note: ScriptProcessorNode is deprecated but still widely supported
       // For better performance, consider using AudioWorkletNode in the future
       const processor = this.audioContext.createScriptProcessor(4096, 1, 1)
+      this.scriptProcessor = processor
       
       let audioChunksSent = 0
       let lastLogTime = Date.now()
@@ -86,19 +88,14 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
           
           const pcm16 = this.convertFloat32ToPCM16(inputData)
           
-          // Send audio data to AssemblyAI
-          // Create a new ArrayBuffer from the Int16Array to ensure it's not a SharedArrayBuffer
+          // Send raw binary audio data (ArrayBuffer) - AssemblyAI v3 API expects raw binary
+          // Create a new ArrayBuffer from the Int16Array to ensure clean binary data
           const buffer = new ArrayBuffer(pcm16.byteLength)
           const view = new Int16Array(buffer)
           view.set(pcm16)
-          const base64Audio = this.arrayBufferToBase64(buffer)
           
-          // Send audio data
-          this.websocket.send(
-            JSON.stringify({
-              audio_data: base64Audio,
-            })
-          )
+          // Send raw binary audio data directly (not base64 JSON)
+          this.websocket.send(buffer)
           
           audioChunksSent++
           
@@ -136,17 +133,6 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
     return pcm16
   }
 
-  /**
-   * Convert ArrayBuffer to Base64 string
-   */
-  private arrayBufferToBase64(buffer: ArrayBuffer | SharedArrayBuffer): string {
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary)
-  }
 
   /**
    * Setup WebSocket connection
@@ -164,7 +150,9 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
 
       const sampleRate = config?.sampleRate || 16000
       
-      // Build URL with query parameters
+      // Build URL with query parameters (v3 API format)
+      // Note: In browser/Electron, WebSocket doesn't support custom headers,
+      // so we use token in query string as alternative
       const params = new URLSearchParams({
         sample_rate: sampleRate.toString(),
         token: this.config.apiKey,
@@ -179,49 +167,24 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
       
       console.log('[AssemblyAI Streaming] Connecting to:', url.replace(this.config.apiKey, '***'))
 
+      // Create WebSocket connection
+      // Note: Standard WebSocket API doesn't support headers in browser/Electron
+      // Using token in query string instead
       this.websocket = new WebSocket(url)
+      
+      // Set binary type to arraybuffer for sending raw audio data
+      this.websocket.binaryType = 'arraybuffer'
 
       this.websocket.onopen = () => {
         console.log('[AssemblyAI Streaming] WebSocket onopen - connection established')
         
-        // For v3 API, configuration is sent via URL params, but we can also send session config
-        const sessionConfig: Record<string, unknown> = {}
-
-        if (config?.languageCode) {
-          sessionConfig.language_code = config.languageCode
-        }
-        if (config?.punctuate !== undefined) {
-          sessionConfig.punctuate = config.punctuate
-        }
-        if (config?.formatText !== undefined) {
-          sessionConfig.format_text = config.formatText
-        }
-        if (config?.filterProfanity !== undefined) {
-          sessionConfig.filter_profanity = config.filterProfanity
-        }
-        if (config?.wordBoost && config.wordBoost.length > 0) {
-          sessionConfig.word_boost = config.wordBoost
-        }
-
-        // Send configuration if we have any additional settings
-        if (Object.keys(sessionConfig).length > 0) {
-          console.log('[AssemblyAI Streaming] Sending session config:', sessionConfig)
-          this.websocket?.send(
-            JSON.stringify({
-              message_type: 'config',
-              ...sessionConfig,
-            })
-          )
-        }
-
-        // Don't emit connected here - wait for SessionBegins message from server
-        // The server will send SessionBegins when ready
-        console.log('[AssemblyAI Streaming] Waiting for SessionBegins message...')
+        // For v3 API, configuration is sent via URL params
+        // The server will send "Begin" message when ready
+        console.log('[AssemblyAI Streaming] Waiting for Begin message...')
         
-        // Set a timeout - if SessionBegins doesn't arrive in 5 seconds, emit connected anyway
-        // This handles cases where the server doesn't send SessionBegins
+        // Set a timeout - if Begin doesn't arrive in 5 seconds, emit connected anyway
         this.connectionTimeout = setTimeout(() => {
-          console.warn('[AssemblyAI Streaming] SessionBegins timeout - emitting connected anyway')
+          console.warn('[AssemblyAI Streaming] Begin timeout - emitting connected anyway')
           this.emitEvent({
             type: 'connected',
             timestamp: Date.now(),
@@ -233,18 +196,28 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
 
       this.websocket.onmessage = (event) => {
         try {
+          // v3 API sends JSON messages with 'type' field (not 'message_type')
           const data = JSON.parse(event.data)
-          console.log('[AssemblyAI Streaming] Received message:', data.message_type, data)
+          const msgType = data.type
+          
+          console.log('[AssemblyAI Streaming] Received message type:', msgType, data)
 
-          // Handle different message types
-          switch (data.message_type) {
-            case 'SessionBegins':
-              console.log('[AssemblyAI Streaming] Session began - emitting connected event')
-              // Clear timeout since we got SessionBegins
+          // Handle different message types (v3 API format)
+          switch (msgType) {
+            case 'Begin':
+              // Session began - connection is ready
+              const sessionId = data.id
+              const expiresAt = data.expires_at
+              console.log(
+                `[AssemblyAI Streaming] Session began: ID=${sessionId}, ExpiresAt=${expiresAt ? new Date(expiresAt * 1000).toISOString() : 'N/A'}`
+              )
+              
+              // Clear timeout since we got Begin
               if (this.connectionTimeout) {
                 clearTimeout(this.connectionTimeout)
                 this.connectionTimeout = null
               }
+              
               // Emit connected event when session begins
               this.emitEvent({
                 type: 'connected',
@@ -252,38 +225,41 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
               })
               break
 
-            case 'PartialTranscript':
-            case 'Transcript': // Some APIs use just 'Transcript' for partial
-              // Partial transcript - show in real-time
-              const partialText = data.text || data.transcript || ''
-              if (partialText) {
-                console.log('[AssemblyAI Streaming] Partial:', partialText)
-                this.emitEvent({
-                  type: 'partial',
-                  text: partialText,
-                  isFinal: false,
-                  timestamp: Date.now(),
-                })
+            case 'Turn':
+              // Transcript message - can be partial or final based on turn_is_formatted
+              const transcript = data.transcript || ''
+              const formatted = data.turn_is_formatted || false
+
+              if (transcript) {
+                if (formatted) {
+                  // Final formatted transcript
+                  console.log('[AssemblyAI Streaming] Final transcript:', transcript)
+                  this.emitEvent({
+                    type: 'final',
+                    text: transcript,
+                    isFinal: true,
+                    timestamp: Date.now(),
+                  })
+                } else {
+                  // Partial transcript (real-time)
+                  console.log('[AssemblyAI Streaming] Partial transcript:', transcript)
+                  this.emitEvent({
+                    type: 'partial',
+                    text: transcript,
+                    isFinal: false,
+                    timestamp: Date.now(),
+                  })
+                }
               }
               break
 
-            case 'FinalTranscript':
-            case 'TranscriptFinal': // Alternative name
-              // Final transcript - append to accumulated text
-              const finalText = data.text || data.transcript || ''
-              if (finalText) {
-                console.log('[AssemblyAI Streaming] Final:', finalText)
-                this.emitEvent({
-                  type: 'final',
-                  text: finalText,
-                  isFinal: true,
-                  timestamp: Date.now(),
-                })
-              }
-              break
-
-            case 'SessionTerminated':
-              console.log('[AssemblyAI Streaming] Session terminated')
+            case 'Termination':
+              // Session terminated
+              const audioDuration = data.audio_duration_seconds
+              const sessionDuration = data.session_duration_seconds
+              console.log(
+                `[AssemblyAI Streaming] Session terminated: Audio Duration=${audioDuration}s, Session Duration=${sessionDuration}s`
+              )
               this.emitEvent({
                 type: 'disconnected',
                 timestamp: Date.now(),
@@ -302,8 +278,11 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
 
             default:
               // Log unknown message types for debugging
-              if (data.message_type) {
-                console.log('[AssemblyAI Streaming] Unknown message type:', data.message_type, data)
+              if (msgType) {
+                console.log('[AssemblyAI Streaming] Unknown message type:', msgType, data)
+              } else {
+                // If no type field, log the entire message
+                console.log('[AssemblyAI Streaming] Message without type field:', data)
               }
           }
         } catch (error) {
@@ -391,9 +370,15 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
       return
     }
 
-    // Send termination message
+    // Send termination message (v3 API format)
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
-      this.websocket.send(JSON.stringify({ terminate_session: true }))
+      try {
+        const terminateMessage = { type: 'Terminate' }
+        console.log('[AssemblyAI Streaming] Sending termination message:', terminateMessage)
+        this.websocket.send(JSON.stringify(terminateMessage))
+      } catch (error) {
+        console.error('[AssemblyAI Streaming] Error sending termination message:', error)
+      }
     }
 
     await this.cleanup()
@@ -423,6 +408,16 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((track) => track.stop())
       this.mediaStream = null
+    }
+
+    // Disconnect script processor
+    if (this.scriptProcessor) {
+      try {
+        this.scriptProcessor.disconnect()
+      } catch (error) {
+        console.error('[AssemblyAI Streaming] Error disconnecting script processor:', error)
+      }
+      this.scriptProcessor = null
     }
 
     // Close audio context

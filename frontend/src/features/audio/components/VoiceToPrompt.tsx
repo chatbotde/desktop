@@ -10,11 +10,7 @@ import { createPrerecordedService, isAssemblyAIConfigured } from "@/lib/audio"
 import { sendMessageComplete as sendCloudMessageComplete } from "@/lib/ai"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { buildVoiceRewritePromptFromTranscription } from "@/lib/prompt"
-// Demo components using an external Example wrapper have been removed
-// to avoid unused component and missing symbol errors. You can restore
-// them from version control if you still need the playground UI.
 
-// Bar visualizer related code has been removed - only LiveWaveform and VoiceToPromptQuickInsert remain
 
 export type LiveWaveformProps = React.HTMLAttributes<HTMLDivElement> & {
   active?: boolean
@@ -114,7 +110,7 @@ export const LiveWaveform = ({
         const processingData = []
         const barCount = Math.floor(
           (containerRef.current?.getBoundingClientRect().width || 200) /
-            (barWidth + barGap)
+          (barWidth + barGap)
         )
         if (mode === "static") {
           const halfCount = Math.floor(barCount / 2)
@@ -241,16 +237,16 @@ export const LiveWaveform = ({
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: deviceId
             ? {
-                deviceId: { exact: deviceId },
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-              }
+              deviceId: { exact: deviceId },
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            }
             : {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-              },
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
         })
         streamRef.current = stream
         onStreamReady?.(stream)
@@ -558,10 +554,10 @@ export function VoiceToPromptQuickInsert({ onCancel }: { onCancel?: () => void }
       const localModel = unifiedLocalLLMService.getCurrentModel()
       const rewrittenPrompt = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) throw new Error(init.message)
-            return await unifiedLocalLLMService.sendMessageComplete(promptBuilder, undefined, localModel.name)
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) throw new Error(init.message)
+          return await unifiedLocalLLMService.sendMessageComplete(promptBuilder, undefined, localModel.name)
+        })()
         : await sendCloudMessageComplete(promptBuilder)
 
       const finalPrompt = (rewrittenPrompt || "").trim() || transcription
@@ -569,10 +565,10 @@ export function VoiceToPromptQuickInsert({ onCancel }: { onCancel?: () => void }
       // Step 3: Send the final prompt to the model to get an answer
       const answer = localModel
         ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) throw new Error(init.message)
-            return await unifiedLocalLLMService.sendMessageComplete(finalPrompt, undefined, localModel.name)
-          })()
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) throw new Error(init.message)
+          return await unifiedLocalLLMService.sendMessageComplete(finalPrompt, undefined, localModel.name)
+        })()
         : await sendCloudMessageComplete(finalPrompt)
 
       const textToInsert = (answer || "").trim()
