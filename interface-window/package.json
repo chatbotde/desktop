@@ -5,7 +5,9 @@
   "main": "interface-window.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
+    "build:dev": "tsc -p tsconfig.dev.json",
+    "dev": "tsc --watch -p tsconfig.dev.json",
+    "dev:watch": "tsc --watch",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

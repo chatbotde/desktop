@@ -12,5 +12,12 @@ export { SecurityManager } from './SecurityManager';
 export { BlockStorage } from './block-storage';
 export { setupBlockIpcHandlers } from './block-ipc-handlers';
 export { setupIpcSecurityMiddleware } from './ipc-security-middleware';
+export {
+  initializeBlockManager,
+  stopBlockManager,
+  getBlockManager,
+  getLockManager,
+  type InterfaceWindowInstance
+} from './init-block-manager';
 
 

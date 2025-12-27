@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /* Development optimizations - faster compilation */
+    "declaration": false, // Skip declarations in dev
+    "declarationMap": false,
+    "sourceMap": true, // Keep source maps for debugging
+    "removeComments": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo.dev"
+  }
+}
+

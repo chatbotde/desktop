@@ -273,13 +273,12 @@ export class InterfaceWindow {
       return false;
     }
     try {
-      const { getLockManager } = require('./block-manager/init-block-manager');
+      const { getLockManager, getBlockManager } = require('./block-manager/init-block-manager');
       const lockManager = getLockManager();
       if (lockManager) {
         return lockManager.getLockState();
       }
       // Fallback to BlockManager
-      const { getBlockManager } = require('./block-manager/init-block-manager');
       const blockManager = getBlockManager();
       if (blockManager) {
         const status = blockManager.getLockStatus();
