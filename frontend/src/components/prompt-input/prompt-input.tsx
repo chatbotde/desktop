@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
@@ -7,6 +8,8 @@ import { getSelectedModel } from '@/lib/ai/model-config'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { X, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { CaptureAreaStore } from '@/features/capture/capture-area-store'
+import { useFeature } from "@/contexts/FeatureContext"
 
 import type { MediaAttachment } from '@/features/chat'
 
@@ -44,6 +47,8 @@ export function PromptInputWithActions({
   const prevInputLengthRef = useRef<number>(0)
   const [validationError, setValidationError] = useState<string | null>(null)
   const inputContainerRef = useRef<HTMLDivElement>(null)
+
+  const { isFeatureEnabled } = useFeature()
 
   // Convert files to MediaAttachment format
   const convertFilesToAttachments = useCallback(async (filesToConvert: File[]): Promise<MediaAttachment[]> => {
@@ -94,7 +99,7 @@ export function PromptInputWithActions({
     prevInputLengthRef.current = value.length
 
     setInput(value)
-    
+
     // Clear validation error when user starts typing
     if (validationError) {
       setValidationError(null)
@@ -110,12 +115,37 @@ export function PromptInputWithActions({
   }, [validationError])
 
   const handleSubmit = useCallback(async () => {
-    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0)) return
+    // Check if we should auto-capture area
+    let autoCapturedFile: File | null = null
+    const isSetAreaEnabled = isFeatureEnabled('set-capture-area')
+
+    if (isSetAreaEnabled && CaptureAreaStore.isAutoCaptureEnabled()) {
+      const area = CaptureAreaStore.getArea()
+      if (area && window.CaptureAPI?.takeAreaScreenshot) {
+        try {
+          const result = await window.CaptureAPI.takeAreaScreenshot(area)
+          if (result.success && result.screenshot) {
+            const response = await fetch(result.screenshot.data)
+            const blob = await response.blob()
+            autoCapturedFile = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+          }
+        } catch (e) {
+          console.error("Failed to auto-capture area on submit", e)
+        }
+      }
+    }
+
+    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0 || autoCapturedFile)) return
 
     // Prepare message and files
     const messageParts = [...clipboardItems, input].filter(Boolean)
     const messageToSend = messageParts.join("\n\n")
     const filesToSend = [...files]
+
+    if (autoCapturedFile) {
+      filesToSend.push(autoCapturedFile)
+    }
+
     const clipboardItemsToSend = [...clipboardItems]
 
     // Convert files to MediaAttachment format for validation
@@ -124,7 +154,7 @@ export function PromptInputWithActions({
     // Check if local model is selected
     const localModel = unifiedLocalLLMService.getCurrentModel()
     const cloudModel = getSelectedModel()
-    
+
     // Use cloud model for validation (local models typically don't support images)
     const modelToValidate = cloudModel || null
 
@@ -138,12 +168,12 @@ export function PromptInputWithActions({
 
     // Validate message (this also checks if model is selected)
     const validation = validateMessage(messageToSend, attachments, modelToValidate)
-    
+
     if (!validation.isValid) {
       // Get the first error message for simplicity
       const firstError = validation.errors[0]
       const errorMessage = firstError?.message || "This model doesn't support the requested capability"
-      
+
       // Show simple popup above input
       setValidationError(errorMessage)
       return // Don't send the message
@@ -180,7 +210,7 @@ export function PromptInputWithActions({
       setIsLoading(false)
       setIsExpanded(false)
     }
-  }, [input, files, clipboardItems, onSendMessage, convertFilesToAttachments])
+  }, [input, files, clipboardItems, onSendMessage, convertFilesToAttachments, isFeatureEnabled])
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -401,4 +431,3 @@ export function PromptInputWithActions({
     </div>
   )
 }
-

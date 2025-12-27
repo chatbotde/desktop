@@ -1,26 +1,32 @@
 /**
  * Screen Capture API - Main Entry Point (TypeScript)
- * Provides a unified interface for screenshot capture
+ * Provides a unified interface for screenshot and video capture
  */
 
 import ScreenshotCapture from './handlers/screenshot';
+import VideoRecorder from './handlers/video-recorder';
 import CaptureBase from './utils/capture-base';
 
 import {
   ScreenshotOptions,
   ScreenshotResult,
   SupportStatus,
-  SelectionArea
+  SelectionArea,
+  VideoRecordingOptions,
+  VideoRecordingResult,
+  RecordingState
 } from './types/capture.types';
 
-// Re-export SupportStatus
-export type { SupportStatus } from './types/capture.types';
+// Re-export types
+export type { SupportStatus, RecordingState } from './types/capture.types';
 
 class CaptureAPI {
   private screenshotCapture: ScreenshotCapture;
+  private videoRecorder: VideoRecorder;
 
   constructor() {
     this.screenshotCapture = new ScreenshotCapture();
+    this.videoRecorder = new VideoRecorder();
   }
 
   // ==================== SCREENSHOT METHODS ====================
@@ -45,6 +51,40 @@ class CaptureAPI {
     return this.screenshotCapture.getAvailableSources(includeWindows);
   }
 
+  // ==================== VIDEO RECORDING METHODS ====================
+
+  async startVideoRecording(options: VideoRecordingOptions = {}): Promise<VideoRecordingResult> {
+    return this.videoRecorder.startRecording(options);
+  }
+
+  async stopVideoRecording(): Promise<VideoRecordingResult> {
+    return this.videoRecorder.stopRecording();
+  }
+
+  pauseVideoRecording(): VideoRecordingResult {
+    return this.videoRecorder.pauseRecording();
+  }
+
+  resumeVideoRecording(): VideoRecordingResult {
+    return this.videoRecorder.resumeRecording();
+  }
+
+  getVideoRecordingState(): RecordingState {
+    return this.videoRecorder.getRecordingState();
+  }
+
+  getVideoRecordingDuration(): number {
+    return this.videoRecorder.getRecordingDuration();
+  }
+
+  async startAreaVideoRecording(area: SelectionArea, options: VideoRecordingOptions = {}): Promise<VideoRecordingResult> {
+    return this.videoRecorder.startAreaRecording(area, options);
+  }
+
+  async getVideoSources(includeWindows: boolean = true) {
+    return this.videoRecorder.getAvailableSources(includeWindows);
+  }
+
   // ==================== CONVENIENCE METHODS ====================
 
   async quickScreenshot(): Promise<ScreenshotResult> {
@@ -56,7 +96,7 @@ class CaptureAPI {
   static checkSupport(): SupportStatus {
     return {
       screenshot: ScreenshotCapture.isSupported(),
-      videoRecording: false,
+      videoRecording: VideoRecorder.isSupported(),
       audioRecording: false,
       desktopCapturer: CaptureBase.isSupported()
     };
@@ -64,6 +104,7 @@ class CaptureAPI {
 
   cleanup(): void {
     this.screenshotCapture.cleanup();
+    this.videoRecorder.cleanup();
   }
 }
 
@@ -71,8 +112,10 @@ class CaptureAPI {
 
 // Attach sub-classes to main API
 (CaptureAPI as any).ScreenshotCapture = ScreenshotCapture;
+(CaptureAPI as any).VideoRecorder = VideoRecorder;
 (CaptureAPI as any).CaptureBase = CaptureBase;
 
 export default CaptureAPI;
 module.exports = CaptureAPI;
+
 

@@ -67,12 +67,30 @@ declare global {
      * Capture API for screenshots and screen recording
      */
     CaptureAPI?: {
+      // Screenshot methods
       takeScreenshot: (options?: any) => Promise<any>;
       takeWindowScreenshot: (windowId: string, options?: any) => Promise<any>;
       takeAreaScreenshot: (area: { x: number; y: number; width: number; height: number }, options?: any) => Promise<any>;
       getScreenshotSources: (includeWindows?: boolean) => Promise<any>;
       quickScreenshot: () => Promise<any>;
       checkSupport: () => Promise<any>;
+      // Video recording methods
+      startVideoRecording: (options?: {
+        sourceId?: string | null;
+        fps?: number;
+        videoBitsPerSecond?: number;
+        width?: number;
+        height?: number;
+        audioEnabled?: boolean;
+        name?: string | null;
+      }) => Promise<any>;
+      stopVideoRecording: () => Promise<any>;
+      pauseVideoRecording: () => Promise<any>;
+      resumeVideoRecording: () => Promise<any>;
+      getVideoRecordingState: () => Promise<any>;
+      getVideoRecordingDuration: () => Promise<any>;
+      startAreaVideoRecording: (area: { x: number; y: number; width: number; height: number }, options?: any) => Promise<any>;
+      getVideoSources: (includeWindows?: boolean) => Promise<any>;
     };
 
     /**

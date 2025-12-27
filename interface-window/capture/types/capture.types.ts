@@ -73,6 +73,45 @@ export interface SourcesResult {
   error?: string;
 }
 
+// ==================== VIDEO RECORDING TYPES ====================
+
+export type RecordingState = 'idle' | 'recording' | 'paused';
+
+export interface VideoRecordingOptions {
+  sourceId?: string | null;
+  fps?: number;
+  videoBitsPerSecond?: number;
+  width?: number;
+  height?: number;
+  audioEnabled?: boolean;
+  name?: string | null;
+}
+
+export interface VideoData {
+  name: string;
+  type: string;
+  size: number;
+  data: string;
+  blob?: Blob;
+  dimensions: MediaDimensions;
+  duration: number;
+  fps: number;
+  timestamp: number;
+  selectionArea?: SelectionArea;
+}
+
+export interface VideoRecordingResult {
+  success: boolean;
+  error?: string;
+  video?: VideoData;
+  state?: RecordingState;
+  sourceId?: string;
+  fps?: number;
+  videoBitsPerSecond?: number;
+  mimeType?: string;
+  area?: SelectionArea;
+}
+
 // ==================== DESKTOP SOURCE TYPES ====================
 
 export interface DesktopSourceOptions {

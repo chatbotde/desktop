@@ -102,7 +102,7 @@ export class InterfaceWindow {
       height: height - 1,
       frame: false,
       transparent: true,
-      alwaysOnTop: false,
+      alwaysOnTop: true,
       focusable: true,
       resizable: false,
       skipTaskbar: true,

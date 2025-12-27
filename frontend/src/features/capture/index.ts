@@ -1,18 +1,22 @@
 /**
  * Capture Feature
  * 
- * Screenshot and screen capture functionality
+ * Screenshot, video recording, and screen capture functionality
  * 
  * @example
- * import { ScreenCaptureModal, ScreenshotButton } from '@/features/capture'
+ * import { ScreenCaptureModal, ScreenshotButton, VideoRecorderPill } from '@/features/capture'
  */
 
 // Components
-export { 
+export {
   ScreenCaptureModal,
   AreaScreenshotOverlay,
-  ScreenshotButton
+  ScreenshotButton,
+  VideoRecorderPill,
+  VideoRecordButton
 } from './components'
 
 // Hooks (re-export from hooks folder)
 export { useAutoScreenshot } from '@/hooks/useAutoScreenshot'
+export { useVideoRecording } from '@/hooks/useVideoRecording'
+

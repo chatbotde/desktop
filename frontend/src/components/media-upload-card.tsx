@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/shared/components/ui/card"
-import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp } from "lucide-react"
+import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp, Crop, Clapperboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRef, useMemo, useState, useCallback } from "react"
 import { getThemeClasses } from "@/features/prompt"
@@ -119,6 +119,8 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             case 'image': return isFeatureEnabled('upload-image')
             case 'screenshot': return isFeatureEnabled('quick-screenshot')
             case 'area-screenshot': return isFeatureEnabled('area-screenshot')
+            case 'set-capture-area': return isFeatureEnabled('set-capture-area')
+            case 'video-recording': return isFeatureEnabled('video-recording')
             case 'video': return isFeatureEnabled('upload-video')
             case 'audio': return isFeatureEnabled('upload-audio')
             default: return true
@@ -150,6 +152,20 @@ export function MediaUploadCard({ onFileUpload, className, isDarkTheme = true, o
             label: isCapturing ? 'Selecting area...' : 'Circle to ask',
             icon: Circle,
             action: handleAreaScreenshot,
+            disabled: isCapturing
+        },
+        {
+            id: 'set-capture-area',
+            label: 'Set Auto-Capture Area',
+            icon: Crop,
+            action: () => window.dispatchEvent(new CustomEvent('trigger-set-capture-area')),
+            disabled: isCapturing
+        },
+        {
+            id: 'video-recording',
+            label: 'Record Screen',
+            icon: Clapperboard,
+            action: () => window.dispatchEvent(new CustomEvent('trigger-video-recording')),
             disabled: isCapturing
         },
         {

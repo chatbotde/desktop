@@ -75,7 +75,7 @@ export function PromptInputCollapsed({
   const handlePaste = usePasteHandler(onFilesAdded)
 
   return (
-    <div className="relative flex items-center gap-3 mx-8 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: 49 }}>
+    <div className="relative flex items-center gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: 49 }}>
       {/* Network Status Icon - Outside and Centered */}
       <NetworkOfflineIndicator themeClasses={themeClasses} />
 

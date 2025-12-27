@@ -96,6 +96,16 @@ interface ScreenshotOptions {
   [key: string]: any;
 }
 
+interface VideoRecordingOptions {
+  sourceId?: string | null;
+  fps?: number;
+  videoBitsPerSecond?: number;
+  width?: number;
+  height?: number;
+  audioEnabled?: boolean;
+  name?: string | null;
+}
+
 interface SelectionArea {
   x: number;
   y: number;
@@ -104,12 +114,22 @@ interface SelectionArea {
 }
 
 interface CaptureAPI {
+  // Screenshot methods
   takeScreenshot: (options?: ScreenshotOptions) => Promise<any>;
   takeWindowScreenshot: (windowId: string, options?: ScreenshotOptions) => Promise<any>;
   takeAreaScreenshot: (area: SelectionArea, options?: ScreenshotOptions) => Promise<any>;
   getScreenshotSources: (includeWindows?: boolean) => Promise<any>;
   quickScreenshot: () => Promise<any>;
   checkSupport: () => Promise<any>;
+  // Video recording methods
+  startVideoRecording: (options?: VideoRecordingOptions) => Promise<any>;
+  stopVideoRecording: () => Promise<any>;
+  pauseVideoRecording: () => Promise<any>;
+  resumeVideoRecording: () => Promise<any>;
+  getVideoRecordingState: () => Promise<any>;
+  getVideoRecordingDuration: () => Promise<any>;
+  startAreaVideoRecording: (area: SelectionArea, options?: VideoRecordingOptions) => Promise<any>;
+  getVideoSources: (includeWindows?: boolean) => Promise<any>;
 }
 
 interface BlockAPI {
@@ -474,6 +494,78 @@ try {
      */
     checkSupport: () => {
       return ipcRenderer.invoke('interface-check-capture-support');
+    },
+
+    // ==================== VIDEO RECORDING METHODS ====================
+
+    /**
+     * Start video recording
+     * @param options - Recording options (fps, videoBitsPerSecond, width, height, audioEnabled)
+     * @returns Recording result
+     */
+    startVideoRecording: (options: VideoRecordingOptions = {}) => {
+      console.log('[Preload] startVideoRecording called with options:', options);
+      return ipcRenderer.invoke('interface-start-video-recording', options);
+    },
+
+    /**
+     * Stop video recording
+     * @returns Recording result with video data
+     */
+    stopVideoRecording: () => {
+      console.log('[Preload] stopVideoRecording called');
+      return ipcRenderer.invoke('interface-stop-video-recording');
+    },
+
+    /**
+     * Pause video recording
+     * @returns Pause result
+     */
+    pauseVideoRecording: () => {
+      return ipcRenderer.invoke('interface-pause-video-recording');
+    },
+
+    /**
+     * Resume video recording
+     * @returns Resume result
+     */
+    resumeVideoRecording: () => {
+      return ipcRenderer.invoke('interface-resume-video-recording');
+    },
+
+    /**
+     * Get current recording state
+     * @returns Recording state ('idle' | 'recording' | 'paused')
+     */
+    getVideoRecordingState: () => {
+      return ipcRenderer.invoke('interface-get-video-recording-state');
+    },
+
+    /**
+     * Get current recording duration in milliseconds
+     * @returns Recording duration
+     */
+    getVideoRecordingDuration: () => {
+      return ipcRenderer.invoke('interface-get-video-recording-duration');
+    },
+
+    /**
+     * Start area video recording
+     * @param area - Area coordinates {x, y, width, height}
+     * @param options - Recording options
+     * @returns Recording result
+     */
+    startAreaVideoRecording: (area: SelectionArea, options: VideoRecordingOptions = {}) => {
+      return ipcRenderer.invoke('interface-start-area-video-recording', area, options);
+    },
+
+    /**
+     * Get available video sources
+     * @param includeWindows - Include window sources
+     * @returns Available sources
+     */
+    getVideoSources: (includeWindows: boolean = true) => {
+      return ipcRenderer.invoke('interface-get-video-sources', includeWindows);
     }
   };
 
