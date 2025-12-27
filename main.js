@@ -36,7 +36,7 @@ if (pendingDeepLinkUrl) {
 }
 
 // Initialize and run application
-const { Application } = require('./application');
+const { Application } = require('./application/application');
 const application = new Application();
 
 application.initialize().catch(error => {

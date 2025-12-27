@@ -49,6 +49,7 @@
     "files": [
       "main.js",
       "*.js",
+      "application/**/*",
       "app-frontend/**/*",
       "startup/**/*",
       "utils/**/*",
