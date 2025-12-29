@@ -1,0 +1,100 @@
+/**
+ * Preload Script
+ * Exposes secure APIs to the renderer process via contextBridge
+ */
+
+import { contextBridge } from 'electron';
+import {
+    createInterfaceAPI,
+    createElectronAPI,
+    createTsfAPI,
+    createCaptureAPI,
+    createFallbackCaptureAPI,
+    createBlockAPI,
+    createAuthAPI,
+    createFileAPI
+} from './apis';
+
+// Verify contextBridge is available
+if (!contextBridge) {
+    console.error('[Preload] contextBridge is not available!');
+}
+
+console.log('[Preload] Starting to expose APIs...');
+
+// Expose interfaceAPI
+try {
+    const interfaceAPI = createInterfaceAPI();
+    contextBridge.exposeInMainWorld('interfaceAPI', interfaceAPI);
+    console.log('[Preload] interfaceAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing interfaceAPI:', error);
+}
+
+// Expose electronAPI
+try {
+    const electronAPI = createElectronAPI();
+    contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+    console.log('[Preload] electronAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing electronAPI:', error);
+}
+
+// Expose tsfAPI
+try {
+    const tsfAPI = createTsfAPI();
+    contextBridge.exposeInMainWorld('tsfAPI', tsfAPI);
+    console.log('[Preload] tsfAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing tsfAPI:', error);
+}
+
+// Expose CaptureAPI
+console.log('[Preload] Exposing CaptureAPI to renderer...');
+try {
+    const captureAPI = createCaptureAPI();
+    contextBridge.exposeInMainWorld('CaptureAPI', captureAPI);
+    console.log('[Preload] CaptureAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing CaptureAPI:', error);
+    // Try to expose a minimal API for debugging
+    try {
+        const fallbackCaptureAPI = createFallbackCaptureAPI();
+        contextBridge.exposeInMainWorld('CaptureAPI', fallbackCaptureAPI);
+        console.log('[Preload] Fallback CaptureAPI exposed');
+    } catch (fallbackError) {
+        console.error('[Preload] Even fallback API failed:', fallbackError);
+    }
+}
+
+// Expose blockAPI
+try {
+    const blockAPI = createBlockAPI();
+    contextBridge.exposeInMainWorld('blockAPI', blockAPI);
+    console.log('[Preload] blockAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing blockAPI:', error);
+}
+
+// Expose authAPI
+try {
+    const authAPI = createAuthAPI();
+    contextBridge.exposeInMainWorld('authAPI', authAPI);
+    console.log('[Preload] authAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing authAPI:', error);
+}
+
+// Expose fileAPI
+try {
+    const fileAPI = createFileAPI();
+    contextBridge.exposeInMainWorld('fileAPI', fileAPI);
+    console.log('[Preload] fileAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing fileAPI:', error);
+}
+
+console.log('[Preload] All APIs exposed, preload script complete');
+
+// Re-export types for convenience
+export * from './types';
