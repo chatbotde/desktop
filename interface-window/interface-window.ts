@@ -93,7 +93,7 @@ export class InterfaceWindow {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.workAreaSize;
 
-    const preloadPath = path.join(__dirname, 'preload.js');
+    const preloadPath = path.join(__dirname, 'preload', 'index.js');
     console.log(`InterfaceWindow: Preload path: ${preloadPath}`);
     console.log(`InterfaceWindow: Preload exists: ${fs.existsSync(preloadPath)}`);
 
@@ -151,7 +151,7 @@ export class InterfaceWindow {
           this.window.setAlwaysOnTop(true, 'screen-saver');
         }
       }
-      
+
       // Initialize block manager after window is ready
       // Pass globalShortcutRegistry if available
       if (initializeBlockManager) {
@@ -165,7 +165,7 @@ export class InterfaceWindow {
         stopBlockManager();
         this.blockManagerInitialized = false;
       }
-      
+
       this.window = null;
       this.clickThroughManager = null;
     });
@@ -195,6 +195,15 @@ export class InterfaceWindow {
       console.log('InterfaceWindow: Capture API handlers registered successfully');
     } catch (error) {
       console.error('InterfaceWindow: Failed to register capture API handlers:', error);
+    }
+
+    // Register file system handlers
+    try {
+      const { registerFileSystemHandlers } = require('./file-system');
+      registerFileSystemHandlers();
+      console.log('InterfaceWindow: File system handlers registered successfully');
+    } catch (error) {
+      console.error('InterfaceWindow: Failed to register file system handlers:', error);
     }
 
     ipcMain.on('interface-window:minimize', () => {
@@ -228,7 +237,7 @@ export class InterfaceWindow {
       console.log('InterfaceWindow: Cannot show - application is locked');
       return;
     }
-    
+
     if (this.window) {
       this.window.show();
       this.window.focus();
@@ -249,7 +258,7 @@ export class InterfaceWindow {
       console.log('InterfaceWindow: Cannot toggle - application is locked');
       return;
     }
-    
+
     if (this.window) {
       if (this.window.isVisible()) {
         this.hide();

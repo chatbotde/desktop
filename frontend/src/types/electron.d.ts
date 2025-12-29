@@ -180,6 +180,64 @@ declare global {
       onSessionRestored: (callback: (user: any) => void) => () => void;
     };
 
+    /**
+     * File System API for reading files and getting file info
+     */
+    fileAPI?: {
+      readFile: (filePath: string) => Promise<{
+        success: boolean;
+        content?: string;
+        error?: string;
+        fileInfo?: {
+          path: string;
+          name: string;
+          extension: string;
+          size: number;
+          category: string;
+          language?: string;
+          mimeType?: string;
+          description?: string;
+          isCodeFile: boolean;
+          isImageFile: boolean;
+          isDocumentFile: boolean;
+        };
+      }>;
+      readFileBinary: (filePath: string) => Promise<{
+        success: boolean;
+        data?: string;
+        mimeType?: string;
+        error?: string;
+      }>;
+      getFileInfo: (filePath: string) => Promise<{
+        success: boolean;
+        fileInfo?: {
+          path: string;
+          name: string;
+          extension: string;
+          size: number;
+          category: string;
+          language?: string;
+          mimeType?: string;
+          description?: string;
+          isCodeFile: boolean;
+          isImageFile: boolean;
+          isDocumentFile: boolean;
+        };
+        error?: string;
+      }>;
+      exists: (filePath: string) => Promise<boolean>;
+      isFile: (filePath: string) => Promise<boolean>;
+      isDirectory: (dirPath: string) => Promise<boolean>;
+      readDir: (dirPath: string) => Promise<{
+        success: boolean;
+        files?: string[];
+        error?: string;
+      }>;
+      getFileCategory: (filePath: string) => Promise<string>;
+      getFileLanguage: (filePath: string) => Promise<string | null>;
+      getMimeType: (filePath: string) => Promise<string | null>;
+    };
+
   }
 }
 

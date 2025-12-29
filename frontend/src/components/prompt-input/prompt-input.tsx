@@ -10,6 +10,7 @@ import { X, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CaptureAreaStore } from '@/features/capture/capture-area-store'
 import { useFeature } from "@/contexts/FeatureContext"
+import { DropZone, type DroppedFileInfo } from "@/components/drop-zone"
 
 import type { MediaAttachment } from '@/features/chat'
 
@@ -246,20 +247,46 @@ export function PromptInputWithActions({
     setClipboardItems((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  // Drag and drop handlers for DropZone
+  const handleFilesDropped = useCallback((droppedFiles: File[], fileInfos?: DroppedFileInfo[]) => {
+    // Process files with their content information
+    if (fileInfos && fileInfos.length > 0) {
+      for (const fileInfo of fileInfos) {
+        // If we have file content, add it as formatted text
+        if (fileInfo.content) {
+          // Format the content with file info for AI context
+          const language = fileInfo.language || ''
+          const formattedContent = `📄 **${fileInfo.file.name}**${language ? ` (${language})` : ''}\n\`\`\`${language}\n${fileInfo.content}\n\`\`\``
+          setClipboardItems((prev) => [...prev, formattedContent])
+        }
+        // If it's an image file, add as attachment
+        else if (fileInfo.isImageFile || fileInfo.file.type.startsWith('image/')) {
+          setFiles((prev) => [...prev, fileInfo.file])
+        }
+        // Fallback: add as file attachment if no content was read
+        else {
+          setFiles((prev) => [...prev, fileInfo.file])
+        }
+      }
+    } else {
+      // Fallback for when fileInfos isn't available (web browser without Electron)
+      setFiles((prev) => [...prev, ...droppedFiles])
+    }
+    setIsExpanded(true)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files)
-      setFiles((prev) => [...prev, ...droppedFiles])
-      setIsExpanded(true)
+  const handleTextDropped = useCallback((text: string) => {
+    if (text.length > 200) {
+      setClipboardItems((prev) => [...prev, text])
+    } else {
+      setInput((prev) => prev ? `${prev} ${text}` : text)
     }
+    setIsExpanded(true)
+  }, [setInput])
+
+  const handleUrlDropped = useCallback((url: string) => {
+    setClipboardItems((prev) => [...prev, url])
+    setIsExpanded(true)
   }, [])
 
   // Use controlled or internal visibility
@@ -337,97 +364,103 @@ export function PromptInputWithActions({
   }
 
   return (
-    <div
-      ref={inputContainerRef}
+    <DropZone
+      onFilesDropped={handleFilesDropped}
+      onTextDropped={handleTextDropped}
+      onUrlDropped={handleUrlDropped}
+      readCodeFileContents={true}
+      isDarkTheme={isDarkTheme}
       className="relative w-full transition-all duration-300 ease-in-out"
-      style={{ zIndex: 49 }}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
     >
-      {/* Validation Error Popup - appears above the input */}
-      {validationError && (
-        <div
-          className={cn(
-            "fixed z-[60] max-w-sm mx-auto left-1/2 -translate-x-1/2",
-            "animate-in fade-in slide-in-from-bottom-2 duration-200",
-            isExpanded ? "bottom-32" : "bottom-24"
-          )}
-          data-no-clickthrough
-        >
+      <div
+        ref={inputContainerRef}
+        style={{ zIndex: 49 }}
+      >
+        {/* Validation Error Popup - appears above the input */}
+        {validationError && (
           <div
             className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg border",
-              "text-sm",
-              isDarkTheme
-                ? "bg-red-950/95 border-red-800 backdrop-blur-sm text-red-200"
-                : "bg-red-50/95 border-red-300 backdrop-blur-sm text-red-800"
+              "fixed z-[60] max-w-sm mx-auto left-1/2 -translate-x-1/2",
+              "animate-in fade-in slide-in-from-bottom-2 duration-200",
+              isExpanded ? "bottom-32" : "bottom-24"
             )}
+            data-no-clickthrough
           >
-            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-            <p className="flex-1 text-xs leading-tight">{validationError}</p>
-            <button
-              onClick={() => setValidationError(null)}
+            <div
               className={cn(
-                "p-0.5 rounded transition-colors shrink-0",
+                "flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg border",
+                "text-sm",
                 isDarkTheme
-                  ? "hover:bg-red-900/50 text-red-400"
-                  : "hover:bg-red-100 text-red-600"
+                  ? "bg-red-950/95 border-red-800 backdrop-blur-sm text-red-200"
+                  : "bg-red-50/95 border-red-300 backdrop-blur-sm text-red-800"
               )}
-              aria-label="Dismiss"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+              <p className="flex-1 text-xs leading-tight">{validationError}</p>
+              <button
+                onClick={() => setValidationError(null)}
+                className={cn(
+                  "p-0.5 rounded transition-colors shrink-0",
+                  isDarkTheme
+                    ? "hover:bg-red-900/50 text-red-400"
+                    : "hover:bg-red-100 text-red-600"
+                )}
+                aria-label="Dismiss"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!isExpanded ? (
-        <PromptInputCollapsed
-          input={input}
-          setInput={handleInputChange}
-          isLoading={isLoading}
-          files={files}
-          clipboardItems={clipboardItems}
-          onSubmit={handleSubmit}
-          onStop={onStop}
-          onExpand={() => setIsExpanded(true)}
-          onHide={() => setIsVisible(false)}
-          isDarkTheme={isDarkTheme}
-          onFilesAdded={handleFilesAdded}
-          onAudioClick={onAudioClick}
-          onMoreClick={onMoreClick}
-          onFileChange={handleFileChange}
-          onRemoveFile={handleRemoveFile}
-          onClipboardItemAdd={handleClipboardItemAdd}
-          onRemoveClipboardItem={handleRemoveClipboardItem}
-          onThemeChange={onThemeChange}
-          isOutputVisible={isOutputVisible}
-          onToggleOutput={onToggleOutput}
-        />
-      ) : (
-        <PromptInputExpanded
-          input={input}
-          setInput={handleInputChange}
-          isLoading={isLoading}
-          files={files}
-          clipboardItems={clipboardItems}
-          onSubmit={handleSubmit}
-          onStop={onStop}
-          onCollapse={() => setIsExpanded(false)}
-          onHide={() => setIsVisible(false)}
-          onFileChange={handleFileChange}
-          onFilesAdded={handleFilesAdded}
-          onRemoveFile={handleRemoveFile}
-          isDarkTheme={isDarkTheme}
-          onAudioClick={onAudioClick}
-          onMoreClick={onMoreClick}
-          onClipboardItemAdd={handleClipboardItemAdd}
-          onRemoveClipboardItem={handleRemoveClipboardItem}
-          onThemeChange={onThemeChange}
-          isOutputVisible={isOutputVisible}
-          onToggleOutput={onToggleOutput}
-        />
-      )}
-    </div>
+        {!isExpanded ? (
+          <PromptInputCollapsed
+            input={input}
+            setInput={handleInputChange}
+            isLoading={isLoading}
+            files={files}
+            clipboardItems={clipboardItems}
+            onSubmit={handleSubmit}
+            onStop={onStop}
+            onExpand={() => setIsExpanded(true)}
+            onHide={() => setIsVisible(false)}
+            isDarkTheme={isDarkTheme}
+            onFilesAdded={handleFilesAdded}
+            onAudioClick={onAudioClick}
+            onMoreClick={onMoreClick}
+            onFileChange={handleFileChange}
+            onRemoveFile={handleRemoveFile}
+            onClipboardItemAdd={handleClipboardItemAdd}
+            onRemoveClipboardItem={handleRemoveClipboardItem}
+            onThemeChange={onThemeChange}
+            isOutputVisible={isOutputVisible}
+            onToggleOutput={onToggleOutput}
+          />
+        ) : (
+          <PromptInputExpanded
+            input={input}
+            setInput={handleInputChange}
+            isLoading={isLoading}
+            files={files}
+            clipboardItems={clipboardItems}
+            onSubmit={handleSubmit}
+            onStop={onStop}
+            onCollapse={() => setIsExpanded(false)}
+            onHide={() => setIsVisible(false)}
+            onFileChange={handleFileChange}
+            onFilesAdded={handleFilesAdded}
+            onRemoveFile={handleRemoveFile}
+            isDarkTheme={isDarkTheme}
+            onAudioClick={onAudioClick}
+            onMoreClick={onMoreClick}
+            onClipboardItemAdd={handleClipboardItemAdd}
+            onRemoveClipboardItem={handleRemoveClipboardItem}
+            onThemeChange={onThemeChange}
+            isOutputVisible={isOutputVisible}
+            onToggleOutput={onToggleOutput}
+          />
+        )}
+      </div>
+    </DropZone>
   )
 }

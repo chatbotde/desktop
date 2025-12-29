@@ -44,7 +44,8 @@
     "monitor/**/*.ts",
     "tsf/**/*.ts",
     "capture/**/*.ts",
-    "block-manager/**/*.ts"
+    "block-manager/**/*.ts",
+    "preload/**/*.ts"
   ],
   "exclude": [
     "node_modules",

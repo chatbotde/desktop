@@ -30,8 +30,8 @@ export function MediaAttachmentComponent({ attachment }: MediaAttachmentProps) {
     case 'image':
       return (
         <div className="media-attachment">
-          <img 
-            src={data} 
+          <img
+            src={data}
             alt={name}
             className="max-w-full max-h-64 rounded-lg border border-gray-600/20"
             style={maxDimensions}
@@ -39,12 +39,12 @@ export function MediaAttachmentComponent({ attachment }: MediaAttachmentProps) {
           {mediaInfo}
         </div>
       )
-    
+
     case 'video':
       return (
         <div className="media-attachment">
-          <video 
-            controls 
+          <video
+            controls
             preload="metadata"
             className="max-w-full max-h-64 rounded-lg border border-gray-600/20"
             style={maxDimensions}
@@ -55,7 +55,7 @@ export function MediaAttachmentComponent({ attachment }: MediaAttachmentProps) {
           {mediaInfo}
         </div>
       )
-    
+
     case 'audio':
       return (
         <div className="media-attachment">
@@ -66,7 +66,7 @@ export function MediaAttachmentComponent({ attachment }: MediaAttachmentProps) {
           {mediaInfo}
         </div>
       )
-    
+
     default:
       return null
   }
