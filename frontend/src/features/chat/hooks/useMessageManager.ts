@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { createChatMessage } from '@/utils/message-utils'
 import type { ChatMessage, MediaAttachment } from '../types'
-import { sendMessageComplete as sendCloudMessageComplete, unifiedAIService } from '@/lib/ai'
+import { sendMessage as sendCloudMessage, unifiedAIService } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { getSelectedModel } from '@/lib/ai/model-config'
 
@@ -101,31 +101,63 @@ export const useMessageManager = (
       } else {
         // If a local model is selected, use Ollama (local LLM). Otherwise use cloud router.
         const localModel = unifiedLocalLLMService.getCurrentModel()
-        const replyText = localModel
-          ? await (async () => {
-            const init = await unifiedLocalLLMService.initialize()
-            if (!init.success) {
-              throw new Error(init.message)
-            }
-            // Check if aborted
-            if (abortController.signal.aborted) {
-              return ''
-            }
-            return await unifiedLocalLLMService.sendMessageComplete(
-              message,
-              aiAttachments,
-              localModel.name
-            )
-          })()
-          : await sendCloudMessageComplete(message, aiAttachments)
+        
+        let responseStream: AsyncGenerator<string, void, unknown>;
+        
+        if (localModel) {
+          const init = await unifiedLocalLLMService.initialize()
+          if (!init.success) {
+            throw new Error(init.message)
+          }
+          // Check if aborted
+          if (abortController.signal.aborted) {
+            return
+          }
+          responseStream = await unifiedLocalLLMService.sendMessage(
+            message,
+            aiAttachments,
+            localModel.name
+          )
+        } else {
+          responseStream = await sendCloudMessage(message, aiAttachments)
+        }
 
-        // Check if aborted before adding response
+        // Check if aborted before starting stream
         if (abortController.signal.aborted) {
           return
         }
 
-        const assistantMessage = createChatMessage(replyText, 'assistant')
+        // Create assistant message with empty content initially
+        const assistantMessageId = `assistant_${Date.now()}`
+        const assistantMessage = createChatMessage('', 'assistant')
+        assistantMessage.id = assistantMessageId
         setOutputMessages(prev => [...prev, assistantMessage])
+
+        // Stream the response content
+        let fullResponse = ''
+        try {
+          for await (const chunk of responseStream) {
+            // Check if aborted during streaming
+            if (abortController.signal.aborted) {
+              break
+            }
+            
+            fullResponse += chunk
+            
+            // Update the assistant message with accumulated content
+            setOutputMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: fullResponse }
+                : msg
+            ))
+          }
+        } catch (streamError) {
+          // If aborted, don't show error
+          if (abortController.signal.aborted) {
+            return
+          }
+          throw streamError
+        }
       }
     } catch (err) {
       // Don't show error if request was aborted

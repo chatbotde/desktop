@@ -7,7 +7,7 @@ import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
 import { Mic, Square, Loader2, Check, AlertCircle, X } from "lucide-react"
 import { createPrerecordedService, isAssemblyAIConfigured } from "@/lib/audio"
-import { sendMessageComplete as sendCloudMessageComplete } from "@/lib/ai"
+import { sendMessage as sendCloudMessage } from "@/lib/ai"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { buildVoiceRewritePromptFromTranscription } from "@/lib/prompt"
 
@@ -552,24 +552,39 @@ export function VoiceToPromptQuickInsert({ onCancel }: { onCancel?: () => void }
       const promptBuilder = buildVoiceRewritePromptFromTranscription(transcription)
 
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      const rewrittenPrompt = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) throw new Error(init.message)
-          return await unifiedLocalLLMService.sendMessageComplete(promptBuilder, undefined, localModel.name)
-        })()
-        : await sendCloudMessageComplete(promptBuilder)
+      
+      // Stream the rewritten prompt
+      let rewriteStream: AsyncGenerator<string, void, unknown>;
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) throw new Error(init.message)
+        rewriteStream = await unifiedLocalLLMService.sendMessage(promptBuilder, undefined, localModel.name)
+      } else {
+        rewriteStream = await sendCloudMessage(promptBuilder)
+      }
+
+      let rewrittenPrompt = ''
+      for await (const chunk of rewriteStream) {
+        rewrittenPrompt += chunk
+      }
 
       const finalPrompt = (rewrittenPrompt || "").trim() || transcription
 
       // Step 3: Send the final prompt to the model to get an answer
-      const answer = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) throw new Error(init.message)
-          return await unifiedLocalLLMService.sendMessageComplete(finalPrompt, undefined, localModel.name)
-        })()
-        : await sendCloudMessageComplete(finalPrompt)
+      // Stream the answer
+      let answerStream: AsyncGenerator<string, void, unknown>;
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) throw new Error(init.message)
+        answerStream = await unifiedLocalLLMService.sendMessage(finalPrompt, undefined, localModel.name)
+      } else {
+        answerStream = await sendCloudMessage(finalPrompt)
+      }
+
+      let answer = ''
+      for await (const chunk of answerStream) {
+        answer += chunk
+      }
 
       const textToInsert = (answer || "").trim()
       if (!textToInsert) {

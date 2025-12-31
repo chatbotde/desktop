@@ -6,7 +6,7 @@ import { TextSelectionOutput } from './TextSelectionOutput'
 import { AddToPromptButton } from '@/components/add-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
-import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { cn } from '@/lib/utils'
 
@@ -293,21 +293,30 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
     try {
       // Use the same AI service logic as handleSendMessage
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      const replyText = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) {
-            throw new Error(init.message)
-          }
-          return await unifiedLocalLLMService.sendMessageComplete(
-            message,
-            undefined,
-            localModel.name
-          )
-        })()
-        : await sendCloudMessageComplete(message, undefined)
+      
+      let responseStream: AsyncGenerator<string, void, unknown>;
+      
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) {
+          throw new Error(init.message)
+        }
+        responseStream = await unifiedLocalLLMService.sendMessage(
+          message,
+          undefined,
+          localModel.name
+        )
+      } else {
+        responseStream = await sendCloudMessage(message, undefined)
+      }
 
-      setGeneratedOutput(replyText)
+      // Stream the response and accumulate text
+      let fullResponse = ''
+      for await (const chunk of responseStream) {
+        fullResponse += chunk
+        // Update output in real-time as it streams
+        setGeneratedOutput(fullResponse)
+      }
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message

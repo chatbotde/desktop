@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { buildAskPrompt, buildExplainPrompt } from '@/lib/prompt'
-import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 interface UseTextSelectionActionsProps {
@@ -59,16 +59,27 @@ export const useTextSelectionActions = ({
       })
 
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      const explanationText = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) {
-            throw new Error(init.message)
-          }
-          return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
-        })()
-        : await sendCloudMessageComplete(prompt)
+      
+      let responseStream: AsyncGenerator<string, void, unknown>;
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) {
+          throw new Error(init.message)
+        }
+        responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+      } else {
+        responseStream = await sendCloudMessage(prompt)
+      }
 
+      // Stream the response and accumulate text
+      let fullResponse = ''
+      for await (const chunk of responseStream) {
+        fullResponse += chunk
+        // Update explanation in real-time as it streams
+        setExplanation(fullResponse)
+      }
+
+      const explanationText = fullResponse
       setExplanation(explanationText)
       if (outputWindowEnabled) setIsOutputVisible(true)
     } catch (err) {

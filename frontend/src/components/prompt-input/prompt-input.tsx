@@ -426,7 +426,6 @@ export function PromptInputWithActions({
             onHide={() => setIsVisible(false)}
             isDarkTheme={isDarkTheme}
             onFilesAdded={handleFilesAdded}
-            onAudioClick={onAudioClick}
             onMoreClick={onMoreClick}
             onFileChange={handleFileChange}
             onRemoveFile={handleRemoveFile}
@@ -451,7 +450,6 @@ export function PromptInputWithActions({
             onFilesAdded={handleFilesAdded}
             onRemoveFile={handleRemoveFile}
             isDarkTheme={isDarkTheme}
-            onAudioClick={onAudioClick}
             onMoreClick={onMoreClick}
             onClipboardItemAdd={handleClipboardItemAdd}
             onRemoveClipboardItem={handleRemoveClipboardItem}

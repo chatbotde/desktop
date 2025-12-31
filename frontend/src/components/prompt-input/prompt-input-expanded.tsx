@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/ui/popover"
 import { MediaUploadCard } from "../media-upload-card"
 import { Button } from "@/shared/components/ui/button"
-import { ArrowUp, Square, X, Plus, Mic, ChevronUp, Image, FileText, Cpu, Power } from "lucide-react"
+import { ArrowUp, Square, X, Plus, ChevronUp, Image, FileText, Cpu, Power } from "lucide-react"
 import { useRef, useEffect, useMemo, useCallback, useState } from "react"
 import { ModelSelectorPopover } from "../model-selector-popover"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler, WindowActionControls } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { useFeature } from "@/contexts/FeatureContext"
+import { LiveTranscriptionButton } from "@/features/audio"
 import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
 import { getShowLocalModelControl, subscribeShowLocalModelControl } from "@/lib/settings/prompt-controls"
 
@@ -35,7 +36,6 @@ interface PromptInputExpandedProps {
   onRemoveFile: (index: number) => void
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
-  onAudioClick?: () => void
   onMoreClick?: () => void
   onClipboardItemAdd?: (text: string) => void
   onRemoveClipboardItem?: (index: number) => void
@@ -59,7 +59,6 @@ export function PromptInputExpanded({
   onRemoveFile,
   isDarkTheme = true,
   onFilesAdded,
-  onAudioClick,
   onMoreClick,
   onClipboardItemAdd,
   onRemoveClipboardItem,
@@ -456,16 +455,10 @@ export function PromptInputExpanded({
 
           <div className="flex items-center gap-2">
             <PromptInputAction tooltip="Voice input">
-              <button
-                aria-label="Voice input"
-                onClick={onAudioClick}
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                  hoverClass
-                )}
-              >
-                <Mic className={`size-5 ${themeClasses.icon}`} />
-              </button>
+              <LiveTranscriptionButton
+                isDarkTheme={isDarkTheme}
+                className="h-8 w-8"
+              />
             </PromptInputAction>
 
             <PromptInputAction tooltip={isLoading ? "Stop generation" : "Send message"}>

@@ -3,7 +3,7 @@ import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { TranscriptionResult } from '@/lib/audio'
-import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { buildVoiceRewritePromptFromTranscription } from '@/lib/prompt'
 import { AudioPreviewHeader } from './AudioPreviewHeader'
@@ -128,17 +128,27 @@ export function AudioPreview({
 
     try {
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      const replyText = localModel
-        ? await (async () => {
-          const init = await unifiedLocalLLMService.initialize()
-          if (!init.success) {
-            throw new Error(init.message)
-          }
-          return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
-        })()
-        : await sendCloudMessageComplete(prompt)
+      
+      let responseStream: AsyncGenerator<string, void, unknown>;
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) {
+          throw new Error(init.message)
+        }
+        responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+      } else {
+        responseStream = await sendCloudMessage(prompt)
+      }
 
-      const suggestion = replyText.trim()
+      // Stream the response and accumulate text
+      let fullResponse = ''
+      for await (const chunk of responseStream) {
+        fullResponse += chunk
+        // Update suggestion in real-time as it streams
+        setAiSuggestion(fullResponse.trim())
+      }
+
+      const suggestion = fullResponse.trim()
       setAiSuggestion(suggestion)
 
       // Automatically insert into the main prompt input and send to AI

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { sendMessageComplete as sendCloudMessageComplete } from '@/lib/ai'
+import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { buildVoiceRewritePromptFromLiveTranscription } from '@/lib/prompt'
 
@@ -19,17 +19,28 @@ export function useAiSuggestion() {
             const prompt = buildVoiceRewritePromptFromLiveTranscription(fullText)
 
             const localModel = unifiedLocalLLMService.getCurrentModel()
-            const replyText = localModel
-                ? await (async () => {
-                    const init = await unifiedLocalLLMService.initialize()
-                    if (!init.success) {
-                        throw new Error(init.message)
-                    }
-                    return await unifiedLocalLLMService.sendMessageComplete(prompt, undefined, localModel.name)
-                })()
-                : await sendCloudMessageComplete(prompt)
+            
+            let responseStream: AsyncGenerator<string, void, unknown>;
+            
+            if (localModel) {
+                const init = await unifiedLocalLLMService.initialize()
+                if (!init.success) {
+                    throw new Error(init.message)
+                }
+                responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+            } else {
+                responseStream = await sendCloudMessage(prompt)
+            }
 
-            const suggestion = replyText.trim()
+            // Stream the response and accumulate text
+            let fullResponse = ''
+            for await (const chunk of responseStream) {
+                fullResponse += chunk
+                // Update suggestion in real-time as it streams
+                setAiSuggestion(fullResponse.trim())
+            }
+
+            const suggestion = fullResponse.trim()
             setAiSuggestion(suggestion)
 
             // Automatically insert and send

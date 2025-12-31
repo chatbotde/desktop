@@ -1,5 +1,5 @@
 import { Button } from "@/shared/components/ui/button"
-import { ArrowUp, Plus, Mic, Square, ChevronsUp, FileText } from "lucide-react"
+import { ArrowUp, Plus, Square, ChevronsUp, FileText } from "lucide-react"
 import {
   Popover,
   PopoverContent,
@@ -10,6 +10,7 @@ import { useRef, useMemo, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { getThemeClasses, getHoverClass } from "./prompt-input-theme"
 import { NetworkOfflineIndicator, SmartClipboardPill, getFileIcon, usePasteHandler, WindowActionControls } from "./prompt-shared"
+import { LiveTranscriptionButton } from "@/features/audio"
 
 
 interface PromptInputCollapsedProps {
@@ -24,7 +25,6 @@ interface PromptInputCollapsedProps {
   onHide: () => void
   isDarkTheme?: boolean
   onFilesAdded?: (files: File[]) => void
-  onAudioClick?: () => void
   onMoreClick?: () => void
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile?: (index: number) => void
@@ -47,7 +47,6 @@ export function PromptInputCollapsed({
   onHide,
   isDarkTheme = true,
   onFilesAdded,
-  onAudioClick,
   onMoreClick,
   onRemoveFile,
   onClipboardItemAdd,
@@ -164,16 +163,10 @@ export function PromptInputCollapsed({
           )}
         />
 
-        <button
-          aria-label="Voice input"
-          onClick={onAudioClick}
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0",
-            hoverClass
-          )}
-        >
-          <Mic className={`size-4 ${themeClasses.icon}`} />
-        </button>
+        <LiveTranscriptionButton
+          isDarkTheme={isDarkTheme}
+          className="h-8 w-8 shrink-0"
+        />
 
         <Button
           variant="default"

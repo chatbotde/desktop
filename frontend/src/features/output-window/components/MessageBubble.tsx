@@ -185,22 +185,19 @@ export function MessageBubble({
   }, [hideSelectionActions])
 
   const messageStyles = cn(
-    "transition-all duration-300 break-words overflow-hidden relative",
-    "leading-[1.7] tracking-normal font-normal antialiased",
+    "break-words overflow-hidden relative",
     isUser
       ? cn(
         'text-white',
-        'bg-blue-600',
-        isSingleLine ? 'rounded-full' : 'rounded-2xl',
-        'border border-blue-600',
-        'shadow-lg shadow-blue-500/20',
-        'px-5 py-2.5',
-        'hover:shadow-xl hover:shadow-blue-500/30',
-        'transition-all duration-300 ease-in-out'
+        'bg-gradient-to-r from-blue-500 to-blue-600',
+        isSingleLine ? 'rounded-full' : 'rounded-xl',
+        'px-3.5 py-1.5',
+        'shadow-sm',
+        'transition-all duration-200'
       )
       : cn(
         'bg-transparent',
-        isDarkTheme ? 'px-4 py-3 text-zinc-100' : 'px-5 py-4 text-zinc-900'
+        isDarkTheme ? 'px-4 py-1 text-zinc-100' : 'px-4 py-1 text-zinc-900'
       )
   )
 
@@ -211,8 +208,8 @@ export function MessageBubble({
     )}>
       <div className={cn(
         isUser
-          ? "max-w-[85%] break-words relative"
-          : "w-full break-words relative",
+          ? "max-w-[75%] break-words relative pb-6"
+          : "w-full break-words relative pb-6",
         isUser ? "items-end" : "items-start"
       )}>
         {/* Display attachments (images) - compact state only */}
@@ -260,20 +257,20 @@ export function MessageBubble({
               className={cn(
                 "max-w-none break-words whitespace-pre-wrap bg-transparent p-0",
                 isUser
-                  ? "!text-white"
+                  ? "!text-white text-sm leading-relaxed"
                   : isDarkTheme
                     ? "prose prose-invert prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-100 prose-strong:text-white prose-code:text-zinc-100 !text-zinc-100"
                     : "prose prose-zinc prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900 !text-zinc-900",
-                "text-[15px] leading-[1.7] tracking-[0.01em]",
-                "[&_p]:mb-3 [&_p]:mt-0",
-                "[&_ul]:my-3 [&_ol]:my-3",
-                "[&_li]:mb-1.5",
+                !isUser && "text-[15px] leading-[1.7] tracking-[0.01em]",
+                "[&_p]:mb-1.5 [&_p]:mt-0",
+                "[&_ul]:my-1.5 [&_ol]:my-1.5",
+                "[&_li]:mb-0.5",
                 "[&_pre]:!bg-transparent [&_code]:!bg-transparent",
-                "[&_pre]:my-3 [&_pre]:rounded-lg",
+                "[&_pre]:my-1.5 [&_pre]:rounded-lg",
                 "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:mx-0.5",
-                "[&_h1]:mt-4 [&_h1]:mb-3 [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:mt-3 [&_h3]:mb-2",
+                "[&_h1]:mt-2 [&_h1]:mb-1.5 [&_h2]:mt-1.5 [&_h2]:mb-1 [&_h3]:mt-1.5 [&_h3]:mb-1",
                 // Math equation styling - allow multi-line rendering
-                "[&_.math-block]:my-4 [&_.math-block]:w-full [&_.math-block]:overflow-x-auto [&_.math-block]:overflow-y-visible",
+                "[&_.math-block]:my-2 [&_.math-block]:w-full [&_.math-block]:overflow-x-auto [&_.math-block]:overflow-y-visible",
                 "[&_.math-inline]:inline [&_.math-inline]:align-middle",
                 "[&_.katex]:!text-current [&_.katex-display]:!block [&_.katex-display]:!w-full",
                 "[&_.katex-display_.katex]:!max-w-full [&_.katex-display_.katex]:!overflow-x-auto",
@@ -334,8 +331,8 @@ export function MessageBubble({
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
             className={cn(
-              "mt-2 text-xs font-medium transition-colors",
-              "text-blue-100 hover:text-white"
+              "mt-1.5 text-xs font-medium transition-colors",
+              "text-blue-200 hover:text-white"
             )}
           >
             {isExpanded ? 'Show less' : 'Show more'}
@@ -345,28 +342,27 @@ export function MessageBubble({
         {/* Action buttons */}
         <div className={cn(
           "opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-          "absolute -bottom-8 right-0 flex items-center gap-1.5"
+          "absolute bottom-0 right-0 flex items-center gap-2"
         )}>
           {/* Insert button */}
           <button
             onClick={handleInsert}
             disabled={isInserting || !window.tsfAPI}
             className={cn(
-              "p-1.5 rounded-full text-xs transition-colors",
+              "p-1 rounded-full text-xs transition-colors",
               isDarkTheme
-                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed border-zinc-200",
-              "border shadow-sm",
-              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+                ? "bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                : "bg-white/90 text-zinc-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed",
+              "shadow-sm backdrop-blur-sm"
             )}
             title={insertSuccess ? "Inserted!" : isInserting ? "Inserting..." : "Insert text"}
           >
             {insertSuccess ? (
-              <Check className="w-3 h-3" />
+              <Check className="w-2.5 h-2.5" />
             ) : isInserting ? (
-              <Send className="w-3 h-3 animate-pulse" />
+              <Send className="w-2.5 h-2.5 animate-pulse" />
             ) : (
-              <Send className="w-3 h-3" />
+              <Send className="w-2.5 h-2.5" />
             )}
           </button>
 
@@ -374,16 +370,15 @@ export function MessageBubble({
           <button
             onClick={handleCopy}
             className={cn(
-              "p-1.5 rounded-full text-xs",
+              "p-1 rounded-full text-xs transition-colors",
               isDarkTheme
-                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border-zinc-200",
-              "border shadow-sm",
-              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+                ? "bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700"
+                : "bg-white/90 text-zinc-700 hover:bg-white",
+              "shadow-sm backdrop-blur-sm"
             )}
             title={copied ? "Copied!" : "Copy"}
           >
-            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
           </button>
         </div>
 

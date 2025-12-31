@@ -12,7 +12,8 @@ export {
   VoiceToPromptQuickInsert, 
   LiveWaveform,
   AudioRecorderPill,
-  AudioPreview
+  AudioPreview,
+  LiveTranscriptionButton
 } from './components'
 
 export type { LiveWaveformProps } from './components'
