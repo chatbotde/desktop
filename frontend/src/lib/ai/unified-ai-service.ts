@@ -33,8 +33,8 @@ export class UnifiedAIService {
   private usageTrackingEnabled: boolean = true;
 
   constructor() {
-    // Initialize with default learning assistant prompt
-    this.setSystemPrompt('learning');
+    // Initialize with default general assistant prompt
+    this.setSystemPrompt('general');
   }
 
   /**

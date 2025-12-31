@@ -30,31 +30,10 @@ export interface GeminiChatHistory {
 }
 
 export class GeminiChatService {
-  private chat: any = null;
   private chatHistory: GeminiChatHistory[] = [];
 
   constructor() {
-    // Don't initialize chat in constructor - do it lazily when needed
-  }
-
-  private initializeChat() {
-    const selectedModel = getSelectedModel();
-    // Only use Gemini models, fallback to default if non-Gemini model is selected
-    let modelName = 'gemini-2.5-flash';
-    if (selectedModel && selectedModel.provider === 'google') {
-      modelName = selectedModel.name;
-    }
-
-    this.chat = ai.chats.create({
-      model: modelName,
-      history: this.chatHistory,
-    });
-  }
-
-  private ensureChatInitialized() {
-    if (!this.chat) {
-      this.initializeChat();
-    }
+    // History-based context is managed internally
   }
 
   private async convertMediaToGeminiFormat(attachment: MediaAttachment) {
@@ -90,8 +69,11 @@ export class GeminiChatService {
   }
 
   async sendMessageWithMedia(message: string, attachments?: MediaAttachment[]): Promise<AsyncGenerator<string, void, unknown>> {
-    this.ensureChatInitialized();
-    if (!this.chat) throw new Error('Chat not initialized');
+    const selectedModel = getSelectedModel();
+    let modelName = 'gemini-3.0-flash';
+    if (selectedModel && selectedModel.provider === 'google') {
+      modelName = selectedModel.name;
+    }
 
     const parts: any[] = [];
 
@@ -108,12 +90,33 @@ export class GeminiChatService {
 
     if (parts.length === 0) throw new Error('No content to send');
 
+    // Build contents array with history for context
+    const contents = [
+      ...this.chatHistory.map(h => ({
+        role: h.role,
+        parts: h.parts
+      })),
+      { role: 'user' as const, parts }
+    ];
+
+    // Add user message to history
     this.chatHistory.push({ role: 'user', parts });
 
-    const stream = await this.chat.sendMessageStream({ message: parts });
-    let fullResponse = '';
+    // Google Search grounding tool for real-time web information
+    const groundingTool = { googleSearch: {} };
 
+    // Use generateContentStream with grounding for real-time web info
+    const stream = await ai.models.generateContentStream({
+      model: modelName,
+      contents,
+      config: {
+        tools: [groundingTool],
+      },
+    });
+
+    let fullResponse = '';
     const self = this;
+
     async function* streamGenerator() {
       for await (const chunk of stream) {
         const text = chunk.text || '';
@@ -147,7 +150,6 @@ export class GeminiChatService {
 
   clearHistory() {
     this.chatHistory = [];
-    this.initializeChat();
   }
 
   getHistory() {
@@ -159,17 +161,27 @@ export class GeminiChatService {
       role: 'model',
       parts: [{ text: `System Context: ${context}` }]
     });
-    this.initializeChat();
   }
 
   reinitializeWithCurrentModel() {
-    this.chat = null; // Reset chat
-    this.initializeChat();
+    // No-op, grounding is reconfigured on each request
   }
 
   getCurrentModelName(): string {
-    return getSelectedModel()?.name || 'gemini-2.5-flash';
+    return getSelectedModel()?.name || 'gemini-3.0-flash';
   }
+
+  /**
+   * Alias for sendMessageWithMedia - grounding is now enabled by default
+   * @deprecated Use sendMessageWithMedia instead
+   */
+  sendMessageWithGrounding = this.sendMessageWithMedia.bind(this);
+
+  /**
+   * Alias for sendMessageWithMediaComplete - grounding is now enabled by default
+   * @deprecated Use sendMessageWithMediaComplete instead
+   */
+  sendMessageWithGroundingComplete = this.sendMessageWithMediaComplete.bind(this);
 }
 
 // Singleton instance
