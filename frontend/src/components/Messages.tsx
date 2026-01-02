@@ -60,9 +60,13 @@ export function Messages({
               }`}>
               {/* Media attachments (if any) */}
               {message.attachments && message.attachments.length > 0 && (
-                <div className="mb-3 space-y-2">
+                <div className={message.role === 'user' ? "mb-3 space-y-2 flex flex-wrap gap-2 justify-end" : "mb-3 space-y-2"}>
                   {message.attachments.map((attachment) => (
-                    <MediaAttachmentComponent key={attachment.id} attachment={attachment} />
+                    <MediaAttachmentComponent 
+                      key={attachment.id} 
+                      attachment={attachment} 
+                      compact={message.role === 'user'}
+                    />
                   ))}
                 </div>
               )}

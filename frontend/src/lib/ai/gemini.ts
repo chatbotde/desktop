@@ -68,7 +68,7 @@ export class GeminiChatService {
     });
   }
 
-  async sendMessageWithMedia(message: string, attachments?: MediaAttachment[]): Promise<AsyncGenerator<string, void, unknown>> {
+  async sendMessageWithMedia(message: string, attachments?: MediaAttachment[], enableGrounding: boolean = false): Promise<AsyncGenerator<string, void, unknown>> {
     const selectedModel = getSelectedModel();
     let modelName = 'gemini-3.0-flash';
     if (selectedModel && selectedModel.provider === 'google') {
@@ -102,16 +102,18 @@ export class GeminiChatService {
     // Add user message to history
     this.chatHistory.push({ role: 'user', parts });
 
-    // Google Search grounding tool for real-time web information
-    const groundingTool = { googleSearch: {} };
+    // Configure API call - conditionally include Google Search grounding tool
+    const config: any = {};
+    if (enableGrounding) {
+      const groundingTool = { googleSearch: {} };
+      config.tools = [groundingTool];
+    }
 
-    // Use generateContentStream with grounding for real-time web info
+    // Use generateContentStream with optional grounding for real-time web info
     const stream = await ai.models.generateContentStream({
       model: modelName,
       contents,
-      config: {
-        tools: [groundingTool],
-      },
+      config: Object.keys(config).length > 0 ? config : undefined,
     });
 
     let fullResponse = '';
@@ -130,19 +132,19 @@ export class GeminiChatService {
     return streamGenerator();
   }
 
-  async sendMessage(message: string): Promise<AsyncGenerator<string, void, unknown>> {
-    return this.sendMessageWithMedia(message);
+  async sendMessage(message: string, enableGrounding: boolean = false): Promise<AsyncGenerator<string, void, unknown>> {
+    return this.sendMessageWithMedia(message, undefined, enableGrounding);
   }
 
-  async sendMessageComplete(message: string): Promise<string> {
-    const stream = await this.sendMessage(message);
+  async sendMessageComplete(message: string, enableGrounding: boolean = false): Promise<string> {
+    const stream = await this.sendMessage(message, enableGrounding);
     let response = '';
     for await (const chunk of stream) response += chunk;
     return response;
   }
 
-  async sendMessageWithMediaComplete(message: string, attachments?: MediaAttachment[]): Promise<string> {
-    const stream = await this.sendMessageWithMedia(message, attachments);
+  async sendMessageWithMediaComplete(message: string, attachments?: MediaAttachment[], enableGrounding: boolean = false): Promise<string> {
+    const stream = await this.sendMessageWithMedia(message, attachments, enableGrounding);
     let response = '';
     for await (const chunk of stream) response += chunk;
     return response;

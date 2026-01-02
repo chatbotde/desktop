@@ -171,7 +171,10 @@ export class UnifiedAIService {
         if (!isGeminiConfigured()) {
           throw new Error('Gemini API key not configured. Please add VITE_GOOGLE_API_KEY to your .env file.');
         }
-        return trackedGenerator(await geminiService.sendMessageWithMedia(message, attachments));
+        // Import grounding setting dynamically to avoid circular dependencies
+        const { getGroundingEnabled } = await import('@/lib/settings/grounding-toggle');
+        const enableGrounding = getGroundingEnabled();
+        return trackedGenerator(await geminiService.sendMessageWithMedia(message, attachments, enableGrounding));
 
       case 'openai':
         if (!isOpenAIConfigured()) {

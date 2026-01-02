@@ -70,6 +70,8 @@ export class ModelConfigManager {
       // Save to localStorage
       localStorage.setItem('selected-ai-model', modelId);
       console.log(`Selected AI model changed to: ${model.displayName}`);
+      // Dispatch event for model change
+      window.dispatchEvent(new CustomEvent('model-selected', { detail: { modelId, model } }));
       return true;
     }
     return false;

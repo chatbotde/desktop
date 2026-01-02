@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react'
-import { Copy, Check, Send } from 'lucide-react'
+import { Copy, Check, Send, Play } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { MessageContent } from '@/shared/components/message'
 import type { ChatMessage } from '../types'
@@ -32,6 +32,8 @@ export function MessageBubble({
   const [selectionText, setSelectionText] = useState('')
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [isSelectionVisible, setIsSelectionVisible] = useState(false)
+  const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set())
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map())
 
   const isUser = message.role === 'user'
 
@@ -212,29 +214,91 @@ export function MessageBubble({
           : "w-full break-words relative pb-6",
         isUser ? "items-end" : "items-start"
       )}>
-        {/* Display attachments (images) - compact state only */}
+        {/* Display attachments (images and videos) - compact state only */}
         {message.attachments && message.attachments.length > 0 && (
           <div className={cn(
-            "mb-2 space-y-2",
-            isUser ? "flex flex-col items-end" : "flex flex-col items-start"
+            "mb-2 space-y-2 flex flex-wrap gap-2",
+            isUser ? "justify-end" : "justify-start"
           )}>
             {message.attachments.map((attachment) => (
-              attachment.mediaType === 'image' && (
+              (attachment.mediaType === 'image' || attachment.mediaType === 'video') && (
                 <div
                   key={attachment.id}
                   className={cn(
                     "rounded-lg overflow-hidden",
                     "border-2",
                     isDarkTheme ? "border-zinc-700" : "border-zinc-200",
-                    "shadow-sm"
+                    "shadow-sm",
+                    "relative"
                   )}
                 >
-                  <img
-                    src={attachment.data}
-                    alt={attachment.name}
-                    className="w-16 h-16 object-cover"
-                    loading="lazy"
-                  />
+                  {attachment.mediaType === 'image' ? (
+                    <img
+                      src={attachment.data}
+                      alt={attachment.name}
+                      className="w-16 h-16 object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <>
+                      <video
+                        ref={(el) => {
+                          if (el) videoRefs.current.set(attachment.id, el)
+                        }}
+                        src={attachment.data}
+                        className="w-16 h-16 object-cover"
+                        preload="metadata"
+                        onClick={() => {
+                          const video = videoRefs.current.get(attachment.id)
+                          if (!video) return
+                          
+                          if (playingVideos.has(attachment.id)) {
+                            video.pause()
+                            setPlayingVideos(prev => {
+                              const next = new Set(prev)
+                              next.delete(attachment.id)
+                              return next
+                            })
+                          } else {
+                            video.play()
+                            setPlayingVideos(prev => new Set(prev).add(attachment.id))
+                          }
+                        }}
+                        onEnded={() => {
+                          setPlayingVideos(prev => {
+                            const next = new Set(prev)
+                            next.delete(attachment.id)
+                            return next
+                          })
+                        }}
+                      />
+                      {!playingVideos.has(attachment.id) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const video = videoRefs.current.get(attachment.id)
+                            if (!video) return
+                            video.play()
+                            setPlayingVideos(prev => new Set(prev).add(attachment.id))
+                          }}
+                          className={cn(
+                            "absolute inset-0 flex items-center justify-center",
+                            "bg-black/30 hover:bg-black/40 rounded-lg transition-colors"
+                          )}
+                        >
+                          <Play className="size-6 text-white" />
+                        </button>
+                      )}
+                      {attachment.duration && (
+                        <div className={cn(
+                          "absolute bottom-1 right-1 text-[10px] px-1 py-0.5 rounded",
+                          isDarkTheme ? "bg-black/70 text-white" : "bg-white/90 text-zinc-900"
+                        )}>
+                          {Math.round(attachment.duration)}s
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )
             ))}

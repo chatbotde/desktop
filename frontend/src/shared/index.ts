@@ -6,6 +6,8 @@
  * import { Button } from '@/shared/components/ui'
  * import { useDebounce } from '@/shared/hooks'
  * import { cn } from '@/shared/lib'
+ * import { serviceContainer } from '@/shared/services'
+ * import { eventBus } from '@/shared/events'
  */
 
 // Re-export all shared modules
@@ -14,3 +16,13 @@ export * from './hooks'
 export * from './lib'
 export * from './providers'
 export * from './types'
+
+// Export new architecture patterns
+export * from './contracts'
+export * from './services'
+export * from './events'
+export * from './config'
+export * from './adapters'
+export * from './repositories'
+export * from './plugins'
+export * from './test-utils'
