@@ -8,6 +8,7 @@ import { MediaUploadCard } from "../../media-upload-card"
 import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { ModelSelectorPopover } from "../../model-selector-popover"
 import { LiveTranscriptionButton } from "@/features/audio"
+import { VideoRecordingButton } from "@/features/capture/components"
 import { cn } from "@/lib/utils"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
 import { ExpandedLocalModelPopover } from "../expanded-local-model-popover"
@@ -15,7 +16,11 @@ import { ExpandedSubmitButton } from "../expanded-submit-button"
 import { actionButtonRegistry } from "../registry/action-button-registry"
 import type { ExpandedActionsBarContext } from "../types/expanded-actions-context"
 
-export function registerDefaultActions(context: ExpandedActionsBarContext) {
+export function registerDefaultActions(context: ExpandedActionsBarContext | (() => ExpandedActionsBarContext)) {
+  // Support both direct context and function that returns context (for reactive updates)
+  const getContext = typeof context === 'function' ? context : () => context
+  const currentContext = getContext()
+  
   const {
     onFilesAdded,
     isDarkTheme,
@@ -35,7 +40,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext) {
     ollamaModels,
     selectedLocalModelName,
     onModelSelect,
-  } = context
+  } = currentContext
 
   // Media Upload Button (Left side, order: 0)
   actionButtonRegistry.register({
@@ -135,19 +140,37 @@ export function registerDefaultActions(context: ExpandedActionsBarContext) {
     ),
   })
 
+  // Video Recording Button (Right side, order: 10.5)
+  actionButtonRegistry.register({
+    id: "video-recording",
+    order: 10.5,
+    component: (
+      <PromptInputAction tooltip="Video recording" key="video-recording">
+        <VideoRecordingButton
+          isDarkTheme={isDarkTheme}
+          className="h-8 w-8"
+        />
+      </PromptInputAction>
+    ),
+  })
+
   // Submit Button (Right side, order: 11)
+  // Use function component to read latest context values reactively
   actionButtonRegistry.register({
     id: "submit",
     order: 11,
-    component: (
-      <ExpandedSubmitButton
-        key="submit"
-        isLoading={isLoading}
-        canSubmit={canSubmit}
-        onSubmit={onSubmit}
-        onStop={onStop}
-      />
-    ),
+    component: () => {
+      const ctx = getContext()
+      return (
+        <ExpandedSubmitButton
+          key="submit"
+          isLoading={ctx.isLoading}
+          canSubmit={ctx.canSubmit}
+          onSubmit={ctx.onSubmit}
+          onStop={ctx.onStop}
+        />
+      )
+    },
   })
 }
 

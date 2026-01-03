@@ -99,7 +99,7 @@ export class InterfaceWindow {
 
     this.window = new BrowserWindow({
       width: width,
-      height: height - 1,
+      height: height-1,
       frame: false,
       transparent: true,
       alwaysOnTop: true,

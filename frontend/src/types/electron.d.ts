@@ -108,6 +108,16 @@ declare global {
     };
 
     /**
+     * Rich content data for insertion (HTML, images, RTF, etc.)
+     */
+    interface RichContentData {
+      text?: string;           // Plain text fallback
+      html?: string;          // HTML content (for rich text editors)
+      image?: string;         // Image as data URL (e.g., "data:image/png;base64,...")
+      rtf?: string;           // RTF format (for Word, etc.)
+    }
+
+    /**
      * Text Services Framework API for inserting text into any application
      */
     tsfAPI?: {
@@ -123,6 +133,7 @@ declare global {
       getLastFocusedWindow: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
       focusLastWindow: () => Promise<boolean>;
       focusAndInsertText: (text: string) => Promise<boolean>;
+      focusAndInsertRichContent: (content: RichContentData) => Promise<boolean>;
       getSelectedText: () => Promise<string>;
       replaceSelectedText: (text: string) => Promise<boolean>;
       focusAndReplaceText: (text: string) => Promise<boolean>;

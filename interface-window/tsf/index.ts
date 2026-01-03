@@ -5,5 +5,5 @@
  */
 
 export { TsfManager, tsfManager } from './tsf-manager';
-export type { FocusInfo, InsertOptions } from './tsf-manager';
+export type { FocusInfo, InsertOptions, RichContentData } from './tsf-manager';
 export { setupTsfIpc, initializeTsf, cleanupTsf } from './tsf-ipc-handlers';

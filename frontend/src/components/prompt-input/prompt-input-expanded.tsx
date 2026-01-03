@@ -84,7 +84,7 @@ export function PromptInputExpanded({
         isLoading={isLoading}
         onSubmit={onSubmit}
         className={cn(
-          "flex-1 rounded-2xl border px-3 py-2 transition-all duration-300 ease-in-out",
+          "flex-1 flex flex-col rounded-2xl border px-3 py-2 transition-all duration-300 ease-in-out",
           themeClasses.containerBorder
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
@@ -120,7 +120,7 @@ export function PromptInputExpanded({
           placeholder="Ask me anything..."
           aria-label="Message input"
           className={cn(
-            "w-full bg-transparent border-0 focus:outline-none focus:ring-0 overflow-y-auto resize-none px-0 py-0",
+            "w-full bg-transparent border-0 focus:outline-none focus:ring-0 overflow-y-auto resize-none px-0 py-0 flex-shrink",
             themeClasses.textarea
           )}
           style={{
@@ -149,6 +149,7 @@ export function PromptInputExpanded({
           ollamaModels={ollamaModels}
           selectedLocalModelName={selectedLocalModelName}
           onModelSelect={setSelectedLocalModelName}
+          className="relative z-10 shrink-0"
         />
       </PromptInput>
       <PromptInputFooter

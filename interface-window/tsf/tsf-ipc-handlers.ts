@@ -75,6 +75,11 @@ export function setupTsfIpc(window?: BrowserWindow): void {
         return await tsfManager.focusAndInsertText(text);
     });
 
+    // Focus and insert rich content (HTML, images, RTF, etc.) - uses clipboard + paste
+    ipcMain.handle('tsf:focus-and-insert-rich-content', async (_event, content: any) => {
+        return await tsfManager.focusAndInsertRichContent(content);
+    });
+
     // Get selected text
     ipcMain.handle('tsf:get-selected-text', async () => {
         return await tsfManager.getSelectedText();

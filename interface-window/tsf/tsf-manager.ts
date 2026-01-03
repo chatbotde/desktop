@@ -9,6 +9,8 @@
 
 import { EventEmitter } from 'events';
 import * as path from 'path';
+import { ElectronClipboardService } from '../electron-api/clipboard';
+import { ElectronGlobalShortcutService } from '../electron-api/global-shortcut';
 
 // Import the native TSF module
 // Try multiple paths to ensure it works in both dev and production
@@ -50,6 +52,13 @@ export interface InsertOptions {
     force?: boolean;
 }
 
+export interface RichContentData {
+    text?: string;           // Plain text fallback
+    html?: string;           // HTML content (for rich text editors)
+    image?: string;          // Image as data URL (e.g., "data:image/png;base64,...")
+    rtf?: string;           // RTF format (for Word, etc.)
+}
+
 export class TsfManager extends EventEmitter {
     private initialized: boolean = false;
     private enabled: boolean = true;
@@ -57,9 +66,13 @@ export class TsfManager extends EventEmitter {
     private lastExternalFocusInfo: FocusInfo | null = null;
     private focusCheckInterval: NodeJS.Timeout | null = null;
     private ownProcessName: string = 'electron.exe';
+    private clipboardService: ElectronClipboardService;
+    private globalShortcutService: ElectronGlobalShortcutService;
 
     constructor() {
         super();
+        this.clipboardService = new ElectronClipboardService();
+        this.globalShortcutService = new ElectronGlobalShortcutService();
     }
 
     /**
@@ -496,6 +509,160 @@ export class TsfManager extends EventEmitter {
             return success;
         } catch (err) {
             console.error('TSF Manager: Error deleting selection:', err);
+            this.emit('error', err);
+            return false;
+        }
+    }
+
+    /**
+     * Focus last window and insert rich content (HTML, images, RTF, etc.)
+     * This method ALWAYS uses clipboard + paste (bypasses TSF, as TSF only supports plain text)
+     * 
+     * @param content - Rich content data (text, HTML, image, RTF, or combination)
+     * @returns Success status
+     */
+    async focusAndInsertRichContent(content: RichContentData): Promise<boolean> {
+        if (!this.enabled) {
+            console.log('TSF Manager: Disabled');
+            return false;
+        }
+
+        // Validate that at least one content type is provided
+        if (!content.text && !content.html && !content.image && !content.rtf) {
+            console.error('TSF Manager: No content provided in RichContentData');
+            this.emit('error', new Error('No content provided'));
+            return false;
+        }
+
+        try {
+            console.log('🔍 TSF Manager: Getting last tracked application for rich content insertion...');
+            const lastFocus = this.lastExternalFocusInfo || await this.getLastFocusedWindow();
+
+            if (!lastFocus || !lastFocus.processName) {
+                console.warn('⚠️ TSF Manager: No external application tracked yet!');
+                this.emit('warning', {
+                    message: 'No application to insert content into. Please click on an application first.'
+                });
+                return false;
+            }
+
+            console.log(`📍 TSF Manager: Target app: ${lastFocus.processName} (${lastFocus.windowTitle || 'No title'})`);
+            console.log(`📋 TSF Manager: Rich content types: ${[
+                content.text ? 'text' : '',
+                content.html ? 'html' : '',
+                content.image ? 'image' : '',
+                content.rtf ? 'rtf' : ''
+            ].filter(Boolean).join(', ')}`);
+            
+            this.emit('before-insert', { content, focusInfo: lastFocus });
+
+            // Save current clipboard content (optional - for restoration)
+            let savedClipboard: { text?: string; html?: string; image?: string } | null = null;
+            try {
+                const formats = this.clipboardService.availableFormats();
+                if (formats.includes('text/plain')) {
+                    savedClipboard = { text: this.clipboardService.readText() };
+                }
+                if (formats.includes('text/html')) {
+                    savedClipboard = { ...savedClipboard, html: this.clipboardService.readHTML() };
+                }
+                if (formats.includes('image/png') || formats.includes('image/jpeg')) {
+                    const img = this.clipboardService.readImage();
+                    if (img) {
+                        savedClipboard = { ...savedClipboard, image: img };
+                    }
+                }
+            } catch (err) {
+                console.warn('TSF Manager: Could not save clipboard content:', err);
+            }
+
+            // Write rich content to clipboard
+            try {
+                if (content.image) {
+                    // Write image (data URL string is accepted by writeImage)
+                    this.clipboardService.writeImage(content.image);
+                    if (content.text) {
+                        // Also write text as fallback - need to use write() to combine formats
+                        // But write() expects NativeImage, so we'll write text separately
+                        // Most apps will prefer image over text when both are present
+                        this.clipboardService.writeText(content.text);
+                    }
+                } else if (content.html || content.rtf) {
+                    // Write HTML/RTF with text fallback using write() method
+                    // Note: write() can handle multiple formats at once
+                    const clipboardData: any = {};
+                    if (content.text) clipboardData.text = content.text;
+                    if (content.html) clipboardData.html = content.html;
+                    if (content.rtf) clipboardData.rtf = content.rtf;
+                    this.clipboardService.write(clipboardData);
+                } else if (content.text) {
+                    // Plain text only
+                    this.clipboardService.writeText(content.text);
+                }
+
+                console.log('✅ TSF Manager: Rich content written to clipboard');
+            } catch (err) {
+                console.error('❌ TSF Manager: Failed to write content to clipboard:', err);
+                this.emit('error', err);
+                return false;
+            }
+
+            // Focus the last tracked window
+            console.log('🎯 TSF Manager: Focusing last tracked window...');
+            const focusSuccess = await this.focusLastWindow();
+            if (!focusSuccess) {
+                console.warn('⚠️ TSF Manager: Failed to focus last window');
+                this.emit('warning', {
+                    message: 'Failed to focus target application',
+                    focusInfo: lastFocus
+                });
+                // Continue anyway - the window might already be focused
+            }
+
+            // Wait a bit for focus to settle
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Simulate paste (Ctrl+V)
+            console.log('⌨️ TSF Manager: Simulating paste (Ctrl+V)...');
+            try {
+                await this.globalShortcutService.simulatePaste();
+                console.log('✅ TSF Manager: Paste simulated successfully');
+            } catch (err) {
+                console.error('❌ TSF Manager: Failed to simulate paste:', err);
+                this.emit('error', err);
+                return false;
+            }
+
+            // Wait for paste to complete
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Optionally restore clipboard (after a delay to ensure paste completed)
+            if (savedClipboard) {
+                setTimeout(() => {
+                    try {
+                        if (savedClipboard!.text) {
+                            this.clipboardService.writeText(savedClipboard!.text);
+                        } else if (savedClipboard!.html) {
+                            this.clipboardService.writeHTML(savedClipboard!.html);
+                        } else if (savedClipboard!.image) {
+                            this.clipboardService.writeImage(savedClipboard!.image);
+                        }
+                        console.log('✅ TSF Manager: Clipboard restored');
+                    } catch (err) {
+                        console.warn('TSF Manager: Failed to restore clipboard:', err);
+                    }
+                }, 500);
+            }
+
+            console.log(`✅ TSF Manager: Successfully inserted rich content into ${lastFocus.processName}`);
+            this.emit('text-inserted', { 
+                content, 
+                focusInfo: lastFocus, 
+                method: 'clipboard-paste' 
+            });
+            return true;
+        } catch (err) {
+            console.error('TSF Manager: Error in focusAndInsertRichContent:', err);
             this.emit('error', err);
             return false;
         }

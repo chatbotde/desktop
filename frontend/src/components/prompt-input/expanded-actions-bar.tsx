@@ -1,23 +1,37 @@
 import { PromptInputActions } from "@/components/prompt-kit/prompt-input"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { cn } from "@/lib/utils"
 import { actionButtonRegistry } from "./registry/action-button-registry"
 import { registerDefaultActions } from "./actions/register-default-actions"
 import type { ExpandedActionsBarContext } from "./types/expanded-actions-context"
 
-interface ExpandedActionsBarProps extends ExpandedActionsBarContext {}
+interface ExpandedActionsBarProps extends ExpandedActionsBarContext {
+  className?: string
+}
 
 export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
+  const { className, ...context } = props
   const contextRef = useRef(props)
+  
+  // Update ref when props change (especially canSubmit, isLoading)
+  // The function components will read from this ref to get latest values
+  useEffect(() => {
+    contextRef.current = props
+  }, [props])
+  
+  // Also update immediately on each render to ensure latest values
   contextRef.current = props
 
-  // Register default actions on mount
+  // Register default actions on mount with a function that reads from ref
+  // This allows buttons to always read the latest context values
   useEffect(() => {
     // Clear any existing registrations
     const existingButtons = actionButtonRegistry.getAll()
     existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
 
-    // Register default actions with current context
-    registerDefaultActions(contextRef.current)
+    // Register default actions with a function that reads from contextRef
+    // This makes the buttons reactive to context changes
+    registerDefaultActions(() => contextRef.current)
 
     // Cleanup on unmount
     return () => {
@@ -27,10 +41,11 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
   }, []) // Only register once on mount
 
   // Re-register when key props change (for conditional buttons)
+  // Note: Submit button uses function component, so it reads latest values automatically
   useEffect(() => {
     const existingButtons = actionButtonRegistry.getAll()
     existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
-    registerDefaultActions(contextRef.current)
+    registerDefaultActions(() => contextRef.current)
   }, [
     // Re-register when these key props change (affects conditional buttons)
     props.isGoogleModelSelected,
@@ -53,17 +68,25 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
     return config.component
   }
 
+  // Create dynamic key for submit button to force re-render when canSubmit changes
+  const getButtonKey = (config: typeof leftSideButtons[0]) => {
+    if (config.id === "submit") {
+      return `${config.id}-${props.canSubmit}-${props.isLoading}`
+    }
+    return config.id
+  }
+
   return (
-    <PromptInputActions className="flex items-center justify-between gap-2 pt-0">
+    <PromptInputActions className={cn("flex items-center justify-between gap-2 pt-0", className)}>
       <div className="flex items-center gap-2">
         {leftSideButtons.map((config) => (
-          <div key={config.id}>{renderComponent(config)}</div>
+          <div key={getButtonKey(config)}>{renderComponent(config)}</div>
         ))}
       </div>
 
       <div className="flex items-center gap-2">
         {rightSideButtons.map((config) => (
-          <div key={config.id}>{renderComponent(config)}</div>
+          <div key={getButtonKey(config)}>{renderComponent(config)}</div>
         ))}
       </div>
     </PromptInputActions>

@@ -52,6 +52,13 @@ export interface TsfInsertOptions {
     [key: string]: any;
 }
 
+export interface RichContentData {
+    text?: string;           // Plain text fallback
+    html?: string;          // HTML content (for rich text editors)
+    image?: string;         // Image as data URL (e.g., "data:image/png;base64,...")
+    rtf?: string;           // RTF format (for Word, etc.)
+}
+
 export interface TsfAPI {
     initialize: () => Promise<boolean>;
     insertText: (text: string, options?: TsfInsertOptions) => Promise<boolean>;
@@ -72,6 +79,7 @@ export interface TsfAPI {
     getLastFocusedWindow: () => Promise<any>;
     focusLastWindow: () => Promise<boolean>;
     focusAndInsertText: (text: string) => Promise<boolean>;
+    focusAndInsertRichContent: (content: RichContentData) => Promise<boolean>;
     getSelectedText: () => Promise<string>;
     replaceSelectedText: (text: string) => Promise<boolean>;
     focusAndReplaceText: (text: string) => Promise<boolean>;

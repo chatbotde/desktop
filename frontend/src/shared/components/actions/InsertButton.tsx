@@ -3,11 +3,25 @@ import { Send, Loader2, Check } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib'
 
+export interface RichContentData {
+  text?: string;           // Plain text fallback
+  html?: string;          // HTML content (for rich text editors)
+  image?: string;         // Image as data URL (e.g., "data:image/png;base64,...")
+  rtf?: string;           // RTF format (for Word, etc.)
+}
+
 interface InsertButtonProps {
   /**
    * Text to insert into the focused application
+   * If richContent is provided, this is ignored
    */
-  text: string
+  text?: string
+  
+  /**
+   * Rich content to insert (HTML, images, RTF, etc.)
+   * When provided, automatically uses clipboard + paste method (bypasses TSF)
+   */
+  richContent?: RichContentData
   
   /**
    * Callback fired when text is successfully inserted
@@ -21,6 +35,7 @@ interface InsertButtonProps {
   
   /**
    * Use fallback method (clipboard + paste) instead of TSF
+   * @deprecated - Rich content automatically uses clipboard method
    */
   useFallback?: boolean
   
@@ -81,6 +96,7 @@ interface InsertButtonProps {
  */
 export function InsertButton({
   text,
+  richContent,
   onInserted,
   onError,
   useFallback = false,
@@ -97,10 +113,29 @@ export function InsertButton({
   const [isSuccess, setIsSuccess] = useState(false)
 
   const handleInsert = useCallback(async () => {
-    if (!text || text.trim().length === 0) {
-      const error = new Error('Text cannot be empty')
-      onError?.(error)
-      return
+    // Check if rich content is provided
+    const hasRichContent = richContent && (
+      richContent.html || 
+      richContent.image || 
+      richContent.rtf || 
+      (richContent.text && (richContent.html || richContent.image || richContent.rtf))
+    )
+
+    // Validate input
+    if (hasRichContent) {
+      // Rich content validation
+      if (!richContent.text && !richContent.html && !richContent.image && !richContent.rtf) {
+        const error = new Error('Rich content cannot be empty')
+        onError?.(error)
+        return
+      }
+    } else {
+      // Plain text validation
+      if (!text || text.trim().length === 0) {
+        const error = new Error('Text cannot be empty')
+        onError?.(error)
+        return
+      }
     }
 
     if (!window.tsfAPI) {
@@ -114,13 +149,20 @@ export function InsertButton({
     setIsSuccess(false)
 
     try {
-      // Initialize TSF if needed
+      // Initialize TSF if needed (even for rich content, as it initializes focus tracking)
       await window.tsfAPI.initialize()
 
-      // Insert text into the last focused application (not current)
-      // This focuses the last external app and inserts text there
-      // focusAndInsertText handles fallback internally if TSF is not available
-      const success = await window.tsfAPI.focusAndInsertText(text)
+      let success: boolean
+
+      if (hasRichContent && window.tsfAPI.focusAndInsertRichContent) {
+        // Use rich content insertion (clipboard + paste, bypasses TSF)
+        console.log('[InsertButton] Using rich content insertion method')
+        success = await window.tsfAPI.focusAndInsertRichContent(richContent!)
+      } else {
+        // Use plain text insertion (TSF or clipboard fallback)
+        console.log('[InsertButton] Using plain text insertion method')
+        success = await window.tsfAPI.focusAndInsertText(text!)
+      }
 
       if (success) {
         if (showSuccess) {
@@ -130,19 +172,19 @@ export function InsertButton({
         }
         onInserted?.(true)
       } else {
-        const error = new Error('Failed to insert text into focused application')
+        const error = new Error('Failed to insert content into focused application')
         onError?.(error)
         onInserted?.(false)
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Unknown error occurred')
-      console.error('[InsertButton] Error inserting text:', err)
+      console.error('[InsertButton] Error inserting content:', err)
       onError?.(err)
       onInserted?.(false)
     } finally {
       setIsInserting(false)
     }
-  }, [text, useFallback, force, showSuccess, onInserted, onError])
+  }, [text, richContent, useFallback, force, showSuccess, onInserted, onError])
 
   // Determine which icon to show
   const renderIcon = () => {
@@ -158,7 +200,14 @@ export function InsertButton({
   }
 
   // Determine if button should be disabled
-  const isDisabled = disabled || isInserting || !text || text.trim().length === 0 || !window.tsfAPI
+  const hasRichContent = richContent && (
+    richContent.html || 
+    richContent.image || 
+    richContent.rtf || 
+    (richContent.text && (richContent.html || richContent.image || richContent.rtf))
+  )
+  const hasContent = hasRichContent || (text && text.trim().length > 0)
+  const isDisabled = disabled || isInserting || !hasContent || !window.tsfAPI
 
   return (
     <Button

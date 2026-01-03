@@ -9,6 +9,7 @@ import { useRef } from "react"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
 import { LiveTranscriptionButton } from "@/features/audio"
+import { VideoRecordingButton } from "@/features/capture/components"
 import { CollapsedFileItems } from "./collapsed-file-items"
 import { CollapsedSubmitButton } from "./collapsed-submit-button"
 import { usePromptTheme } from "./hooks/use-prompt-theme"
@@ -104,6 +105,11 @@ export function PromptInputCollapsed({
         />
 
         <LiveTranscriptionButton
+          isDarkTheme={isDarkTheme}
+          className="h-8 w-8 shrink-0"
+        />
+
+        <VideoRecordingButton
           isDarkTheme={isDarkTheme}
           className="h-8 w-8 shrink-0"
         />
