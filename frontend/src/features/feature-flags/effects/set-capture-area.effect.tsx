@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useFeature } from "@/contexts/FeatureContext"
-import { SetAreaOverlay } from "@/features/capture/components"
+import { SetAreaOverlay, SetAreaIndicator } from "@/features/capture/components"
 import { CaptureAreaStore } from "@/features/capture/capture-area-store"
 
 export const featureId = "set-capture-area"
@@ -43,15 +43,16 @@ export function FeatureEffect() {
 
     return (
         <>
-
-
-            {/* SetAreaOverlay component */}
+            {/* SetAreaOverlay component - shown when selecting area */}
             {isVisible && (
                 <SetAreaOverlay
                     onCapture={handleCapture}
                     onCancel={() => setIsVisible(false)}
                 />
             )}
+
+            {/* SetAreaIndicator component - shown after area is set */}
+            <SetAreaIndicator />
         </>
     )
 }

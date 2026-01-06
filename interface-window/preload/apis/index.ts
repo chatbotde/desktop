@@ -9,3 +9,4 @@ export { createCaptureAPI, createFallbackCaptureAPI } from './capture';
 export { createBlockAPI } from './block';
 export { createAuthAPI } from './auth';
 export { createFileAPI } from './file';
+export { createYouTubeTranscriptAPI } from './youtube';

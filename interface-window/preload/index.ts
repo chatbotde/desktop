@@ -12,7 +12,8 @@ import {
     createFallbackCaptureAPI,
     createBlockAPI,
     createAuthAPI,
-    createFileAPI
+    createFileAPI,
+    createYouTubeTranscriptAPI
 } from './apis';
 
 // Verify contextBridge is available
@@ -92,6 +93,15 @@ try {
     console.log('[Preload] fileAPI exposed successfully');
 } catch (error) {
     console.error('[Preload] Error exposing fileAPI:', error);
+}
+
+// Expose youtubeTranscriptAPI
+try {
+    const youtubeTranscriptAPI = createYouTubeTranscriptAPI();
+    contextBridge.exposeInMainWorld('youtubeTranscriptAPI', youtubeTranscriptAPI);
+    console.log('[Preload] youtubeTranscriptAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing youtubeTranscriptAPI:', error);
 }
 
 console.log('[Preload] All APIs exposed, preload script complete');

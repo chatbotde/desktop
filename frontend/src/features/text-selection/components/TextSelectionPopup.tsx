@@ -23,19 +23,18 @@ interface SelectionData {
 }
 
 interface TextSelectionPopupProps {
-  onSendMessage: (message: string) => Promise<void>
+  onSendMessage?: (message: string) => Promise<void>
   onAddToPrompt?: (text: string) => void
   /** Whether to use dark theme styling */
   isDarkTheme?: boolean
 }
 
-export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme = true }: TextSelectionPopupProps) {
+export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSelectionPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectionData, setSelectionData] = useState<SelectionData | null>(null)
   const [prompt, setPrompt] = useState('')
   const [position, setPosition] = useState({ top: 0, left: 0 })
-  const [isLoading, setIsLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const { isFeatureEnabled } = useFeature()
@@ -53,18 +52,17 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
   const startAutoHide = useCallback(() => {
     stopAutoHide()
     // Only auto-hide if not expanded or generating
-    if (!isExpanded && !isGenerating && !isLoading) {
+    if (!isExpanded && !isGenerating) {
       timerRef.current = setTimeout(() => {
         setIsVisible(false)
       }, 6000) // 6 seconds
     }
-  }, [isExpanded, isGenerating, isLoading, stopAutoHide])
+  }, [isExpanded, isGenerating, stopAutoHide])
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
     setIsExpanded(false)
     setPrompt('')
-    setIsLoading(false)
     setIsGenerating(false)
     setGeneratedOutput(null)
     stopAutoHide()
@@ -258,28 +256,8 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
     }
   }, [isFeatureEnabled])
 
-  const handleSend = useCallback(async () => {
-    if (!prompt.trim() || isLoading || isGenerating) return
-
-    let message = prompt.trim()
-    if (selectionData?.text) {
-      message = `${message}\n\nSelected text:\n"${selectionData.text}"`
-    }
-
-    setIsLoading(true)
-
-    try {
-      await onSendMessage(message)
-      handleClose()
-    } catch (error) {
-      console.error('Failed to send message:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [prompt, selectionData, isLoading, isGenerating, onSendMessage, handleClose])
-
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isGenerating || isLoading) return
+    if (!prompt.trim() || isGenerating) return
 
     let message = prompt.trim()
     if (selectionData?.text) {
@@ -328,27 +306,78 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
     } finally {
       setIsGenerating(false)
     }
-  }, [prompt, selectionData, isGenerating, isLoading, stopAutoHide])
+  }, [prompt, selectionData, isGenerating, stopAutoHide])
 
   const handleInsert = useCallback(async () => {
     if (!generatedOutput) return
 
     try {
-      // Use TSF API to insert text at the cursor position
-      if (window.tsfAPI?.focusAndInsertText) {
-        const success = await window.tsfAPI.focusAndInsertText(generatedOutput)
+      const tsfAPI = (window as any).tsfAPI;
+      if (!tsfAPI) {
+        console.warn('TSF API not available for text insertion')
+        return
+      }
+
+      await tsfAPI.initialize()
+
+      // Get the selected text if available
+      const selectedText = selectionData?.text?.trim() || ''
+      
+      let textToInsert: string
+      
+      if (selectedText) {
+        // Option 1: Insert selected text + output together (adds output after selected text)
+        // This preserves the selected text and appends the output
+        textToInsert = `${selectedText} ${generatedOutput}`
+        
+        // Replace the selection with (selected text + output)
+        // This effectively "adds" the output to the selected text
+        const success = await tsfAPI.focusAndReplaceText(textToInsert)
+        
         if (success) {
-          console.log('Text inserted successfully')
-          // Optionally close the popup after insertion
-          // handleClose()
+          console.log('Text inserted successfully (selected text + output)')
         } else {
           console.error('Failed to insert text')
         }
       } else {
-        console.warn('TSF API not available for text insertion')
+        // Option 2: No selection - just insert output at cursor position
+        const success = await tsfAPI.focusAndInsertText(generatedOutput)
+        
+        if (success) {
+          console.log('Text inserted successfully')
+        } else {
+          console.error('Failed to insert text')
+        }
       }
     } catch (error) {
       console.error('Error inserting text:', error)
+    }
+  }, [generatedOutput, selectionData])
+
+  const handleReplace = useCallback(async () => {
+    if (!generatedOutput) return
+
+    try {
+      const tsfAPI = (window as any).tsfAPI;
+      if (!tsfAPI) {
+        console.warn('TSF API not available for text replacement')
+        return
+      }
+
+      await tsfAPI.initialize()
+
+      // Replace selected text with generated output
+      const success = await tsfAPI.focusAndReplaceText(generatedOutput)
+      
+      if (success) {
+        console.log('Text replaced successfully')
+        // Optionally close the popup after replacement
+        // handleClose()
+      } else {
+        console.error('Failed to replace text')
+      }
+    } catch (error) {
+      console.error('Error replacing text:', error)
     }
   }, [generatedOutput])
 
@@ -449,11 +478,9 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
         <TextSelectionInput
           value={prompt}
           onChange={setPrompt}
-          onSend={handleSend}
           onGenerate={handleGenerate}
           onClose={handleClose}
           placeholder="Ask about this..."
-          isLoading={isLoading}
           isGenerating={isGenerating}
           isDarkTheme={isDarkTheme}
         />
@@ -462,6 +489,7 @@ export function TextSelectionPopup({ onSendMessage, onAddToPrompt, isDarkTheme =
             content={generatedOutput || ""}
             isStreaming={isGenerating}
             onInsert={handleInsert}
+            onReplace={handleReplace}
             onCopy={handleCopy}
             isDarkTheme={isDarkTheme}
           />

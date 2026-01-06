@@ -163,6 +163,8 @@ export function PromptInputWithActions({
             onThemeChange={onThemeChange}
             isOutputVisible={isOutputVisible}
             onToggleOutput={onToggleOutput}
+            setClipboardItems={setClipboardItems}
+            setIsExpanded={setIsExpanded}
           />
         ) : (
           <PromptInputExpanded
@@ -185,6 +187,8 @@ export function PromptInputWithActions({
             onThemeChange={onThemeChange}
             isOutputVisible={isOutputVisible}
             onToggleOutput={onToggleOutput}
+            setClipboardItems={setClipboardItems}
+            setIsExpanded={setIsExpanded}
           />
         )}
       </div>

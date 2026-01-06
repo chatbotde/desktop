@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Copy, Check, Download, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
+import { Copy, Check, Download, Sparkles, ChevronDown, ChevronUp, Replace } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
@@ -12,6 +12,8 @@ export interface TextSelectionOutputProps {
   isStreaming?: boolean
   /** Callback when insert is clicked */
   onInsert?: () => void
+  /** Callback when replace is clicked */
+  onReplace?: () => void
   /** Callback when copy is clicked */
   onCopy?: () => void
   /** Additional class names */
@@ -47,6 +49,7 @@ export function TextSelectionOutput({
   content,
   isStreaming = false,
   onInsert,
+  onReplace,
   onCopy,
   className,
   streamingSpeed = 80, // characters per second
@@ -175,7 +178,7 @@ export function TextSelectionOutput({
     <Card
       ref={containerRef}
       className={cn(
-        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl mt-2",
+        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl mt-2 mb-[20px]",
         "w-full max-w-md",
         "transition-all duration-300 ease-out",
         showContent
@@ -314,6 +317,29 @@ export function TextSelectionOutput({
               </>
             )}
           </Button>
+
+          {/* Replace button */}
+          {onReplace && (
+            <Button
+              size="sm"
+              onClick={onReplace}
+              disabled={!isComplete}
+              className={cn(
+                "h-7 px-3 text-xs rounded-md transition-all duration-200",
+                isComplete
+                  ? isDarkTheme
+                    ? "bg-orange-500 hover:bg-orange-400 text-white shadow-md hover:scale-105"
+                    : "bg-orange-600 hover:bg-orange-500 text-white shadow-md hover:scale-105"
+                  : isDarkTheme
+                    ? "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+                    : "bg-zinc-200 text-zinc-400 cursor-not-allowed",
+              )}
+              aria-label="Replace"
+            >
+              <Replace className="h-3.5 w-3.5 mr-1" />
+              Replace
+            </Button>
+          )}
 
           {/* Insert button */}
           {onInsert && (

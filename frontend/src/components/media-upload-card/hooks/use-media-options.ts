@@ -1,12 +1,11 @@
 import { useMemo } from "react"
-import { Image, Mic, Video, FileText, Camera, Circle, Settings, ChevronsUp, Crop, Clapperboard } from "lucide-react"
+import { Image, Mic, Video, FileText, Camera, Circle, Settings, Crop, Clapperboard } from "lucide-react"
 import { useFeature } from "@/contexts/FeatureContext"
 import { MEDIA_UPLOAD_CONSTANTS } from "../constants/media-upload-constants"
 import type { MediaOption } from "../types/media-upload-types"
 
 interface UseMediaOptionsProps {
   isCapturing: boolean
-  onMoreClick?: () => void
   onSettingsOpen: () => void
   fileInputRefs: {
     docInputRef: React.RefObject<HTMLInputElement>
@@ -25,7 +24,6 @@ interface UseMediaOptionsProps {
  */
 export function useMediaOptions({
   isCapturing,
-  onMoreClick,
   onSettingsOpen,
   fileInputRefs,
   screenshotHandlers,
@@ -106,19 +104,8 @@ export function useMediaOptions({
       },
     ]
 
-    const moreOption: MediaOption[] = onMoreClick
-      ? [
-          {
-            id: 'more',
-            label: 'More',
-            icon: ChevronsUp,
-            action: onMoreClick,
-          },
-        ]
-      : []
-
-    return [...enabledOptions, ...systemOptions, ...moreOption]
-  }, [allOptions, isOptionEnabled, onMoreClick, onSettingsOpen])
+    return [...enabledOptions, ...systemOptions]
+  }, [allOptions, isOptionEnabled, onSettingsOpen])
 
   return { options }
 }

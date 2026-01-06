@@ -1,5 +1,5 @@
 import * as React from "react"
-import { X, ArrowUp, Sparkles } from "lucide-react"
+import { X, Sparkles } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
@@ -9,8 +9,6 @@ export interface TextSelectionInputProps {
   value: string
   /** Callback when the text changes */
   onChange: (value: string) => void
-  /** Callback when send is clicked */
-  onSend: () => void
   /** Callback when generate is clicked */
   onGenerate?: () => void
   /** Callback when close is clicked */
@@ -34,7 +32,6 @@ export interface TextSelectionInputProps {
 export function TextSelectionInput({
   value,
   onChange,
-  onSend,
   onGenerate,
   onClose,
   placeholder = "Ask about this...",
@@ -69,16 +66,14 @@ export function TextSelectionInput({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      if (value.trim() && !isLoading) {
-        onSend()
+      if (value.trim() && !isGenerating && onGenerate) {
+        onGenerate()
       }
     }
     if (e.key === "Escape") {
       onClose()
     }
   }
-
-  const canSend = value.trim().length > 0 && !isLoading
 
   return (
     <Card
@@ -117,7 +112,7 @@ export function TextSelectionInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          disabled={isLoading}
+          disabled={isGenerating}
           className={cn(
             "w-full resize-none bg-transparent text-sm leading-relaxed",
             "focus:outline-none",
@@ -145,10 +140,10 @@ export function TextSelectionInput({
             <Button
               size="sm"
               onClick={onGenerate}
-              disabled={!value.trim() || isGenerating || isLoading}
+              disabled={!value.trim() || isGenerating}
               className={cn(
                 "h-7 w-7 p-0 rounded-full",
-                value.trim() && !isGenerating && !isLoading
+                value.trim() && !isGenerating
                   ? isDarkTheme
                     ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
                     : "bg-purple-600 hover:bg-purple-500 text-white shadow-md hover:scale-105"
@@ -165,30 +160,6 @@ export function TextSelectionInput({
               )}
             </Button>
           )}
-
-          {/* Send button */}
-          <Button
-            size="sm"
-            onClick={onSend}
-            disabled={!canSend}
-            className={cn(
-              "h-7 w-7 p-0 rounded-full",
-              canSend
-                ? isDarkTheme
-                  ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
-                  : "bg-blue-600 hover:bg-blue-500 text-white shadow-md hover:scale-105"
-                : isDarkTheme
-                  ? "bg-zinc-700 text-zinc-500"
-                  : "bg-zinc-200 text-zinc-400"
-            )}
-            aria-label="Send"
-          >
-            {isLoading ? (
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : (
-              <ArrowUp className="h-3.5 w-3.5" />
-            )}
-          </Button>
         </div>
       </div>
     </Card>

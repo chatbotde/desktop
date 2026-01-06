@@ -9,6 +9,9 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { environmentConfig } = require('../utils/dist/environment');
 
+// YouTube transcript IPC handlers
+let transcriptIpcHandlersRegistered = false;
+
 class ApplicationIpcHandlers {
   /**
    * @param {IpcHandlerRegistry} ipcRegistry
@@ -25,6 +28,7 @@ class ApplicationIpcHandlers {
     this.registerAiModelHandlers();
     this.registerOllamaHandlers();
     this.registerEnvironmentHandlers();
+    this.registerYouTubeTranscriptHandlers();
   }
 
   /**
@@ -91,6 +95,26 @@ class ApplicationIpcHandlers {
     this.ipcRegistry.register('get-frontend-url', () => environmentConfig.getFrontendURL());
     this.ipcRegistry.register('get-frontend-base-url', () => environmentConfig.getFrontendBaseURL());
     this.ipcRegistry.register('is-development', () => environmentConfig.isDev());
+  }
+
+  /**
+   * Register YouTube transcript IPC handlers
+   * @private
+   */
+  registerYouTubeTranscriptHandlers() {
+    if (transcriptIpcHandlersRegistered) {
+      console.log('Application: YouTube transcript handlers already registered');
+      return;
+    }
+
+    try {
+      const { registerTranscriptIpcHandlers } = require('../youtube-transcript/dist/ipc');
+      registerTranscriptIpcHandlers();
+      transcriptIpcHandlersRegistered = true;
+      console.log('Application: YouTube transcript IPC handlers registered');
+    } catch (error) {
+      console.error('Application: Failed to register YouTube transcript handlers:', error);
+    }
   }
 }
 

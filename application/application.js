@@ -109,6 +109,10 @@ class Application {
 
       // Register IPC handlers
       this.ipcHandlers.register();
+
+      // Initialize YouTube transcript system
+      const { initializeTranscript } = require('../youtube-transcript');
+      initializeTranscript();
     } catch (error) {
       console.error('Application: Error during initialization:', error);
       // Continue with basic functionality

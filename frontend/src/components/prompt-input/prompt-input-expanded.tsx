@@ -36,6 +36,8 @@ export function PromptInputExpanded({
   onThemeChange,
   isOutputVisible,
   onToggleOutput,
+  setClipboardItems,
+  setIsExpanded,
 }: PromptInputExpandedProps) {
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
   const { setFeatureEnabled } = useFeature()
@@ -66,7 +68,16 @@ export function PromptInputExpanded({
 
   const canSubmit = useCanSubmit({ input, files, clipboardItems })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
-  const handlePaste = usePasteHandler(onFilesAdded)
+  
+  // Create a dummy setter if not provided (for backwards compatibility)
+  const clipboardSetter = setClipboardItems ?? (() => {})
+  const expandedSetter = setIsExpanded ?? (() => {}) // Already expanded
+  
+  const handlePaste = usePasteHandler({
+    onFilesAdded,
+    setClipboardItems: clipboardSetter,
+    setIsExpanded: expandedSetter,
+  })
 
   return (
     <div className="relative flex items-start gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}>

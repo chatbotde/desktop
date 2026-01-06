@@ -138,7 +138,8 @@ export function InsertButton({
       }
     }
 
-    if (!window.tsfAPI) {
+    const tsfAPI = (window as any).tsfAPI
+    if (!tsfAPI) {
       const error = new Error('TSF API is not available. Please ensure the interface window is properly initialized.')
       console.error('[InsertButton]', error.message)
       onError?.(error)
@@ -150,18 +151,18 @@ export function InsertButton({
 
     try {
       // Initialize TSF if needed (even for rich content, as it initializes focus tracking)
-      await window.tsfAPI.initialize()
+      await tsfAPI.initialize()
 
       let success: boolean
 
-      if (hasRichContent && window.tsfAPI.focusAndInsertRichContent) {
+      if (hasRichContent && tsfAPI.focusAndInsertRichContent) {
         // Use rich content insertion (clipboard + paste, bypasses TSF)
         console.log('[InsertButton] Using rich content insertion method')
-        success = await window.tsfAPI.focusAndInsertRichContent(richContent!)
+        success = await tsfAPI.focusAndInsertRichContent(richContent!)
       } else {
         // Use plain text insertion (TSF or clipboard fallback)
         console.log('[InsertButton] Using plain text insertion method')
-        success = await window.tsfAPI.focusAndInsertText(text!)
+        success = await tsfAPI.focusAndInsertText(text!)
       }
 
       if (success) {
@@ -207,7 +208,8 @@ export function InsertButton({
     (richContent.text && (richContent.html || richContent.image || richContent.rtf))
   )
   const hasContent = hasRichContent || (text && text.trim().length > 0)
-  const isDisabled = disabled || isInserting || !hasContent || !window.tsfAPI
+  const tsfAPI = (window as any).tsfAPI
+  const isDisabled = disabled || isInserting || !hasContent || !tsfAPI
 
   return (
     <Button

@@ -25,12 +25,16 @@ export interface PromptInputCollapsedProps extends BasePromptInputProps {
   onExpand: () => void
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile?: (index: number) => void
+  setClipboardItems?: React.Dispatch<React.SetStateAction<string[]>>
+  setIsExpanded?: (expanded: boolean) => void
 }
 
 export interface PromptInputExpandedProps extends BasePromptInputProps {
   onCollapse: () => void
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile: (index: number) => void
+  setClipboardItems?: React.Dispatch<React.SetStateAction<string[]>>
+  setIsExpanded?: (expanded: boolean) => void
 }
 
 export interface FileItemsBaseProps {
