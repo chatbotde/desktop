@@ -4,6 +4,25 @@
  * Uses the FileAPI for Node.js file system operations
  */
 
+// Extend Window interface to include fileAPI
+declare global {
+    interface Window {
+        fileAPI?: {
+            readFile: (filePath: string) => Promise<{
+                success: boolean
+                content?: string
+                fileInfo?: {
+                    category?: string
+                    language?: string
+                    mimeType?: string
+                    isCodeFile?: boolean
+                    isImageFile?: boolean
+                }
+            }>
+        }
+    }
+}
+
 import React, { useState, useCallback, useRef, type ReactNode } from 'react'
 import { Upload, FileCode, FileImage, FileText, File as FileIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'

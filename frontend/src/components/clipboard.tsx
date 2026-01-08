@@ -386,6 +386,17 @@ export function ClipboardPill({ onAdd, onAddImage, isDarkTheme = true }: Clipboa
         }
     }, [onAdd, onAddImage, isFeatureEnabled, readClipboardContent, updateState])
 
+    // Auto-dismiss the pill after 8 seconds
+    useEffect(() => {
+        if (!isVisible) return
+
+        const timeout = setTimeout(() => {
+            updateState({ isVisible: false })
+        }, 8000)
+
+        return () => clearTimeout(timeout)
+    }, [isVisible, updateState])
+
     // Hide if feature is disabled or not visible
     if (!isFeatureEnabled('clipboard') || !isVisible || !content) return null
 

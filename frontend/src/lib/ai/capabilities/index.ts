@@ -539,3 +539,155 @@ export function willAttachmentBeSupported(
       };
   }
 }
+
+// ============================================================================
+// FILTER FUNCTIONS
+// ============================================================================
+
+export interface FilteredAttachmentsResult {
+  /** Attachments that the model can process */
+  supported: MediaAttachment[];
+  /** Attachments that were filtered out */
+  filtered: MediaAttachment[];
+  /** Whether any attachments were filtered out */
+  hasFiltered: boolean;
+  /** Human-readable summary of what was filtered */
+  filterSummary: string | null;
+}
+
+/**
+ * Filter attachments to only include what the model supports.
+ * Use this before sending to avoid sending unsupported media types.
+ * 
+ * @example
+ * const { supported, filtered, filterSummary } = filterSupportedAttachments(attachments);
+ * if (filtered.length > 0) {
+ *   console.log(filterSummary); // "Removed 2 video(s) - model doesn't support video"
+ * }
+ * // Send only supported attachments
+ * sendMessage(message, supported);
+ */
+export function filterSupportedAttachments(
+  attachments: MediaAttachment[] | undefined,
+  model?: AIModel | null
+): FilteredAttachmentsResult {
+  const selectedModel = model ?? getSelectedModel();
+  
+  // No attachments case
+  if (!attachments || attachments.length === 0) {
+    return {
+      supported: [],
+      filtered: [],
+      hasFiltered: false,
+      filterSummary: null,
+    };
+  }
+
+  // No model selected - can't determine capabilities
+  if (!selectedModel) {
+    return {
+      supported: [],
+      filtered: attachments,
+      hasFiltered: true,
+      filterSummary: 'No model selected - cannot determine supported media types',
+    };
+  }
+
+  const caps = getModelCapabilities(selectedModel);
+  const supported: MediaAttachment[] = [];
+  const filtered: MediaAttachment[] = [];
+  const filteredTypes: Record<string, number> = {};
+
+  for (const attachment of attachments) {
+    const mediaType = attachment.mediaType;
+    let isSupported = false;
+
+    switch (mediaType) {
+      case 'image':
+        isSupported = caps.supportsImages;
+        break;
+      case 'audio':
+        isSupported = caps.supportsAudio;
+        break;
+      case 'video':
+        isSupported = caps.supportsVideo;
+        break;
+      default:
+        isSupported = false;
+    }
+
+    if (isSupported) {
+      supported.push(attachment);
+    } else {
+      filtered.push(attachment);
+      filteredTypes[mediaType] = (filteredTypes[mediaType] || 0) + 1;
+    }
+  }
+
+  // Build human-readable summary
+  let filterSummary: string | null = null;
+  if (filtered.length > 0) {
+    const parts = Object.entries(filteredTypes).map(([type, count]) => {
+      const plural = count > 1 ? 's' : '';
+      return `${count} ${type}${plural}`;
+    });
+    filterSummary = `Removed ${parts.join(', ')} - ${selectedModel.displayName} doesn't support ${Object.keys(filteredTypes).join('/')}`;
+  }
+
+  return {
+    supported,
+    filtered,
+    hasFiltered: filtered.length > 0,
+    filterSummary,
+  };
+}
+
+/**
+ * Quick check if a specific media type is supported by the current model.
+ * Useful for UI to show/hide upload buttons.
+ * 
+ * @example
+ * if (isMediaTypeSupported('video')) {
+ *   showVideoUploadButton();
+ * }
+ */
+export function isMediaTypeSupported(
+  mediaType: 'image' | 'audio' | 'video',
+  model?: AIModel | null
+): boolean {
+  const selectedModel = model ?? getSelectedModel();
+  if (!selectedModel) return false;
+
+  const caps = getModelCapabilities(selectedModel);
+  
+  switch (mediaType) {
+    case 'image': return caps.supportsImages;
+    case 'audio': return caps.supportsAudio;
+    case 'video': return caps.supportsVideo;
+    default: return false;
+  }
+}
+
+/**
+ * Get all unsupported media types for the current model.
+ * Useful for showing warnings in UI.
+ * 
+ * @example
+ * const unsupported = getUnsupportedMediaTypes();
+ * // ['video', 'audio'] for a text-only model
+ */
+export function getUnsupportedMediaTypes(
+  model?: AIModel | null
+): ('image' | 'audio' | 'video')[] {
+  const selectedModel = model ?? getSelectedModel();
+  if (!selectedModel) return ['image', 'audio', 'video'];
+
+  const caps = getModelCapabilities(selectedModel);
+  const unsupported: ('image' | 'audio' | 'video')[] = [];
+
+  if (!caps.supportsImages) unsupported.push('image');
+  if (!caps.supportsAudio) unsupported.push('audio');
+  if (!caps.supportsVideo) unsupported.push('video');
+
+  return unsupported;
+}

@@ -46,7 +46,7 @@ export function OutputMessages({
     const isDarkTheme = propIsDarkTheme !== undefined ? propIsDarkTheme : true
 
     // Center the output window on mount
-    const defaultSize = { width: 535, height: 300 }
+    const defaultSize = { width: 600, height: 300 }
     const collapsedSize = { width: 600, height: 60 } // Just header height when collapsed
     const [size, setSize] = useState(defaultSize)
 
@@ -55,7 +55,7 @@ export function OutputMessages({
         const width = typeof window !== "undefined" ? window.innerWidth : 1200;
         const height = typeof window !== "undefined" ? window.innerHeight : 800;
         return {
-            x: Math.max(0, Math.round((width - windowSize.width) / 2) - 26),
+            x: Math.max(0, Math.round((width - windowSize.width) / 2)),
             y: Math.max(0, height - windowSize.height - 10),
         };
     };
