@@ -17,6 +17,7 @@ import {
   AccountSection,
   LocalLLMSection,
   ModelProfileListSection,
+  CustomModelsSection,
   BlockingSection,
   FeaturesSection
 } from "../sections"
@@ -118,6 +119,8 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
             {activeSection === "local-llm" && <LocalLLMSection isDarkTheme={isDark} />}
 
             {activeSection === "model-profiles" && <ModelProfileListSection isDarkTheme={isDark} />}
+
+            {activeSection === "custom-models" && <CustomModelsSection isDarkTheme={isDark} />}
 
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 

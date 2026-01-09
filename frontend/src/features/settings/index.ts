@@ -26,6 +26,7 @@ export {
   AccountSection,
   BlockingSection,
   LocalLLMSection,
-  ModelProfileListSection
+  ModelProfileListSection,
+  CustomModelsSection
 } from './sections'
 export type { PersonalizationValues } from './sections'

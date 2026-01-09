@@ -7,6 +7,7 @@ import { cerebrasService, isCerebrasConfigured } from './cerebras';
 import { deepseekService, isDeepSeekConfigured } from './deepseek';
 import { kimiService, isKimiConfigured } from './kimi';
 import { xaiService, isXAIConfigured } from './xai';
+import { customProviderService, isCustomModel, isCustomProviderConfigured } from './custom-provider-service';
 import { generateImages } from '../image/replicate';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
@@ -166,6 +167,16 @@ export class UnifiedAIService {
     }
 
     // Route to appropriate provider based on selected model
+    // Check if this is a custom model first
+    if (isCustomModel(selectedModel.id)) {
+      if (!isCustomProviderConfigured(selectedModel.id)) {
+        throw new Error(
+          `Custom model "${selectedModel.displayName}" is not configured. Please add your API key in Settings > Custom Models.`
+        );
+      }
+      return trackedGenerator(customProviderService.sendMessageWithMedia(selectedModel.id, message, attachments));
+    }
+
     switch (provider) {
       case 'google':
         if (!isGeminiConfigured()) {
@@ -236,7 +247,7 @@ export class UnifiedAIService {
     try {
       const result = await generateImages({
         prompt,
-        model: modelName,
+        model: modelName as `${string}/${string}` | `${string}/${string}:${string}` | undefined,
         num_outputs: 1, // Generate 1 image by default
       });
       return result.images;

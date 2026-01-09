@@ -7,10 +7,34 @@
 // Import for internal use with different name to avoid circular reference
 import { AVAILABLE_MODELS as models } from './model-config/index';
 import type { AIModel } from './model-config/types';
+import { getAllCustomModels, CUSTOM_PROVIDERS_CHANGED_EVENT, type CustomModel } from '@/lib/settings/custom-providers';
 
 // Re-export types and models from the organized structure
 export type { AIModel, ModelProvider } from './model-config/types';
 export { AVAILABLE_MODELS } from './model-config/index';
+
+/**
+ * Convert a CustomModel to an AIModel
+ */
+function customModelToAIModel(customModel: CustomModel): AIModel {
+  return {
+    id: customModel.id,
+    name: customModel.name,
+    displayName: customModel.displayName,
+    provider: customModel.provider,
+    description: `Custom ${customModel.provider} model`,
+    category: 'multimodal',
+    maxTokens: 8192,
+    supportsImages: customModel.provider !== 'anthropic', // Anthropic via API may not support images in same way
+    supportsAudio: false,
+    supportsVideo: false,
+    capabilities: ['text', 'function-calling'],
+    contextWindow: 128000,
+    isAvailable: true,
+    temperature: 0.7,
+    isReasoning: false,
+  };
+}
 
 // Model configuration management
 export class ModelConfigManager {
@@ -22,6 +46,33 @@ export class ModelConfigManager {
     // Initialize with available models
     models.forEach((model: AIModel) => {
       this.modelConfigs.set(model.id, model);
+    });
+    
+    // Load custom models
+    this.loadCustomModels();
+    
+    // Listen for custom provider changes
+    window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, () => {
+      this.loadCustomModels();
+    });
+  }
+  
+  /**
+   * Load custom models from settings
+   */
+  private loadCustomModels(): void {
+    // Remove existing custom models
+    for (const [id] of this.modelConfigs) {
+      if (id.startsWith('custom-')) {
+        this.modelConfigs.delete(id);
+      }
+    }
+    
+    // Add current custom models
+    const customModels = getAllCustomModels();
+    customModels.forEach((customModel) => {
+      const aiModel = customModelToAIModel(customModel);
+      this.modelConfigs.set(aiModel.id, aiModel);
     });
   }
 
@@ -36,6 +87,8 @@ export class ModelConfigManager {
    * Get all available models
    */
   getAvailableModels(): AIModel[] {
+    // Reload custom models to ensure fresh data
+    this.loadCustomModels();
     return Array.from(this.modelConfigs.values()).filter(model => model.isAvailable);
   }
 

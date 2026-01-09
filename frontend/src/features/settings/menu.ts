@@ -5,6 +5,7 @@ import {
   ShieldBan,
   Palette,
   Sparkles,
+  Key,
   type LucideIcon,
 } from "lucide-react"
 
@@ -14,6 +15,7 @@ export type SettingsSectionId =
   | "account"
   | "local-llm"
   | "model-profiles"
+  | "custom-models"
   | "blocking"
   | "features"
 
@@ -29,6 +31,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "general", label: "General", icon: Settings },
   { id: "local-llm", label: "Local AI", icon: Bot },
   { id: "model-profiles", label: "Model Profiles", icon: Palette },
+  { id: "custom-models", label: "Custom Models", icon: Key },
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
 ]

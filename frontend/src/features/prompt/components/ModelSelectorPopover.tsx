@@ -12,6 +12,7 @@ import {
   type AIModel,
 } from "@/lib/ai/model-config"
 import { getVisibleModels, MODEL_VISIBILITY_CHANGED_EVENT } from "@/lib/settings/model-visibility"
+import { CUSTOM_PROVIDERS_CHANGED_EVENT } from "@/lib/settings/custom-providers"
 import { cn } from "@/shared/lib"
 
 interface ModelSelectorPopoverProps {
@@ -37,9 +38,10 @@ export function ModelSelectorPopover({
     const visibleIds = getVisibleModels()
 
     // Filter to only show visible models
+    // Custom models (id starts with 'custom-') are always shown if not explicitly hidden
     const models = visibleIds === null
       ? allModels // null means show all
-      : allModels.filter((m) => visibleIds.includes(m.id))
+      : allModels.filter((m) => visibleIds.includes(m.id) || m.id.startsWith('custom-'))
 
     setVisibleModels(models)
     setSelectedModelState(getSelectedModel())
@@ -64,6 +66,15 @@ export function ModelSelectorPopover({
     }
     window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
     return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
+  }, [])
+
+  // Listen for custom provider changes
+  useEffect(() => {
+    const handler = () => {
+      loadModels()
+    }
+    window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
+    return () => window.removeEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
   }, [])
 
   const handleModelChange = (modelId: string) => {
