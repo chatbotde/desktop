@@ -167,8 +167,13 @@ export function OutputMessages({
                                     onExplainSelectedText={onExplainSelectedText}
                                 />
                             ))}
-                            {/* Show thinking indicator if waiting for response and last message is from user */}
-                            {isWaitingForResponse && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
+                            {/* Show thinking indicator if waiting for response and either:
+                                1. Last message is from user (before assistant message created), or
+                                2. Last message is from assistant but has empty content (before first chunk arrives) */}
+                            {isWaitingForResponse && messages.length > 0 && (
+                                messages[messages.length - 1]?.role === 'user' || 
+                                (messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content)
+                            ) && (
                                 <ThinkingIndicator isDarkTheme={isDarkTheme} />
                             )}
                             <div ref={messagesEndRef} />

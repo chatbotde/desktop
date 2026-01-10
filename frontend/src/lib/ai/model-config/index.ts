@@ -12,6 +12,7 @@ import { deepseekModels } from './deepseek';
 import { kimiModels } from './kimi';
 import { xaiModels } from './xai';
 import { replicateModels } from './replicate';
+import { groqModels } from './groq';
 
 // Aggregate all models
 export const AVAILABLE_MODELS = [
@@ -24,6 +25,7 @@ export const AVAILABLE_MODELS = [
   ...kimiModels,
   ...xaiModels,
   ...replicateModels,
+  ...groqModels,
 ];
 
 // Re-export types

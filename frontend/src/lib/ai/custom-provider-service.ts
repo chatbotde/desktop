@@ -66,45 +66,17 @@ class CustomProviderService {
   private async *sendToGoogle(
     modelName: string,
     message: string,
-    attachments?: MediaAttachment[]
+    _attachments?: MediaAttachment[]
   ): AsyncGenerator<string, void, unknown> {
     const config = getProviderConfig('google');
-    // Note: GoogleGenAI SDK doesn't support custom baseURL
-    // Custom base URL would require using the REST API directly
     
     const ai = new GoogleGenAI({ 
       apiKey: config.apiKey,
     });
 
-    const parts: any[] = [];
-
-    if (message?.trim()) {
-      parts.push({ text: message });
-    }
-
-    // Add media attachments
-    if (attachments?.length) {
-      for (const attachment of attachments) {
-        if (attachment.mediaType === 'image') {
-          let data = attachment.data;
-          if (data.startsWith('blob:') || data.startsWith('http')) {
-            const response = await fetch(data);
-            const blob = await response.blob();
-            data = await blobToBase64(blob);
-          }
-          parts.push({
-            inlineData: {
-              data: data.split(',')[1],
-              mimeType: attachment.type
-            }
-          });
-        }
-      }
-    }
-
     const response = await ai.models.generateContentStream({
       model: modelName,
-      contents: [{ role: 'user', parts }],
+      contents: message,
     });
 
     for await (const chunk of response) {
