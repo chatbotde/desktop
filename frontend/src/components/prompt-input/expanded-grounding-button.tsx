@@ -16,29 +16,56 @@ export function ExpandedGroundingButton({
   groundingEnabled,
   onToggle,
   isDarkTheme,
-  themeClasses,
-  hoverClass,
 }: ExpandedGroundingButtonProps) {
   return (
-    <PromptInputAction tooltip={groundingEnabled ? "Click to disable search grounding" : "Click to enable search grounding"}>
+    <PromptInputAction tooltip={groundingEnabled ? "Click to disable web search" : "Click to enable web search"}>
       <button
-        onClick={onToggle}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          onToggle()
+        }}
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-          hoverClass,
-          groundingEnabled && (isDarkTheme ? "bg-blue-600/30 border border-blue-500/50" : "bg-blue-100 border border-blue-300")
+          "flex items-center gap-1.5 h-7 rounded-full transition-all duration-200 ease-out cursor-pointer select-none",
+          "border px-2.5",
+          // Enabled state
+          groundingEnabled
+            ? isDarkTheme
+              ? "bg-blue-500/25 border-blue-400/70 hover:bg-blue-500/35"
+              : "bg-blue-100 border-blue-400 hover:bg-blue-200"
+            : // Disabled state
+            isDarkTheme
+              ? "bg-transparent border-white/25 hover:border-white/40 hover:bg-white/10"
+              : "bg-transparent border-gray-300 hover:border-gray-400 hover:bg-gray-100",
+          // Active press effect
+          "active:scale-95"
         )}
-        aria-label={groundingEnabled ? "Disable search grounding" : "Enable search grounding"}
+        aria-label={groundingEnabled ? "Disable web search" : "Enable web search"}
+        aria-pressed={groundingEnabled}
         type="button"
       >
-        <Search className={cn(
-          "size-5",
-          groundingEnabled 
-            ? (isDarkTheme ? "text-blue-400" : "text-blue-600")
-            : themeClasses.icon
-        )} />
+        {/* Search Icon */}
+        <Search
+          className={cn(
+            "size-3.5 transition-colors duration-200",
+            groundingEnabled
+              ? isDarkTheme ? "text-blue-400" : "text-blue-600"
+              : isDarkTheme ? "text-white/70" : "text-gray-500"
+          )}
+        />
+
+        {/* Search Text Label */}
+        <span
+          className={cn(
+            "text-xs font-medium transition-colors duration-200",
+            groundingEnabled
+              ? isDarkTheme ? "text-blue-400" : "text-blue-600"
+              : isDarkTheme ? "text-white/70" : "text-gray-500"
+          )}
+        >
+          Search
+        </span>
       </button>
     </PromptInputAction>
   )
 }
-

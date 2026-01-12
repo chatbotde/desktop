@@ -20,7 +20,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   // Support both direct context and function that returns context (for reactive updates)
   const getContext = typeof context === 'function' ? context : () => context
   const currentContext = getContext()
-  
+
   const {
     onFilesAdded,
     isDarkTheme,
@@ -28,13 +28,8 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     onThemeChange,
     themeClasses,
     hoverClass,
-    isLoading,
-    canSubmit,
-    onSubmit,
-    onStop,
-    isGoogleModelSelected,
-    groundingEnabled,
-    onToggleGrounding,
+    // Note: isLoading, canSubmit, onSubmit, onStop, groundingEnabled, onToggleGrounding, isGoogleModelSelected
+    // are intentionally NOT destructured here - they are read reactively via getContext() in component functions
     showLocalControlInPrompt,
     ollamaRunning,
     ollamaModels,
@@ -91,20 +86,24 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   })
 
   // Grounding Button (Left side, order: 2, conditional)
+  // Use function component to read latest context values reactively
   actionButtonRegistry.register({
     id: "grounding",
     order: 2,
-    condition: () => isGoogleModelSelected,
-    component: (
-      <ExpandedGroundingButton
-        key="grounding"
-        groundingEnabled={groundingEnabled}
-        onToggle={onToggleGrounding}
-        isDarkTheme={isDarkTheme}
-        themeClasses={themeClasses}
-        hoverClass={hoverClass}
-      />
-    ),
+    condition: () => getContext().isGoogleModelSelected,
+    component: () => {
+      const ctx = getContext()
+      return (
+        <ExpandedGroundingButton
+          key="grounding"
+          groundingEnabled={ctx.groundingEnabled}
+          onToggle={ctx.onToggleGrounding}
+          isDarkTheme={ctx.isDarkTheme}
+          themeClasses={ctx.themeClasses}
+          hoverClass={ctx.hoverClass}
+        />
+      )
+    },
   })
 
   // Local Model Button (Left side, order: 3, conditional)

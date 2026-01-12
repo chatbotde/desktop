@@ -1,5 +1,5 @@
 import { PromptInputActions } from "@/components/prompt-kit/prompt-input"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { actionButtonRegistry } from "./registry/action-button-registry"
 import { registerDefaultActions } from "./actions/register-default-actions"
@@ -10,15 +10,15 @@ interface ExpandedActionsBarProps extends ExpandedActionsBarContext {
 }
 
 export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
-  const { className, ...context } = props
+  const { className } = props
   const contextRef = useRef(props)
-  
+
   // Update ref when props change (especially canSubmit, isLoading)
   // The function components will read from this ref to get latest values
   useEffect(() => {
     contextRef.current = props
   }, [props])
-  
+
   // Also update immediately on each render to ensure latest values
   contextRef.current = props
 
@@ -41,16 +41,16 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
   }, []) // Only register once on mount
 
   // Re-register when key props change (for conditional buttons)
-  // Note: Submit button uses function component, so it reads latest values automatically
+  // Note: Submit and Grounding buttons use function components, so they read latest values automatically
   useEffect(() => {
     const existingButtons = actionButtonRegistry.getAll()
     existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
     registerDefaultActions(() => contextRef.current)
   }, [
-    // Re-register when these key props change (affects conditional buttons)
+    // Re-register when these key props change (affects conditional buttons visibility)
     props.isGoogleModelSelected,
     props.showLocalControlInPrompt,
-    props.groundingEnabled,
+    // Note: groundingEnabled is NOT here because it reads reactively from context function
   ])
 
   // Get all registered buttons and render them
