@@ -24,8 +24,9 @@ export class AIServiceAdapter implements IAIService {
 
   async *streamMessage(params: StreamMessageParams): AsyncGenerator<StreamChunk, void, unknown> {
     const attachments = params.attachments as MediaAttachment[] | undefined
-    
-    const generator = this.service.sendMessage(
+
+    // sendMessage returns Promise<AsyncGenerator>, so we need to await it first
+    const generator = await this.service.sendMessage(
       params.message,
       attachments
     )

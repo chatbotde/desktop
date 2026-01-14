@@ -1,10 +1,10 @@
 import { MEDIA_UPLOAD_CONSTANTS } from "../constants/media-upload-constants"
 
 interface HiddenFileInputsProps {
-  docInputRef: React.RefObject<HTMLInputElement>
-  imageInputRef: React.RefObject<HTMLInputElement>
-  videoInputRef: React.RefObject<HTMLInputElement>
-  audioInputRef: React.RefObject<HTMLInputElement>
+  docInputRef: React.RefObject<HTMLInputElement | null>
+  imageInputRef: React.RefObject<HTMLInputElement | null>
+  videoInputRef: React.RefObject<HTMLInputElement | null>
+  audioInputRef: React.RefObject<HTMLInputElement | null>
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 

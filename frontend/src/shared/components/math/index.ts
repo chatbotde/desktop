@@ -30,7 +30,8 @@
 
 // Components
 export { InlineMath, BlockMath, MathRenderer } from './Math'
-export type { InlineMathProps, BlockMathProps, MathRendererProps } from './Math'
+export type { MathRendererProps } from './Math'
+export type { InlineMathProps, BlockMathProps } from './types'
 
 // Types
 export type {

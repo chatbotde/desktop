@@ -17,7 +17,6 @@ export function MediaUploadCard({
   className,
   isDarkTheme = true,
   onScreenshot,
-  onMoreClick,
 }: MediaUploadCardProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
@@ -31,7 +30,6 @@ export function MediaUploadCard({
   })
   const { options } = useMediaOptions({
     isCapturing,
-    onMoreClick,
     onSettingsOpen: () => setIsSettingsOpen(true),
     fileInputRefs,
     screenshotHandlers: {

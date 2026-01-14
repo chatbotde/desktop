@@ -8,10 +8,10 @@ interface UseMediaOptionsProps {
   isCapturing: boolean
   onSettingsOpen: () => void
   fileInputRefs: {
-    docInputRef: React.RefObject<HTMLInputElement>
-    imageInputRef: React.RefObject<HTMLInputElement>
-    videoInputRef: React.RefObject<HTMLInputElement>
-    audioInputRef: React.RefObject<HTMLInputElement>
+    docInputRef: React.RefObject<HTMLInputElement | null>
+    imageInputRef: React.RefObject<HTMLInputElement | null>
+    videoInputRef: React.RefObject<HTMLInputElement | null>
+    audioInputRef: React.RefObject<HTMLInputElement | null>
   }
   screenshotHandlers: {
     handleQuickScreenshot: () => void

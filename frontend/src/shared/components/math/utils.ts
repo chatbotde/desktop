@@ -24,7 +24,6 @@ export const defaultInlineKatexOptions: KatexOptions = {
   colorIsTextColor: false,
   maxSize: Infinity,
   maxExpand: 1000,
-  allowedProtocols: ['http', 'https', 'mailto', '_relative'],
 }
 
 /**
@@ -62,11 +61,11 @@ export function mergeKatexOptions(
  */
 export function parseInlineMath(text: string): ParsedMathExpression[] {
   const expressions: ParsedMathExpression[] = []
-  
+
   // Match $...$ (not preceded or followed by $)
   const dollarRegex = /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g
   let match: RegExpExecArray | null
-  
+
   while ((match = dollarRegex.exec(text)) !== null) {
     expressions.push({
       type: 'inline',
@@ -76,7 +75,7 @@ export function parseInlineMath(text: string): ParsedMathExpression[] {
       end: match.index + match[0].length,
     })
   }
-  
+
   // Match \(...\)
   const parenRegex = /\\\(([^)]+?)\\\)/g
   while ((match = parenRegex.exec(text)) !== null) {
@@ -88,7 +87,7 @@ export function parseInlineMath(text: string): ParsedMathExpression[] {
       end: match.index + match[0].length,
     })
   }
-  
+
   return expressions.sort((a, b) => a.start - b.start)
 }
 
@@ -98,11 +97,11 @@ export function parseInlineMath(text: string): ParsedMathExpression[] {
  */
 export function parseBlockMath(text: string): ParsedMathExpression[] {
   const expressions: ParsedMathExpression[] = []
-  
+
   // Match $$...$$ (can span multiple lines)
   const dollarBlockRegex = /\$\$([\s\S]*?)\$\$/g
   let match: RegExpExecArray | null
-  
+
   while ((match = dollarBlockRegex.exec(text)) !== null) {
     expressions.push({
       type: 'block',
@@ -112,7 +111,7 @@ export function parseBlockMath(text: string): ParsedMathExpression[] {
       end: match.index + match[0].length,
     })
   }
-  
+
   // Match \[...\]
   const bracketBlockRegex = /\\\[([\s\S]*?)\\\]/g
   while ((match = bracketBlockRegex.exec(text)) !== null) {
@@ -124,7 +123,7 @@ export function parseBlockMath(text: string): ParsedMathExpression[] {
       end: match.index + match[0].length,
     })
   }
-  
+
   return expressions.sort((a, b) => a.start - b.start)
 }
 
@@ -133,36 +132,36 @@ export function parseBlockMath(text: string): ParsedMathExpression[] {
  */
 export function validateMathExpression(math: string): MathValidationResult {
   const trimmed = math.trim()
-  
+
   if (!trimmed) {
     return {
       isValid: false,
       error: 'Math expression is empty',
     }
   }
-  
+
   // Basic validation - check for balanced braces
   const openBraces = (trimmed.match(/\{/g) || []).length
   const closeBraces = (trimmed.match(/\}/g) || []).length
-  
+
   if (openBraces !== closeBraces) {
     return {
       isValid: false,
       error: `Unbalanced braces: ${openBraces} open, ${closeBraces} close`,
     }
   }
-  
+
   // Check for balanced parentheses
   const openParens = (trimmed.match(/\(/g) || []).length
   const closeParens = (trimmed.match(/\)/g) || []).length
-  
+
   if (openParens !== closeParens) {
     return {
       isValid: false,
       error: `Unbalanced parentheses: ${openParens} open, ${closeParens} close`,
     }
   }
-  
+
   return {
     isValid: true,
     content: trimmed,
@@ -175,10 +174,10 @@ export function validateMathExpression(math: string): MathValidationResult {
 export function extractMathExpressions(text: string): ParsedMathExpression[] {
   const inline = parseInlineMath(text)
   const block = parseBlockMath(text)
-  
+
   // Combine and sort by position
   const all = [...inline, ...block].sort((a, b) => a.start - b.start)
-  
+
   // Remove overlapping expressions (block takes precedence)
   const filtered: ParsedMathExpression[] = []
   for (const expr of all) {
@@ -188,12 +187,12 @@ export function extractMathExpressions(text: string): ParsedMathExpression[] {
         (expr.end > existing.start && expr.end <= existing.end) ||
         (expr.start <= existing.start && expr.end >= existing.end)
     )
-    
+
     if (!overlaps) {
       filtered.push(expr)
     }
   }
-  
+
   return filtered
 }
 
@@ -212,7 +211,7 @@ export function sanitizeMathExpression(math: string): string {
 /**
  * Format math expression for display (add line breaks, etc.)
  */
-export function formatMathExpression(math: string, maxLineLength = 80): string {
+export function formatMathExpression(math: string, _maxLineLength = 80): string {
   // This is a simple formatter - can be extended for more complex formatting
   return math
     .split('\n')

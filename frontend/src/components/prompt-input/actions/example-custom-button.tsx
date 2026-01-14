@@ -22,7 +22,7 @@ interface ExampleCustomButtonProps {
 }
 
 function ExampleCustomButton({
-  isDarkTheme,
+  isDarkTheme: _isDarkTheme,
   themeClasses,
   hoverClass,
   onClick,

@@ -8,7 +8,7 @@
  */
 
 // Components
-export { 
+export {
   DragButton,
   ResizeHandle,
   WindowControls,
@@ -19,6 +19,7 @@ export {
 
 // Hooks
 export { useDraggable, useResizable, useAutoScroll } from './hooks'
+export type { ResizeDirection } from './hooks'
 
 // Theme
 export { getThemeClasses } from './theme'

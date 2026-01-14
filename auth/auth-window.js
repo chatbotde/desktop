@@ -38,6 +38,7 @@ class AuthWindow {
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
       show: false,
+      icon: path.join(__dirname, '../icons/icon.ico'),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

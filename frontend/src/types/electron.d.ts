@@ -13,6 +13,16 @@ export interface ElectronAPI {
   onThemeChanged?: (callback: (theme: string) => void) => void;
 }
 
+/**
+ * Rich content data for insertion (HTML, images, RTF, etc.)
+ */
+interface RichContentData {
+  text?: string;           // Plain text fallback
+  html?: string;          // HTML content (for rich text editors)
+  image?: string;         // Image as data URL (e.g., "data:image/png;base64,...")
+  rtf?: string;           // RTF format (for Word, etc.)
+}
+
 declare global {
   interface Window {
     api?: ElectronAPI;
@@ -106,16 +116,6 @@ declare global {
       onMessage: (channel: string, func: (...args: any[]) => void) => void;
       removeMessageListener: (channel: string, func: (...args: any[]) => void) => void;
     };
-
-    /**
-     * Rich content data for insertion (HTML, images, RTF, etc.)
-     */
-    interface RichContentData {
-      text?: string;           // Plain text fallback
-      html?: string;          // HTML content (for rich text editors)
-      image?: string;         // Image as data URL (e.g., "data:image/png;base64,...")
-      rtf?: string;           // RTF format (for Word, etc.)
-    }
 
     /**
      * Text Services Framework API for inserting text into any application

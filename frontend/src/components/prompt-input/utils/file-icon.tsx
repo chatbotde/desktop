@@ -1,12 +1,5 @@
 import { Image, Video, Music, Paperclip } from "lucide-react"
 
-interface FileIconProps {
-  file: File
-  themeClasses: {
-    icon: string
-  }
-}
-
 export function getFileIcon(file: File, themeClasses: { icon: string }) {
   const fileType = file.type.toLowerCase()
 

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Play, Pause } from 'lucide-react'
+import { Play } from 'lucide-react'
 
 export interface MediaAttachment {
   id: string
@@ -51,7 +51,7 @@ export function MediaAttachmentComponent({ attachment, compact = false }: MediaA
         const handlePlayPause = () => {
           const video = videoRef.current
           if (!video) return
-          
+
           if (isPlaying) {
             video.pause()
             setIsPlaying(false)

@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react'
-import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 
 interface AudioPlayerProps {
@@ -21,7 +20,7 @@ export function AudioPlayer({
   isPlaying,
   currentTime,
   duration,
-  onPlayPause,
+  onPlayPause: _onPlayPause,
   onSeek,
   onTimeUpdate,
   onDurationChange,
@@ -84,7 +83,7 @@ export function AudioPlayer({
   return (
     <>
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
-      
+
       <div className="mb-3">
         <input
           type="range"

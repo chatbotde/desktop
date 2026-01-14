@@ -9,14 +9,11 @@ import type {
   MCPServerConfig,
   MCPConnectionStatus,
   MCPTool,
-  MCPResource,
-  MCPPrompt,
   MCPCallToolResult,
   MCPListResourcesResult,
   MCPReadResourceResult,
   MCPListPromptsResult,
   MCPGetPromptResult,
-  MCPClientEvent,
   MCPClientEventListener,
 } from './types';
 

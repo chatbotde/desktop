@@ -35,7 +35,7 @@ export function TextSelectionInput({
   onGenerate,
   onClose,
   placeholder = "Ask about this...",
-  isLoading = false,
+  isLoading: _isLoading = false,
   isGenerating = false,
   maxHeight = 100,
   minHeight = 10,
@@ -83,7 +83,7 @@ export function TextSelectionInput({
         isDarkTheme ? "border-zinc-700/80" : "border-zinc-200/80",
         className,
       )}
-      style={{ 
+      style={{
         backgroundColor: isDarkTheme ? "oklch(0.14 0.00 0 / 1)" : "oklch(0.98 0.00 0 / 1)"
       }}
     >

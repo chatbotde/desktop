@@ -25,4 +25,4 @@ export * from './config'
 export * from './adapters'
 export * from './repositories'
 export * from './plugins'
-export * from './test-utils'
+// Note: test-utils are not exported here to avoid bundling test code in production

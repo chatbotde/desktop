@@ -1,4 +1,4 @@
-import { X, Image, FileText, Cpu, Power } from "lucide-react"
+import { Image, FileText, Cpu, Power } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
@@ -41,7 +41,7 @@ export function ExpandedFileItems({
   }
 
   return (
-    <div 
+    <div
       className="flex flex-wrap gap-2 pb-1 overflow-y-auto"
       style={{ maxHeight: `${PROMPT_INPUT_CONSTANTS.FILE_ITEMS.EXPANDED_MAX_HEIGHT}px` }}
     >

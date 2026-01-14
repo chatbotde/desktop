@@ -35,7 +35,7 @@ async function getHighlighter() {
 // Map common aliases and check if language is supported
 function normalizeLanguage(lang: string): string {
   const langLower = lang.toLowerCase()
-  
+
   // Common aliases
   const aliases: Record<string, string> = {
     'js': 'javascript',
@@ -49,7 +49,7 @@ function normalizeLanguage(lang: string): string {
     'docker': 'dockerfile',
     'ps1': 'powershell'
   }
-  
+
   const normalized = aliases[langLower] || langLower
   return SUPPORTED_LANGUAGES.includes(normalized as any) ? normalized : 'plaintext'
 }
@@ -76,10 +76,10 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
       try {
         // Normalize and validate language
         const lang = normalizeLanguage(language || 'plaintext')
-        
+
         // Get highlighter instance
         const highlighter = await getHighlighter()
-        
+
         // Generate highlighted HTML using Shiki with theme
         // Use one-dark-pro for dark (colorful editor-like) and github-light for light
         const theme = isDark ? 'one-dark-pro' : 'github-light'
@@ -113,7 +113,7 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
       textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
       document.body.appendChild(textArea)
       textArea.select()
-      
+
       try {
         document.execCommand('copy')
         setCopied(true)
@@ -150,7 +150,7 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
       className
     )}>
       {/* Language label and action buttons */}
-      <div 
+      <div
         className={cn(
           "border-b-2 px-5 py-3 flex items-center justify-between transition-colors duration-200",
           "cursor-pointer",
@@ -159,7 +159,7 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
-          <ChevronRight 
+          <ChevronRight
             className={cn(
               "w-4 h-4 transition-transform duration-200",
               isDark ? "text-gray-400" : "text-gray-600",
@@ -184,8 +184,8 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
           size="sm"
           className={cn(
             "h-7 px-2 text-xs font-medium rounded transition-all duration-200",
-            copied 
-              ? "bg-green-600/20 text-green-400 hover:bg-green-600/30" 
+            copied
+              ? "bg-green-600/20 text-green-400 hover:bg-green-600/30"
               : getThemeClasses(isDark, {
                 dark: "bg-gray-700/50 text-gray-300 hover:bg-gray-600/60 hover:text-white opacity-60 group-hover:opacity-100",
                 light: "bg-gray-200/50 text-gray-700 hover:bg-gray-300/60 hover:text-gray-900 opacity-60 group-hover:opacity-100"
@@ -219,14 +219,14 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
           "[&::-webkit-scrollbar-track]:rounded",
           "[&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb]:border-2",
           codeContentClasses,
-          isDark 
+          isDark
             ? "[&::-webkit-scrollbar-track]:bg-black/20 [&::-webkit-scrollbar-thumb]:bg-gray-500/50 [&::-webkit-scrollbar-thumb]:border-black/20 [&::-webkit-scrollbar-thumb]:hover:bg-gray-500/70"
             : "[&::-webkit-scrollbar-track]:bg-gray-100/50 [&::-webkit-scrollbar-thumb]:bg-gray-400/50 [&::-webkit-scrollbar-thumb]:border-white/20 [&::-webkit-scrollbar-thumb]:hover:bg-gray-400/70"
         )}>
           {html ? (
-            <div 
+            <div
               className="[&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-relaxed [&_code]:bg-transparent [&_code]:font-mono [&_.shiki]:bg-transparent [&_.shiki_pre]:bg-transparent [&_.shiki_pre]:m-0 [&_.shiki_pre]:p-0 [&_.shiki_code]:bg-transparent [&_.shiki_code]:font-mono [&_.shiki_code]:text-sm [&_.shiki_code]:leading-relaxed [&_.shiki_code]:block"
-              dangerouslySetInnerHTML={{ __html: html }} 
+              dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
             <pre className={cn(
@@ -246,7 +246,7 @@ function InlineCode({ children, isDark }: { children: string; isDark: boolean })
   return (
     <code className={cn(
       "px-1.5 py-0.5 mx-0.5 border rounded text-sm font-mono",
-      isDark 
+      isDark
         ? "bg-gray-800/60 border-gray-700/50 text-blue-300"
         : "bg-gray-100/80 border-gray-300/50 text-blue-600"
     )}>
@@ -270,7 +270,6 @@ const katexInlineOptions: KatexOptions = {
   colorIsTextColor: false,
   maxSize: Infinity,
   maxExpand: 1000,
-  allowedProtocols: ['http', 'https', 'mailto', '_relative'],
 }
 
 const katexBlockOptions: KatexOptions = {
@@ -287,6 +286,7 @@ function InlineMathBlock({ math, isDark }: { math: string; isDark: boolean }) {
     }
     return (
       <span className="math-inline">
+        {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <InlineMath math={trimmedMath} settings={katexInlineOptions} />
       </span>
     )
@@ -312,6 +312,7 @@ function BlockMathBlock({ math, isDark }: { math: string; isDark: boolean }) {
     }
     return (
       <div className="math-block-wrapper">
+        {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <BlockMath math={trimmedMath} settings={katexBlockOptions} />
       </div>
     )
@@ -541,7 +542,7 @@ export function Markdown({ children, className }: MarkdownProps) {
           elements.push(
             <blockquote key={`quote-${elements.length}`} className={cn(
               "border-l-4 pl-4 py-2 mb-4 rounded-r italic",
-              isDark 
+              isDark
                 ? "border-blue-500/50 bg-blue-500/10 text-gray-200"
                 : "border-blue-500/70 bg-blue-50/50 text-zinc-700"
             )}>
@@ -653,7 +654,7 @@ export function Markdown({ children, className }: MarkdownProps) {
       processed = processed.replace(/_(.*?)_/g, '<em>$1</em>')
 
       // Links [text](url) - Theme-aware styling
-      const linkClasses = isDark 
+      const linkClasses = isDark
         ? 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 hover:text-blue-200 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-200 font-medium text-sm no-underline backdrop-blur-sm'
         : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-100/80 hover:bg-blue-200/90 text-blue-700 hover:text-blue-800 border border-blue-300/50 hover:border-blue-400/70 transition-all duration-200 font-medium text-sm no-underline backdrop-blur-sm'
       processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2" class="${linkClasses}" target="_blank" rel="noopener noreferrer">$1</a>`)
@@ -673,7 +674,7 @@ export function Markdown({ children, className }: MarkdownProps) {
     <div className={cn(
       "prose prose-invert max-w-none",
       // Headers
-      isDark 
+      isDark
         ? "[&_h1]:text-slate-50 [&_h2]:text-slate-100 [&_h3]:text-slate-200"
         : "[&_h1]:text-zinc-900 [&_h2]:text-zinc-800 [&_h3]:text-zinc-700",
       "[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:my-8 [&_h1]:pb-2 [&_h1]:border-b-2",
@@ -681,7 +682,7 @@ export function Markdown({ children, className }: MarkdownProps) {
       "[&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:my-6 [&_h2]:mt-5",
       "[&_h3]:text-xl [&_h3]:font-medium [&_h3]:my-5 [&_h3]:mt-4",
       // Paragraphs and lists
-      isDark 
+      isDark
         ? "[&_p]:text-slate-300 [&_ul]:text-slate-300 [&_ol]:text-slate-300"
         : "[&_p]:text-zinc-700 [&_ul]:text-zinc-700 [&_ol]:text-zinc-700",
       "[&_p]:leading-relaxed [&_p]:mb-4",

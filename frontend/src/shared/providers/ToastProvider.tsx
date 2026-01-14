@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext } from "react";
 import { Toaster, toast as sonnerToast } from "sonner";
 
 interface ToastContextType {

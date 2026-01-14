@@ -25,7 +25,7 @@ try {
 class AuthService extends EventEmitter {
   constructor() {
     super();
-    
+
     this.user = null;
     this.isAuthenticated = false;
     this.sessionCheckInterval = null;
@@ -44,52 +44,52 @@ class AuthService extends EventEmitter {
    */
   async initialize() {
     console.log('Auth Service: Initializing...');
-    
+
     try {
       // Check for stored credentials
       const hasCredentials = await tokenStore.hasCredentials();
-      
+
       if (hasCredentials) {
         console.log('Auth Service: Found stored credentials, validating...');
-        
+
         // Try to validate the session
         const isValid = await this.validateSession();
-        
+
         if (isValid) {
           // Restore user data
           this.user = await tokenStore.getUserData();
           this.isAuthenticated = true;
-          
+
           // Start session monitoring
           this.startSessionMonitoring();
-          
+
           console.log('Auth Service: Session restored successfully');
           this.emit('auth:restored', this.user);
-          
+
           return this.user;
         } else {
           console.log('Auth Service: Stored session is invalid, attempting refresh...');
-          
+
           // Try to refresh the token
           const refreshed = await this.refreshTokens();
-          
+
           if (refreshed) {
             this.user = await tokenStore.getUserData();
             this.isAuthenticated = true;
             this.startSessionMonitoring();
-            
+
             console.log('Auth Service: Session refreshed successfully');
             this.emit('auth:refreshed', this.user);
-            
+
             return this.user;
           }
         }
       }
-      
+
       console.log('Auth Service: No valid session found');
       this.emit('auth:required');
       return null;
-      
+
     } catch (error) {
       console.error('Auth Service: Initialization error:', error);
       this.emit('auth:error', error);
@@ -108,14 +108,14 @@ class AuthService extends EventEmitter {
    */
   async login(options = {}) {
     console.log('Auth Service: Starting login flow...');
-    
+
     const loginUrl = config.getAuthUrl(config.AUTH_ENDPOINTS.LOGIN, {
       ...options,
       state: this.generateState(),
     });
-    
+
     console.log('Auth Service: Opening login URL:', loginUrl);
-    
+
     if (config.OAUTH_WINDOW.USE_SYSTEM_BROWSER) {
       // Open in system browser
       await shell.openExternal(loginUrl);
@@ -123,7 +123,7 @@ class AuthService extends EventEmitter {
       // Open in embedded window
       this.openOAuthWindow(loginUrl);
     }
-    
+
     this.emit('auth:login-started');
   }
 
@@ -134,20 +134,20 @@ class AuthService extends EventEmitter {
    */
   async signup(options = {}) {
     console.log('Auth Service: Starting signup flow...');
-    
+
     const signupUrl = config.getAuthUrl(config.AUTH_ENDPOINTS.SIGNUP, {
       ...options,
       state: this.generateState(),
     });
-    
+
     console.log('Auth Service: Opening signup URL:', signupUrl);
-    
+
     if (config.OAUTH_WINDOW.USE_SYSTEM_BROWSER) {
       await shell.openExternal(signupUrl);
     } else {
       this.openOAuthWindow(signupUrl);
     }
-    
+
     this.emit('auth:signup-started');
   }
 
@@ -167,6 +167,7 @@ class AuthService extends EventEmitter {
       height: config.OAUTH_WINDOW.HEIGHT,
       title: 'Sign In',
       show: true,
+      icon: require('path').join(__dirname, '../icons/icon.ico'),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -201,19 +202,19 @@ class AuthService extends EventEmitter {
    */
   async handleAuthCallback(urlOrParams) {
     console.log('Auth Service: Handling auth callback:', urlOrParams);
-    
+
     let params;
-    
+
     // Support both URL string and direct params object
     if (typeof urlOrParams === 'string') {
       const parsed = config.parseDeepLink(urlOrParams);
-      
+
       if (!parsed) {
         const error = new Error('Invalid callback URL');
         this.emit('auth:error', error);
         return null;
       }
-      
+
       params = parsed.params;
     } else if (typeof urlOrParams === 'object') {
       // Direct params object (e.g., from manual token input)
@@ -223,7 +224,7 @@ class AuthService extends EventEmitter {
       this.emit('auth:error', error);
       return null;
     }
-    
+
     // Check for error
     if (params.error) {
       const error = new Error(params.error_description || params.error);
@@ -231,12 +232,12 @@ class AuthService extends EventEmitter {
       this.emit('auth:error', error);
       return null;
     }
-    
+
     // Handle different callback types
     if (params.token || params.access_token || params.code) {
       try {
         let tokens;
-        
+
         if (params.code) {
           // Exchange code for tokens
           tokens = await this.exchangeCodeForTokens(params.code);
@@ -249,24 +250,24 @@ class AuthService extends EventEmitter {
             expiresIn: params.expires_in,
           };
         }
-        
+
         // Store tokens
         await tokenStore.storeAuthTokens(tokens);
-        
+
         // Fetch and store user data
         const user = await this.fetchUserInfo(tokens.accessToken || tokens.sessionToken);
-        
+
         if (user) {
           await tokenStore.storeUserData(user);
           this.user = user;
           this.isAuthenticated = true;
-          
+
           // Start session monitoring
           this.startSessionMonitoring();
-          
+
           console.log('Auth Service: Login successful:', user.email || user.id);
           this.emit('auth:success', user);
-          
+
           return user;
         }
       } catch (error) {
@@ -275,7 +276,7 @@ class AuthService extends EventEmitter {
         throw error; // Re-throw for manual token submission
       }
     }
-    
+
     return null;
   }
 
@@ -296,11 +297,11 @@ class AuthService extends EventEmitter {
         client: 'desktop',
       }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Token exchange failed: ${response.status}`);
     }
-    
+
     return response.json();
   }
 
@@ -317,17 +318,17 @@ class AuthService extends EventEmitter {
       const accessToken = await tokenStore.getAccessToken();
       const sessionToken = await tokenStore.getSessionToken();
       const token = accessToken || sessionToken;
-      
+
       if (!token) {
         return false;
       }
-      
+
       // Check if token is expired locally first
       if (tokenStore.isTokenExpired(token, config.TOKEN_REFRESH_THRESHOLD)) {
         console.log('Auth Service: Token is expired or near expiry');
         return false;
       }
-      
+
       // Validate with server
       const response = await fetch(`${config.WEB_AUTH_URL}${config.AUTH_ENDPOINTS.VERIFY_TOKEN}`, {
         method: 'GET',
@@ -335,9 +336,9 @@ class AuthService extends EventEmitter {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       return response.ok;
-      
+
     } catch (error) {
       console.error('Auth Service: Session validation error:', error);
       return false;
@@ -354,17 +355,17 @@ class AuthService extends EventEmitter {
       this.refreshRetries = 0;
       return false;
     }
-    
+
     try {
       const refreshToken = await tokenStore.getRefreshToken();
-      
+
       if (!refreshToken) {
         console.log('Auth Service: No refresh token available');
         return false;
       }
-      
+
       this.refreshRetries++;
-      
+
       const response = await fetch(`${config.WEB_AUTH_URL}${config.AUTH_ENDPOINTS.REFRESH_TOKEN}`, {
         method: 'POST',
         headers: {
@@ -374,20 +375,20 @@ class AuthService extends EventEmitter {
           refresh_token: refreshToken,
         }),
       });
-      
+
       if (!response.ok) {
         console.error('Auth Service: Token refresh failed:', response.status);
         return false;
       }
-      
+
       const tokens = await response.json();
       await tokenStore.storeAuthTokens(tokens);
-      
+
       this.refreshRetries = 0;
       console.log('Auth Service: Tokens refreshed successfully');
-      
+
       return true;
-      
+
     } catch (error) {
       console.error('Auth Service: Token refresh error:', error);
       return false;
@@ -402,16 +403,16 @@ class AuthService extends EventEmitter {
     if (this.sessionCheckInterval) {
       clearInterval(this.sessionCheckInterval);
     }
-    
+
     this.sessionCheckInterval = setInterval(async () => {
       console.log('Auth Service: Checking session...');
-      
+
       const accessToken = await tokenStore.getAccessToken();
-      
+
       if (accessToken && tokenStore.isTokenExpired(accessToken, config.TOKEN_REFRESH_THRESHOLD)) {
         console.log('Auth Service: Token near expiry, refreshing...');
         const refreshed = await this.refreshTokens();
-        
+
         if (!refreshed) {
           console.log('Auth Service: Failed to refresh, session expired');
           this.isAuthenticated = false;
@@ -420,7 +421,7 @@ class AuthService extends EventEmitter {
         }
       }
     }, config.SESSION_CHECK_INTERVAL);
-    
+
     console.log('Auth Service: Session monitoring started');
   }
 
@@ -452,14 +453,14 @@ class AuthService extends EventEmitter {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch user info: ${response.status}`);
       }
-      
+
       const data = await response.json();
       return data.user || data;
-      
+
     } catch (error) {
       console.error('Auth Service: Failed to fetch user info:', error);
       return null;
@@ -501,11 +502,11 @@ class AuthService extends EventEmitter {
    */
   async logout() {
     console.log('Auth Service: Logging out...');
-    
+
     try {
       // Notify server of logout
       const token = await tokenStore.getAccessToken() || await tokenStore.getSessionToken();
-      
+
       if (token) {
         await fetch(`${config.WEB_AUTH_URL}${config.AUTH_ENDPOINTS.LOGOUT}`, {
           method: 'POST',
@@ -519,22 +520,22 @@ class AuthService extends EventEmitter {
     } catch (error) {
       console.warn('Auth Service: Server logout notification failed:', error);
     }
-    
+
     // Stop session monitoring
     this.stopSessionMonitoring();
-    
+
     // Clear stored credentials
     await tokenStore.clearAll();
-    
+
     // Reset state
     this.user = null;
     this.isAuthenticated = false;
-    
+
     // Close OAuth window if open
     if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
       this.oauthWindow.close();
     }
-    
+
     console.log('Auth Service: Logged out successfully');
     this.emit('auth:logout');
   }
@@ -558,11 +559,11 @@ class AuthService extends EventEmitter {
    */
   destroy() {
     this.stopSessionMonitoring();
-    
+
     if (this.oauthWindow && !this.oauthWindow.isDestroyed()) {
       this.oauthWindow.close();
     }
-    
+
     this.removeAllListeners();
   }
 }

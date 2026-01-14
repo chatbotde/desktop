@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 import { useDraggable, useResizable } from '@/features/output-window'
-import { Download, X, Plus, Play, Pause } from 'lucide-react'
+import { Download, X, Plus, Play } from 'lucide-react'
 import type { VideoData } from '@/hooks/useVideoRecording'
 import type { ResizeDirection } from '@/features/output-window'
 
@@ -174,7 +174,7 @@ export function VideoPreview({
         ))}
 
         {/* Header - Draggable */}
-        <div 
+        <div
           className="flex items-center justify-between mb-4 cursor-move select-none"
           onMouseDown={handleDragMouseDown}
         >
@@ -211,7 +211,7 @@ export function VideoPreview({
             className="w-full h-full object-contain max-w-full max-h-full"
             playsInline
           />
-          
+
           {/* Play/Pause Overlay */}
           {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -254,7 +254,7 @@ export function VideoPreview({
             onClick={handleDownload}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium",
-              isDarkTheme 
+              isDarkTheme
                 ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"
                 : "bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300"
             )}
@@ -268,7 +268,7 @@ export function VideoPreview({
               onClick={handleAdd}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium",
-                isDarkTheme 
+                isDarkTheme
                   ? "bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30"
                   : "bg-green-100 hover:bg-green-200 text-green-700 border border-green-300"
               )}

@@ -5,14 +5,7 @@ import { MessageContent } from '@/shared/components/message'
 import type { ChatMessage } from '../types'
 import { TextSelectionActions } from './TextSelectionActions'
 
-declare global {
-  interface Window {
-    tsfAPI?: {
-      initialize: () => Promise<void>
-      focusAndInsertText: (text: string) => Promise<boolean>
-    }
-  }
-}
+// Types are defined in @/types/electron.d.ts
 
 interface AssistantMessageBubbleProps {
   message: ChatMessage
@@ -190,24 +183,24 @@ export function AssistantMessageBubble({
           onAsk={
             onAskSelectedText
               ? async (t) => {
-                  try {
-                    await onAskSelectedText(t)
-                  } catch (err) {
-                    console.error('[AssistantMessageBubble] Failed to ask about selection:', err)
-                  }
+                try {
+                  await onAskSelectedText(t)
+                } catch (err) {
+                  console.error('[AssistantMessageBubble] Failed to ask about selection:', err)
                 }
+              }
               : undefined
           }
           onExplain={
             onExplainSelectedText
               ? async (t) => {
-                  try {
-                    // Pass both text and position to the handler
-                    await onExplainSelectedText(t, selectionPos)
-                  } catch (err) {
-                    console.error('[AssistantMessageBubble] Failed to explain selection:', err)
-                  }
+                try {
+                  // Pass both text and position to the handler
+                  await onExplainSelectedText(t, selectionPos)
+                } catch (err) {
+                  console.error('[AssistantMessageBubble] Failed to explain selection:', err)
                 }
+              }
               : undefined
           }
           isDarkTheme={isDarkTheme}
