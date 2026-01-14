@@ -5,12 +5,19 @@
 
 export type CustomProviderType = 'google' | 'openai' | 'anthropic';
 
+export interface CustomModelCapabilities {
+  supportsImages: boolean;
+  supportsAudio: boolean;
+  supportsVideo: boolean;
+}
+
 export interface CustomModel {
   id: string;
   name: string;
   displayName: string;
   provider: CustomProviderType;
   isCustom: true;
+  capabilities: CustomModelCapabilities;
 }
 
 export interface CustomProviderConfig {
@@ -148,17 +155,33 @@ export function getEffectiveBaseUrl(provider: CustomProviderType): string {
 export function addCustomModel(
   provider: CustomProviderType,
   modelId: string,
-  displayName: string
+  displayName: string,
+  capabilities?: Partial<CustomModelCapabilities>
 ): CustomModel {
   const config = getProviderConfig(provider);
+
+  // Default capabilities based on provider
+  // Google Gemini models typically support all media types
+  // OpenAI vision models support images
+  // Anthropic Claude 3 supports images
+  const defaultCapabilities: CustomModelCapabilities = {
+    supportsImages: true, // Most modern models support images
+    supportsAudio: provider === 'google', // Only Google Gemini natively supports audio
+    supportsVideo: provider === 'google', // Only Google Gemini natively supports video
+  };
+
   const newModel: CustomModel = {
     id: `custom-${provider}-${modelId}`,
     name: modelId,
     displayName: displayName || modelId,
     provider,
     isCustom: true,
+    capabilities: {
+      ...defaultCapabilities,
+      ...capabilities,
+    },
   };
-  
+
   // Check if model already exists
   const exists = config.models.some(m => m.name === modelId);
   if (!exists) {
@@ -166,7 +189,7 @@ export function addCustomModel(
       models: [...config.models, newModel],
     });
   }
-  
+
   return newModel;
 }
 

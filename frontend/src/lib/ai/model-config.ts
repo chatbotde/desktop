@@ -17,6 +17,19 @@ export { AVAILABLE_MODELS } from './model-config/index';
  * Convert a CustomModel to an AIModel
  */
 function customModelToAIModel(customModel: CustomModel): AIModel {
+  // Handle backward compatibility for models saved without capabilities
+  const modelCapabilities = customModel.capabilities || {
+    supportsImages: true,
+    supportsAudio: customModel.provider === 'google',
+    supportsVideo: customModel.provider === 'google',
+  };
+
+  // Build capabilities array based on custom model settings
+  const capabilities: string[] = ['text', 'function-calling'];
+  if (modelCapabilities.supportsImages) capabilities.push('vision');
+  if (modelCapabilities.supportsAudio) capabilities.push('audio-input');
+  if (modelCapabilities.supportsVideo) capabilities.push('video-input');
+
   return {
     id: customModel.id,
     name: customModel.name,
@@ -25,10 +38,10 @@ function customModelToAIModel(customModel: CustomModel): AIModel {
     description: `Custom ${customModel.provider} model`,
     category: 'multimodal',
     maxTokens: 8192,
-    supportsImages: customModel.provider !== 'anthropic', // Anthropic via API may not support images in same way
-    supportsAudio: false,
-    supportsVideo: false,
-    capabilities: ['text', 'function-calling'],
+    supportsImages: modelCapabilities.supportsImages,
+    supportsAudio: modelCapabilities.supportsAudio,
+    supportsVideo: modelCapabilities.supportsVideo,
+    capabilities,
     contextWindow: 128000,
     isAvailable: true,
     temperature: 0.7,
@@ -47,16 +60,16 @@ export class ModelConfigManager {
     models.forEach((model: AIModel) => {
       this.modelConfigs.set(model.id, model);
     });
-    
+
     // Load custom models
     this.loadCustomModels();
-    
+
     // Listen for custom provider changes
     window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, () => {
       this.loadCustomModels();
     });
   }
-  
+
   /**
    * Load custom models from settings
    */
@@ -67,7 +80,7 @@ export class ModelConfigManager {
         this.modelConfigs.delete(id);
       }
     }
-    
+
     // Add current custom models
     const customModels = getAllCustomModels();
     customModels.forEach((customModel) => {

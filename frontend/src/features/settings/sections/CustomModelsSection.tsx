@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react"
-import { Key, Plus, Trash2, Globe, Bot, Check, Eye, EyeOff } from "lucide-react"
+import { Key, Plus, Trash2, Globe, Bot, Check, Eye, EyeOff, Image, Music, Video } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { Input } from "@/shared/components/ui/input"
 import { Button } from "@/shared/components/ui/button"
 import { Label } from "@/shared/components/ui/label"
 import { Switch } from "@/shared/components/ui/switch"
+import { Checkbox } from "@/shared/components/ui/checkbox"
 
 import {
   getCustomProviders,
@@ -17,6 +18,7 @@ import {
   CUSTOM_PROVIDER_TYPES,
   type CustomProviderType,
   type CustomProvidersStore,
+  type CustomModelCapabilities,
 } from "@/lib/settings/custom-providers"
 
 interface ProviderCardProps {
@@ -24,7 +26,7 @@ interface ProviderCardProps {
   config: CustomProvidersStore[CustomProviderType]
   isDarkTheme: boolean
   onUpdate: (provider: CustomProviderType, updates: Partial<CustomProvidersStore[CustomProviderType]>) => void
-  onAddModel: (provider: CustomProviderType, modelId: string, displayName: string) => void
+  onAddModel: (provider: CustomProviderType, modelId: string, displayName: string, capabilities: Partial<CustomModelCapabilities>) => void
   onRemoveModel: (provider: CustomProviderType, modelId: string) => void
 }
 
@@ -40,11 +42,25 @@ function ProviderCard({
   const [newModelDisplayName, setNewModelDisplayName] = useState("")
   const [showApiKey, setShowApiKey] = useState(false)
 
+  // Capability toggles with sensible defaults based on provider
+  const [supportsImages, setSupportsImages] = useState(true)
+  const [supportsAudio, setSupportsAudio] = useState(provider === 'google')
+  const [supportsVideo, setSupportsVideo] = useState(provider === 'google')
+
   const handleAddModel = () => {
     if (newModelId.trim()) {
-      onAddModel(provider, newModelId.trim(), newModelDisplayName.trim() || newModelId.trim())
+      onAddModel(
+        provider,
+        newModelId.trim(),
+        newModelDisplayName.trim() || newModelId.trim(),
+        { supportsImages, supportsAudio, supportsVideo }
+      )
       setNewModelId("")
       setNewModelDisplayName("")
+      // Reset to defaults
+      setSupportsImages(true)
+      setSupportsAudio(provider === 'google')
+      setSupportsVideo(provider === 'google')
     }
   }
 
@@ -94,7 +110,7 @@ function ProviderCard({
             className={cn(
               "pr-10",
               isDarkTheme &&
-                "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+              "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
             )}
           />
           <button
@@ -125,7 +141,7 @@ function ProviderCard({
           placeholder={defaultBaseUrl}
           className={cn(
             isDarkTheme &&
-              "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+            "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
           )}
         />
         <p className={cn("text-xs", isDarkTheme ? "text-zinc-500" : "text-zinc-500")}>
@@ -159,6 +175,33 @@ function ProviderCard({
                   <div className={cn("text-xs truncate", isDarkTheme ? "text-zinc-500" : "text-zinc-500")}>
                     {model.name}
                   </div>
+                  {/* Capability badges */}
+                  <div className="flex gap-1 mt-1">
+                    {model.capabilities?.supportsImages && (
+                      <span className={cn(
+                        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
+                        isDarkTheme ? "bg-blue-900/50 text-blue-300" : "bg-blue-100 text-blue-700"
+                      )}>
+                        <Image className="h-2.5 w-2.5" /> Images
+                      </span>
+                    )}
+                    {model.capabilities?.supportsAudio && (
+                      <span className={cn(
+                        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
+                        isDarkTheme ? "bg-purple-900/50 text-purple-300" : "bg-purple-100 text-purple-700"
+                      )}>
+                        <Music className="h-2.5 w-2.5" /> Audio
+                      </span>
+                    )}
+                    {model.capabilities?.supportsVideo && (
+                      <span className={cn(
+                        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
+                        isDarkTheme ? "bg-green-900/50 text-green-300" : "bg-green-100 text-green-700"
+                      )}>
+                        <Video className="h-2.5 w-2.5" /> Video
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
@@ -177,7 +220,7 @@ function ProviderCard({
         )}
 
         {/* Add New Model */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex gap-2">
             <Input
               value={newModelId}
@@ -186,7 +229,7 @@ function ProviderCard({
               className={cn(
                 "flex-1",
                 isDarkTheme &&
-                  "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+                "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
               )}
             />
           </div>
@@ -198,7 +241,7 @@ function ProviderCard({
               className={cn(
                 "flex-1",
                 isDarkTheme &&
-                  "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+                "bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-600"
               )}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -217,6 +260,69 @@ function ProviderCard({
             >
               <Plus className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Capability Toggles */}
+          <div className={cn(
+            "rounded-md border p-3 space-y-2",
+            isDarkTheme ? "border-zinc-700 bg-zinc-800/50" : "border-zinc-200 bg-zinc-50"
+          )}>
+            <Label className={cn(
+              "text-xs font-medium",
+              isDarkTheme ? "text-zinc-400" : "text-zinc-600"
+            )}>
+              Model Capabilities
+            </Label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={supportsImages}
+                  onCheckedChange={(checked) => setSupportsImages(checked === true)}
+                  className={cn(
+                    isDarkTheme && "border-zinc-600 data-[state=checked]:bg-blue-600"
+                  )}
+                />
+                <span className={cn(
+                  "text-xs flex items-center gap-1",
+                  isDarkTheme ? "text-zinc-300" : "text-zinc-700"
+                )}>
+                  <Image className="h-3 w-3" /> Images
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={supportsAudio}
+                  onCheckedChange={(checked) => setSupportsAudio(checked === true)}
+                  className={cn(
+                    isDarkTheme && "border-zinc-600 data-[state=checked]:bg-purple-600"
+                  )}
+                />
+                <span className={cn(
+                  "text-xs flex items-center gap-1",
+                  isDarkTheme ? "text-zinc-300" : "text-zinc-700"
+                )}>
+                  <Music className="h-3 w-3" /> Audio
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={supportsVideo}
+                  onCheckedChange={(checked) => setSupportsVideo(checked === true)}
+                  className={cn(
+                    isDarkTheme && "border-zinc-600 data-[state=checked]:bg-green-600"
+                  )}
+                />
+                <span className={cn(
+                  "text-xs flex items-center gap-1",
+                  isDarkTheme ? "text-zinc-300" : "text-zinc-700"
+                )}>
+                  <Video className="h-3 w-3" /> Video
+                </span>
+              </label>
+            </div>
+            <p className={cn("text-[10px]", isDarkTheme ? "text-zinc-500" : "text-zinc-500")}>
+              Select which media types this model supports for multimodal input
+            </p>
           </div>
         </div>
       </div>
@@ -251,8 +357,8 @@ export function CustomModelsSection({ isDarkTheme = false }: { isDarkTheme?: boo
   )
 
   const handleAddModel = useCallback(
-    (provider: CustomProviderType, modelId: string, displayName: string) => {
-      addCustomModel(provider, modelId, displayName)
+    (provider: CustomProviderType, modelId: string, displayName: string, capabilities: Partial<CustomModelCapabilities>) => {
+      addCustomModel(provider, modelId, displayName, capabilities)
       setProviders(getCustomProviders())
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 2000)

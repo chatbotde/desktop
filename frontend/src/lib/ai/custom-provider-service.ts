@@ -66,17 +66,49 @@ class CustomProviderService {
   private async *sendToGoogle(
     modelName: string,
     message: string,
-    _attachments?: MediaAttachment[]
+    attachments?: MediaAttachment[]
   ): AsyncGenerator<string, void, unknown> {
     const config = getProviderConfig('google');
-    
-    const ai = new GoogleGenAI({ 
+
+    const ai = new GoogleGenAI({
       apiKey: config.apiKey,
     });
 
+    // Build parts array with text and media
+    const parts: any[] = [];
+
+    if (message?.trim()) {
+      parts.push({ text: message });
+    }
+
+    // Add media attachments
+    if (attachments?.length) {
+      for (const attachment of attachments) {
+        let data = attachment.data;
+
+        // Convert blob URLs to base64
+        if (data.startsWith('blob:') || data.startsWith('http')) {
+          const response = await fetch(data);
+          const blob = await response.blob();
+          data = await blobToBase64(blob);
+        }
+
+        parts.push({
+          inlineData: {
+            data: data.includes(',') ? data.split(',')[1] : data,
+            mimeType: attachment.type
+          }
+        });
+      }
+    }
+
+    if (parts.length === 0) {
+      throw new Error('No content to send');
+    }
+
     const response = await ai.models.generateContentStream({
       model: modelName,
-      contents: message,
+      contents: [{ role: 'user', parts }],
     });
 
     for await (const chunk of response) {
@@ -95,11 +127,11 @@ class CustomProviderService {
   ): AsyncGenerator<string, void, unknown> {
     const config = getProviderConfig('openai');
     const baseUrl = getEffectiveBaseUrl('openai');
-    
-    const openai = new OpenAI({ 
+
+    const openai = new OpenAI({
       apiKey: config.apiKey,
       baseURL: baseUrl,
-      dangerouslyAllowBrowser: true 
+      dangerouslyAllowBrowser: true
     });
 
     const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
@@ -148,11 +180,11 @@ class CustomProviderService {
   ): AsyncGenerator<string, void, unknown> {
     const config = getProviderConfig('anthropic');
     const baseUrl = getEffectiveBaseUrl('anthropic');
-    
-    const anthropic = new Anthropic({ 
+
+    const anthropic = new Anthropic({
       apiKey: config.apiKey,
       baseURL: baseUrl,
-      dangerouslyAllowBrowser: true 
+      dangerouslyAllowBrowser: true
     });
 
     const content: Anthropic.MessageCreateParams['messages'][0]['content'] = [];
