@@ -97,6 +97,9 @@ export class InterfaceWindow {
     console.log(`InterfaceWindow: Preload path: ${preloadPath}`);
     console.log(`InterfaceWindow: Preload exists: ${fs.existsSync(preloadPath)}`);
 
+    // Get the icon path from the app root
+    const iconPath = path.join(app.getAppPath(), 'icons', 'icon.ico');
+
     this.window = new BrowserWindow({
       width: width,
       height: height - 1,
@@ -110,7 +113,7 @@ export class InterfaceWindow {
       maximizable: false,
       closable: false,
       title: "",
-      icon: path.join(__dirname, '../icons/icon.ico'),
+      icon: iconPath,
       webPreferences: {
         preload: preloadPath,
         nodeIntegration: false,

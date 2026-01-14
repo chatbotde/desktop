@@ -3,6 +3,8 @@
  * Manages which models are visible in the model selector popover
  */
 
+import { getDefaultVisibleModels } from './default-model-visibility';
+
 const VISIBLE_MODELS_KEY = 'visible-models';
 export const MODEL_VISIBILITY_CHANGED_EVENT = 'buddy:model-visibility-changed';
 
@@ -13,17 +15,18 @@ function emitModelVisibilityChanged(): void {
 
 /**
  * Get the list of visible model IDs from localStorage
- * Returns all models as visible by default
+ * Returns default visible models if no custom settings exist
  */
 export function getVisibleModels(): string[] | null {
   const stored = localStorage.getItem(VISIBLE_MODELS_KEY);
   if (!stored) {
-    return null; // null means all models are visible (default)
+    // Return default visible models instead of null (all visible)
+    return getDefaultVisibleModels();
   }
   try {
     return JSON.parse(stored);
   } catch {
-    return null;
+    return getDefaultVisibleModels();
   }
 }
 
@@ -40,31 +43,20 @@ export function setVisibleModels(modelIds: string[]): void {
  */
 export function isModelVisible(modelId: string): boolean {
   const visibleModels = getVisibleModels();
-  if (visibleModels === null) {
-    return true; // All models visible by default
-  }
-  return visibleModels.includes(modelId);
+  // getVisibleModels now returns defaults if no custom settings
+  return visibleModels?.includes(modelId) ?? false;
 }
 
 /**
  * Toggle visibility of a specific model
  */
 export function toggleModelVisibility(modelId: string, visible: boolean): void {
-  const visibleModels = getVisibleModels();
-  if (visibleModels === null) {
-    // If there is no custom list yet, we can't safely toggle a single id
-    // without knowing the full model list. Create a minimal list:
-    // - turning ON: store [modelId]
-    // - turning OFF: store []
-    // (Preferred usage is to call setVisibleModels() with the full updated list.)
-    setVisibleModels(visible ? [modelId] : []);
-    return;
-  }
-  
+  const visibleModels = getVisibleModels() ?? [];
+
   const updated = visible
     ? [...visibleModels.filter(id => id !== modelId), modelId]
     : visibleModels.filter(id => id !== modelId);
-  
+
   setVisibleModels(updated);
 }
 

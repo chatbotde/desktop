@@ -64,7 +64,21 @@
       "!node_modules/**/.bin/**",
       "!frontend/**",
       "!build-frontend.js",
-      "!**/*.md"
+      "!**/*.md",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/.env.local",
+      "!**/.env.development",
+      "!**/.env.production",
+      "!**/*.pem",
+      "!**/*.key",
+      "!**/secrets/**",
+      "!**/.git/**",
+      "!**/.gitignore",
+      "!**/tsconfig.json",
+      "!**/*.ts",
+      "!**/*.tsx",
+      "!**/*.map"
     ],
     "asarUnpack": [
       "node_modules/ffi-napi/**/*",

@@ -9,7 +9,8 @@
  * - User state management
  */
 
-const { shell, BrowserWindow } = require('electron');
+const { shell, BrowserWindow, app } = require('electron');
+const path = require('path');
 const { EventEmitter } = require('events');
 const config = require('./config');
 const { tokenStore } = require('./token-store');
@@ -162,12 +163,15 @@ class AuthService extends EventEmitter {
       return;
     }
 
+    // Get the icon path from the app root
+    const iconPath = path.join(app.getAppPath(), 'icons', 'icon.ico');
+
     this.oauthWindow = new BrowserWindow({
       width: config.OAUTH_WINDOW.WIDTH,
       height: config.OAUTH_WINDOW.HEIGHT,
       title: 'Sign In',
       show: true,
-      icon: require('path').join(__dirname, '../icons/icon.ico'),
+      icon: iconPath,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

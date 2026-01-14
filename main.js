@@ -8,7 +8,14 @@
  */
 
 const { app } = require('electron');
+const path = require('path');
 const { ProtocolHandler } = require('./interface-window/dist/protocol-handler');
+
+// CRITICAL: Set App User Model ID BEFORE any windows are created
+// This is required for Windows to properly associate the app with its icon
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.sonicthinking.buddy');
+}
 
 // Register custom protocol schemes BEFORE app is ready
 // This must be done synchronously at startup
@@ -34,6 +41,18 @@ if (pendingDeepLinkUrl) {
     deepLinkHandler.handleUrl(pendingDeepLinkUrl);
   });
 }
+
+// Set macOS dock icon
+app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    const { nativeImage } = require('electron');
+    const iconPath = path.join(__dirname, 'icons', 'icon.png');
+    const icon = nativeImage.createFromPath(iconPath);
+    if (!icon.isEmpty()) {
+      app.dock.setIcon(icon);
+    }
+  }
+});
 
 // Initialize and run application
 const { Application } = require('./application/application');

@@ -5,7 +5,7 @@
  * Shows login/signup buttons and status information.
  */
 
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, app } = require('electron');
 const path = require('path');
 const config = require('./config');
 const { authService } = require('./auth-service');
@@ -26,6 +26,9 @@ class AuthWindow {
       return this.window;
     }
 
+    // Get the icon path from the app root
+    const iconPath = path.join(app.getAppPath(), 'icons', 'icon.ico');
+
     this.window = new BrowserWindow({
       width: config.AUTH_WINDOW.WIDTH,
       height: config.AUTH_WINDOW.HEIGHT,
@@ -38,7 +41,7 @@ class AuthWindow {
       titleBarStyle: 'hidden',
       autoHideMenuBar: true,
       show: false,
-      icon: path.join(__dirname, '../icons/icon.ico'),
+      icon: iconPath,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

@@ -21,14 +21,9 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
     const models = getAvailableModels()
     setAllModels(models)
 
+    // getVisibleModels now returns default visible models if no custom settings
     const savedVisible = getVisibleModels()
-    if (savedVisible === null) {
-      // No settings yet - all models are visible by default
-      const allIds = models.map(m => m.id)
-      setVisibleModelIds(allIds)
-    } else {
-      setVisibleModelIds(savedVisible)
-    }
+    setVisibleModelIds(savedVisible ?? [])
   }, [])
 
   const handleToggle = (modelId: string, isOn: boolean) => {
