@@ -6,6 +6,10 @@ export interface ExpandedActionsBarContext {
   themeClasses: {
     icon: string
     containerBg: string
+    containerBorder: string
+    buttonBg: string
+    buttonHover: string
+    buttonBorder: string
     fileText: string
   }
   hoverClass: string
@@ -13,6 +17,10 @@ export interface ExpandedActionsBarContext {
   canSubmit: boolean
   onSubmit: () => void
   onStop?: () => void
+  // Window actions (for send button hover panel)
+  onHide?: () => void
+  onToggleOutput?: () => void
+  isOutputVisible?: boolean
   // Grounding
   isGoogleModelSelected: boolean
   groundingEnabled: boolean

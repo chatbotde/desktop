@@ -10,5 +10,6 @@ export { ScreenshotButton } from './ScreenshotButton'
 export { VideoRecorderPill } from './VideoRecorderPill'
 export { VideoRecordButton } from './VideoRecordButton'
 export { VideoRecordingButton } from './VideoRecordingButton'
+export { VideoHoverCapturePill } from './VideoHoverCapturePill'
 export { VideoPreview } from './VideoPreview'
 

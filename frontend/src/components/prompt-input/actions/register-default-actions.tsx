@@ -8,7 +8,7 @@ import { MediaUploadCard } from "../../media-upload-card"
 import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { ModelSelectorPopover } from "../../model-selector-popover"
 import { MicHoverAudioPill } from "@/features/audio"
-import { VideoRecordingButton } from "@/features/capture/components"
+import { VideoHoverCapturePill } from "@/features/capture/components"
 import { cn } from "@/lib/utils"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
 import { ExpandedLocalModelPopover } from "../expanded-local-model-popover"
@@ -139,13 +139,13 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     ),
   })
 
-  // Video Recording Button (Right side, order: 10.5)
+  // Video/Capture Button (Right side, order: 10.5)
   actionButtonRegistry.register({
     id: "video-recording",
     order: 10.5,
     component: (
-      <PromptInputAction tooltip="Video recording" key="video-recording">
-        <VideoRecordingButton
+      <PromptInputAction tooltip="Capture options" key="video-recording">
+        <VideoHoverCapturePill
           isDarkTheme={isDarkTheme}
           className="h-8 w-8"
         />
@@ -167,6 +167,11 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
           canSubmit={ctx.canSubmit}
           onSubmit={ctx.onSubmit}
           onStop={ctx.onStop}
+          onHide={ctx.onHide}
+          onToggleOutput={ctx.onToggleOutput}
+          isOutputVisible={ctx.isOutputVisible}
+          isDarkTheme={ctx.isDarkTheme}
+          themeClasses={ctx.themeClasses}
         />
       )
     },

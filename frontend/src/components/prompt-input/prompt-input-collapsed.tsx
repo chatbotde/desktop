@@ -9,14 +9,13 @@ import { useRef } from "react"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
 import { MicHoverAudioPill } from "@/features/audio"
-import { VideoRecordingButton } from "@/features/capture/components"
+import { VideoHoverCapturePill } from "@/features/capture/components"
 import { CollapsedFileItems } from "./collapsed-file-items"
 import { CollapsedSubmitButton } from "./collapsed-submit-button"
 import { usePromptTheme } from "./hooks/use-prompt-theme"
 import { useCanSubmit } from "./hooks/use-can-submit"
 import { useKeyboardSubmit } from "./hooks/use-keyboard-submit"
 import { PromptInputHeader } from "./components/prompt-input-header"
-import { PromptInputFooter } from "./components/prompt-input-footer"
 import type { PromptInputCollapsedProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 
@@ -120,7 +119,7 @@ export function PromptInputCollapsed({
           className="h-8 w-8 shrink-0"
         />
 
-        <VideoRecordingButton
+        <VideoHoverCapturePill
           isDarkTheme={isDarkTheme}
           className="h-8 w-8 shrink-0"
         />
@@ -131,14 +130,13 @@ export function PromptInputCollapsed({
           onSubmit={onSubmit}
           onStop={onStop}
           onExpand={onExpand}
+          onHide={onHide}
+          onToggleOutput={onToggleOutput}
+          isOutputVisible={isOutputVisible}
+          isDarkTheme={isDarkTheme}
+          themeClasses={themeClasses}
         />
       </div>
-      <PromptInputFooter
-        onHide={onHide}
-        onToggleOutput={onToggleOutput}
-        isOutputVisible={isOutputVisible}
-        themeClasses={themeClasses}
-      />
     </div>
   )
 }

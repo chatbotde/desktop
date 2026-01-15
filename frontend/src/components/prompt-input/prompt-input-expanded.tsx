@@ -13,7 +13,6 @@ import { usePromptTheme } from "./hooks/use-prompt-theme"
 import { useCanSubmit } from "./hooks/use-can-submit"
 import { useKeyboardSubmit } from "./hooks/use-keyboard-submit"
 import { PromptInputHeader } from "./components/prompt-input-header"
-import { PromptInputFooter } from "./components/prompt-input-footer"
 import type { PromptInputExpandedProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 
@@ -68,11 +67,11 @@ export function PromptInputExpanded({
 
   const canSubmit = useCanSubmit({ input, files, clipboardItems })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
-  
+
   // Create a dummy setter if not provided (for backwards compatibility)
-  const clipboardSetter = setClipboardItems ?? (() => {})
-  const expandedSetter = setIsExpanded ?? (() => {}) // Already expanded
-  
+  const clipboardSetter = setClipboardItems ?? (() => { })
+  const expandedSetter = setIsExpanded ?? (() => { }) // Already expanded
+
   const handlePaste = usePasteHandler({
     onFilesAdded,
     setClipboardItems: clipboardSetter,
@@ -152,6 +151,9 @@ export function PromptInputExpanded({
           canSubmit={canSubmit}
           onSubmit={onSubmit}
           onStop={onStop}
+          onHide={onHide}
+          onToggleOutput={onToggleOutput}
+          isOutputVisible={isOutputVisible}
           isGoogleModelSelected={isGoogleModelSelected}
           groundingEnabled={groundingEnabled}
           onToggleGrounding={handleToggleGrounding}
@@ -163,12 +165,6 @@ export function PromptInputExpanded({
           className="relative z-10 shrink-0"
         />
       </PromptInput>
-      <PromptInputFooter
-        onHide={onHide}
-        onToggleOutput={onToggleOutput}
-        isOutputVisible={isOutputVisible}
-        themeClasses={themeClasses}
-      />
     </div>
   )
 }

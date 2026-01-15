@@ -1,5 +1,4 @@
 // Re-export all shared components and utilities for backward compatibility
-export { WindowActionControls } from "./window-action-controls"
 export { NetworkOfflineIndicator } from "./network-offline-indicator"
 export { getFileIcon } from "./utils/file-icon"
 export { SmartClipboardPill } from "./smart-clipboard-pill"
@@ -12,7 +11,6 @@ export { usePromptTheme } from "./hooks/use-prompt-theme"
 
 // Re-export shared components
 export { PromptInputHeader } from "./components/prompt-input-header"
-export { PromptInputFooter } from "./components/prompt-input-footer"
 export { FileRemoveButton } from "./components/file-remove-button"
 export { BaseSubmitButton } from "./components/base-submit-button"
 
