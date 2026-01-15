@@ -133,7 +133,7 @@ export function OutputMessages({
             }}
         >
             {/* Drag area spanning from left edge to history button */}
-            <div 
+            <div
                 className="absolute top-0 left-0 right-24 h-12 z-30"
                 onMouseDown={handleDragMouseDown}
             />
@@ -171,11 +171,11 @@ export function OutputMessages({
                                 1. Last message is from user (before assistant message created), or
                                 2. Last message is from assistant but has empty content (before first chunk arrives) */}
                             {isWaitingForResponse && messages.length > 0 && (
-                                messages[messages.length - 1]?.role === 'user' || 
+                                messages[messages.length - 1]?.role === 'user' ||
                                 (messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content)
                             ) && (
-                                <ThinkingIndicator isDarkTheme={isDarkTheme} />
-                            )}
+                                    <ThinkingIndicator isDarkTheme={isDarkTheme} />
+                                )}
                             <div ref={messagesEndRef} />
                         </div>
                     )}

@@ -285,7 +285,7 @@ function InlineMathBlock({ math, isDark }: { math: string; isDark: boolean }) {
       return <span className={isDark ? "text-gray-400" : "text-gray-600"}>$</span>
     }
     return (
-      <span className="math-inline">
+      <span className="math-inline" data-on-clickthrough>
         {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <InlineMath math={trimmedMath} settings={katexInlineOptions} />
       </span>
@@ -311,7 +311,7 @@ function BlockMathBlock({ math, isDark }: { math: string; isDark: boolean }) {
       return null
     }
     return (
-      <div className="math-block-wrapper">
+      <div className="math-block-wrapper" data-on-clickthrough>
         {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <BlockMath math={trimmedMath} settings={katexBlockOptions} />
       </div>
@@ -528,6 +528,96 @@ export function Markdown({ children, className }: MarkdownProps) {
             </ol>
           )
           i-- // Adjust for the outer loop increment
+        }
+        // Tables (| header | header |)
+        else if (line.trim().includes('|') && i + 1 < lines.length && /^\|?[\s-:|]+\|?$/.test(lines[i + 1].trim())) {
+          const tableRows: string[][] = []
+          let alignments: ('left' | 'center' | 'right')[] = []
+
+          // Parse header row
+          const headerRow = line.trim().split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim())
+          tableRows.push(headerRow)
+
+          // Parse alignment row
+          const alignmentRow = lines[i + 1].trim().split('|').filter(cell => cell.trim() !== '')
+          alignments = alignmentRow.map(cell => {
+            const trimmed = cell.trim()
+            if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center'
+            if (trimmed.endsWith(':')) return 'right'
+            return 'left'
+          })
+
+          i += 2 // Skip header and alignment rows
+
+          // Parse data rows
+          while (i < lines.length && lines[i].trim().includes('|')) {
+            const row = lines[i].trim().split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim())
+            tableRows.push(row)
+            i++
+          }
+
+          elements.push(
+            <div key={`table-${elements.length}`} className="my-4 overflow-x-auto" data-on-clickthrough>
+              <table className={cn(
+                "min-w-full border-collapse rounded-lg overflow-hidden",
+                isDark ? "bg-zinc-800/30" : "bg-white border border-gray-200"
+              )}>
+                <thead>
+                  <tr className={cn(
+                    isDark ? "bg-zinc-700/50" : "bg-gray-50"
+                  )}>
+                    {tableRows[0].map((cell, cellIdx) => (
+                      <th
+                        key={cellIdx}
+                        className={cn(
+                          "px-4 py-2 font-semibold text-sm border-b",
+                          isDark
+                            ? "text-zinc-100 border-zinc-600"
+                            : "text-zinc-900 border-gray-200",
+                          alignments[cellIdx] === 'center' && 'text-center',
+                          alignments[cellIdx] === 'right' && 'text-right',
+                          alignments[cellIdx] === 'left' && 'text-left'
+                        )}
+                      >
+                        {parseInlineMarkdown(cell, isDark)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.slice(1).map((row, rowIdx) => (
+                    <tr
+                      key={rowIdx}
+                      className={cn(
+                        isDark
+                          ? rowIdx % 2 === 0 ? "bg-zinc-800/20" : "bg-zinc-800/40"
+                          : rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                      )}
+                    >
+                      {row.map((cell, cellIdx) => (
+                        <td
+                          key={cellIdx}
+                          className={cn(
+                            "px-4 py-2 text-sm border-b",
+                            isDark
+                              ? "text-zinc-200 border-zinc-700/50"
+                              : "text-zinc-700 border-gray-100",
+                            alignments[cellIdx] === 'center' && 'text-center',
+                            alignments[cellIdx] === 'right' && 'text-right',
+                            alignments[cellIdx] === 'left' && 'text-left'
+                          )}
+                        >
+                          {parseInlineMarkdown(cell, isDark)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+          i-- // Adjust for the outer loop increment
+          continue
         }
         // Blockquotes
         else if (line.trim().startsWith('> ')) {

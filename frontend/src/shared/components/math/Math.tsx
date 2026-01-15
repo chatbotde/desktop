@@ -75,7 +75,7 @@ export function InlineMath({
 
   try {
     return (
-      <span className={cn('math-inline', className)}>
+      <span className={cn('math-inline', className)} data-on-clickthrough>
         {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <KaTeXInlineMath math={sanitizedMath} settings={katexOptions} />
       </span>
@@ -140,7 +140,7 @@ export function BlockMath({
 
   try {
     return (
-      <div className={cn('math-block-wrapper my-6', className)}>
+      <div className={cn('math-block-wrapper my-6', className)} data-on-clickthrough>
         {/* @ts-expect-error - react-katex types are incorrect, settings prop is valid */}
         <KaTeXBlockMath math={sanitizedMath} settings={katexOptions} />
       </div>

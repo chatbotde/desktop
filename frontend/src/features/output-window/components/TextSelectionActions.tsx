@@ -1,46 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, Send, ArrowRight, HelpCircle, Replace } from 'lucide-react'
+import { Plus, ArrowRight, Replace, Sparkles, ChevronUp } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
 import { InsertButton } from '@/shared/components/actions/InsertButton'
 import { ReplaceButton } from '@/shared/components/actions/ReplaceButton'
+import { TextSelectionInput } from '@/features/text-selection/components/TextSelection'
+import { TextSelectionOutput } from '@/features/text-selection/components/TextSelectionOutput'
+import { sendMessage as sendCloudMessage } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 interface TextSelectionActionsProps {
   /**
    * Selected text
    */
   selectedText: string
-  
+
   /**
    * Position where the popup should appear
    */
   position: { x: number; y: number }
-  
+
   /**
    * Whether the popup is visible
    */
   isVisible: boolean
-  
+
   /**
    * Callback when popup should be hidden
    */
   onClose: () => void
-  
+
   /**
    * Callback when "Add" button is clicked - adds text to prompt-input in compact form
    */
   onAdd?: (text: string) => void
-  
-  /**
-   * Callback when "Ask" button is clicked - sends message to model
-   */
-  onAsk?: (text: string) => void
-  
-  /**
-   * Callback when "Explain" button is clicked - explains the selected text
-   */
-  onExplain?: (text: string, position?: { x: number; y: number }) => void | Promise<void>
-  
+
   /**
    * Dark theme mode
    */
@@ -50,12 +44,11 @@ interface TextSelectionActionsProps {
 /**
  * Text Selection Actions Component
  * 
- * Shows pill-style buttons (Add, Ask, Explain, Insert, Replace) when text is selected.
- * - Add: Adds selected text to prompt-input in compact form
- * - Ask: Sends message to model
- * - Explain: Explains the selected text and shows explanation in Explanation component
- * - Insert: Uses InsertButton component to insert text at cursor position in focused application
- * - Replace: Uses ReplaceButton component to replace selected text in focused application
+ * Compact pill-style buttons when text is selected with smooth animations.
+ * - Add: Adds selected text to prompt-input
+ * - Insert: Inserts text at cursor position
+ * - Replace: Replaces selected text
+ * - Expand: Shows input field to ask AI about selected text
  */
 export function TextSelectionActions({
   selectedText,
@@ -63,12 +56,37 @@ export function TextSelectionActions({
   isVisible,
   onClose,
   onAdd,
-  onAsk,
-  onExplain,
   isDarkTheme = true,
 }: TextSelectionActionsProps) {
   const popupRef = useRef<HTMLDivElement>(null)
   const [adjustedPosition, setAdjustedPosition] = useState(position)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [prompt, setPrompt] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
+  const [showContent, setShowContent] = useState(false)
+
+  // Smooth entrance animation
+  useEffect(() => {
+    if (isVisible) {
+      // Small delay for smooth entrance
+      const timer = setTimeout(() => setShowContent(true), 50)
+      return () => clearTimeout(timer)
+    } else {
+      setShowContent(false)
+    }
+  }, [isVisible])
+
+  // Reset state when popup becomes invisible
+  useEffect(() => {
+    if (!isVisible) {
+      setIsExpanded(false)
+      setPrompt('')
+      setIsGenerating(false)
+      setGeneratedOutput(null)
+      setShowContent(false)
+    }
+  }, [isVisible])
 
   // Adjust position to keep popup within viewport
   useEffect(() => {
@@ -82,8 +100,7 @@ export function TextSelectionActions({
     let x = position.x
     let y = position.y
 
-    // Adjust horizontal position
-    // `position.x` is treated as the horizontal center of the popup.
+    // Adjust horizontal position - center on selection
     const halfW = rect.width / 2
     if (x + halfW > viewportWidth - 10) {
       x = viewportWidth - 10 - halfW
@@ -92,8 +109,8 @@ export function TextSelectionActions({
       x = 10 + halfW
     }
 
-    // Adjust vertical position (show above selection)
-    if (y + rect.height > viewportHeight) {
+    // Adjust vertical position - prefer showing below selection
+    if (y + rect.height > viewportHeight - 10) {
       y = position.y - rect.height - 10
     }
     if (y < 10) {
@@ -101,7 +118,7 @@ export function TextSelectionActions({
     }
 
     setAdjustedPosition({ x, y })
-  }, [position, isVisible])
+  }, [position, isVisible, isExpanded, generatedOutput])
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -109,7 +126,6 @@ export function TextSelectionActions({
 
     const handleClickOutside = (event: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        // Check if user is selecting text (don't close if still selecting)
         const selection = window.getSelection()
         if (!selection || selection.toString().trim().length === 0) {
           onClose()
@@ -119,11 +135,16 @@ export function TextSelectionActions({
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose()
+        if (isExpanded) {
+          setIsExpanded(false)
+          setPrompt('')
+          setGeneratedOutput(null)
+        } else {
+          onClose()
+        }
       }
     }
 
-    // Delay to avoid immediate close on selection
     const timeout = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside)
       document.addEventListener('keydown', handleEscape)
@@ -134,7 +155,7 @@ export function TextSelectionActions({
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [isVisible, onClose])
+  }, [isVisible, onClose, isExpanded])
 
   const handleAdd = useCallback(() => {
     if (selectedText.trim() && onAdd) {
@@ -143,47 +164,128 @@ export function TextSelectionActions({
     }
   }, [selectedText, onAdd, onClose])
 
-  const handleAsk = useCallback(() => {
-    if (selectedText.trim() && onAsk) {
-      onAsk(selectedText.trim())
-      onClose()
-    }
-  }, [selectedText, onAsk, onClose])
+  const handleExpand = useCallback(() => {
+    setIsExpanded(true)
+  }, [])
 
-  const handleExplain = useCallback(async () => {
-    if (selectedText.trim() && onExplain) {
-      try {
-        await onExplain(selectedText.trim(), position)
-        onClose()
-      } catch (err) {
-        console.error('[TextSelectionActions] Failed to explain selection:', err)
-      }
+  const handleCloseExpanded = useCallback(() => {
+    setIsExpanded(false)
+    setPrompt('')
+    setGeneratedOutput(null)
+  }, [])
+
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || isGenerating) return
+
+    let message = prompt.trim()
+    if (selectedText) {
+      message = `${message}\n\nSelected text:\n"${selectedText}"`
     }
-  }, [selectedText, onExplain, onClose, position])
+
+    setIsGenerating(true)
+    setGeneratedOutput(null)
+
+    try {
+      const localModel = unifiedLocalLLMService.getCurrentModel()
+
+      let responseStream: AsyncGenerator<string, void, unknown>;
+
+      if (localModel) {
+        const init = await unifiedLocalLLMService.initialize()
+        if (!init.success) {
+          throw new Error(init.message)
+        }
+        responseStream = await unifiedLocalLLMService.sendMessage(
+          message,
+          undefined,
+          localModel.name
+        )
+      } else {
+        responseStream = await sendCloudMessage(message, undefined)
+      }
+
+      let fullResponse = ''
+      for await (const chunk of responseStream) {
+        fullResponse += chunk
+        setGeneratedOutput(fullResponse)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Unknown error'
+      setGeneratedOutput(`Sorry, I could not generate a response right now. (${errorMessage})`)
+      console.error('AI generation failed:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [prompt, selectedText, isGenerating])
+
+  const handleInsert = useCallback(async () => {
+    if (!generatedOutput) return
+
+    try {
+      const tsfAPI = (window as any).tsfAPI;
+      if (!tsfAPI) {
+        console.warn('TSF API not available for text insertion')
+        return
+      }
+
+      await tsfAPI.initialize()
+
+      const selectedTextTrimmed = selectedText?.trim() || ''
+
+      if (selectedTextTrimmed) {
+        const textToInsert = `${selectedTextTrimmed} ${generatedOutput}`
+        await tsfAPI.focusAndReplaceText(textToInsert)
+      } else {
+        await tsfAPI.focusAndInsertText(generatedOutput)
+      }
+    } catch (error) {
+      console.error('Error inserting text:', error)
+    }
+  }, [generatedOutput, selectedText])
+
+  const handleReplace = useCallback(async () => {
+    if (!generatedOutput) return
+
+    try {
+      const tsfAPI = (window as any).tsfAPI;
+      if (!tsfAPI) {
+        console.warn('TSF API not available for text replacement')
+        return
+      }
+
+      await tsfAPI.initialize()
+      await tsfAPI.focusAndReplaceText(generatedOutput)
+    } catch (error) {
+      console.error('Error replacing text:', error)
+    }
+  }, [generatedOutput])
+
+  const handleCopy = useCallback(() => {
+    console.log('Content copied to clipboard')
+  }, [])
 
   if (!isVisible || !selectedText.trim()) {
     return null
   }
 
-  const bgColor = isDarkTheme 
-    ? 'bg-zinc-800/95 border-zinc-700 backdrop-blur-md' 
-    : 'bg-white/95 border-zinc-200 backdrop-blur-md'
-  const textColor = isDarkTheme ? 'text-zinc-100' : 'text-zinc-900'
-  const buttonHover = isDarkTheme 
-    ? 'hover:bg-zinc-700' 
-    : 'hover:bg-zinc-100'
+  // Compact sizes for pill buttons
+  const buttonClasses = cn(
+    'h-6 px-2.5 rounded-full gap-1 text-[11px] font-medium transition-all duration-200',
+    isDarkTheme
+      ? 'text-zinc-300 hover:text-zinc-100 hover:bg-zinc-700/80'
+      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100/80'
+  )
+
+  const iconSize = 'h-3 w-3'
 
   return (
     <div
       ref={popupRef}
-      className={cn(
-        'fixed z-[10001] flex items-center gap-2 px-2 py-1.5 rounded-full shadow-lg border',
-        // Smooth "appear" (no flying). Position changes are eased too.
-        'animate-in fade-in zoom-in-95 duration-150',
-        'transition-[left,top] duration-100 ease-out',
-        bgColor,
-        textColor
-      )}
+      className="fixed z-[10001]"
       style={{
         left: `${adjustedPosition.x}px`,
         top: `${adjustedPosition.y}px`,
@@ -191,105 +293,119 @@ export function TextSelectionActions({
       }}
       data-no-clickthrough
     >
-      {/* Add Button - Pill Style */}
-      {onAdd && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAdd}
-          className={cn(
-            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
-            buttonHover,
-            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
-          )}
-          title="Add to prompt"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add</span>
-        </Button>
-      )}
-
-      {/* Ask Button - Pill Style */}
-      {onAsk && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAsk}
-          className={cn(
-            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
-            buttonHover,
-            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
-          )}
-          title="Ask about this"
-        >
-          <Send className="h-3.5 w-3.5" />
-          <span>Ask</span>
-        </Button>
-      )}
-
-      {/* Explain Button - Pill Style */}
-      {onExplain && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExplain}
-          className={cn(
-            'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
-            buttonHover,
-            isDarkTheme ? 'text-zinc-200' : 'text-zinc-700'
-          )}
-          title="Explain this text"
-        >
-          <HelpCircle className="h-3.5 w-3.5" />
-          <span>Explain</span>
-        </Button>
-      )}
-
-      {/* Insert Button - Pill Style */}
-      <InsertButton
-        text={selectedText.trim()}
-        variant="ghost"
-        size="sm"
-        showSuccess={true}
-        icon={<ArrowRight className="h-3.5 w-3.5" />}
-        onInserted={(success) => {
-          if (success) {
-            // Close after successful insert
-            setTimeout(() => onClose(), 500)
-          }
-        }}
+      {/* Collapsed Pill State - Compact & Smooth */}
+      <div
         className={cn(
-          'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
-          buttonHover,
-          isDarkTheme 
-            ? 'text-zinc-200' 
-            : 'text-zinc-700'
+          'flex items-center gap-1 px-1 py-0.5 rounded-full shadow-xl border',
+          // Smooth entrance animation
+          'transition-all duration-300 ease-out',
+          showContent && !isExpanded
+            ? 'opacity-100 scale-100 translate-y-0'
+            : isExpanded
+              ? 'opacity-0 scale-90 -translate-y-2 pointer-events-none absolute'
+              : 'opacity-0 scale-75 translate-y-2',
+          isDarkTheme
+            ? 'bg-zinc-900/95 border-zinc-700/80 backdrop-blur-xl'
+            : 'bg-white/95 border-zinc-200/80 backdrop-blur-xl'
         )}
-        label="Insert"
-      />
+      >
+        {/* Add Button - Compact */}
+        {onAdd && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAdd}
+            className={buttonClasses}
+            title="Add to prompt"
+          >
+            <Plus className={iconSize} />
+            <span>Add</span>
+          </Button>
+        )}
 
-      {/* Replace Button - Pill Style */}
-      <ReplaceButton
-        text={selectedText.trim()}
-        variant="ghost"
-        size="sm"
-        showSuccess={true}
-        icon={<Replace className="h-3.5 w-3.5" />}
-        onReplaced={(success) => {
-          if (success) {
-            // Close after successful replace
-            setTimeout(() => onClose(), 500)
-          }
-        }}
+        {/* Insert Button - Compact */}
+        <InsertButton
+          text={selectedText.trim()}
+          variant="ghost"
+          size="sm"
+          showSuccess={true}
+          icon={<ArrowRight className={iconSize} />}
+          onInserted={(success) => {
+            if (success) {
+              setTimeout(() => onClose(), 400)
+            }
+          }}
+          className={buttonClasses}
+          label="Insert"
+        />
+
+        {/* Replace Button - Compact */}
+        <ReplaceButton
+          text={selectedText.trim()}
+          variant="ghost"
+          size="sm"
+          showSuccess={true}
+          icon={<Replace className={iconSize} />}
+          onReplaced={(success) => {
+            if (success) {
+              setTimeout(() => onClose(), 400)
+            }
+          }}
+          className={buttonClasses}
+          label="Replace"
+        />
+
+        {/* Divider */}
+        <div className={cn(
+          "w-px h-3.5",
+          isDarkTheme ? "bg-zinc-700/60" : "bg-zinc-200/60"
+        )} />
+
+        {/* Expand Button - Compact sparkle icon */}
+        <button
+          onClick={handleExpand}
+          className={cn(
+            'flex items-center justify-center h-6 w-6 rounded-full transition-all duration-200',
+            isDarkTheme
+              ? 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
+              : 'text-purple-600 hover:text-purple-500 hover:bg-purple-100'
+          )}
+          title="Ask AI about this"
+        >
+          <Sparkles className={iconSize} />
+        </button>
+      </div>
+
+      {/* Expanded State with Input - Smooth transition */}
+      <div
         className={cn(
-          'h-8 px-4 rounded-full gap-1.5 text-xs font-medium transition-all',
-          buttonHover,
-          isDarkTheme 
-            ? 'text-zinc-200' 
-            : 'text-zinc-700'
+          'flex flex-col gap-0 w-[380px]',
+          'transition-all duration-300 ease-out',
+          isExpanded && showContent
+            ? 'opacity-100 scale-100 translate-y-0 relative'
+            : 'opacity-0 scale-95 translate-y-3 pointer-events-none absolute'
         )}
-        label="Replace"
-      />
+      >
+        <TextSelectionInput
+          value={prompt}
+          onChange={setPrompt}
+          onGenerate={handleGenerate}
+          onClose={handleCloseExpanded}
+          placeholder="Ask about this..."
+          isGenerating={isGenerating}
+          isDarkTheme={isDarkTheme}
+        />
+        {(generatedOutput || isGenerating) && (
+          <TextSelectionOutput
+            content={generatedOutput || ""}
+            isStreaming={isGenerating}
+            onInsert={handleInsert}
+            onReplace={handleReplace}
+            onCopy={handleCopy}
+            isDarkTheme={isDarkTheme}
+          />
+        )}
+      </div>
     </div>
   )
 }
