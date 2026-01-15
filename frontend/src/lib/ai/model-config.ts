@@ -17,11 +17,19 @@ export { AVAILABLE_MODELS } from './model-config/index';
  * Convert a CustomModel to an AIModel
  */
 function customModelToAIModel(customModel: CustomModel): AIModel {
-  // Handle backward compatibility for models saved without capabilities
-  const modelCapabilities = customModel.capabilities || {
+  // Default capabilities based on provider
+  const defaultCapabilities = {
     supportsImages: true,
     supportsAudio: customModel.provider === 'google',
     supportsVideo: customModel.provider === 'google',
+  };
+
+  // Merge stored capabilities with defaults (handle backward compatibility)
+  // This ensures older models without capabilities get proper defaults
+  const modelCapabilities = {
+    supportsImages: customModel.capabilities?.supportsImages ?? defaultCapabilities.supportsImages,
+    supportsAudio: customModel.capabilities?.supportsAudio ?? defaultCapabilities.supportsAudio,
+    supportsVideo: customModel.capabilities?.supportsVideo ?? defaultCapabilities.supportsVideo,
   };
 
   // Build capabilities array based on custom model settings

@@ -119,6 +119,7 @@ class CustomProviderService {
 
   /**
    * Send a message using OpenAI API
+   * Supports images and audio (for gpt-4o-audio-preview and similar models)
    */
   private async *sendToOpenAI(
     modelName: string,
@@ -134,25 +135,50 @@ class CustomProviderService {
       dangerouslyAllowBrowser: true
     });
 
-    const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
+    const content: any[] = [];
 
     if (message?.trim()) {
       content.push({ type: 'text', text: message });
     }
 
-    // Add image attachments
+    // Add media attachments
     if (attachments?.length) {
       for (const attachment of attachments) {
+        let data = attachment.data;
+        if (data.startsWith('blob:') || data.startsWith('http')) {
+          const response = await fetch(data);
+          const blob = await response.blob();
+          data = await blobToBase64(blob);
+        }
+
         if (attachment.mediaType === 'image') {
-          let data = attachment.data;
-          if (data.startsWith('blob:') || data.startsWith('http')) {
-            const response = await fetch(data);
-            const blob = await response.blob();
-            data = await blobToBase64(blob);
-          }
           content.push({
             type: 'image_url',
             image_url: { url: data, detail: 'auto' }
+          });
+        } else if (attachment.mediaType === 'audio') {
+          // For audio, use the input_audio format
+          // This works with gpt-4o-audio-preview and similar models
+          const base64Data = data.includes(',') ? data.split(',')[1] : data;
+
+          // Determine the audio format from the mime type
+          let format = 'wav';
+          if (attachment.type.includes('mp3') || attachment.type.includes('mpeg')) {
+            format = 'mp3';
+          } else if (attachment.type.includes('webm')) {
+            format = 'webm';
+          } else if (attachment.type.includes('ogg')) {
+            format = 'ogg';
+          } else if (attachment.type.includes('flac')) {
+            format = 'flac';
+          }
+
+          content.push({
+            type: 'input_audio',
+            input_audio: {
+              data: base64Data,
+              format: format
+            }
           });
         }
       }

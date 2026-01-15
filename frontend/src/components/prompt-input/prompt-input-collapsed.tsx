@@ -8,7 +8,7 @@ import { MediaUploadCard } from "../media-upload-card"
 import { useRef } from "react"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
-import { LiveTranscriptionButton } from "@/features/audio"
+import { MicHoverAudioPill } from "@/features/audio"
 import { VideoRecordingButton } from "@/features/capture/components"
 import { CollapsedFileItems } from "./collapsed-file-items"
 import { CollapsedSubmitButton } from "./collapsed-submit-button"
@@ -47,11 +47,11 @@ export function PromptInputCollapsed({
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
   const canSubmit = useCanSubmit({ input, files, clipboardItems })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
-  
+
   // Create a dummy setter if not provided (for backwards compatibility)
-  const clipboardSetter = setClipboardItems ?? (() => {})
+  const clipboardSetter = setClipboardItems ?? (() => { })
   const expandedSetter = setIsExpanded ?? onExpand
-  
+
   const handlePaste = usePasteHandler({
     onFilesAdded,
     setClipboardItems: clipboardSetter,
@@ -115,7 +115,7 @@ export function PromptInputCollapsed({
           )}
         />
 
-        <LiveTranscriptionButton
+        <MicHoverAudioPill
           isDarkTheme={isDarkTheme}
           className="h-8 w-8 shrink-0"
         />

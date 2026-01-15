@@ -8,12 +8,13 @@
  */
 
 // Components
-export { 
-  VoiceToPromptQuickInsert, 
+export {
+  VoiceToPromptQuickInsert,
   LiveWaveform,
   AudioRecorderPill,
   AudioPreview,
-  LiveTranscriptionButton
+  LiveTranscriptionButton,
+  MicHoverAudioPill
 } from './components'
 
 export type { LiveWaveformProps } from './components'

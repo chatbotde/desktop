@@ -7,7 +7,7 @@ import {
 import { MediaUploadCard } from "../../media-upload-card"
 import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { ModelSelectorPopover } from "../../model-selector-popover"
-import { LiveTranscriptionButton } from "@/features/audio"
+import { MicHoverAudioPill } from "@/features/audio"
 import { VideoRecordingButton } from "@/features/capture/components"
 import { cn } from "@/lib/utils"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
@@ -131,7 +131,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     order: 10,
     component: (
       <PromptInputAction tooltip="Voice input" key="voice-input">
-        <LiveTranscriptionButton
+        <MicHoverAudioPill
           isDarkTheme={isDarkTheme}
           className="h-8 w-8"
         />
