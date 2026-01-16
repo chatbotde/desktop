@@ -1,8 +1,6 @@
 import { PromptInput } from "@/components/prompt-kit/prompt-input"
-import { useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
-import { useFeature } from "@/contexts/FeatureContext"
 import { ExpandedFileItems } from "./expanded-file-items"
 import { ExpandedCollapseButton } from "./expanded-collapse-button"
 import { ExpandedActionsBar } from "./expanded-actions-bar"
@@ -39,9 +37,6 @@ export function PromptInputExpanded({
   setIsExpanded,
 }: PromptInputExpandedProps) {
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
-  const { setFeatureEnabled } = useFeature()
-
-  // Hooks
   const textareaRef = useTextareaAutoResize(input)
   useImageUrlCleanup(files)
   const {
@@ -59,11 +54,6 @@ export function PromptInputExpanded({
   const isAutoScreenshot = (file: File): boolean => {
     return !!(file as any).__isAutoScreenshot
   }
-
-  // Handle disabling auto-screenshot from preview
-  const handleDisableAutoScreenshot = useCallback(() => {
-    setFeatureEnabled("auto-screenshot", false)
-  }, [setFeatureEnabled])
 
   const canSubmit = useCanSubmit({ input, files, clipboardItems })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
@@ -113,7 +103,6 @@ export function PromptInputExpanded({
           selectedLocalModelName={selectedLocalModelName}
           onRemoveFile={onRemoveFile}
           onRemoveClipboardItem={onRemoveClipboardItem}
-          onDisableAutoScreenshot={handleDisableAutoScreenshot}
           isAutoScreenshot={isAutoScreenshot}
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}

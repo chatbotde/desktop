@@ -1,4 +1,4 @@
-import { Image, FileText, Cpu, Power } from "lucide-react"
+import { Image, FileText, Cpu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
@@ -11,7 +11,6 @@ interface ExpandedFileItemsProps {
   selectedLocalModelName: string | null
   onRemoveFile: (index: number) => void
   onRemoveClipboardItem?: (index: number) => void
-  onDisableAutoScreenshot: () => void
   isAutoScreenshot: (file: File) => boolean
   isDarkTheme: boolean
   themeClasses: {
@@ -29,7 +28,6 @@ export function ExpandedFileItems({
   selectedLocalModelName,
   onRemoveFile,
   onRemoveClipboardItem,
-  onDisableAutoScreenshot,
   isAutoScreenshot,
   isDarkTheme,
   themeClasses,
@@ -96,44 +94,24 @@ export function ExpandedFileItems({
       {files.map((file, index) => {
         const isAuto = isAutoScreenshot(file)
 
-        // For auto-screenshots, show expanded horizontal layout with preview
+        // For auto-screenshots, show with Image icon
         if (isAuto) {
           return (
             <div
               key={`${file.name}-${index}`}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-2 py-2",
+                "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
                 themeClasses.fileItem
               )}
               onClick={e => e.stopPropagation()}
             >
               <Image className={`size-4 ${themeClasses.icon} shrink-0`} />
-
-              <div className="flex items-center gap-1 ml-auto">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDisableAutoScreenshot()
-                  }}
-                  aria-label="Disable auto-screenshot"
-                  className={cn(
-                    "rounded-full p-1.5 transition-colors",
-                    isDarkTheme ? "bg-red-600 hover:bg-red-700 text-white" : "bg-red-500 hover:bg-red-600 text-white"
-                  )}
-                  title="Disable auto-screenshot"
-                >
-                  <Power className="size-4" />
-                </button>
-                <FileRemoveButton
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveFile(index)
-                  }}
-                  ariaLabel={`Remove ${file.name}`}
-                  themeClasses={themeClasses}
-                  hoverClass={hoverClass}
-                />
-              </div>
+              <FileRemoveButton
+                onClick={() => onRemoveFile(index)}
+                ariaLabel={`Remove ${file.name}`}
+                themeClasses={themeClasses}
+                hoverClass={hoverClass}
+              />
             </div>
           )
         }

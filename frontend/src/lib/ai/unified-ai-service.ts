@@ -12,8 +12,8 @@ import { generateImages } from '../image/replicate';
 import type { MediaAttachment } from './gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from './system-prompts';
 import { checkRateLimit, logUsage } from './usage-tracker';
-import { 
-  validateMessage, 
+import {
+  validateMessage,
   validateAttachments,
   getCapabilitySummary,
   getCapabilityBadges,
@@ -98,7 +98,7 @@ export class UnifiedAIService {
    */
   async sendMessage(message: string, attachments?: MediaAttachment[]): Promise<AsyncGenerator<string, void, unknown>> {
     const selectedModel = getSelectedModel();
-    
+
     if (!selectedModel) {
       throw new Error('No AI model selected. Please select a model from the model selector.');
     }
@@ -110,7 +110,7 @@ export class UnifiedAIService {
       const errorDetails = validation.errors
         .map(e => `• ${e.message}`)
         .join('\n');
-      const suggestion = formatted.suggestions.length > 0 
+      const suggestion = formatted.suggestions.length > 0
         ? `\n\nSuggestion: ${formatted.suggestions[0]}`
         : '';
       throw new Error(`${formatted.title}\n\n${errorDetails}${suggestion}`);
@@ -118,16 +118,16 @@ export class UnifiedAIService {
 
     const provider = selectedModel.provider.toLowerCase();
     const modelName = selectedModel.name || selectedModel.displayName;
-    
+
     // Estimate input tokens for rate limit check
     const estimatedInputTokens = estimateTokens(message);
-    
+
     // Check rate limit before making request (if tracking enabled)
     if (this.usageTrackingEnabled) {
       const rateLimitStatus = await checkRateLimit(estimatedInputTokens);
       if (!rateLimitStatus.allowed) {
         throw new Error(
-          rateLimitStatus.error || 
+          rateLimitStatus.error ||
           `Rate limit exceeded. Please wait ${rateLimitStatus.resetIn} seconds before trying again.`
         );
       }
@@ -139,7 +139,7 @@ export class UnifiedAIService {
       originalGenerator: AsyncGenerator<string, void, unknown>
     ): AsyncGenerator<string, void, unknown> {
       let outputText = '';
-      
+
       try {
         for await (const chunk of originalGenerator) {
           outputText += chunk;
@@ -150,7 +150,7 @@ export class UnifiedAIService {
         if (self.usageTrackingEnabled) {
           const inputTokens = estimateTokens(message);
           const outputTokens = estimateTokens(outputText);
-          
+
           logUsage({
             model: modelName,
             inputTokens,
@@ -277,7 +277,7 @@ export class UnifiedAIService {
     if (!selectedModel) return;
 
     const provider = selectedModel.provider.toLowerCase();
-    
+
     switch (provider) {
       case 'google':
         geminiService.clearHistory();
@@ -314,7 +314,7 @@ export class UnifiedAIService {
     if (!selectedModel) return;
 
     const provider = selectedModel.provider.toLowerCase();
-    
+
     switch (provider) {
       case 'google':
         geminiService.addSystemContext(context);
@@ -367,7 +367,7 @@ export class UnifiedAIService {
     if (!selectedModel) return false;
 
     const provider = selectedModel.provider.toLowerCase();
-    
+
     switch (provider) {
       case 'google':
         return isGeminiConfigured();

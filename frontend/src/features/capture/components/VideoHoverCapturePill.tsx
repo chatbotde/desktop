@@ -311,7 +311,7 @@ export function VideoHoverCapturePill({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {/* Video Button - Click to start/stop recording */}
+            {/* Capture Button - Click to start/stop recording */}
             <Button
                 onClick={handleVideoClick}
                 className={cn(
@@ -324,7 +324,7 @@ export function VideoHoverCapturePill({
                 )}
                 variant="ghost"
                 size="icon"
-                aria-label={isRecording ? "Stop recording" : "Start video recording"}
+                aria-label={isRecording ? "Stop recording" : "Capture options"}
                 disabled={!!error}
             >
                 {isRecording ? (
@@ -332,7 +332,7 @@ export function VideoHoverCapturePill({
                 ) : isCapturing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                    <Video className="h-4 w-4" />
+                    <Camera className="h-4 w-4" />
                 )}
             </Button>
 

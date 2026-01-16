@@ -51,7 +51,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Update document class and localStorage when theme changes
   useEffect(() => {
     if (typeof document === 'undefined') return
-    
+
     const root = document.documentElement
     // Remove all theme classes
     AVAILABLE_THEMES.forEach(t => root.classList.remove(t))

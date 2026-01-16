@@ -10,8 +10,8 @@ import { getThemeClasses as getThemeUtils } from "@/shared/utils/theme"
 
 import { SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
 import { SettingsSidebar } from "./SettingsSidebar"
-import { 
-  PersonalizationSection, 
+import {
+  PersonalizationSection,
   type PersonalizationValues,
   GeneralSection,
   AccountSection,
