@@ -136,3 +136,58 @@ export function hasValidEnvValue(resolution: EnvResolution): boolean {
   return Boolean(resolution.value) && !resolution.isPlaceholder;
 }
 
+/**
+ * Common API key environment variable mappings
+ */
+export const PROVIDER_ENV_KEYS: Record<string, { primary: string; fallbacks?: string[] }> = {
+  openai: { primary: 'VITE_OPENAI_API_KEY', fallbacks: ['OPENAI_API_KEY'] },
+  anthropic: { primary: 'VITE_ANTHROPIC_API_KEY', fallbacks: ['ANTHROPIC_API_KEY'] },
+  google: { primary: 'VITE_GOOGLE_API_KEY', fallbacks: ['GOOGLE_API_KEY', 'GEMINI_API_KEY'] },
+  groq: { primary: 'VITE_GROQ_API_KEY', fallbacks: ['GROQ_API_KEY'] },
+  xai: { primary: 'VITE_XAI_API_KEY', fallbacks: ['XAI_API_KEY'] },
+  openrouter: { primary: 'VITE_OPENROUTER_API_KEY', fallbacks: ['OPENROUTER_API_KEY'] },
+  deepseek: { primary: 'VITE_DEEPSEEK_API_KEY', fallbacks: ['DEEPSEEK_API_KEY'] },
+  together: { primary: 'VITE_TOGETHER_API_KEY', fallbacks: ['TOGETHER_API_KEY'] },
+  perplexity: { primary: 'VITE_PERPLEXITY_API_KEY', fallbacks: ['PERPLEXITY_API_KEY'] },
+  fireworks: { primary: 'VITE_FIREWORKS_API_KEY', fallbacks: ['FIREWORKS_API_KEY'] },
+  mistral: { primary: 'VITE_MISTRAL_API_KEY', fallbacks: ['MISTRAL_API_KEY'] },
+  cerebras: { primary: 'VITE_CEREBRAS_API_KEY', fallbacks: ['CEREBRAS_API_KEY'] },
+  kimi: { primary: 'VITE_KIMI_API_KEY', fallbacks: ['KIMI_API_KEY', 'MOONSHOT_API_KEY'] },
+};
+
+/**
+ * Get API keys for multiple providers at once
+ */
+export function getProviderApiKeys(
+  providers: string[]
+): Record<string, string | undefined> {
+  const result: Record<string, string | undefined> = {};
+
+  for (const provider of providers) {
+    const envConfig = PROVIDER_ENV_KEYS[provider];
+    if (envConfig) {
+      const resolution = resolveEnvValue(envConfig.primary, {
+        fallbacks: envConfig.fallbacks,
+        provider,
+      });
+      result[provider] = hasValidEnvValue(resolution) ? resolution.value : undefined;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check which providers are configured
+ */
+export function getConfiguredProviderIds(): string[] {
+  return Object.keys(PROVIDER_ENV_KEYS).filter(provider => {
+    const envConfig = PROVIDER_ENV_KEYS[provider];
+    const resolution = resolveEnvValue(envConfig.primary, {
+      fallbacks: envConfig.fallbacks,
+      provider,
+    });
+    return hasValidEnvValue(resolution);
+  });
+}
+

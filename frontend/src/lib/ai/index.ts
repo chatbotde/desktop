@@ -1,8 +1,9 @@
 /**
  * Main entry point for the AI module
  * 
- * Multi-provider AI integration with automatic routing.
- * Supports: Google Gemini, OpenAI, Anthropic Claude, OpenRouter, Cerebras, DeepSeek, Kimi (Moonshot AI), and xAI (Grok).
+ * Multi-provider AI integration using Vercel AI SDK.
+ * Supports: OpenAI, Anthropic, Google, Groq, xAI, DeepSeek, Mistral, 
+ *           Fireworks, Cerebras, Perplexity, Together, OpenRouter, and more.
  * 
  * Quick Start:
  * ```typescript
@@ -16,12 +17,19 @@
  * ```
  */
 
-// Export Unified AI Service (recommended - automatically routes to correct provider)
+// Export Unified AI Service (AI SDK based - recommended)
+// Uses Vercel AI SDK for consistent behavior across all providers
 export {
-  UnifiedAIService,
-  unifiedAIService,
-  sendMessage,
-  sendMessageComplete,
+  AISDKUnifiedService as UnifiedAIService,
+  aiSDKUnifiedService as unifiedAIService,
+  sendMessageAISDK as sendMessage,
+  sendMessageCompleteAISDK as sendMessageComplete,
+} from './ai-sdk/unified-service';
+
+// Also export the legacy service for gradual migration if needed
+export {
+  UnifiedAIService as LegacyUnifiedAIService,
+  unifiedAIService as legacyUnifiedAIService,
 } from './unified-ai-service';
 
 export {
@@ -180,3 +188,7 @@ export {
 // Export Local LLM module (separate, independent module)
 // Use this for local LLM operations with Ollama
 export * from './local-llm';
+
+// Export AI SDK module (unified Vercel AI SDK interface)
+// Use this for easy multi-provider AI integration
+export * from './ai-sdk';
