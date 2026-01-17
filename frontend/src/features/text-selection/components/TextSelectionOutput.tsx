@@ -178,25 +178,25 @@ export function TextSelectionOutput({
     <Card
       ref={containerRef}
       className={cn(
-        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl mt-2 mb-[20px]",
+        "relative gap-0 py-0 shadow-2xl mt-2 mb-[20px]",
         "w-full max-w-md",
         "transition-all duration-300 ease-out",
         showContent
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-2",
         isDarkTheme
-          ? "border-zinc-700/80"
+          ? "border-white/10"
           : "border-zinc-200/80",
         className,
       )}
-      style={{ 
-        backgroundColor: isDarkTheme ? "oklch(0.14 0.00 0 / 1)" : "oklch(0.98 0.00 0 / 1)"
+      style={{
+        backgroundColor: isDarkTheme ? "#09090b" : "oklch(0.98 0.00 0 / 1)"
       }}
     >
       {/* Header with streaming indicator and collapse button */}
       <div className={cn(
         "flex items-center gap-2 px-4 py-2 border-b",
-        isDarkTheme ? "border-zinc-700/30" : "border-zinc-200/30"
+        isDarkTheme ? "border-white/5" : "border-zinc-200/30"
       )}>
         {(isAnimating || isStreaming) && (
           <>
@@ -215,8 +215,8 @@ export function TextSelectionOutput({
                 onClick={handleSkipAnimation}
                 className={cn(
                   "ml-auto text-xs transition-colors",
-                  isDarkTheme 
-                    ? "text-zinc-500 hover:text-zinc-300" 
+                  isDarkTheme
+                    ? "text-zinc-500 hover:text-zinc-300"
                     : "text-zinc-500 hover:text-zinc-700"
                 )}
               >
@@ -263,15 +263,15 @@ export function TextSelectionOutput({
                 "text-sm",
                 isDarkTheme ? "text-zinc-200" : "text-zinc-900",
                 "prose prose-sm max-w-none",
-                isDarkTheme 
+                isDarkTheme
                   ? "prose-invert prose-zinc prose-headings:text-zinc-100 prose-p:text-zinc-100 prose-strong:text-white prose-code:text-zinc-100"
                   : "prose-zinc prose-headings:text-zinc-900 prose-p:text-zinc-900 prose-strong:text-zinc-900 prose-code:text-zinc-900"
               )}>
                 {displayedContent}
               </Markdown>
               {(isAnimating || isStreaming) && displayedContent && (
-              <StreamingCursor isDarkTheme={isDarkTheme} />
-            )}
+                <StreamingCursor isDarkTheme={isDarkTheme} />
+              )}
             </div>
           )}
         </div>
@@ -282,7 +282,7 @@ export function TextSelectionOutput({
         className={cn(
           "flex items-center justify-between gap-2 border-t px-3 py-2",
           "transition-all duration-300",
-          isDarkTheme ? "border-zinc-700/50" : "border-zinc-200/50",
+          isDarkTheme ? "border-white/5" : "border-zinc-200/50",
           isComplete ? "opacity-100" : "opacity-50"
         )}
       >
@@ -328,8 +328,8 @@ export function TextSelectionOutput({
                 "h-7 px-3 text-xs rounded-md transition-all duration-200",
                 isComplete
                   ? isDarkTheme
-                    ? "bg-orange-500 hover:bg-orange-400 text-white shadow-md hover:scale-105"
-                    : "bg-orange-600 hover:bg-orange-500 text-white shadow-md hover:scale-105"
+                    ? "bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:scale-105"
+                    : "bg-blue-600 hover:bg-blue-500 text-white shadow-md hover:scale-105"
                   : isDarkTheme
                     ? "bg-zinc-700 text-zinc-500 cursor-not-allowed"
                     : "bg-zinc-200 text-zinc-400 cursor-not-allowed",

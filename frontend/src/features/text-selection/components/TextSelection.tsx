@@ -1,5 +1,5 @@
 import * as React from "react"
-import { X, Sparkles } from "lucide-react"
+import { X, ArrowUp, Square } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
@@ -11,6 +11,8 @@ export interface TextSelectionInputProps {
   onChange: (value: string) => void
   /** Callback when generate is clicked */
   onGenerate?: () => void
+  /** Callback when stop is clicked */
+  onStop?: () => void
   /** Callback when close is clicked */
   onClose: () => void
   /** Placeholder text */
@@ -33,6 +35,7 @@ export function TextSelectionInput({
   value,
   onChange,
   onGenerate,
+  onStop,
   onClose,
   placeholder = "Ask about this...",
   isLoading: _isLoading = false,
@@ -66,7 +69,9 @@ export function TextSelectionInput({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      if (value.trim() && !isGenerating && onGenerate) {
+      if (isGenerating) {
+        onStop?.()
+      } else if (value.trim() && onGenerate) {
         onGenerate()
       }
     }
@@ -78,15 +83,23 @@ export function TextSelectionInput({
   return (
     <Card
       className={cn(
-        "relative gap-0 py-0 shadow-2xl backdrop-blur-xl",
+        "relative gap-0 py-0 shadow-2xl",
         "w-full max-w-md",
-        isDarkTheme ? "border-zinc-700/80" : "border-zinc-200/80",
+        isDarkTheme ? "border-white/10" : "border-zinc-200/80",
         className,
       )}
       style={{
-        backgroundColor: isDarkTheme ? "oklch(0.14 0.00 0 / 1)" : "oklch(0.98 0.00 0 / 1)"
+        backgroundColor: isDarkTheme ? "#09090b" : "oklch(0.98 0.00 0 / 1)"
       }}
     >
+      {/* Drag handle */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 flex justify-center items-center pointer-events-none">
+        <div className={cn(
+          "h-1 w-8 rounded-full opacity-20",
+          isDarkTheme ? "bg-white" : "bg-black"
+        )} />
+      </div>
+
       {/* Close button */}
       <button
         onClick={onClose}
@@ -129,34 +142,36 @@ export function TextSelectionInput({
       {/* Actions bar */}
       <div className={cn(
         "flex items-center justify-between gap-1 px-2 py-1",
-        isDarkTheme ? "border-zinc-700/50" : "border-zinc-200/50"
+        isDarkTheme ? "border-white/5" : "border-zinc-200/50"
       )}>
         <div className="flex items-center gap-1">
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Generate button */}
-          {onGenerate && (
+          {/* Generate button or Stop button */}
+          {(onGenerate || onStop) && (
             <Button
               size="sm"
-              onClick={onGenerate}
-              disabled={!value.trim() || isGenerating}
+              onClick={isGenerating ? onStop : onGenerate}
+              disabled={!value.trim() && !isGenerating}
               className={cn(
-                "h-7 w-7 p-0 rounded-full",
-                value.trim() && !isGenerating
-                  ? isDarkTheme
-                    ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
-                    : "bg-purple-600 hover:bg-purple-500 text-white shadow-md hover:scale-105"
-                  : isDarkTheme
-                    ? "bg-zinc-700 text-zinc-500"
-                    : "bg-zinc-200 text-zinc-400"
+                "h-7 w-7 p-0 rounded-full transition-all duration-200",
+                isGenerating
+                  ? "bg-blue-500/20 hover:bg-blue-500/40 text-blue-500"
+                  : value.trim()
+                    ? isDarkTheme
+                      ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
+                      : "bg-purple-600 hover:bg-purple-500 text-white shadow-md hover:scale-105"
+                    : isDarkTheme
+                      ? "bg-zinc-700 text-zinc-500"
+                      : "bg-zinc-200 text-zinc-400"
               )}
-              aria-label="Generate"
+              aria-label={isGenerating ? "Stop" : "Generate"}
             >
               {isGenerating ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Square className="h-3 w-3 fill-current" />
               ) : (
-                <Sparkles className="h-3.5 w-3.5" />
+                <ArrowUp className="h-4 w-4" />
               )}
             </Button>
           )}

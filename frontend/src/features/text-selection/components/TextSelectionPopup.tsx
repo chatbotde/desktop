@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
+import { motion } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
 import { AddToPromptButton } from '@/components/add-button'
@@ -41,6 +42,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
   const popupRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const stopRef = useRef(false)
 
   const stopAutoHide = useCallback(() => {
     if (timerRef.current) {
@@ -67,6 +69,10 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     setGeneratedOutput(null)
     stopAutoHide()
   }, [stopAutoHide])
+
+  const handleStop = useCallback(() => {
+    stopRef.current = true
+  }, [])
 
   useEffect(() => {
     // Don't listen for text selection if feature is disabled
@@ -98,11 +104,11 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       // Validate coordinates are reasonable (within viewport bounds)
       const isValidCoordinate = (val: number | undefined): boolean => {
-        return val !== undefined && 
-               !isNaN(val) && 
-               isFinite(val) && 
-               val >= 0 && 
-               val <= window.innerWidth + 1000 // Allow some margin for multi-monitor setups
+        return val !== undefined &&
+          !isNaN(val) &&
+          isFinite(val) &&
+          val >= 0 &&
+          val <= window.innerWidth + 1000 // Allow some margin for multi-monitor setups
       }
 
       // Only use center as last resort if no valid coordinates are available
@@ -164,11 +170,11 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     // Validate coordinates are reasonable (within viewport bounds)
     // Check if coordinates are valid numbers and within reasonable bounds
     const isValidCoordinate = (val: number | undefined): boolean => {
-      return val !== undefined && 
-             !isNaN(val) && 
-             isFinite(val) && 
-             val >= 0 && 
-             val <= viewportWidth + 1000 // Allow some margin for multi-monitor setups
+      return val !== undefined &&
+        !isNaN(val) &&
+        isFinite(val) &&
+        val >= 0 &&
+        val <= viewportWidth + 1000 // Allow some margin for multi-monitor setups
     }
 
     // Only use viewport center as absolute last resort if coordinates are invalid
@@ -266,14 +272,15 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
     setIsGenerating(true)
     setGeneratedOutput(null)
+    stopRef.current = false
     stopAutoHide()
 
     try {
       // Use the same AI service logic as handleSendMessage
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      
+
       let responseStream: AsyncGenerator<string, void, unknown>;
-      
+
       if (localModel) {
         const init = await unifiedLocalLLMService.initialize()
         if (!init.success) {
@@ -291,6 +298,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       // Stream the response and accumulate text
       let fullResponse = ''
       for await (const chunk of responseStream) {
+        if (stopRef.current) break
         fullResponse += chunk
         // Update output in real-time as it streams
         setGeneratedOutput(fullResponse)
@@ -322,18 +330,18 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       // Get the selected text if available
       const selectedText = selectionData?.text?.trim() || ''
-      
+
       let textToInsert: string
-      
+
       if (selectedText) {
         // Option 1: Insert selected text + output together (adds output after selected text)
         // This preserves the selected text and appends the output
         textToInsert = `${selectedText} ${generatedOutput}`
-        
+
         // Replace the selection with (selected text + output)
         // This effectively "adds" the output to the selected text
         const success = await tsfAPI.focusAndReplaceText(textToInsert)
-        
+
         if (success) {
           console.log('Text inserted successfully (selected text + output)')
         } else {
@@ -342,7 +350,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       } else {
         // Option 2: No selection - just insert output at cursor position
         const success = await tsfAPI.focusAndInsertText(generatedOutput)
-        
+
         if (success) {
           console.log('Text inserted successfully')
         } else {
@@ -368,7 +376,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       // Replace selected text with generated output
       const success = await tsfAPI.focusAndReplaceText(generatedOutput)
-      
+
       if (success) {
         console.log('Text replaced successfully')
         // Optionally close the popup after replacement
@@ -406,32 +414,39 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
   if (!isFeatureEnabled('text-selection') || !isVisible) return null
 
   return (
-    <div
+    <motion.div
       ref={popupRef}
       onMouseEnter={stopAutoHide}
       onMouseLeave={startAutoHide}
+      drag
+      dragMomentum={false}
+      initial={false}
       style={{
         position: 'absolute',
         top: position.top,
         left: position.left,
         zIndex: 9999,
         pointerEvents: 'auto',
+        touchAction: 'none'
       }}
-      className="animate-in fade-in zoom-in-95"
+      className="animate-in fade-in zoom-in-95 cursor-grab active:cursor-grabbing"
       data-no-clickthrough
     >
       {/* Collapsed state (pill) */}
       <div
         className={cn(
-          "flex items-center gap-1 p-1 rounded-full shadow-xl backdrop-blur-md",
+          "flex items-center gap-1 p-1 rounded-full shadow-xl",
           "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-          isExpanded 
-            ? "opacity-0 scale-90 -translate-y-2 pointer-events-none absolute" 
+          isExpanded
+            ? "opacity-0 scale-90 -translate-y-2 pointer-events-none absolute"
             : "opacity-100 scale-100 translate-y-0 relative",
           isDarkTheme
-            ? "bg-slate-900/90 border border-slate-700"
-            : "bg-white/90 border border-slate-200"
+            ? "border border-white/10"
+            : "bg-white border border-slate-200"
         )}
+        style={{
+          backgroundColor: isDarkTheme ? "#09090b" : "white"
+        }}
       >
         <AddToPromptButton
           onClick={handleAddToPromptSelection}
@@ -439,7 +454,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
         />
         <div className={cn(
           "w-px h-4 mx-0.5",
-          isDarkTheme ? "bg-slate-700/50" : "bg-slate-200/50"
+          isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
         )} />
         <ExpandButton
           isExpanded={false}
@@ -449,14 +464,14 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
         />
         <div className={cn(
           "w-px h-4 mx-0.5",
-          isDarkTheme ? "bg-slate-700/50" : "bg-slate-200/50"
+          isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
         )} />
         <button
           onClick={handleClose}
           className={cn(
             "p-1 px-1.5 rounded-full transition-colors",
             isDarkTheme
-              ? "hover:bg-slate-700/50 text-slate-400 hover:text-red-400"
+              ? "hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
               : "hover:bg-slate-100/50 text-slate-600 hover:text-red-500"
           )}
           title="Dismiss"
@@ -470,8 +485,8 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
         className={cn(
           "flex flex-col gap-0 w-[400px]",
           "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-          isExpanded 
-            ? "opacity-100 scale-100 translate-y-0 relative" 
+          isExpanded
+            ? "opacity-100 scale-100 translate-y-0 relative"
             : "opacity-0 scale-90 translate-y-2 pointer-events-none absolute"
         )}
       >
@@ -479,6 +494,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
           value={prompt}
           onChange={setPrompt}
           onGenerate={handleGenerate}
+          onStop={handleStop}
           onClose={handleClose}
           placeholder="Ask about this..."
           isGenerating={isGenerating}
@@ -495,7 +511,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
           />
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
