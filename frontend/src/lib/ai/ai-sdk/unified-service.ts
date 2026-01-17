@@ -16,6 +16,7 @@ import { getSelectedModel } from '../model-config';
 import type { MediaAttachment } from '../gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from '../system-prompts';
 import { checkRateLimit, logUsage } from '../usage-tracker';
+import { generateImages as replicateGenerateImages } from '../../image/replicate';
 import {
     validateMessage,
     validateAttachments,
@@ -379,6 +380,35 @@ export class AISDKUnifiedService {
             response += chunk;
         }
         return response;
+    }
+
+    // ============================================================================
+    // Image Generation (Replicate)
+    // ============================================================================
+
+    /**
+     * Generate images using Replicate API
+     * @param prompt - The text prompt describing the image to generate
+     * @param modelName - Optional model name (defaults to flux-kontext-pro)
+     * @returns Array of generated image URLs
+     */
+    async generateImages(prompt: string, modelName?: string): Promise<string[]> {
+        try {
+            console.log(`[AISDKUnifiedService] Generating images with prompt: "${prompt.slice(0, 50)}..."`);
+            
+            // Use the Replicate image generation function
+            const result = await replicateGenerateImages({
+                prompt,
+                model: modelName as `${string}/${string}` | `${string}/${string}:${string}` | undefined,
+            });
+
+            console.log(`[AISDKUnifiedService] Generated ${result.images.length} images using ${result.model}`);
+            
+            return result.images;
+        } catch (error) {
+            console.error('[AISDKUnifiedService] Image generation failed:', error);
+            throw error;
+        }
     }
 
     // ============================================================================
