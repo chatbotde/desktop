@@ -4,7 +4,7 @@ import {
   Bot,
   ShieldBan,
   Palette,
-  Sparkles,
+  ChartBarIncreasing,
   Key,
   type LucideIcon,
 } from "lucide-react"
@@ -27,7 +27,7 @@ export type SettingsMenuItem = {
 
 export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "personalization", label: "Personalization", icon: User },
-  { id: "features", label: "Features", icon: Sparkles },
+  { id: "features", label: "Features", icon: ChartBarIncreasing },
   { id: "general", label: "General", icon: Settings },
   { id: "local-llm", label: "Local AI", icon: Bot },
   { id: "model-profiles", label: "Model Profiles", icon: Palette },

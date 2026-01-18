@@ -1,7 +1,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { Video, Camera, Square, Scan, Timer, Focus, Loader2 } from 'lucide-react'
+import { Video, Camera, Square, Circle, Timer, Focus, Loader2 } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/shared/components/ui/tooltip"
 import { getThemeClasses } from "@/features/prompt"
 import { useVideoRecording, type VideoData } from '@/hooks/useVideoRecording'
 import { useFeature } from '@/contexts/FeatureContext'
@@ -29,6 +34,7 @@ interface ActionButtonProps {
     title: string
     children: React.ReactNode
     className: string
+    isDarkTheme?: boolean
 }
 
 /** Reusable action button with active state styling */
@@ -40,7 +46,8 @@ function ActionButton({
     ariaLabel,
     title,
     children,
-    className
+    className,
+    isDarkTheme = true
 }: ActionButtonProps) {
     const activeColors = {
         red: 'bg-red-500 hover:bg-red-600 text-white rounded-full',
@@ -49,15 +56,26 @@ function ActionButton({
     }
 
     return (
-        <button
-            onClick={onClick}
-            className={cn(className, isActive && activeColors[activeColor])}
-            aria-label={ariaLabel}
-            title={title}
-            disabled={disabled}
-        >
-            {children}
-        </button>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button
+                    onClick={onClick}
+                    className={cn(className, isActive && activeColors[activeColor])}
+                    aria-label={ariaLabel}
+                    disabled={disabled}
+                >
+                    {children}
+                </button>
+            </TooltipTrigger>
+            <TooltipContent
+                side="top"
+                className={cn(
+                    isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
+                )}
+            >
+                {title}
+            </TooltipContent>
+        </Tooltip>
     )
 }
 
@@ -358,6 +376,7 @@ export function VideoHoverCapturePill({
                             ariaLabel={isRecording ? "Stop recording" : "Video recording"}
                             title={isRecording ? "Stop recording" : "Video recording"}
                             className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
                         >
                             {isRecording ? <Square className="h-4 w-4" /> : <Video className="h-4 w-4" />}
                         </ActionButton>
@@ -365,9 +384,10 @@ export function VideoHoverCapturePill({
                         <ActionButton
                             onClick={() => handleActionClick('quick-screenshot')}
                             disabled={isCapturing}
-                            ariaLabel="Quick screenshot"
-                            title="Quick screenshot"
+                            ariaLabel="Screenshot"
+                            title="Screenshot"
                             className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
                         >
                             <Camera className="h-4 w-4" />
                         </ActionButton>
@@ -375,11 +395,12 @@ export function VideoHoverCapturePill({
                         <ActionButton
                             onClick={() => handleActionClick('area-screenshot')}
                             disabled={isCapturing}
-                            ariaLabel="Area screenshot"
-                            title="Area screenshot"
+                            ariaLabel="Circle to Ask"
+                            title="Circle to Ask"
                             className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
                         >
-                            <Scan className="h-4 w-4" />
+                            <Circle className="h-4 w-4" />
                         </ActionButton>
 
                         <ActionButton
@@ -389,6 +410,7 @@ export function VideoHoverCapturePill({
                             ariaLabel={autoScreenshotEnabled ? "Disable auto-screenshot" : "Enable auto-screenshot"}
                             title={autoScreenshotEnabled ? "Auto-screenshot ON" : "Auto-screenshot OFF"}
                             className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
                         >
                             <Timer className="h-4 w-4" />
                         </ActionButton>
@@ -400,6 +422,7 @@ export function VideoHoverCapturePill({
                             ariaLabel={setCaptureAreaEnabled ? "Disable capture area" : "Set capture area"}
                             title={setCaptureAreaEnabled ? "Capture area ON (click to disable)" : "Set capture area"}
                             className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
                         >
                             <Focus className="h-4 w-4" />
                         </ActionButton>

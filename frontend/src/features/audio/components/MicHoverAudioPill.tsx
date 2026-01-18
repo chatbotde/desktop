@@ -7,7 +7,7 @@ import { AudioSourceSelector } from './AudioSourceSelector'
 import { AudioRecorderControls } from './AudioRecorderControls'
 import { TranscriptionToggle } from './TranscriptionToggle'
 import { LiveTranscriptionPanel } from './LiveTranscriptionPanel'
-import { AudioRecorderCloseButton } from './AudioRecorderCloseButton'
+
 import { formatDuration } from './audio-utils'
 
 import { useAudioRecorder, type AudioSourceType } from '../hooks/useAudioRecorder'
@@ -35,7 +35,7 @@ export function MicHoverAudioPill({
     onTranscriptionUpdate
 }: MicHoverAudioPillProps) {
     // UI State
-    const [isHovered, setIsHovered] = useState(false)
+    const [, setIsHovered] = useState(false)
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [showTranscription, setShowTranscription] = useState(false)
@@ -292,13 +292,7 @@ export function MicHoverAudioPill({
         setPartialText('')
     }, [setTranscriptionText, setPartialText])
 
-    const handleClose = useCallback(() => {
-        if (!transcriptionText && !partialText) {
-            setIsPillActive(false)
-        } else {
-            handleStopRecording()
-        }
-    }, [transcriptionText, partialText, handleStopRecording])
+
 
     // Auto-scroll transcription
     useEffect(() => {
@@ -393,20 +387,7 @@ export function MicHoverAudioPill({
                             onTextChange={setTranscriptionText}
                         />
 
-                        {!isRecording && (
-                            <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-90 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto z-50">
-                                <div
-                                    className={cn("rounded-full border shadow-sm", themeClasses.containerBorder)}
-                                    style={{ backgroundColor: themeClasses.containerBg }}
-                                >
-                                    <AudioRecorderCloseButton
-                                        onClose={handleClose}
-                                        hasTranscription={!!(transcriptionText || partialText)}
-                                        isDarkTheme={isDarkTheme}
-                                    />
-                                </div>
-                            </div>
-                        )}
+
                     </div>
                 </div>
             )}

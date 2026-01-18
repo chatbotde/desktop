@@ -20,8 +20,6 @@ export function MessageBubble({
   isDarkTheme,
   id,
   onAddSelectedText,
-  onAskSelectedText,
-  onExplainSelectedText,
 }: MessageBubbleProps) {
   if (message.role === 'user') {
     return (
@@ -39,8 +37,6 @@ export function MessageBubble({
       isDarkTheme={isDarkTheme}
       id={id}
       onAddSelectedText={onAddSelectedText}
-      onAskSelectedText={onAskSelectedText}
-      onExplainSelectedText={onExplainSelectedText}
     />
   )
 }

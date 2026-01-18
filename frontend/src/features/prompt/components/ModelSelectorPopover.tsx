@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { Sparkles } from "lucide-react"
+import { Settings2 } from "lucide-react"
 import {
   getAvailableModels,
   getSelectedModel,
@@ -87,7 +87,7 @@ export function ModelSelectorPopover({
   }
 
   // Sort alphabetically
-  const sortedModels = [...visibleModels].sort((a, b) => 
+  const sortedModels = [...visibleModels].sort((a, b) =>
     a.displayName.localeCompare(b.displayName)
   )
 
@@ -98,7 +98,7 @@ export function ModelSelectorPopover({
           className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
           data-no-clickthrough
         >
-          <Sparkles className={`size-5 ${themeClasses.icon}`} />
+          <Settings2 className={`size-5 ${themeClasses.icon}`} />
         </button>
       </PopoverTrigger>
       <PopoverContent
