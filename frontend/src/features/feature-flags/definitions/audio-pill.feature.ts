@@ -3,7 +3,7 @@ import type { FeatureDefinition } from "../types"
 
 export const feature: FeatureDefinition = {
   id: "audio-pill",
-  label: "Audio Pill",
+  label: "Audio recording",
   description: "Show audio recorder pill UI for voice input",
   icon: Mic,
   defaultEnabled: false,

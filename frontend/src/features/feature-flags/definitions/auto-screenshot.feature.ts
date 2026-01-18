@@ -3,7 +3,7 @@ import type { FeatureDefinition } from "../types"
 
 export const feature: FeatureDefinition = {
   id: "auto-screenshot",
-  label: "Auto Screenshot",
+  label: "Auto Screen",
   icon: Camera,
   defaultEnabled: false,
 }

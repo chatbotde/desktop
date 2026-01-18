@@ -126,7 +126,7 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
           Blocked Applications
         </h2>
         <p className={cn('text-xs', isDarkTheme ? 'text-zinc-400' : 'text-zinc-600')}>
-          Add application here
+          Add process names to hide this app when those applications are active
         </p>
       </div>
 

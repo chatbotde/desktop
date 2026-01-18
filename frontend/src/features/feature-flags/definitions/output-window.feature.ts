@@ -3,7 +3,7 @@ import type { FeatureDefinition } from "../types"
 
 export const feature: FeatureDefinition = {
   id: "output-window",
-  label: "Output Window",
+  label: "chat window",
   icon: PanelRight,
   defaultEnabled: true,
 }
