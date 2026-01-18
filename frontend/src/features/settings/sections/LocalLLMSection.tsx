@@ -60,7 +60,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
             Local LLM (Ollama)
           </div>
           <p className={cn("text-xs", textMuted)}>
-            Select an installed Ollama model to chat locally. Clear it to switch back to cloud.
+            Select an installed Ollama model to chat locally
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refresh}>
@@ -91,7 +91,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
         <Alert className={cn(isDarkTheme ? "border-zinc-800" : "border-zinc-200")}>
           <AlertTitle>Ollama is not installed</AlertTitle>
           <AlertDescription>
-            Install Ollama, then download a model (example: <span className="font-mono">ollama pull llama3.2</span>). After that, refresh this page.
+            Install Ollama, then download a model (example: <span className="font-mono">ollama pull gemma3:270M</span>). After that, refresh this page.
           </AlertDescription>
         </Alert>
       )}
@@ -112,7 +112,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
             Local model button in prompt input
           </div>
           <p className={cn("text-xs mt-1", textMuted)}>
-            Add the Local model button to the expanded prompt input actions (next to the cloud model button).
+            Add the Local model button to the expanded prompt input actions
           </p>
         </div>
         {showLocalControlInPrompt ? (
@@ -180,9 +180,6 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
             </Button>
           )}
         </div>
-        <p className={cn("text-xs", textMuted)}>
-          When selected, chat uses Ollama (local). When cleared, chat uses cloud.
-        </p>
       </div>
     </div>
   )

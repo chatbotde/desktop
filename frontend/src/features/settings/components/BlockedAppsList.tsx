@@ -97,7 +97,7 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
 
       // Get the last focused application
       const lastFocus = await window.tsfAPI.getLastFocusedWindow();
-      
+
       if (!lastFocus || !lastFocus.processName) {
         setError('No application tracked yet. Please click on an application first.');
         setLoading(false);
@@ -155,8 +155,8 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
             disabled={loading}
             className={cn(
               'flex-1',
-              isDarkTheme 
-                ? 'bg-zinc-800/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-600' 
+              isDarkTheme
+                ? 'bg-zinc-800/50 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-600'
                 : 'bg-zinc-50 border-zinc-300 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400'
             )}
           />
@@ -167,8 +167,8 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
             title="Block last focused application"
             className={cn(
               'flex-shrink-0',
-              isDarkTheme 
-                ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100' 
+              isDarkTheme
+                ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100'
                 : 'bg-zinc-900 hover:bg-zinc-800 text-white'
             )}
           >
@@ -181,8 +181,8 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
             title="Add application"
             className={cn(
               'flex-shrink-0',
-              isDarkTheme 
-                ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100' 
+              isDarkTheme
+                ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100'
                 : 'bg-zinc-900 hover:bg-zinc-800 text-white'
             )}
           >
@@ -207,8 +207,8 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
                   className={cn(
                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm',
                     'transition-colors',
-                    isDarkTheme 
-                      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-750' 
+                    isDarkTheme
+                      ? 'bg-zinc-800 text-zinc-200 hover:bg-zinc-750'
                       : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
                   )}
                 >

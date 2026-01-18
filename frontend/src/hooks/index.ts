@@ -6,3 +6,8 @@ export { useUIState } from './useUIState'
 export { useTextSelectionActions } from './useTextSelectionActions'
 export { useGlobalWindowAPI } from './useGlobalWindowAPI'
 
+// Gemini Live Audio hooks
+export { useGeminiLiveAudio } from './useGeminiLiveAudio'
+export { useGeminiLiveAudioStream } from './useGeminiLiveAudioStream'
+export type { AudioState, GeminiLiveStreamState, UseGeminiLiveAudioStreamOptions } from './useGeminiLiveAudioStream'
+

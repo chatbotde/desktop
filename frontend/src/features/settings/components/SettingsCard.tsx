@@ -40,6 +40,10 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
     baseStyle: "professional",
   })
 
+  const [generalSettings, setGeneralSettings] = useState({
+    language: "english",
+  })
+
   const activeLabel = SETTINGS_MENU_ITEMS.find((i) => i.id === activeSection)?.label ?? "Settings"
 
   return (
@@ -112,7 +116,13 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
               />
             )}
 
-            {activeSection === "general" && <GeneralSection isDarkTheme={isDark} />}
+            {activeSection === "general" && (
+              <GeneralSection
+                value={generalSettings}
+                onChange={setGeneralSettings}
+                isDarkTheme={isDark}
+              />
+            )}
 
             {activeSection === "account" && <AccountSection isDarkTheme={isDark} />}
 

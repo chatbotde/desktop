@@ -37,7 +37,7 @@ export function PersonalizationSection({
           Personalization
         </h3>
         <p className={cn("text-sm mb-6", textColor)}>
-          Customize your AI assistant's behavior and personality.
+          Customize behavior and personality.
         </p>
       </div>
 
@@ -45,12 +45,12 @@ export function PersonalizationSection({
         {/* Nickname */}
         <div className="space-y-2">
           <Label htmlFor="nickname" className={labelColor}>
-            Nickname
+            Name
           </Label>
           <Input
             id="nickname"
             type="text"
-            placeholder="Enter your nickname"
+            placeholder="Enter your name"
             value={value.nickname}
             onChange={(e) => onChange.onNicknameChange(e.target.value)}
             className={cn(

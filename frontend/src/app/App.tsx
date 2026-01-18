@@ -7,6 +7,8 @@ import type { MediaAttachment } from '@/features/output-window'
 import { useFeature } from '@/contexts/FeatureContext'
 import { getSelectedModel } from '@/lib/ai/model-config'
 
+
+
 import { TextSelectionPopup } from '@/features/text-selection'
 import {
   AudioRecordingSection,
@@ -41,6 +43,8 @@ function App() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const isAutoSavingRef = useRef(false)
   const messagesLengthRef = useRef(0)
+
+
 
   // Autosave when messages change
   useEffect(() => {
@@ -212,6 +216,9 @@ function App() {
   return (
     <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
+
+
+
       <TextSelectionPopup
         onSendMessage={handleSendMessage}
         onAddToPrompt={textSelectionActions.handleAddSelectedTextToPrompt}
