@@ -9,7 +9,9 @@ import { getSelectedModel } from '@/lib/ai/model-config'
 
 
 
+
 import { TextSelectionPopup } from '@/features/text-selection'
+import { AssistantSphere } from '@/components/assistant-animation'
 import {
   AudioRecordingSection,
   VideoScrollSection,
@@ -216,6 +218,9 @@ function App() {
   return (
     <div className="h-screen w-full items-center justify-center bg-transparent relative overflow-hidden">
       <ClickThrough />
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+        <AssistantSphere />
+      </div>
 
 
 

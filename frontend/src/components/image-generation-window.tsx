@@ -1,9 +1,9 @@
-import { X, Loader2, ImageIcon } from "lucide-react"
 import { ImageGeneration } from "./image-generation/image-generation"
-import { Button } from "@/shared/components/ui/button"
 import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useState, useRef, useCallback, useEffect } from "react"
+import { ResizeHandle } from "@/features/output-window/components/ResizeHandle"
+import type { ResizeDirection } from "@/features/output-window/hooks/useResizable"
 
 interface ImageGenerationWindowProps {
   images: string[]
@@ -24,7 +24,9 @@ const DEFAULT_LOADING_SIZE: CardDimensions = { width: 200, height: 150 }
 const MAX_WIDTH = 300
 const MAX_HEIGHT = 400
 // Padding around image inside card
-const CARD_PADDING = 24
+const CARD_PADDING = 0
+// Fallback image for testing/failure
+const FALLBACK_IMAGE = '/1.png'
 
 /**
  * Calculate constrained dimensions while preserving aspect ratio
@@ -66,6 +68,21 @@ export function ImageGenerationWindow({
   const containerRef = useRef<HTMLDivElement>(null)
   const imageDimensionsCache = useRef<Map<string, CardDimensions>>(new Map())
 
+  // Resizing state
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeRef = useRef({
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+    startPosX: 0,
+    startPosY: 0,
+    direction: 'e' as ResizeDirection
+  })
+
+  // Use fallback image if no images provided (for testing)
+  const displayImages = (images && images.length > 0) ? images : [FALLBACK_IMAGE]
+
   // Reset position and size when window becomes visible
   useEffect(() => {
     if (isVisible) {
@@ -101,15 +118,15 @@ export function ImageGenerationWindow({
 
   // Update card size when images change or current index changes
   useEffect(() => {
-    if (images && images.length > 0 && !isLoading) {
-      const currentImage = images[currentImageIndex]
+    if (!isLoading) {
+      const currentImage = displayImages[currentImageIndex]
       if (currentImage) {
         loadImageDimensions(currentImage).then(setCardSize)
       }
     } else if (isLoading) {
       setCardSize(DEFAULT_LOADING_SIZE)
     }
-  }, [images, currentImageIndex, isLoading, loadImageDimensions])
+  }, [displayImages, currentImageIndex, isLoading, loadImageDimensions])
 
   // Handle image index change from carousel
   const handleImageIndexChange = useCallback((index: number) => {
@@ -118,8 +135,8 @@ export function ImageGenerationWindow({
 
   // Drag handlers - now for entire card
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Don't initiate drag if clicking on a button
-    if ((e.target as HTMLElement).closest('button')) {
+    // Don't initiate drag if clicking on a button or resize handle
+    if ((e.target as HTMLElement).closest('button') || isResizing) {
       return
     }
     e.preventDefault()
@@ -131,32 +148,83 @@ export function ImageGenerationWindow({
         y: e.clientY - rect.top,
       }
     }
-  }, [])
+  }, [isResizing])
 
-  const handleMouseMove = useCallback(
+  // Resize Handlers
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent, direction: ResizeDirection) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: cardSize.width,
+      startHeight: cardSize.height,
+      startPosX: position.x,
+      startPosY: position.y,
+      direction
+    }
+  }, [cardSize, position])
+
+  const handleGlobalMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging) return
-      const newX = e.clientX - window.innerWidth / 2 - dragOffset.current.x
-      const newY = e.clientY - dragOffset.current.y
-      setPosition({ x: newX, y: newY })
+      if (isResizing) {
+        const deltaX = e.clientX - resizeRef.current.startX
+        const deltaY = e.clientY - resizeRef.current.startY
+        const { startWidth, startHeight, startPosX, startPosY, direction } = resizeRef.current
+
+        let newWidth = startWidth
+        let newHeight = startHeight
+        let newX = startPosX
+        let newY = startPosY
+
+        // Calculations for centered resizing
+        // Since the window is centered using translateX(-50%), 
+        // adjusting width requires shifting X by delta/2 to effectively expand/contract only one side visually relative to handles.
+
+        if (direction.includes('e')) {
+          newWidth = Math.max(100, startWidth + deltaX)
+          newX = startPosX + deltaX / 2
+        }
+        if (direction.includes('w')) {
+          newWidth = Math.max(100, startWidth - deltaX)
+          newX = startPosX + deltaX / 2
+        }
+        if (direction.includes('s')) {
+          newHeight = Math.max(100, startHeight + deltaY)
+        }
+        if (direction.includes('n')) {
+          newHeight = Math.max(100, startHeight - deltaY)
+          newY = startPosY + deltaY
+        }
+
+        setCardSize({ width: newWidth, height: newHeight })
+        setPosition({ x: newX, y: newY })
+
+      } else if (isDragging) {
+        const newX = e.clientX - window.innerWidth / 2 - dragOffset.current.x
+        const newY = e.clientY - dragOffset.current.y
+        setPosition({ x: newX, y: newY })
+      }
     },
-    [isDragging]
+    [isDragging, isResizing]
   )
 
-  const handleMouseUp = useCallback(() => {
+  const handleGlobalMouseUp = useCallback(() => {
     setIsDragging(false)
+    setIsResizing(false)
   }, [])
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+    if (isDragging || isResizing) {
+      window.addEventListener("mousemove", handleGlobalMouseMove)
+      window.addEventListener("mouseup", handleGlobalMouseUp)
     }
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener("mousemove", handleGlobalMouseMove)
+      window.removeEventListener("mouseup", handleGlobalMouseUp)
     }
-  }, [isDragging, handleMouseMove, handleMouseUp])
+  }, [isDragging, isResizing, handleGlobalMouseMove, handleGlobalMouseUp])
 
   if (!isVisible) {
     return null
@@ -176,7 +244,7 @@ export function ImageGenerationWindow({
 
   // Calculate total card dimensions (image size + padding)
   const totalCardWidth = cardSize.width + CARD_PADDING
-  const totalCardHeight = cardSize.height + CARD_PADDING + (images.length > 1 ? 40 : 0) // Extra space for carousel controls
+  const totalCardHeight = cardSize.height + CARD_PADDING
 
   return (
     <div
@@ -192,87 +260,59 @@ export function ImageGenerationWindow({
       data-no-clickthrough
       onMouseDown={handleMouseDown}
     >
-      <Card
-        className={cn(
-          "relative overflow-hidden shadow-2xl",
-          "ring-1 ring-black/5",
-          "transition-all duration-300 ease-out",
-          themeClasses.containerBg,
-          themeClasses.border
-        )}
-        style={{
-          width: `${totalCardWidth}px`,
-          height: isLoading ? `${totalCardHeight}px` : 'auto',
-          minHeight: `${totalCardHeight}px`,
-        }}
-      >
-        {/* Close button - top right corner inside card */}
-        <Button
-          variant="ghost"
-          size="icon"
+      {isLoading && (!images || images.length === 0) ? (
+        // Initial load - just show pulsing dot
+        <div className="flex items-center justify-center">
+          <div
+            className="size-8 rounded-full bg-blue-500 animate-pulse"
+            title="Generating image..."
+          />
+        </div>
+      ) : (
+        // Show full card with image when loaded
+        <Card
           className={cn(
-            "absolute top-2 right-2 z-20 h-7 w-7 rounded-full",
-            "transition-all duration-200 hover:scale-110",
-            themeClasses.closeBtn
-          )}
-          onClick={onClose}
-          title="Close"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-
-        {/* Content area */}
-        <div
-          className={cn(
-            "flex flex-col items-center justify-center p-3",
-            "transition-all duration-300 ease-out"
+            "relative overflow-hidden shadow-2xl p-0",
+            "ring-1 ring-black/5",
+            "transition-all duration-300 ease-out",
+            themeClasses.containerBg,
+            themeClasses.border
           )}
           style={{
-            minHeight: `${cardSize.height + CARD_PADDING}px`,
+            width: `${totalCardWidth}px`,
+            height: `${totalCardHeight}px`,
+            minHeight: `${totalCardHeight}px`,
           }}
         >
-          {isLoading ? (
-            <div className="flex flex-col items-center gap-3">
-              <div
-                className={cn(
-                  "p-3 rounded-full",
-                  isDarkTheme ? "bg-zinc-800/50" : "bg-zinc-100"
-                )}
-              >
-                <Loader2
-                  className={cn("h-6 w-6 animate-spin", themeClasses.textMuted)}
-                />
-              </div>
-              <div className="text-center space-y-1">
-                <p className={cn("text-xs font-medium", themeClasses.text)}>
-                  Generating...
-                </p>
-              </div>
-            </div>
-          ) : images && images.length > 0 ? (
-            <ImageGeneration
-              images={images}
-              isDarkTheme={isDarkTheme}
-              cardSize={cardSize}
-              onImageIndexChange={handleImageIndexChange}
+          {/* Resize Handles */}
+          {['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((dir) => (
+            <ResizeHandle
+              key={dir}
+              direction={dir as ResizeDirection}
+              onMouseDown={handleResizeMouseDown}
             />
-          ) : (
-            <div className="flex flex-col items-center gap-3">
+          ))}
+
+          {/* Loading indicator - small dot in top-right when generating additional images */}
+          {isLoading && (
+            <div className="absolute top-2 right-2 z-30 pointer-events-none">
               <div
-                className={cn(
-                  "p-3 rounded-full",
-                  isDarkTheme ? "bg-zinc-800/50" : "bg-zinc-100"
-                )}
-              >
-                <ImageIcon className={cn("h-6 w-6", themeClasses.textMuted)} />
-              </div>
-              <p className={cn("text-xs", themeClasses.textMuted)}>
-                No images yet
-              </p>
+                className="size-2.5 rounded-full bg-blue-500 animate-pulse shadow-lg"
+                title="Generating next image..."
+              />
             </div>
           )}
-        </div>
-      </Card>
+
+          {/* Content area */}
+          <div className="absolute inset-0">
+            <ImageGeneration
+              images={displayImages}
+              onImageIndexChange={handleImageIndexChange}
+              onClose={onClose}
+            />
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

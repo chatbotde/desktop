@@ -16,6 +16,9 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [isImageWindowVisible, setIsImageWindowVisible] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
+  const [generatedVideos, setGeneratedVideos] = useState<string[]>([])
+  const [isVideoWindowVisible, setIsVideoWindowVisible] = useState(true)
+  const [isGeneratingVideos, setIsGeneratingVideos] = useState(false)
 
   // If the user disables the Output Window feature, hide the window immediately.
   useEffect(() => {
@@ -58,5 +61,11 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setIsImageWindowVisible,
     isGeneratingImages,
     setIsGeneratingImages,
+    generatedVideos,
+    setGeneratedVideos,
+    isVideoWindowVisible,
+    setIsVideoWindowVisible,
+    isGeneratingVideos,
+    setIsGeneratingVideos,
   }
 }

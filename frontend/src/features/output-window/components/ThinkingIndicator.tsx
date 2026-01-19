@@ -7,39 +7,39 @@ interface ThinkingIndicatorProps {
 export function ThinkingIndicator({ isDarkTheme }: ThinkingIndicatorProps) {
   return (
     <div className={cn(
-      "flex items-center gap-2 px-4 py-3",
+      "flex items-center gap-2 px-4 py-1",
       "animate-in fade-in slide-in-from-bottom-2 duration-300"
     )}>
       <div className="flex items-center gap-1.5">
-        <div 
+        <div
           className={cn(
             "w-2 h-2 rounded-full",
             isDarkTheme ? "bg-zinc-400" : "bg-zinc-500"
-          )} 
-          style={{ 
+          )}
+          style={{
             animation: 'thinking 1.4s ease-in-out infinite',
             animationDelay: '0ms'
-          }} 
+          }}
         />
-        <div 
+        <div
           className={cn(
             "w-2 h-2 rounded-full",
             isDarkTheme ? "bg-zinc-400" : "bg-zinc-500"
-          )} 
-          style={{ 
+          )}
+          style={{
             animation: 'thinking 1.4s ease-in-out infinite',
             animationDelay: '200ms'
-          }} 
+          }}
         />
-        <div 
+        <div
           className={cn(
             "w-2 h-2 rounded-full",
             isDarkTheme ? "bg-zinc-400" : "bg-zinc-500"
-          )} 
-          style={{ 
+          )}
+          style={{
             animation: 'thinking 1.4s ease-in-out infinite',
             animationDelay: '400ms'
-          }} 
+          }}
         />
       </div>
       <span className={cn(

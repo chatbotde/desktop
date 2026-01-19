@@ -155,7 +155,7 @@ export function OutputMessages({
                     {messages.length === 0 ? (
                         <p className={themeClasses.emptyText}>Welcome to future</p>
                     ) : (
-                        <div className="w-full space-y-3 flex flex-col">
+                        <div className="w-full space-y-6 flex flex-col">
                             {messages.map((msg) => (
                                 <MessageBubble
                                     key={msg.id}
