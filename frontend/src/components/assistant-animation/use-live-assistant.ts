@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { useState, useRef, useCallback } from 'react';
+import { GoogleGenAI, Modality } from '@google/genai';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 export const useLiveAssistant = () => {
     const [connected, setConnected] = useState(false);
-    const [isThinking, setIsThinking] = useState(false);
+    const [, setIsThinking] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false); // AI is speaking
     const [isUserSpeaking, setIsUserSpeaking] = useState(false); // User is speaking (VAD-like)
     const [volume, setVolume] = useState(0);
@@ -18,6 +18,7 @@ export const useLiveAssistant = () => {
     const audioQueueRef = useRef<Float32Array[]>([]);
     const isPlayingRef = useRef(false);
     const scheduledTimeRef = useRef(0);
+    const connectingRef = useRef(false);
 
     const ensureAudioContext = useCallback(() => {
         if (!audioContextRef.current) {
@@ -62,7 +63,7 @@ export const useLiveAssistant = () => {
         }
 
         const buffer = audioContextRef.current.createBuffer(1, chunk.length, 24000);
-        buffer.copyToChannel(chunk, 0);
+        buffer.copyToChannel(chunk as Float32Array<ArrayBuffer>, 0);
 
         const source = audioContextRef.current.createBufferSource();
         source.buffer = buffer;
@@ -92,7 +93,9 @@ export const useLiveAssistant = () => {
     }, []);
 
     const connect = useCallback(async () => {
-        if (connected) return;
+        if (connected || connectingRef.current) return;
+
+        connectingRef.current = true;
 
         try {
             ensureAudioContext();
@@ -101,7 +104,7 @@ export const useLiveAssistant = () => {
             const client = new GoogleGenAI({ apiKey: API_KEY });
 
             const config = {
-                responseModalities: ['AUDIO'],
+                responseModalities: [Modality.AUDIO],
             };
 
             const session = await client.live.connect({
@@ -111,6 +114,7 @@ export const useLiveAssistant = () => {
                     onopen: () => {
                         console.log('Connected to Gemini Live');
                         setConnected(true);
+                        connectingRef.current = false;
                     },
                     onmessage: (message: any) => {
                         if (message.serverContent?.modelTurn?.parts) {
@@ -181,12 +185,20 @@ export const useLiveAssistant = () => {
             };
 
             source.connect(processor);
-            processor.connect(audioContextRef.current.destination); // ScriptProcessor needs connection to destination to run
+            // processor.connect(audioContextRef.current.destination); // ScriptProcessor needs connection to destination to run
+
+            // Connect to a mute gain node to keep the processor running but not audible
+            // This prevents the user hearing their own voice (echo)
+            const muteGain = audioContextRef.current.createGain();
+            muteGain.gain.value = 0;
+            processor.connect(muteGain);
+            muteGain.connect(audioContextRef.current.destination);
             processorRef.current = processor;
 
         } catch (error) {
             console.error('Failed to connect:', error);
             setConnected(false);
+            connectingRef.current = false;
         }
     }, [connected, ensureAudioContext, playAudioChunk]);
 
