@@ -29,7 +29,9 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          cd frontend && npm install
 
       # Linux specific dependencies for electron-builder (common requirement)
       - name: Install Linux Dependencies
