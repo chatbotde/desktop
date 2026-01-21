@@ -31,7 +31,7 @@ jobs:
       - name: Install Dependencies
         run: |
           npm install --ignore-scripts
-          cd frontend && npm install
+          cd frontend && npm install --legacy-peer-deps
 
       # Linux specific dependencies for electron-builder (common requirement)
       - name: Install Linux Dependencies
