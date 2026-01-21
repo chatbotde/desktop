@@ -58,7 +58,7 @@ export function useGeminiLiveAudio(options: UseGeminiLiveAudioOptions = {}) {
     }, [onStateChange]);
 
     // Get API key from environment or storage
-    const getApiKey = useCallback((): string | null => {
+    const getApiKey = useCallback(async (): Promise<string | null> => {
         // Try localStorage first (where settings might store it)
         const storedKey = localStorage.getItem('google-api-key');
         if (storedKey) return storedKey;
@@ -67,7 +67,7 @@ export function useGeminiLiveAudio(options: UseGeminiLiveAudioOptions = {}) {
         try {
             // @ts-ignore - Window might have this from preload
             if (window.electronAPI?.getEnvVariable) {
-                return window.electronAPI.getEnvVariable('VITE_GOOGLE_API_KEY');
+                return await window.electronAPI.getEnvVariable('VITE_GOOGLE_API_KEY');
             }
         } catch {
             // Ignore
@@ -78,7 +78,7 @@ export function useGeminiLiveAudio(options: UseGeminiLiveAudioOptions = {}) {
 
     // Connect to Gemini Live API
     const connect = useCallback(async () => {
-        const apiKey = getApiKey();
+        const apiKey = await getApiKey();
         if (!apiKey) {
             const error = 'Google API key not found. Please set it in settings.';
             updateState({ error });

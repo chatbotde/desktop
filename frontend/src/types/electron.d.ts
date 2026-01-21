@@ -61,6 +61,7 @@ declare global {
         unregisterAll: () => void;
         simulatePaste: () => Promise<void>;
       };
+      getEnvVariable: (key: string) => Promise<string>;
       ipcMain: any;
       net: any;
       ollama?: {

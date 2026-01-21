@@ -5,7 +5,7 @@
  * These providers enable data binding and action handling in AI-generated UI.
  */
 
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { DataProvider, ActionProvider } from '@json-render/react'
 
 /**
@@ -132,8 +132,9 @@ export function JsonRenderActionProvider({
     [actions]
   )
 
+  const ActionProviderAny = ActionProvider as any;
   return (
-    <ActionProvider actions={handleAction}>{children}</ActionProvider>
+    <ActionProviderAny actions={handleAction}>{children}</ActionProviderAny>
   )
 }
 

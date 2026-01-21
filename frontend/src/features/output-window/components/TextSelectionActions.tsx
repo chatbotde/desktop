@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, ArrowRight, Replace, Sparkles, ChevronUp } from 'lucide-react'
+import { Plus, ArrowRight, Replace, Sparkles } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
 import { InsertButton } from '@/shared/components/actions/InsertButton'

@@ -92,13 +92,13 @@ Rules:
  * Examples: OpenAI, Anthropic, Groq, etc.
  */
 async function callAIService({
-  systemPrompt,
-  userPrompt,
-  context,
-  catalog,
-  apiKey,
-  model = 'gpt-4',
-  baseURL,
+  // systemPrompt,
+  // userPrompt,
+  // context,
+  // catalog,
+  // apiKey,
+  // model = 'gpt-4',
+  // baseURL,
 }: {
   systemPrompt: string
   userPrompt: string

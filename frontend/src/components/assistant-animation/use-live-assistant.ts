@@ -7,7 +7,7 @@ const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 export const useLiveAssistant = () => {
     const [connected, setConnected] = useState(false);
-    const [, setIsThinking] = useState(false);
+    const [] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false); // AI is speaking
     const [isUserSpeaking, setIsUserSpeaking] = useState(false); // User is speaking (VAD-like)
     const [volume, setVolume] = useState(0);

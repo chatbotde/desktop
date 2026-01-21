@@ -8,10 +8,12 @@
  */
 
 import React from 'react'
-import type { UIElement } from '@json-render/core'
+// import type { UIElement } from '@json-render/core'
 
 // Type alias for convenience
-type Element = UIElement
+// Type alias for convenience - using any to avoid strict prop checking for dynamic JSON components
+type Element = any
+
 import {
   Card,
   CardHeader,
@@ -66,7 +68,7 @@ import { cn } from '@/lib/utils'
  */
 export const jsonRenderRegistry = {
   // Layout Components
-  Card: ({ element, children }: { element: UIElement; children?: React.ReactNode }) => (
+  Card: ({ element, children }: { element: any; children?: React.ReactNode }) => (
     <Card className={element.props.className}>
       {element.props.title && (
         <CardHeader>
@@ -80,7 +82,7 @@ export const jsonRenderRegistry = {
     </Card>
   ),
 
-  CardHeader: ({ element, children }: { element: UIElement; children?: React.ReactNode }) => (
+  CardHeader: ({ element, children }: { element: any; children?: React.ReactNode }) => (
     <CardHeader className={element.props.className}>{children}</CardHeader>
   ),
 
@@ -267,7 +269,7 @@ export const jsonRenderRegistry = {
 
   // Dialog Components
   Dialog: ({ element, children }: { element: Element; children?: React.ReactNode }) => (
-    <Dialog open={element.props.open} className={element.props.className}>
+    <Dialog open={element.props.open}>
       {children}
     </Dialog>
   ),
@@ -311,10 +313,10 @@ export const jsonRenderRegistry = {
     }
 
     const value = getValue(element.props.valuePath)
-    
+
     const formatValue = (val: any, format?: string) => {
       if (val === null || val === undefined) return 'N/A'
-      
+
       switch (format) {
         case 'currency':
           return new Intl.NumberFormat('en-US', {
@@ -394,7 +396,7 @@ export const jsonRenderRegistry = {
       <div
         className={cn(
           'mx-auto w-full px-4',
-          element.props.maxWidth && maxWidthMap[element.props.maxWidth],
+          element.props.maxWidth && (maxWidthMap as any)[element.props.maxWidth],
           element.props.className
         )}
       >
@@ -436,10 +438,10 @@ export const jsonRenderRegistry = {
       <div
         className={cn(
           'flex',
-          element.props.direction && directionMap[element.props.direction],
-          element.props.gap && gapMap[element.props.gap],
-          element.props.align && alignMap[element.props.align],
-          element.props.justify && justifyMap[element.props.justify],
+          element.props.direction && (directionMap as any)[element.props.direction],
+          element.props.gap && (gapMap as any)[element.props.gap],
+          element.props.align && (alignMap as any)[element.props.align],
+          element.props.justify && (justifyMap as any)[element.props.justify],
           element.props.className
         )}
       >
@@ -462,7 +464,7 @@ export const jsonRenderRegistry = {
         className={cn(
           'grid',
           element.props.cols && `grid-cols-${element.props.cols}`,
-          element.props.gap && gapMap[element.props.gap],
+          element.props.gap && (gapMap as any)[element.props.gap],
           element.props.className
         )}
       >
@@ -473,7 +475,7 @@ export const jsonRenderRegistry = {
 
   // Text Components
   Heading: ({ element }: { element: Element }) => {
-    const HeadingTag = `h${element.props.level}` as keyof JSX.IntrinsicElements
+    const HeadingTag = `h${element.props.level}` as React.ElementType
     return (
       <HeadingTag className={cn('font-semibold', element.props.className)}>
         {element.props.text}
@@ -489,7 +491,7 @@ export const jsonRenderRegistry = {
     }
 
     return (
-      <p className={cn(variantMap[element.props.variant || 'default'], element.props.className)}>
+      <p className={cn((variantMap as any)[element.props.variant || 'default'], element.props.className)}>
         {element.props.text}
       </p>
     )
@@ -513,7 +515,7 @@ export const jsonRenderRegistry = {
 
     return (
       <div className={element.props.className}>
-        <Markdown content={content || ''} />
+        <Markdown>{content || ''}</Markdown>
       </div>
     )
   },
