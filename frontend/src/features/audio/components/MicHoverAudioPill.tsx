@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic } from 'lucide-react'
+import { Mic, CircleEllipsis, Bot } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
 import { getThemeClasses } from "@/features/prompt"
@@ -370,6 +370,22 @@ export function MicHoverAudioPill({
                             isRecording={isRecording}
                             isDarkTheme={isDarkTheme}
                         />
+
+                        {/* Assistant Toggle Button */}
+                        <Button
+                            onClick={() => window.dispatchEvent(new CustomEvent('toggle-assistant-visibility'))}
+                            className={cn(
+                                "h-8 w-8 rounded-full transition-all duration-200",
+                                isDarkTheme
+                                    ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                    : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900"
+                            )}
+                            variant="ghost"
+                            size="icon"
+                            title="Toggle Live Assistant"
+                        >
+                            <CircleEllipsis className="h-4 w-4" />
+                        </Button>
 
                         <LiveTranscriptionPanel
                             showTranscription={showTranscription}

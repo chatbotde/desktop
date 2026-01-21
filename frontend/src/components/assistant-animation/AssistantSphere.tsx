@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import './assistant-sphere.css';
 import { useLiveAssistant } from './use-live-assistant';
@@ -7,7 +7,15 @@ interface AssistantSphereProps {
     isVisible?: boolean;
 }
 
-export const AssistantSphere: React.FC<AssistantSphereProps> = ({ isVisible = true }) => {
+export const AssistantSphere: React.FC<AssistantSphereProps> = () => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const handleVisibilityToggle = () => setIsVisible(prev => !prev);
+        window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+        return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+    }, []);
+
     const { connect, disconnect, connected, isSpeaking } = useLiveAssistant();
 
     if (!isVisible) return null;
@@ -31,7 +39,6 @@ export const AssistantSphere: React.FC<AssistantSphereProps> = ({ isVisible = tr
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleToggle}
-            title={connected ? "Tap to disconnect" : "Tap to chat with Gemini Live"}
         >
             <div className={coreClass}></div>
             <div className={`${shellClass} shell-1`}></div>
