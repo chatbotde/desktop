@@ -166,8 +166,8 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "sonicthinking",
-      "repo": "buddy"
+      "owner": "chatbotde",
+      "repo": "desktop"
     }
   },
   "devDependencies": {
