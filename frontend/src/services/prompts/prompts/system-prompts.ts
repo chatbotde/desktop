@@ -29,6 +29,7 @@ import type { SystemPrompt } from './types';
 import { generalPrompt } from './general';
 import { codePrompt } from './code';
 import { creativePrompt } from './creative';
+import { liveAssistantPrompt } from './live-assistant';
 
 // Re-export types for convenience
 export type { SystemPrompt } from './types';
@@ -37,6 +38,7 @@ export type { SystemPrompt } from './types';
 export { GENERAL_ASSISTANT_PROMPT } from './general';
 export { CODE_ASSISTANT_PROMPT } from './code';
 export { CREATIVE_ASSISTANT_PROMPT } from './creative';
+export { LIVE_ASSISTANT_PROMPT } from './live-assistant';
 
 /**
  * All available system prompts
@@ -50,6 +52,7 @@ export const SYSTEM_PROMPTS: SystemPrompt[] = [
   generalPrompt,
   codePrompt,
   creativePrompt,
+  liveAssistantPrompt,
   // Add new prompts here
 ];
 

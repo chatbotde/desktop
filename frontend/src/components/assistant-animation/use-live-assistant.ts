@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
+import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -105,6 +106,7 @@ export const useLiveAssistant = () => {
 
             const config = {
                 responseModalities: [Modality.AUDIO],
+                systemInstruction: { parts: [{ text: LIVE_ASSISTANT_PROMPT }] },
             };
 
             const session = await client.live.connect({
