@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
+import { getProviderConfig } from '@/lib/settings/custom-providers';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -101,8 +102,30 @@ export const useLiveAssistant = () => {
         try {
             ensureAudioContext();
 
+            // Resolve configuration from settings or environment
+            const googleConfig = getProviderConfig('google');
+
+            // Check if user explicitly enabled custom API for voice
+            const useCustomApi = localStorage.getItem('voice-use-custom-api') === 'true';
+            const hasCustomKey = googleConfig.apiKey.trim().length > 0;
+
+            // Use custom API only if: toggle is ON AND custom key exists
+            const shouldUseCustom = useCustomApi && hasCustomKey;
+            const apiKey = shouldUseCustom ? googleConfig.apiKey : API_KEY;
+            const baseUrl = shouldUseCustom ? googleConfig.baseUrl : undefined;
+
+            if (!apiKey) {
+                throw new Error("No API key available. Please configure Google AI in settings or .env file.");
+            }
+
+            console.log(`[LiveAssistant] Using ${shouldUseCustom ? 'Custom' : 'Default'} API`);
+
             // Client and Model setup
-            const client = new GoogleGenAI({ apiKey: API_KEY });
+            const client = new GoogleGenAI({
+                apiKey,
+                // @ts-ignore
+                baseUrl
+            });
 
             const config = {
                 responseModalities: [Modality.AUDIO],
@@ -238,12 +261,18 @@ export const useLiveAssistant = () => {
         setVolume(0);
     }, []);
 
+    const isCustomActive = (() => {
+        const config = getProviderConfig('google');
+        return config.enabled && config.apiKey.trim().length > 0;
+    })();
+
     return {
         connect,
         disconnect,
         connected,
         isSpeaking,
         isUserSpeaking,
-        volume
+        volume,
+        isCustomActive
     };
 };

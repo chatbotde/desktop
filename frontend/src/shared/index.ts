@@ -16,6 +16,7 @@ export * from './hooks'
 export * from './lib'
 export * from './providers'
 export * from './types'
+export * from './styles/DesignSystem'
 
 // Export new architecture patterns
 export * from './contracts'

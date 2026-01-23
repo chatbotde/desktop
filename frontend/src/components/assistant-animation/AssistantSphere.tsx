@@ -9,6 +9,7 @@ interface AssistantSphereProps {
 
 export const AssistantSphere: React.FC<AssistantSphereProps> = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const { connect, disconnect, connected, isSpeaking } = useLiveAssistant();
 
     useEffect(() => {
         const handleVisibilityToggle = () => setIsVisible(prev => !prev);
@@ -16,7 +17,12 @@ export const AssistantSphere: React.FC<AssistantSphereProps> = () => {
         return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
     }, []);
 
-    const { connect, disconnect, connected, isSpeaking } = useLiveAssistant();
+    // Automatically disconnect when hidden
+    useEffect(() => {
+        if (!isVisible && connected) {
+            disconnect();
+        }
+    }, [isVisible, connected, disconnect]);
 
     if (!isVisible) return null;
 

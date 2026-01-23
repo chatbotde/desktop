@@ -8,7 +8,7 @@
  */
 
 // Components
-export { 
+export {
   SmartMessage,
   MessageActions,
   TypingIndicator,
@@ -19,6 +19,9 @@ export {
 
 // Hooks
 export { useMessageManager, useAutoScroll } from './hooks'
+
+// Store
+export { useChatStore } from './store'
 
 // Types
 export type { ChatMessage, MediaAttachment } from './types'

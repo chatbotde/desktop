@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { Key, Plus, Trash2, Globe, Check, Eye, EyeOff, Image, Music, Video, ChevronsUpDown } from "lucide-react"
+import { Key, Plus, Trash2, Globe, Check, Eye, EyeOff, Image, Music, Video, ChevronsUpDown, Mic } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { Input } from "@/shared/components/ui/input"
@@ -65,6 +65,11 @@ function ProviderCard({
   const [newModelDisplayName, setNewModelDisplayName] = useState("")
   const [showApiKey, setShowApiKey] = useState(false)
   const [open, setOpen] = useState(false)
+
+  // Voice assistant custom API state (only for Google provider)
+  const [useCustomVoice, setUseCustomVoice] = useState(() => {
+    return localStorage.getItem('voice-use-custom-api') === 'true'
+  })
 
   // Capability toggles with sensible defaults based on provider
   const [supportsImages, setSupportsImages] = useState(true)
@@ -172,6 +177,57 @@ function ProviderCard({
           Leave empty to use default: {defaultBaseUrl}
         </p>
       </div>
+
+      {/* Voice Assistant Toggle - Only for Google */}
+      {provider === 'google' && (
+        <div className={cn(
+          "rounded-md border p-3",
+          isDarkTheme ? "border-zinc-700 bg-zinc-800/50" : "border-zinc-200 bg-zinc-100/50"
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Mic className={cn("h-4 w-4", useCustomVoice ? "text-blue-500" : isDarkTheme ? "text-zinc-400" : "text-zinc-500")} />
+              <div>
+                <span className={cn("text-sm font-medium", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
+                  Live Voice Assistant
+                </span>
+                <p className={cn("text-xs", isDarkTheme ? "text-zinc-500" : "text-zinc-500")}>
+                  {useCustomVoice ? "Using your custom API key" : "Using default API"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!config.apiKey.trim()}
+              onClick={async () => {
+                const newState = !useCustomVoice;
+                setUseCustomVoice(newState);
+                localStorage.setItem('voice-use-custom-api', newState ? 'true' : 'false');
+                // Show the sphere and start connection if turning on
+                if (newState) {
+                  window.dispatchEvent(new CustomEvent('toggle-assistant-visibility', {
+                    detail: { useCustomApi: true }
+                  }));
+                }
+              }}
+              className={cn(
+                "h-8 gap-2 transition-all duration-300",
+                useCustomVoice
+                  ? "bg-blue-600 border-blue-500 hover:bg-blue-500 text-white shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                  : isDarkTheme
+                    ? "bg-zinc-700 border-zinc-600 hover:bg-zinc-600 text-zinc-300"
+                    : "bg-white border-zinc-300 hover:bg-zinc-50 text-zinc-600",
+                !config.apiKey.trim() && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <span className="text-xs font-medium">
+                {useCustomVoice ? "Custom API Active" : "Use Custom API"}
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Custom Models */}
       <div className="space-y-3">
