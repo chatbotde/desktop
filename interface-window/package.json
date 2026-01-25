@@ -1,7 +1,7 @@
 {
   "name": "interface-window",
   "version": "1.0.0",
-  "description": "Interface window module for Buddy - TypeScript setup",
+  "description": "Interface window module for SonicThinking - TypeScript setup",
   "main": "interface-window.js",
   "scripts": {
     "build": "tsc",

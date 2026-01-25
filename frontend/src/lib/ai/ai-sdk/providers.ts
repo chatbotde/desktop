@@ -208,7 +208,7 @@ registerProvider({
         baseURL: options?.baseURL || 'https://openrouter.ai/api/v1',
         headers: {
             'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-            'X-Title': 'Buddy AI',
+            'X-Title': 'SonicThinking AI',
             ...options?.headers,
         },
     }),

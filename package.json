@@ -1,6 +1,6 @@
 {
-  "name": "buddy",
-  "productName": "Buddy",
+  "name": "sonicthinking",
+  "productName": "SonicThinking",
   "version": "1.0.0",
   "main": "main.js",
   "homepage": "https://github.com/sonicthinking/buddy",
@@ -39,8 +39,8 @@
   "license": "ISC",
   "description": "A desktop companion app built with Electron",
   "build": {
-    "appId": "com.sonicthinking.buddy",
-    "productName": "Buddy",
+    "appId": "com.sonicthinking.sonicthinking",
+    "productName": "SonicThinking",
     "npmRebuild": false,
     "compression": "maximum",
     "directories": {
@@ -112,7 +112,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Buddy",
+      "shortcutName": "SonicThinking",
       "installerIcon": "icons/icon.ico",
       "uninstallerIcon": "icons/icon.ico",
       "installerHeaderIcon": "icons/icon.ico"
@@ -158,9 +158,9 @@
     },
     "protocols": [
       {
-        "name": "Buddy Protocol",
+        "name": "SonicThinking Protocol",
         "schemes": [
-          "buddy"
+          "sonicthinking"
         ]
       }
     ],
