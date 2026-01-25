@@ -15,6 +15,7 @@ export * from './process';
 export * from './safe-storage';
 export * from './screen';
 export * from './share-menu';
+export * from './shell';
 export * from './utility-process';
 export * from './web-contents-view';
 export * from './web-frame-main';

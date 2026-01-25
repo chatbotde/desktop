@@ -45,6 +45,11 @@ export interface ElectronAPI {
         has: (...args: any[]) => Promise<any>;
         clear: (...args: any[]) => Promise<any>;
     };
+    shell: {
+        openExternal: (url: string) => Promise<void>;
+        openPath: (fullPath: string) => Promise<string>;
+        showItemInFolder: (fullPath: string) => void;
+    };
 }
 
 // TSF API Types

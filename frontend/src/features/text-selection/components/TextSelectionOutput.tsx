@@ -71,6 +71,42 @@ export function TextSelectionOutput({
     return () => clearTimeout(timer)
   }, [])
 
+  // Intercept link clicks to open in system browser
+  React.useEffect(() => {
+    const container = contentRef.current
+    if (!container) return
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      const anchor = target.closest('a')
+      if (!anchor) return
+
+      const href = anchor.getAttribute('href')
+      if (!href) return
+
+      // Only handle http/https/mailto links
+      if (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('mailto:')) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      // Use Electron's shell.openExternal if available
+      if (window.electronAPI?.shell?.openExternal) {
+        window.electronAPI.shell.openExternal(href).catch((error: Error) => {
+          console.error('[TextSelectionOutput] Failed to open external link:', error)
+          window.open(href, '_blank', 'noopener,noreferrer')
+        })
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer')
+      }
+    }
+
+    container.addEventListener('click', handleLinkClick, true)
+    return () => container.removeEventListener('click', handleLinkClick, true)
+  }, [])
+
   // Typewriter streaming effect
   React.useEffect(() => {
     // If content is the same, don't re-animate

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo, memo } from 'react'
+import { useCallback, useRef, useState, useMemo, memo, useEffect } from 'react'
 import { Copy, Check, Send } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { MessageContent } from '@/shared/components/message'
@@ -114,6 +114,42 @@ export const AssistantMessageBubble = memo(function AssistantMessageBubble({
     "break-words overflow-hidden relative bg-transparent",
     isDarkTheme ? "px-4 py-1 text-zinc-100" : "px-4 py-1 text-zinc-900"
   ), [isDarkTheme])
+
+  // Intercept link clicks to open in system browser
+  useEffect(() => {
+    const container = contentContainerRef.current
+    if (!container) return
+
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      const anchor = target.closest('a')
+      if (!anchor) return
+
+      const href = anchor.getAttribute('href')
+      if (!href) return
+
+      // Only handle http/https/mailto links
+      if (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('mailto:')) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      // Use Electron's shell.openExternal if available
+      if (window.electronAPI?.shell?.openExternal) {
+        window.electronAPI.shell.openExternal(href).catch((error: Error) => {
+          console.error('[AssistantMessageBubble] Failed to open external link:', error)
+          window.open(href, '_blank', 'noopener,noreferrer')
+        })
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer')
+      }
+    }
+
+    container.addEventListener('click', handleLinkClick, true)
+    return () => container.removeEventListener('click', handleLinkClick, true)
+  }, [])
 
   const handleCopy = useCallback(async () => {
     try {

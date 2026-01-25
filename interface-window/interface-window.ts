@@ -3,7 +3,7 @@
  * Manages the main interface window for the application
  */
 
-import { BrowserWindow, ipcMain, app, screen } from 'electron';
+import { BrowserWindow, ipcMain, app, screen, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ClickThroughManager } from './click-through';
@@ -133,6 +133,19 @@ export class InterfaceWindow {
       if (sourceId && sourceId.includes('preload')) {
         console.log(`[Preload Console ${level}]:`, message);
       }
+    });
+
+    // Intercept external links (target="_blank" or window.open) and open in system browser
+    this.window.webContents.setWindowOpenHandler(({ url }) => {
+      // Only allow http, https, and mailto protocols
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) {
+        console.log(`InterfaceWindow: Opening external URL in system browser: ${url}`);
+        shell.openExternal(url);
+      } else {
+        console.warn(`InterfaceWindow: Blocked opening URL with unsupported protocol: ${url}`);
+      }
+      // Deny opening new Electron windows - always return deny
+      return { action: 'deny' };
     });
 
     // Load the frontend

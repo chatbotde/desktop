@@ -70,6 +70,11 @@ declare global {
       process: any;
       safeStorage: any;
       screen: any;
+      shell: {
+        openExternal: (url: string) => Promise<void>;
+        openPath: (fullPath: string) => Promise<string>;
+        showItemInFolder: (fullPath: string) => void;
+      };
       getAuthToken?: () => Promise<string | null>;
       [key: string]: unknown;
     };

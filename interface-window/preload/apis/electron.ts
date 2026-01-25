@@ -17,7 +17,8 @@ const serviceNames: string[] = [
     'ollama',
     'process',
     'safeStorage',
-    'screen'
+    'screen',
+    'shell'
 ];
 
 export function createElectronAPI(): ElectronAPI {
@@ -57,6 +58,13 @@ export function createElectronAPI(): ElectronAPI {
         availableFormats: (...args: any[]) => ipcRenderer.invoke('clipboard:availableFormats', ...args),
         has: (...args: any[]) => ipcRenderer.invoke('clipboard:has', ...args),
         clear: (...args: any[]) => ipcRenderer.invoke('clipboard:clear', ...args),
+    };
+
+    // Explicitly define shell methods as Proxies don't survive contextBridge
+    electronAPI.shell = {
+        openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+        openPath: (fullPath: string) => ipcRenderer.invoke('shell:openPath', fullPath),
+        showItemInFolder: (fullPath: string) => ipcRenderer.invoke('shell:showItemInFolder', fullPath),
     };
 
     return electronAPI;

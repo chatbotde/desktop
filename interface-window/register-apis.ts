@@ -9,7 +9,8 @@ import {
     ElectronNetService,
     ElectronProcessService,
     ElectronSafeStorageService,
-    ElectronScreenService
+    ElectronScreenService,
+    ElectronShellService
 } from './electron-api';
 
 const services: Record<string, any> = {
@@ -22,7 +23,8 @@ const services: Record<string, any> = {
     net: new ElectronNetService(),
     process: new ElectronProcessService(),
     safeStorage: new ElectronSafeStorageService(),
-    screen: new ElectronScreenService()
+    screen: new ElectronScreenService(),
+    shell: new ElectronShellService()
 };
 
 // Security check function - will be set by LockManager
