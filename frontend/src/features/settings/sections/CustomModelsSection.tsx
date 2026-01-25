@@ -261,7 +261,7 @@ function ProviderCard({
                     {model.capabilities?.supportsImages && (
                       <span className={cn(
                         "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
-                        isDarkTheme ? "bg-blue-900/50 text-blue-300" : "bg-blue-100 text-blue-700"
+                        isDarkTheme ? "bg-zinc-700 text-zinc-300" : "bg-zinc-200 text-zinc-600"
                       )}>
                         <Image className="h-2.5 w-2.5" /> Images
                       </span>
@@ -269,7 +269,7 @@ function ProviderCard({
                     {model.capabilities?.supportsAudio && (
                       <span className={cn(
                         "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
-                        isDarkTheme ? "bg-purple-900/50 text-purple-300" : "bg-purple-100 text-purple-700"
+                        isDarkTheme ? "bg-zinc-700 text-zinc-300" : "bg-zinc-200 text-zinc-600"
                       )}>
                         <Music className="h-2.5 w-2.5" /> Audio
                       </span>
@@ -277,7 +277,7 @@ function ProviderCard({
                     {model.capabilities?.supportsVideo && (
                       <span className={cn(
                         "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px]",
-                        isDarkTheme ? "bg-green-900/50 text-green-300" : "bg-green-100 text-green-700"
+                        isDarkTheme ? "bg-zinc-700 text-zinc-300" : "bg-zinc-200 text-zinc-600"
                       )}>
                         <Video className="h-2.5 w-2.5" /> Video
                       </span>
@@ -398,8 +398,8 @@ function ProviderCard({
                 <span className={cn(
                   "inline-flex items-center gap-1 px-2 py-1 rounded text-xs border",
                   isDarkTheme
-                    ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                    : "bg-blue-50 border-blue-200 text-blue-700"
+                    ? "bg-zinc-700/50 border-zinc-600 text-zinc-300"
+                    : "bg-zinc-100 border-zinc-300 text-zinc-600"
                 )}>
                   <Image className="h-3 w-3" /> Images
                 </span>
@@ -408,8 +408,8 @@ function ProviderCard({
                 <span className={cn(
                   "inline-flex items-center gap-1 px-2 py-1 rounded text-xs border",
                   isDarkTheme
-                    ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                    : "bg-purple-50 border-purple-200 text-purple-700"
+                    ? "bg-zinc-700/50 border-zinc-600 text-zinc-300"
+                    : "bg-zinc-100 border-zinc-300 text-zinc-600"
                 )}>
                   <Music className="h-3 w-3" /> Audio
                 </span>
@@ -418,8 +418,8 @@ function ProviderCard({
                 <span className={cn(
                   "inline-flex items-center gap-1 px-2 py-1 rounded text-xs border",
                   isDarkTheme
-                    ? "bg-green-500/10 border-green-500/20 text-green-400"
-                    : "bg-green-50 border-green-200 text-green-700"
+                    ? "bg-zinc-700/50 border-zinc-600 text-zinc-300"
+                    : "bg-zinc-100 border-zinc-300 text-zinc-600"
                 )}>
                   <Video className="h-3 w-3" /> Video
                 </span>
@@ -527,8 +527,8 @@ export function CustomModelsSection({ isDarkTheme = false }: { isDarkTheme?: boo
         )}
       >
         <p className={cn("text-xs", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-          <strong>Note:</strong> API keys are stored locally in your browser and never sent to our
-          servers. Custom models will appear in the model selector when the provider is enabled.
+          <strong>Note:</strong> API keys are stored locally in your computer.
+          Custom models will appear in the model selector when the provider is enabled.
         </p>
       </div>
     </div>

@@ -8,9 +8,8 @@
  */
 
 // Components
-export { 
+export {
   TextSelectionPopup,
-  TextSelection,
   TextSelectionInput,
   TextSelectionOutput
 } from './components'

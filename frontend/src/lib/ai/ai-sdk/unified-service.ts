@@ -287,7 +287,8 @@ export class AISDKUnifiedService {
         // Check if provider is configured
         if (!isProviderConfigured(providerId)) {
             throw new Error(
-                `${selectedModel.provider} API key not configured. Please add VITE_${selectedModel.provider.toUpperCase()}_API_KEY to your .env file.`
+                // `${selectedModel.provider} API key not configured. Please add VITE_${selectedModel.provider.toUpperCase()}_API_KEY to your .env file.`
+                `SorryComing Soon!`
             );
         }
 
@@ -395,7 +396,7 @@ export class AISDKUnifiedService {
     async generateImages(prompt: string, modelName?: string): Promise<string[]> {
         try {
             console.log(`[AISDKUnifiedService] Generating images with prompt: "${prompt.slice(0, 50)}..."`);
-            
+
             // Use the Replicate image generation function
             const result = await replicateGenerateImages({
                 prompt,
@@ -403,7 +404,7 @@ export class AISDKUnifiedService {
             });
 
             console.log(`[AISDKUnifiedService] Generated ${result.images.length} images using ${result.model}`);
-            
+
             return result.images;
         } catch (error) {
             console.error('[AISDKUnifiedService] Image generation failed:', error);
@@ -480,7 +481,7 @@ export class AISDKUnifiedService {
             model: selectedModel.displayName,
             message: isConfigured
                 ? `${selectedModel.provider} API is configured and ready!`
-                : `${selectedModel.provider} API key not configured. Please add the appropriate API key to your .env file.`,
+                : `Sorry, I could not get a response right now. Coming Soon!`,
         };
     }
 

@@ -6,6 +6,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    outline: none;
+    border-radius: 50%;
+    user-select: none;
 }
 
 /* Inner glowing core (less solid, more energy-like) */
@@ -30,13 +33,14 @@
     width: 140px;
     height: 140px;
     border-radius: 50%;
-    /* Create dots using radial gradient - high contrast */
-    background-image: radial-gradient(circle, #FFFF00 2.5px, transparent 3px);
-    background-size: 20px 20px;
+    /* Create dots using radial gradient - high quality glow */
+    background-image: radial-gradient(circle, rgba(255, 255, 240, 0.9) 1px, rgba(255, 215, 0, 0.8) 2.5px, transparent 3.5px);
+    background-size: 24px 24px;
     /* Spacing between dots */
     transform-style: preserve-3d;
-    filter: drop-shadow(0 0 2px rgba(255, 165, 0, 0.5));
+    filter: drop-shadow(0 0 3px rgba(255, 180, 0, 0.6));
     /* Add shadow to individual particles */
+    will-change: transform;
 }
 
 .shell-1 {
@@ -82,31 +86,43 @@
 
 @keyframes rotate-shell-1 {
     0% {
-        transform: rotate3d(1, 1, 1, 0deg);
+        transform: rotate3d(1, 1, 1, 0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate3d(1, 1, 1, 180deg) scale(1.05);
     }
 
     100% {
-        transform: rotate3d(1, 1, 1, 360deg);
+        transform: rotate3d(1, 1, 1, 360deg) scale(1);
     }
 }
 
 @keyframes rotate-shell-2 {
     0% {
-        transform: rotate3d(1, -1, 0, 0deg);
+        transform: rotate3d(1, -1, 0, 0deg) scale(0.95);
+    }
+
+    50% {
+        transform: rotate3d(1, -1, 0, 180deg) scale(1.02);
     }
 
     100% {
-        transform: rotate3d(1, -1, 0, 360deg);
+        transform: rotate3d(1, -1, 0, 360deg) scale(0.95);
     }
 }
 
 @keyframes rotate-shell-3 {
     0% {
-        transform: rotate3d(0, 1, 0.5, 0deg);
+        transform: rotate3d(0, 1, 0.5, 0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate3d(0, 1, 0.5, 180deg) scale(0.95);
     }
 
     100% {
-        transform: rotate3d(0, 1, 0.5, 360deg);
+        transform: rotate3d(0, 1, 0.5, 360deg) scale(1);
     }
 }
 
@@ -118,8 +134,8 @@
 }
 
 .particle-shell.connected {
-    background-image: radial-gradient(circle, #00FFFF 2.5px, transparent 3px);
-    filter: drop-shadow(0 0 2px rgba(0, 100, 255, 0.5));
+    background-image: radial-gradient(circle, rgba(220, 255, 255, 0.9) 1px, #00FFFF 2.5px, transparent 3.5px);
+    filter: drop-shadow(0 0 3px rgba(0, 140, 255, 0.6));
 }
 
 /* Speaking State (Faster Pulse) */

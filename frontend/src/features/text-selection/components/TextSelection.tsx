@@ -1,5 +1,5 @@
 import * as React from "react"
-import { X, ArrowUp, Square } from "lucide-react"
+import { ArrowUp, Square } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
@@ -17,8 +17,7 @@ export interface TextSelectionInputProps {
   onClose: () => void
   /** Placeholder text */
   placeholder?: string
-  /** Whether the component is in loading state */
-  isLoading?: boolean
+
   /** Whether the generate button is in loading state */
   isGenerating?: boolean
   /** Maximum height for the textarea (in pixels) */
@@ -38,7 +37,7 @@ export function TextSelectionInput({
   onStop,
   onClose,
   placeholder = "Ask about this...",
-  isLoading: _isLoading = false,
+
   isGenerating = false,
   maxHeight = 100,
   minHeight = 10,
@@ -83,14 +82,11 @@ export function TextSelectionInput({
   return (
     <Card
       className={cn(
-        "relative gap-0 py-0 shadow-2xl",
-        "w-full max-w-md",
+        "relative gap-0 py-0 overflow-hidden",
+        "w-full max-w-md shadow-2xl",
         isDarkTheme ? "border-white/10" : "border-zinc-200/80",
         className,
       )}
-      style={{
-        backgroundColor: isDarkTheme ? "#09090b" : "oklch(0.98 0.00 0 / 1)"
-      }}
     >
       {/* Drag handle */}
       <div className="absolute top-0 left-0 right-0 h-1.5 flex justify-center items-center pointer-events-none">
@@ -99,23 +95,6 @@ export function TextSelectionInput({
           isDarkTheme ? "bg-white" : "bg-black"
         )} />
       </div>
-
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        className={cn(
-          "absolute -top-2 -right-2 z-10",
-          "flex h-6 w-6 items-center justify-center rounded-full",
-          "border transition-all duration-150",
-          "shadow-md hover:shadow-lg hover:scale-105",
-          isDarkTheme
-            ? "bg-zinc-800 hover:bg-zinc-700 border-zinc-600 text-zinc-400 hover:text-zinc-200"
-            : "bg-zinc-100 hover:bg-zinc-200 border-zinc-300 text-zinc-600 hover:text-zinc-800"
-        )}
-        aria-label="Close"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
 
       {/* Input area */}
       <div className="px-3 py-3">
@@ -128,7 +107,7 @@ export function TextSelectionInput({
           disabled={isGenerating}
           className={cn(
             "w-full resize-none bg-transparent text-sm leading-relaxed",
-            "focus:outline-none",
+            "focus:outline-none focus:ring-0",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             isDarkTheme
               ? "text-zinc-200 placeholder:text-zinc-500"
@@ -141,10 +120,19 @@ export function TextSelectionInput({
 
       {/* Actions bar */}
       <div className={cn(
-        "flex items-center justify-between gap-1 px-2 py-1",
-        isDarkTheme ? "border-white/5" : "border-zinc-200/50"
+        "flex items-center justify-between gap-1 px-2 py-1.5",
+        isDarkTheme ? "border-t border-white/5" : "border-t border-zinc-200/50"
       )}>
         <div className="flex items-center gap-1">
+          {isGenerating && (
+            <div className="flex items-center gap-2 px-2">
+              <div className="flex gap-1">
+                <span className="w-1 h-1 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1 h-1 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1 h-1 rounded-full bg-blue-500 animate-bounce" />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -155,16 +143,16 @@ export function TextSelectionInput({
               onClick={isGenerating ? onStop : onGenerate}
               disabled={!value.trim() && !isGenerating}
               className={cn(
-                "h-7 w-7 p-0 rounded-full transition-all duration-200",
+                "h-8 w-8 p-0 rounded-full transition-all duration-300",
                 isGenerating
-                  ? "bg-blue-500/20 hover:bg-blue-500/40 text-blue-500"
+                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
                   : value.trim()
                     ? isDarkTheme
-                      ? "bg-purple-500 hover:bg-purple-400 text-white shadow-md hover:scale-105"
-                      : "bg-purple-600 hover:bg-purple-500 text-white shadow-md hover:scale-105"
+                      ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:scale-110 active:scale-95"
+                      : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 hover:scale-110 active:scale-95"
                     : isDarkTheme
-                      ? "bg-zinc-700 text-zinc-500"
-                      : "bg-zinc-200 text-zinc-400"
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                      : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
               )}
               aria-label={isGenerating ? "Stop" : "Generate"}
             >
@@ -181,5 +169,5 @@ export function TextSelectionInput({
   )
 }
 
-// Also export as TextSelection for backward compatibility
-export { TextSelectionInput as TextSelection }
+
+

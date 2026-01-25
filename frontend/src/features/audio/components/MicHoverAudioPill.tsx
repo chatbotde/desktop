@@ -44,6 +44,7 @@ export function MicHoverAudioPill({
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [showTranscription, setShowTranscription] = useState(false)
+    const [isAssistantVisible, setIsAssistantVisible] = useState(false)
     const transcriptionContainerRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -249,6 +250,13 @@ export function MicHoverAudioPill({
         }
     }, [])
 
+    // Sync assistant visibility state
+    useEffect(() => {
+        const handleVisibilityToggle = () => setIsAssistantVisible(prev => !prev)
+        window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle)
+        return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle)
+    }, [])
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -383,9 +391,11 @@ export function MicHoverAudioPill({
                                     onClick={() => window.dispatchEvent(new CustomEvent('toggle-assistant-visibility'))}
                                     className={cn(
                                         "h-8 w-8 rounded-full transition-all duration-200",
-                                        isDarkTheme
-                                            ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
-                                            : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900"
+                                        isAssistantVisible
+                                            ? "bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_12px_rgba(37,99,235,0.4)]"
+                                            : (isDarkTheme
+                                                ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                                : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900")
                                     )}
                                     variant="ghost"
                                     size="icon"
