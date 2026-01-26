@@ -1,9 +1,35 @@
 /**
- * MCP Client Types
+ * Legacy MCP Types
  * 
- * Type definitions for Model Context Protocol client
+ * Re-exports for backwards compatibility with old code
+ * @deprecated Use imports from '@/lib/mcp' instead
  */
 
+export {
+  type MCPTool,
+  type MCPResource,
+  type MCPPrompt,
+  type MCPConnectionStatus,
+  type MCPCallToolResult,
+  type MCPListResourcesResult,
+  type MCPReadResourceResult,
+  type MCPListPromptsResult,
+  type MCPGetPromptResult,
+  type MCPClientEvent,
+  type MCPClientEventListener,
+} from './core/types';
+
+// Map old MCPServerConfig to new format for compatibility
+import type {
+  MCPServerConfig as NewMCPServerConfig,
+  StdioTransportConfig,
+  HttpTransportConfig,
+  SSETransportConfig,
+} from './core/types';
+
+/**
+ * @deprecated Use the new MCPServerConfig from './core/types'
+ */
 export interface MCPServerConfig {
   /** Server name/identifier */
   name: string;
@@ -23,84 +49,38 @@ export interface MCPServerConfig {
   timeout?: number;
 }
 
-export interface MCPTool {
-  name: string;
-  description?: string;
-  inputSchema: {
-    type: string;
-    properties?: Record<string, any>;
-    required?: string[];
+/**
+ * Convert legacy config to new format
+ */
+export function convertLegacyConfig(legacy: MCPServerConfig): NewMCPServerConfig {
+  let transport: StdioTransportConfig | HttpTransportConfig | SSETransportConfig;
+
+  if (legacy.transport === 'stdio') {
+    transport = {
+      type: 'stdio',
+      command: legacy.command || '',
+      args: legacy.args,
+    };
+  } else if (legacy.transport === 'http') {
+    transport = {
+      type: 'http',
+      url: legacy.url || '',
+      headers: legacy.headers,
+    };
+  } else {
+    transport = {
+      type: 'sse',
+      url: legacy.url || '',
+      headers: legacy.headers,
+    };
+  }
+
+  return {
+    id: legacy.name,
+    name: legacy.name,
+    transport,
+    auth: { type: 'none' },
+    env: legacy.env,
+    timeout: legacy.timeout,
   };
 }
-
-export interface MCPResource {
-  uri: string;
-  name: string;
-  description?: string;
-  mimeType?: string;
-}
-
-export interface MCPPrompt {
-  name: string;
-  description?: string;
-  arguments?: Array<{
-    name: string;
-    description?: string;
-    required?: boolean;
-  }>;
-}
-
-export interface MCPConnectionStatus {
-  connected: boolean;
-  serverName?: string;
-  capabilities?: {
-    tools?: boolean;
-    resources?: boolean;
-    prompts?: boolean;
-  };
-  error?: string;
-}
-
-export interface MCPCallToolResult {
-  content: Array<{
-    type: 'text' | 'image' | 'resource';
-    text?: string;
-    data?: string;
-    mimeType?: string;
-    uri?: string;
-  }>;
-  isError?: boolean;
-}
-
-export interface MCPListResourcesResult {
-  resources: MCPResource[];
-}
-
-export interface MCPReadResourceResult {
-  contents: Array<{
-    uri: string;
-    mimeType?: string;
-    text?: string;
-    blob?: string;
-  }>;
-}
-
-export interface MCPListPromptsResult {
-  prompts: MCPPrompt[];
-}
-
-export interface MCPGetPromptResult {
-  messages: Array<{
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-  }>;
-}
-
-export type MCPClientEvent = 
-  | { type: 'connected'; serverName: string }
-  | { type: 'disconnected'; reason?: string }
-  | { type: 'error'; error: Error }
-  | { type: 'tool-call'; toolName: string; result: MCPCallToolResult };
-
-export type MCPClientEventListener = (event: MCPClientEvent) => void;
-

@@ -6,6 +6,7 @@ import {
   Palette,
   ChartBarIncreasing,
   Key,
+  Plug,
   type LucideIcon,
 } from "lucide-react"
 
@@ -16,6 +17,7 @@ export type SettingsSectionId =
   | "local-llm"
   | "model-profiles"
   | "custom-models"
+  | "integrations"
   | "blocking"
   | "features"
 
@@ -32,6 +34,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "local-llm", label: "Local AI", icon: Bot },
   { id: "model-profiles", label: "Model Profiles", icon: Palette },
   { id: "custom-models", label: "Custom Models", icon: Key },
+  { id: "integrations", label: "Integrations", icon: Plug },
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
 ]

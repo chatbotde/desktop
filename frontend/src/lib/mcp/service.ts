@@ -1,12 +1,13 @@
 /**
- * MCP Service
+ * Legacy MCP Service
  * 
- * Service layer for managing MCP client connections
+ * Wrapper for backwards compatibility with old service interface
+ * @deprecated Use mcpClientManager from '@/lib/mcp' instead
  */
 
 import { MCPClient } from './client';
+import type { MCPServerConfig } from './types';
 import type {
-  MCPServerConfig,
   MCPConnectionStatus,
   MCPTool,
   MCPCallToolResult,
@@ -15,21 +16,20 @@ import type {
   MCPListPromptsResult,
   MCPGetPromptResult,
   MCPClientEventListener,
-} from './types';
+} from './core/types';
 
+/**
+ * @deprecated Use mcpClientManager instead
+ */
 export class MCPService {
   private clients: Map<string, MCPClient> = new Map();
 
-  /**
-   * Create and connect to an MCP server
-   */
   async connect(config: MCPServerConfig): Promise<MCPClient> {
     if (this.clients.has(config.name)) {
       const existing = this.clients.get(config.name)!;
       if (existing.isConnected()) {
         return existing;
       }
-      // Disconnect and remove disconnected client
       try {
         await existing.disconnect();
       } catch (error) {
@@ -44,9 +44,6 @@ export class MCPService {
     return client;
   }
 
-  /**
-   * Disconnect from an MCP server
-   */
   async disconnect(serverName: string): Promise<void> {
     const client = this.clients.get(serverName);
     if (client) {
@@ -55,9 +52,6 @@ export class MCPService {
     }
   }
 
-  /**
-   * Disconnect from all servers
-   */
   async disconnectAll(): Promise<void> {
     const disconnectPromises = Array.from(this.clients.keys()).map((name) =>
       this.disconnect(name).catch((error) => {
@@ -67,23 +61,14 @@ export class MCPService {
     await Promise.all(disconnectPromises);
   }
 
-  /**
-   * Get a client by server name
-   */
   getClient(serverName: string): MCPClient | undefined {
     return this.clients.get(serverName);
   }
 
-  /**
-   * Get all connected clients
-   */
   getConnectedClients(): MCPClient[] {
     return Array.from(this.clients.values()).filter((client) => client.isConnected());
   }
 
-  /**
-   * Get connection status for all servers
-   */
   getStatuses(): Record<string, MCPConnectionStatus> {
     const statuses: Record<string, MCPConnectionStatus> = {};
     this.clients.forEach((client, name) => {
@@ -92,9 +77,6 @@ export class MCPService {
     return statuses;
   }
 
-  /**
-   * List all tools from all connected servers
-   */
   async listAllTools(): Promise<Record<string, MCPTool[]>> {
     const allTools: Record<string, MCPTool[]> = {};
     const connectedClients = this.getConnectedClients();
@@ -116,9 +98,6 @@ export class MCPService {
     return allTools;
   }
 
-  /**
-   * Call a tool on a specific server
-   */
   async callTool(
     serverName: string,
     toolName: string,
@@ -134,9 +113,6 @@ export class MCPService {
     return client.callTool(toolName, arguments_);
   }
 
-  /**
-   * List resources from a specific server
-   */
   async listResources(serverName: string, uri?: string): Promise<MCPListResourcesResult> {
     const client = this.clients.get(serverName);
     if (!client) {
@@ -148,9 +124,6 @@ export class MCPService {
     return client.listResources(uri);
   }
 
-  /**
-   * Read a resource from a specific server
-   */
   async readResource(serverName: string, uri: string): Promise<MCPReadResourceResult> {
     const client = this.clients.get(serverName);
     if (!client) {
@@ -162,9 +135,6 @@ export class MCPService {
     return client.readResource(uri);
   }
 
-  /**
-   * List prompts from a specific server
-   */
   async listPrompts(serverName: string): Promise<MCPListPromptsResult> {
     const client = this.clients.get(serverName);
     if (!client) {
@@ -176,9 +146,6 @@ export class MCPService {
     return client.listPrompts();
   }
 
-  /**
-   * Get a prompt from a specific server
-   */
   async getPrompt(
     serverName: string,
     promptName: string,
@@ -194,9 +161,6 @@ export class MCPService {
     return client.getPrompt(promptName, arguments_);
   }
 
-  /**
-   * Add event listener to a specific server
-   */
   on(serverName: string, event: 'event', listener: MCPClientEventListener): void {
     const client = this.clients.get(serverName);
     if (client) {
@@ -204,9 +168,6 @@ export class MCPService {
     }
   }
 
-  /**
-   * Remove event listener from a specific server
-   */
   off(serverName: string, event: 'event', listener: MCPClientEventListener): void {
     const client = this.clients.get(serverName);
     if (client) {
@@ -217,4 +178,3 @@ export class MCPService {
 
 // Singleton instance
 export const mcpService = new MCPService();
-

@@ -1,51 +1,55 @@
 /**
- * MCP (Model Context Protocol) Client Module
+ * MCP - Model Context Protocol Client Library
  * 
- * Provides client functionality to connect to MCP servers and interact with
- * tools, resources, and prompts.
+ * A comprehensive MCP client implementation supporting:
+ * - Multiple transport types (stdio, SSE, WebSocket, HTTP)
+ * - Multiple authentication methods (API key, OAuth2, Bearer token, Basic)
+ * - Secure credential storage
+ * - Multiple server management
+ * - Server templates for easy setup
  * 
  * @example
  * ```typescript
- * import { mcpService } from '@/lib/mcp';
+ * import { mcpClientManager, createServerFromTemplate } from '@/lib/mcp';
  * 
- * // Connect to an MCP server
- * const client = await mcpService.connect({
- *   name: 'my-server',
- *   transport: 'stdio',
- *   command: 'npx',
- *   args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/directory'],
+ * // Create a server from template
+ * const config = createServerFromTemplate('filesystem', {
+ *   path: '/path/to/directory',
  * });
  * 
- * // List available tools
+ * // Connect to the server
+ * const client = await mcpClientManager.connect(config);
+ * 
+ * // List tools
  * const tools = await client.listTools();
  * 
  * // Call a tool
- * const result = await client.callTool('read_file', { path: '/path/to/file.txt' });
- * 
- * // Disconnect
- * await mcpService.disconnect('my-server');
+ * const result = await client.callTool('read_file', { path: '/file.txt' });
  * ```
  */
 
-// Export types
-export type {
-  MCPServerConfig,
-  MCPConnectionStatus,
-  MCPTool,
-  MCPResource,
-  MCPPrompt,
-  MCPCallToolResult,
-  MCPListResourcesResult,
-  MCPReadResourceResult,
-  MCPListPromptsResult,
-  MCPGetPromptResult,
-  MCPClientEvent,
-  MCPClientEventListener,
-} from './types';
+// Core types and constants
+export * from './core/types';
+export * from './core/constants';
 
-// Export client
-export { MCPClient } from './client';
+// Transports
+export * from './transports';
 
-// Export service
-export { MCPService, mcpService } from './service';
+// Authentication
+export * from './auth';
 
+// Storage
+export * from './storage';
+
+// Clients
+export * from './clients';
+
+// Utilities
+export * from './utils';
+
+// Convenience re-exports for common usage
+export { mcpClientManager } from './clients/manager';
+export { mcpCredentialStorage } from './storage/credentials';
+export { mcpServerConfigStorage } from './storage/servers';
+export { createServerFromTemplate, getAvailableTemplates } from './utils/server-factory';
+export { MCP_SERVER_TEMPLATES } from './core/constants';

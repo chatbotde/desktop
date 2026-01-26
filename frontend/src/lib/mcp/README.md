@@ -1,232 +1,260 @@
-# MCP Client
+# MCP Client Library
 
-Model Context Protocol (MCP) client implementation for connecting to MCP servers and interacting with tools, resources, and prompts.
+A comprehensive Model Context Protocol (MCP) client implementation for connecting to various MCP servers like Notion, Slack, GitHub, and more.
 
-## Installation
+## 📁 Folder Structure
 
-The MCP SDK is already installed as a dependency. If you need to reinstall:
-
-```bash
-npm install @modelcontextprotocol/sdk --legacy-peer-deps
+```
+mcp/
+├── core/                    # Core types and constants
+│   ├── types.ts            # All TypeScript interfaces
+│   ├── constants.ts        # Default values and server templates
+│   └── index.ts
+│
+├── transports/             # Transport implementations
+│   ├── base.ts             # Base transport interface
+│   ├── stdio.ts            # Stdio transport (local servers)
+│   ├── sse.ts              # SSE transport (remote servers)
+│   ├── websocket.ts        # WebSocket transport (real-time)
+│   └── index.ts
+│
+├── auth/                   # Authentication providers
+│   ├── base.ts             # Base auth interface
+│   ├── api-key.ts          # API key authentication
+│   ├── oauth2.ts           # OAuth 2.0 flow
+│   ├── bearer-token.ts     # Bearer token auth
+│   ├── basic.ts            # HTTP Basic auth
+│   ├── factory.ts          # Auth provider factory
+│   └── index.ts
+│
+├── storage/                # Credential & config storage
+│   ├── credentials.ts      # Secure credential storage
+│   ├── servers.ts          # Server config storage
+│   └── index.ts
+│
+├── clients/                # MCP client implementations
+│   ├── unified-client.ts   # Single server client
+│   ├── manager.ts          # Multi-server manager
+│   └── index.ts
+│
+├── utils/                  # Utility functions
+│   ├── server-factory.ts   # Create servers from templates
+│   ├── helpers.ts          # General utilities
+│   └── index.ts
+│
+└── index.ts               # Main exports
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### Basic Connection
+### Connect to a Template Server
 
 ```typescript
-import { mcpService } from '@/lib/mcp';
+import { mcpClientManager, createServerFromTemplate } from '@/lib/mcp';
 
-// Connect to an MCP server using stdio transport
-const client = await mcpService.connect({
-  name: 'filesystem-server',
-  transport: 'stdio',
-  command: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/directory'],
+// Create a filesystem server
+const config = createServerFromTemplate('filesystem', {
+  path: 'C:/Users/Documents',
 });
 
-// Check connection status
-const status = client.getStatus();
-console.log('Connected:', status.connected);
-```
+// Connect
+const client = await mcpClientManager.connect(config);
 
-### List and Use Tools
-
-```typescript
-// List available tools
+// Use tools
 const tools = await client.listTools();
-console.log('Available tools:', tools);
+const result = await client.callTool('read_file', { path: './readme.txt' });
+```
 
-// Call a tool
-const result = await client.callTool('read_file', {
-  path: '/path/to/file.txt',
+### Connect to Slack
+
+```typescript
+import { mcpClientManager, createServerFromTemplate } from '@/lib/mcp';
+
+const config = createServerFromTemplate('slack', {
+  env: {
+    SLACK_BOT_TOKEN: 'xoxb-your-token',
+    SLACK_TEAM_ID: 'T01234567',
+  },
 });
 
-console.log('Tool result:', result.content);
+const client = await mcpClientManager.connect(config);
+const tools = await client.listTools();
 ```
 
-### Work with Resources
+### Connect to Notion
 
 ```typescript
-// List available resources
-const resources = await mcpService.listResources('filesystem-server');
-console.log('Resources:', resources.resources);
+import { mcpClientManager, createServerFromTemplate } from '@/lib/mcp';
 
-// Read a resource
-const resource = await mcpService.readResource('filesystem-server', 'file:///path/to/file.txt');
-console.log('Resource content:', resource.contents);
-```
-
-### Use Prompts
-
-```typescript
-// List available prompts
-const prompts = await mcpService.listPrompts('filesystem-server');
-console.log('Prompts:', prompts.prompts);
-
-// Get a prompt
-const prompt = await mcpService.getPrompt('filesystem-server', 'summarize', {
-  file: '/path/to/file.txt',
+const config = createServerFromTemplate('notion', {
+  env: {
+    NOTION_API_KEY: 'secret_xxx',
+  },
 });
-console.log('Prompt messages:', prompt.messages);
+
+const client = await mcpClientManager.connect(config);
 ```
 
-### Event Handling
+### Connect to GitHub
 
 ```typescript
-// Listen to client events
-client.on('event', (event) => {
+import { mcpClientManager, createServerFromTemplate } from '@/lib/mcp';
+
+const config = createServerFromTemplate('github', {
+  env: {
+    GITHUB_PERSONAL_ACCESS_TOKEN: 'ghp_xxx',
+  },
+});
+
+const client = await mcpClientManager.connect(config);
+```
+
+## 🔌 Supported Transports
+
+| Transport | Description | Use Case |
+|-----------|-------------|----------|
+| `stdio` | Child process communication | Local MCP servers |
+| `sse` | Server-Sent Events | Remote servers with streaming |
+| `websocket` | WebSocket connection | Real-time bidirectional |
+| `http` | HTTP requests | Simple remote servers |
+
+## 🔐 Authentication Types
+
+| Auth Type | Description | Example Services |
+|-----------|-------------|------------------|
+| `none` | No authentication | Local filesystem |
+| `api_key` | API key in header | Notion, Brave Search |
+| `oauth2` | OAuth 2.0 flow | Google Drive, Slack |
+| `bearer_token` | Bearer token | GitHub |
+| `basic` | Username/password | Some databases |
+
+## 📦 Available Server Templates
+
+| Template | Service | Auth Required |
+|----------|---------|---------------|
+| `filesystem` | Local files | No |
+| `slack` | Slack | SLACK_BOT_TOKEN, SLACK_TEAM_ID |
+| `github` | GitHub | GITHUB_PERSONAL_ACCESS_TOKEN |
+| `gdrive` | Google Drive | OAuth2 |
+| `braveSearch` | Brave Search | BRAVE_API_KEY |
+| `postgres` | PostgreSQL | POSTGRES_CONNECTION_STRING |
+| `memory` | AI Memory | No |
+| `puppeteer` | Web Browser | No |
+| `notion` | Notion | NOTION_API_KEY |
+| `discord` | Discord | DISCORD_BOT_TOKEN |
+
+## 🛠️ Custom Server Configuration
+
+```typescript
+import { mcpClientManager, type MCPServerConfig } from '@/lib/mcp';
+
+const customServer: MCPServerConfig = {
+  id: 'my-custom-server',
+  name: 'My Custom Server',
+  description: 'A custom MCP server',
+  category: 'custom',
+  transport: {
+    type: 'stdio',
+    command: 'node',
+    args: ['./my-server.js'],
+  },
+  auth: {
+    type: 'api_key',
+    key: 'my-api-key',
+  },
+  env: {
+    CUSTOM_VAR: 'value',
+  },
+};
+
+const client = await mcpClientManager.connect(customServer);
+```
+
+## 📝 API Reference
+
+### MCPClientManager
+
+- `connect(config)` - Connect to a server
+- `disconnect(serverId)` - Disconnect from a server
+- `disconnectAll()` - Disconnect all servers
+- `getClient(serverId)` - Get a client instance
+- `getConnectedClients()` - Get all connected clients
+- `listAllTools()` - List tools from all servers
+- `callTool(serverId, toolName, args)` - Call a tool
+- `listResources(serverId)` - List resources
+- `readResource(serverId, uri)` - Read a resource
+- `listPrompts(serverId)` - List prompts
+- `getPrompt(serverId, name, args)` - Get a prompt
+
+### MCPUnifiedClient
+
+- `connect()` - Connect to the server
+- `disconnect()` - Disconnect
+- `listTools()` - List available tools
+- `callTool(name, args)` - Call a tool
+- `listResources()` - List resources
+- `readResource(uri)` - Read a resource
+- `listPrompts()` - List prompts
+- `getPrompt(name, args)` - Get a prompt
+- `getStatus()` - Get connection status
+
+### Storage
+
+- `mcpServerConfigStorage.addServer(config)` - Add a server
+- `mcpServerConfigStorage.getServers()` - Get all servers
+- `mcpServerConfigStorage.deleteServer(id)` - Delete a server
+- `mcpCredentialStorage.saveServerCredentials(id, auth)` - Save credentials
+
+## 🎯 Events
+
+```typescript
+mcpClientManager.on((event) => {
   switch (event.type) {
+    case 'connecting':
+      console.log(`Connecting to ${event.serverId}`);
+      break;
     case 'connected':
       console.log(`Connected to ${event.serverName}`);
       break;
     case 'disconnected':
-      console.log('Disconnected:', event.reason);
+      console.log(`Disconnected: ${event.reason}`);
       break;
     case 'error':
-      console.error('Error:', event.error);
+      console.error(`Error:`, event.error);
       break;
     case 'tool-call':
-      console.log(`Tool ${event.toolName} called:`, event.result);
+      console.log(`Tool ${event.toolName} called`);
       break;
   }
 });
 ```
 
-### Disconnect
+## 🔧 Adding New Server Types
 
+1. Add template to `core/constants.ts`:
 ```typescript
-// Disconnect from a specific server
-await mcpService.disconnect('filesystem-server');
-
-// Or disconnect all servers
-await mcpService.disconnectAll();
-```
-
-## Server Configuration
-
-### Stdio Transport
-
-```typescript
-const config: MCPServerConfig = {
-  name: 'my-server',
-  transport: 'stdio',
-  command: 'node',
-  args: ['server.js'],
-  env: {
-    NODE_ENV: 'production',
+export const MCP_SERVER_TEMPLATES = {
+  // ... existing templates
+  myNewServer: {
+    id: 'my-new-server',
+    name: 'My New Server',
+    description: 'Description here',
+    icon: '🆕',
+    category: 'custom' as const,
+    transport: {
+      type: 'stdio' as const,
+      command: 'npx',
+      args: ['-y', 'my-server-package'],
+    },
+    auth: { type: 'api_key' as const },
+    requiredEnvVars: ['MY_API_KEY'],
   },
 };
 ```
 
-### HTTP/SSE Transport (Not yet implemented)
-
-HTTP and SSE transports are planned for future implementation.
-
-## Service API
-
-The `mcpService` singleton provides a convenient way to manage multiple MCP server connections:
-
-- `connect(config)` - Connect to a server
-- `disconnect(name)` - Disconnect from a server
-- `disconnectAll()` - Disconnect from all servers
-- `getClient(name)` - Get a client instance
-- `getConnectedClients()` - Get all connected clients
-- `getStatuses()` - Get status for all servers
-- `listAllTools()` - List tools from all servers
-- `callTool(serverName, toolName, args)` - Call a tool on a specific server
-- `listResources(serverName, uri?)` - List resources
-- `readResource(serverName, uri)` - Read a resource
-- `listPrompts(serverName)` - List prompts
-- `getPrompt(serverName, promptName, args?)` - Get a prompt
-
-## Types
-
-All types are exported from `@/lib/mcp`:
-
-- `MCPServerConfig` - Server configuration
-- `MCPConnectionStatus` - Connection status
-- `MCPTool` - Tool definition
-- `MCPResource` - Resource definition
-- `MCPPrompt` - Prompt definition
-- `MCPCallToolResult` - Tool call result
-- `MCPClientEvent` - Client event types
-
-## Examples
-
-### Example: File System Server
-
+2. Use it:
 ```typescript
-import { mcpService } from '@/lib/mcp';
-
-// Connect to filesystem MCP server
-const client = await mcpService.connect({
-  name: 'fs-server',
-  transport: 'stdio',
-  command: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-filesystem', process.cwd()],
-});
-
-// List files in a directory
-const tools = await client.listTools();
-const readFileTool = tools.find(t => t.name === 'read_file');
-
-if (readFileTool) {
-  const result = await client.callTool('read_file', {
-    path: './package.json',
-  });
-  console.log('File content:', result.content[0].text);
-}
-```
-
-### Example: Multiple Servers
-
-```typescript
-import { mcpService } from '@/lib/mcp';
-
-// Connect to multiple servers
-await mcpService.connect({
-  name: 'server1',
-  transport: 'stdio',
-  command: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-filesystem', '/path1'],
-});
-
-await mcpService.connect({
-  name: 'server2',
-  transport: 'stdio',
-  command: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-filesystem', '/path2'],
-});
-
-// List all tools from all servers
-const allTools = await mcpService.listAllTools();
-console.log('All tools:', allTools);
-
-// Call a tool on a specific server
-const result = await mcpService.callTool('server1', 'read_file', {
-  path: '/path1/file.txt',
+const config = createServerFromTemplate('myNewServer', {
+  env: { MY_API_KEY: 'xxx' },
 });
 ```
-
-## Error Handling
-
-Always wrap MCP operations in try-catch blocks:
-
-```typescript
-try {
-  const client = await mcpService.connect(config);
-  const result = await client.callTool('tool_name', {});
-} catch (error) {
-  console.error('MCP error:', error);
-  // Handle error appropriately
-}
-```
-
-## Notes
-
-- The client automatically handles connection initialization when `connect()` is called
-- The client supports automatic reconnection (up to 3 attempts by default)
-- All operations are asynchronous and return Promises
-- The service maintains a singleton instance for managing multiple connections
-
