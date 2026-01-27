@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import './assistant-sphere.css';
+import { VoiceSphere } from './assistant-sphere';
 import { useLiveAssistant } from './use-live-assistant';
 
-interface AssistantSphereProps {
-    isVisible?: boolean;
-}
-
-export const AssistantSphere: React.FC<AssistantSphereProps> = () => {
+export const AssistantSphere = () => {
     const [isVisible, setIsVisible] = useState(false);
-    const { connect, disconnect, connected, isSpeaking } = useLiveAssistant();
+    const { connect, disconnect, connected, isSpeaking, volume } = useLiveAssistant();
 
     useEffect(() => {
         const handleVisibilityToggle = () => setIsVisible(prev => !prev);
@@ -34,22 +30,19 @@ export const AssistantSphere: React.FC<AssistantSphereProps> = () => {
         }
     };
 
-    const coreClass = `sphere-core ${connected ? 'connected' : ''} ${isSpeaking ? 'speaking' : ''}`;
-    const shellClass = `particle-shell ${connected ? 'connected' : ''}`;
-
     return (
         <motion.div
-            className="assistant-sphere-container cursor-pointer active:cursor-grabbing"
+            className="relative w-[150px] h-[150px] flex justify-center items-center cursor-pointer"
             drag
             dragMomentum={false}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleToggle}
         >
-            <div className={coreClass}></div>
-            <div className={`${shellClass} shell-1`}></div>
-            <div className={`${shellClass} shell-2`}></div>
-            <div className={`${shellClass} shell-3`}></div>
+            <VoiceSphere
+                isActive={connected}
+                volume={isSpeaking ? (volume ?? 0.5) : 0}
+                onClick={handleToggle}
+            />
         </motion.div>
     );
 };
