@@ -360,7 +360,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
         <canvas
             ref={canvasRef}
             onClick={onClick}
-            className="w-full h-full cursor-pointer touch-none"
+            className="w-full h-full cursor-pointer touch-none outline-none"
             style={{
                 filter: isActive
                     ? 'drop-shadow(0 0 25px rgba(14, 165, 233, 0.5))'

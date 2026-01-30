@@ -14,7 +14,7 @@ export function DynamicFeatureList() {
   }
 
   return (
-    <div 
+    <div
       className="space-y-4"
       data-no-clickthrough
     >

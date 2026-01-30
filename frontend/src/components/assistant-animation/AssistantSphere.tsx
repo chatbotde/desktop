@@ -32,7 +32,7 @@ export const AssistantSphere = () => {
 
     return (
         <motion.div
-            className="relative w-[150px] h-[150px] flex justify-center items-center cursor-pointer"
+            className="relative w-[150px] h-[150px] flex justify-center items-center cursor-pointer outline-none"
             drag
             dragMomentum={false}
             whileHover={{ scale: 1.05 }}

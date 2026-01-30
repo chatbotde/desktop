@@ -14,6 +14,13 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      '/api/tts': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/tts/, '/tts'),
+      },
+    },
   },
   // Load environment variables from both current directory and parent directory
   envDir: path.resolve(__dirname, '..'),

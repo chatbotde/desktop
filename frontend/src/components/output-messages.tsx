@@ -153,7 +153,7 @@ export function OutputMessages({
                     style={{ height: 'calc(100%-30px)', backgroundColor: themeClasses.contentBg }}
                 >
                     {messages.length === 0 ? (
-                        <p className={themeClasses.emptyText}>Welcome to future</p>
+                        <p className={themeClasses.emptyText}>Welcome</p>
                     ) : (
                         <div className="w-full space-y-6 flex flex-col">
                             {messages.map((msg) => (

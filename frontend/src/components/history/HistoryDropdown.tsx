@@ -1,6 +1,6 @@
 
 import { motion, AnimatePresence } from 'motion/react'
-import { Search, Trash2 } from 'lucide-react'
+import { Search, Trash2, CloudOff } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -32,7 +32,8 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
 
             return {
                 ...item,
-                date: dateStr
+                date: dateStr,
+                syncStatus: item.syncStatus
             }
         })
         .filter(item =>
@@ -102,7 +103,7 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
                     </div>
 
                     {/* List */}
-                    <div 
+                    <div
                         className="overflow-y-auto py-1 custom-scrollbar"
                         style={{ maxHeight: `${maxVisibleHeight}px` }}
                     >
@@ -135,8 +136,13 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
                                     <span className={getThemeClasses(isDark, {
                                         dark: "text-zinc-600 group-hover:text-zinc-500",
                                         light: "text-zinc-500 group-hover:text-zinc-600"
-                                    }, "text-[10px] whitespace-nowrap pr-1")}>
+                                    }, "text-[10px] whitespace-nowrap pr-1 flex items-center gap-1")}>
                                         {item.date}
+                                        {item.syncStatus === 'pending' && (
+                                            <span title="Saved locally (pending sync)" className="flex items-center">
+                                                <CloudOff className="w-2.5 h-2.5 opacity-70" />
+                                            </span>
+                                        )}
                                     </span>
 
                                     {/* Hover Actions */}

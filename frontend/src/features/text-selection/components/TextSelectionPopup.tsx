@@ -5,6 +5,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
 import { AddToPromptButton } from '@/components/add-button'
+import { ReadButton } from '@/components/read-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
@@ -38,11 +39,14 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
   const { isFeatureEnabled } = useFeature()
 
   const popupRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const stopRef = useRef(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const nextTimeRef = useRef<number>(0)
 
   const stopAutoHide = useCallback(() => {
     if (timerRef.current) {
@@ -53,13 +57,21 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
   const startAutoHide = useCallback(() => {
     stopAutoHide()
-    // Only auto-hide if not expanded or generating
-    if (!isExpanded && !isGenerating) {
+    // Only auto-hide if not expanded or generating or playing
+    if (!isExpanded && !isGenerating && !isPlaying) {
       timerRef.current = setTimeout(() => {
         setIsVisible(false)
       }, 6000) // 6 seconds
     }
-  }, [isExpanded, isGenerating, stopAutoHide])
+  }, [isExpanded, isGenerating, isPlaying, stopAutoHide])
+
+  const handleStopAudio = useCallback(() => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => { })
+      audioContextRef.current = null
+    }
+    setIsPlaying(false)
+  }, [])
 
   const handleClose = useCallback(() => {
     setIsVisible(false)
@@ -68,7 +80,130 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     setIsGenerating(false)
     setGeneratedOutput(null)
     stopAutoHide()
-  }, [stopAutoHide])
+    handleStopAudio()
+  }, [stopAutoHide, handleStopAudio])
+
+  const handleRead = useCallback(async () => {
+    if (isPlaying) {
+      handleStopAudio()
+      return
+    }
+
+    if (!selectionData?.text?.trim()) return
+
+    setIsPlaying(true)
+    // extend auto-hide while playing/loading
+    stopAutoHide()
+
+    try {
+      const formData = new FormData()
+      formData.append('text', selectionData.text)
+
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok || !response.body) {
+        throw new Error('TTS Service request failed')
+      }
+
+      const reader = response.body.getReader()
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      audioContextRef.current = new AudioContextClass({ latencyHint: 'interactive' })
+      const ctx = audioContextRef.current
+
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      nextTimeRef.current = ctx.currentTime + 0.1
+
+      let headerRead = false
+      let leftoverBytes: Uint8Array | null = null
+      let sampleRate = 24000
+
+      while (true) {
+        if (!audioContextRef.current) break
+
+        const { done, value } = await reader.read()
+        if (done) break
+
+        let chunk = value || new Uint8Array(0)
+
+        if (leftoverBytes) {
+          const newChunk = new Uint8Array(leftoverBytes.length + chunk.length)
+          newChunk.set(leftoverBytes)
+          newChunk.set(chunk, leftoverBytes.length)
+          chunk = newChunk
+          leftoverBytes = null
+        }
+
+        let dataOffset = 0
+
+        if (!headerRead) {
+          if (chunk.length < 44) {
+            leftoverBytes = chunk
+            continue
+          }
+
+          const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength)
+          sampleRate = view.getUint32(24, true)
+          // console.log("Streaming TTS: Detected sample rate:", sampleRate)
+
+          headerRead = true
+          dataOffset = 44
+        }
+
+        const bytesToProcess = chunk.length - dataOffset
+        const excessBytes = bytesToProcess % 2
+        if (excessBytes > 0) {
+          leftoverBytes = chunk.slice(chunk.length - excessBytes)
+          chunk = chunk.slice(0, chunk.length - excessBytes)
+        }
+
+        if (chunk.length <= dataOffset) continue;
+
+        const int16Data = new Int16Array(chunk.buffer, chunk.byteOffset + dataOffset, (chunk.length - dataOffset) / 2)
+        const float32Data = new Float32Array(int16Data.length)
+
+        for (let i = 0; i < int16Data.length; i++) {
+          float32Data[i] = int16Data[i] / 32768.0
+        }
+
+        const audioBuffer = ctx.createBuffer(1, float32Data.length, sampleRate)
+        audioBuffer.getChannelData(0).set(float32Data)
+
+        const source = ctx.createBufferSource()
+        source.buffer = audioBuffer
+        source.connect(ctx.destination)
+
+        let startTime = nextTimeRef.current
+        if (startTime < ctx.currentTime) startTime = ctx.currentTime
+        source.start(startTime)
+
+        nextTimeRef.current = startTime + audioBuffer.duration
+      }
+
+      if (audioContextRef.current) {
+        const remaining = nextTimeRef.current - ctx.currentTime
+        if (remaining > 0) {
+          await new Promise(r => setTimeout(r, remaining * 1000))
+        }
+      }
+
+    } catch (error) {
+      console.error('TTS Streaming Error:', error)
+    } finally {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => { })
+        audioContextRef.current = null
+      }
+      setIsPlaying(false)
+      startAutoHide()
+    }
+  }, [selectionData, isPlaying, handleStopAudio, stopAutoHide, startAutoHide])
 
   const handleStop = useCallback(() => {
     stopRef.current = true
@@ -77,6 +212,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
   useEffect(() => {
     if (!isFeatureEnabled('text-selection')) {
       setIsVisible(false)
+      handleStopAudio()
       return
     }
 
@@ -85,12 +221,13 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       if (!data?.text?.trim()) {
         setIsVisible(false)
+        handleStopAudio()
         return
       }
 
       // 1. Deciding position BEFORE appearing
       // Pill dimensions are roughly fixed: ~150x40
-      const PILL_WIDTH = 150
+      const PILL_WIDTH = 190 // Increased for new button
       const PILL_HEIGHT = 40
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
@@ -130,6 +267,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       setPrompt('')
       setIsExpanded(false)
       setPosition({ top: finalTop, left: finalLeft })
+      handleStopAudio()
 
       // Finally, set visible
       setIsVisible(true)
@@ -149,8 +287,10 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
         window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
       }
       stopAutoHide()
+      handleStopAudio()
     }
-  }, [isFeatureEnabled, stopAutoHide])
+  }, [isFeatureEnabled, stopAutoHide, handleStopAudio])
+
 
   // Only update position smoothly when state changes significantly (like expanding)
   React.useLayoutEffect(() => {
@@ -359,6 +499,15 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                     <AddToPromptButton
                       onClick={handleAddToPromptSelection}
                       isDarkTheme={isDarkTheme}
+                    />
+                    <div className={cn(
+                      "w-px h-4 mx-0.5",
+                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
+                    )} />
+                    <ReadButton
+                      onClick={handleRead}
+                      isDarkTheme={isDarkTheme}
+                      isLoading={isPlaying}
                     />
                     <div className={cn(
                       "w-px h-4 mx-0.5",

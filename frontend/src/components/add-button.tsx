@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export type AddButtonSize = "xs" | "sm" | "md" | "lg"
 export type AddButtonVariant = "default" | "ghost" | "outline" | "primary"
 
-interface AddButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
+export interface AddButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'> {
     /** Size of the button */
     size?: AddButtonSize
     /** Visual variant of the button */
