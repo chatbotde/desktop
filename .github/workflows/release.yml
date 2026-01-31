@@ -56,5 +56,6 @@ jobs:
           name: Release ${{ github.ref_name }}
           files: dist/*.exe
           generate_release_notes: true
+          target_commitish: main
         env:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
