@@ -39,7 +39,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           npm run build:all
-          npx electron-builder --win
+          npx electron-builder --win --publish never
 
       - name: List build output
         if: matrix.os == 'windows-latest'

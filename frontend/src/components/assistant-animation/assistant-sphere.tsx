@@ -182,7 +182,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
         }
 
         // --- Animation Loop ---
-        const timer = d3.timer((elapsed) => {
+        const timer = d3.timer((elapsed: number) => {
             time = elapsed * 0.0005;
 
             // 1. Physics Smoothing (using ref to avoid stutter)
