@@ -17,9 +17,7 @@ import {
     Loader2,
     ChevronRight,
     Sparkles,
-    FileText,
     Database,
-    Search,
 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -68,7 +66,6 @@ interface IntegrationCardProps {
 }
 
 function IntegrationCard({
-    id,
     name,
     description,
     icon,

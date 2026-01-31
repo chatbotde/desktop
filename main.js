@@ -14,7 +14,7 @@ const { ProtocolHandler } = require('./interface-window/dist/protocol-handler');
 // CRITICAL: Set App User Model ID BEFORE any windows are created
 // This is required for Windows to properly associate the app with its icon
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.sonicthinking.buddy');
+  app.setAppUserModelId('com.sonicthinking.sonicthinking');
 }
 
 // Register custom protocol schemes BEFORE app is ready

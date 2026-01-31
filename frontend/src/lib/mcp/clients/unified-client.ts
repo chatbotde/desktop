@@ -18,7 +18,7 @@ import type {
     MCPClientEventListener,
     MCPServerCapabilities,
 } from '../core/types';
-import { DEFAULT_TIMEOUT, DEFAULT_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_DELAY } from '../core/constants';
+import { DEFAULT_RECONNECT_ATTEMPTS, DEFAULT_RECONNECT_DELAY } from '../core/constants';
 import { StdioTransport } from '../transports/stdio';
 import { SSETransport } from '../transports/sse';
 import { WebSocketTransport } from '../transports/websocket';

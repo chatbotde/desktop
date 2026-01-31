@@ -66,7 +66,7 @@ class Application {
    */
   async initialize() {
     // Set app ID
-    this.lifecycle.setAppId('com.sonicthinking.buddy');
+    this.lifecycle.setAppId('com.sonicthinking.sonicthinking');
 
     // Initialize auth system
     await this.authHandler.initialize();

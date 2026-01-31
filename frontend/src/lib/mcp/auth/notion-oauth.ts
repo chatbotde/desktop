@@ -29,7 +29,7 @@ export interface NotionOAuthConfig extends Omit<OAuth2Config, 'authorizationUrl'
     clientId: string;
     clientSecret: string;
     redirectUri: string;
-    scopes?: string[]; // Notion doesn't use scopes in the same way
+    scopes: string[]; // Notion doesn't use scopes in the same way
     accessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
@@ -73,8 +73,6 @@ export class NotionOAuthProvider extends OAuth2AuthProvider {
         super(fullConfig);
         this.notionConfig = {
             ...config,
-            authorizationUrl: NOTION_OAUTH_CONFIG.authorizationUrl,
-            tokenUrl: NOTION_OAUTH_CONFIG.tokenUrl,
             scopes: [],
         };
     }

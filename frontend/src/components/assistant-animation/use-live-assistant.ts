@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
 import { getProviderConfig } from '@/lib/settings/custom-providers';
+import { TOOLS_CONFIG } from './assistant-tools';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -130,6 +131,7 @@ export const useLiveAssistant = () => {
             const config = {
                 responseModalities: [Modality.AUDIO],
                 systemInstruction: { parts: [{ text: LIVE_ASSISTANT_PROMPT }] },
+                tools: TOOLS_CONFIG,
             };
 
             const session = await client.live.connect({
@@ -141,12 +143,88 @@ export const useLiveAssistant = () => {
                         setConnected(true);
                         connectingRef.current = false;
                     },
-                    onmessage: (message: any) => {
+                    onmessage: async (message: any) => {
                         if (message.serverContent?.modelTurn?.parts) {
                             for (const part of message.serverContent.modelTurn.parts) {
                                 if (part.inlineData?.data) {
                                     playAudioChunk(part.inlineData.data);
                                 }
+                            }
+                        }
+
+                        if (message.toolCall) {
+                            console.log('Received tool call:', message.toolCall);
+                            const functionCalls = message.toolCall.functionCalls;
+                            const responses = [];
+
+                            for (const call of functionCalls) {
+                                if (call.name === 'take_screenshot') {
+                                    try {
+                                        // @ts-ignore
+                                        if (window.CaptureAPI) {
+                                            // @ts-ignore
+                                            const result = await window.CaptureAPI.quickScreenshot();
+                                            if (result.success && result.screenshot) {
+                                                console.log('Screenshot captured, sending to model...');
+
+                                                try {
+                                                    const imageData = result.screenshot.data;
+                                                    // Strip base64 header if present
+                                                    const base64Data = imageData.includes('base64,') ? imageData.split('base64,')[1] : imageData;
+                                                    const mimeType = result.screenshot.type || 'image/png';
+
+                                                    console.log(`Sending image data (length: ${base64Data.length}) via sendRealtimeInput`);
+
+                                                    // Use sendRealtimeInput for visual context (treated as video frames/media chunks)
+                                                    session.sendRealtimeInput({
+                                                        media: {
+                                                            mimeType,
+                                                            data: base64Data
+                                                        }
+                                                    });
+
+                                                    responses.push({
+                                                        name: call.name,
+                                                        response: { result: "Screenshot captured and sent to context successfully." },
+                                                        id: call.id
+                                                    });
+                                                } catch (sendError) {
+                                                    console.error('Error sending screenshot to model:', sendError);
+                                                    responses.push({
+                                                        name: call.name,
+                                                        response: { error: `Failed to send screenshot: ${sendError}` },
+                                                        id: call.id
+                                                    });
+                                                }
+                                            } else {
+                                                console.error('Screenshot failed:', result.error);
+                                                responses.push({
+                                                    name: call.name,
+                                                    response: { error: `Failed to take screenshot: ${result.error}` },
+                                                    id: call.id
+                                                });
+                                            }
+                                        } else {
+                                            console.error('CaptureAPI not available');
+                                            responses.push({
+                                                name: call.name,
+                                                response: { error: "Screen capture capability is not available on this device." },
+                                                id: call.id
+                                            });
+                                        }
+                                    } catch (err) {
+                                        console.error('Error executing screenshot tool:', err);
+                                        responses.push({
+                                            name: call.name,
+                                            response: { error: `Internal error: ${err}` },
+                                            id: call.id
+                                        });
+                                    }
+                                }
+                            }
+
+                            if (responses.length > 0) {
+                                session.sendToolResponse({ functionResponses: responses });
                             }
                         }
                     },

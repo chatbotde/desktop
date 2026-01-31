@@ -14,7 +14,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
     "build:utils": "tsc -p tsconfig.json",
-    "build:all": "npm run build:utils && npm run build && node build-frontend.js",
+    "build:interface": "cd interface-window && npm run build",
+    "build:all": "npm run build:utils && npm run build:interface && npm run build && node build-frontend.js",
     "dist": "npm run build:all && electron-builder",
     "dist:win": "npm run build:all && electron-builder --win",
     "dist:mac": "npm run build:all && electron-builder --mac",
@@ -104,8 +105,7 @@
         }
       ],
       "icon": "icons/icon.ico",
-      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
-      "signAndEditExecutable": false
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
