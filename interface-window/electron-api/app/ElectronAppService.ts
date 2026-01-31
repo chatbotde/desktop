@@ -42,7 +42,7 @@ export class ElectronAppService implements IAppService {
 
     // Hardware
     public disableHardwareAcceleration(): void { app.disableHardwareAcceleration(); }
-    public isHardwareAccelerationEnabled(): boolean { return app.isHardwareAccelerationEnabled(); }
+    // public isHardwareAccelerationEnabled(): boolean { return app.isHardwareAccelerationEnabled(); }
     public disableDomainBlockingFor3DAPIs(): void { app.disableDomainBlockingFor3DAPIs(); }
     public getAppMetrics(): Electron.ProcessMetric[] { return app.getAppMetrics(); }
     public getGPUFeatureStatus(): Electron.GPUFeatureStatus { return app.getGPUFeatureStatus(); }
@@ -70,8 +70,8 @@ export class ElectronAppService implements IAppService {
     public getLoginItemSettings(options?: { path?: string; args?: string[] }): Electron.LoginItemSettings { return app.getLoginItemSettings(options); }
     public isAccessibilitySupportEnabled(): boolean { return app.isAccessibilitySupportEnabled(); }
     public setAccessibilitySupportEnabled(enabled: boolean): void { app.setAccessibilitySupportEnabled(enabled); }
-    public getAccessibilitySupportFeatures(): string[] { return app.getAccessibilitySupportFeatures(); }
-    public setAccessibilitySupportFeatures(features: string[]): void { app.setAccessibilitySupportFeatures(features); }
+    // public getAccessibilitySupportFeatures(): string[] { return app.getAccessibilitySupportFeatures(); }
+    // public setAccessibilitySupportFeatures(features: string[]): void { app.setAccessibilitySupportFeatures(features); }
     public isSecureKeyboardEntryEnabled(): boolean { return app.isSecureKeyboardEntryEnabled(); }
     public setSecureKeyboardEntryEnabled(enabled: boolean): void { app.setSecureKeyboardEntryEnabled(enabled); }
     public enableSandbox(): void { app.enableSandbox(); }

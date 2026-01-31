@@ -64,7 +64,7 @@ export class ElectronWebFrameMain implements IWebFrameMain {
     }
     get frameTreeNodeId(): number { return this.frame.frameTreeNodeId; }
     get name(): string { return this.frame.name; }
-    get frameToken(): string { return this.frame.frameToken; }
+    // get frameToken(): string { return this.frame.frameToken; }
     get osProcessId(): number { return this.frame.osProcessId; }
     get processId(): number { return this.frame.processId; }
     get routingId(): number { return this.frame.routingId; }
@@ -119,8 +119,8 @@ export class ElectronWebFrameMainService implements IWebFrameMainService {
         return frame ? new ElectronWebFrameMain(frame) : undefined;
     }
 
-    fromFrameToken(processId: number, frameToken: string): IWebFrameMain | null {
-        const frame = webFrameMain.fromFrameToken(processId, frameToken);
-        return frame ? new ElectronWebFrameMain(frame) : null;
-    }
+    // fromFrameToken(processId: number, frameToken: string): IWebFrameMain | null {
+    //     const frame = webFrameMain.fromFrameToken(processId, frameToken);
+    //     return frame ? new ElectronWebFrameMain(frame) : null;
+    // }
 }

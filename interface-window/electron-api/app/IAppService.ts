@@ -42,7 +42,6 @@ export interface IAppSingleInstance {
 
 export interface IAppHardware {
     disableHardwareAcceleration(): void;
-    isHardwareAccelerationEnabled(): boolean;
     disableDomainBlockingFor3DAPIs(): void;
     getAppMetrics(): Electron.ProcessMetric[];
     getGPUFeatureStatus(): Electron.GPUFeatureStatus;
@@ -74,8 +73,7 @@ export interface IAppAccess {
     getLoginItemSettings(options?: { path?: string; args?: string[] }): Electron.LoginItemSettings;
     isAccessibilitySupportEnabled(): boolean;
     setAccessibilitySupportEnabled(enabled: boolean): void;
-    getAccessibilitySupportFeatures(): string[];
-    setAccessibilitySupportFeatures(features: string[]): void;
+    // getAccessibilitySupportFeatures/setAccessibilitySupportFeatures removed as they are not in Electron types
     isSecureKeyboardEntryEnabled(): boolean;
     setSecureKeyboardEntryEnabled(enabled: boolean): void;
     enableSandbox(): void;

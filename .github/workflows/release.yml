@@ -1,3 +1,5 @@
+# Builds the Electron app on tag push and uploads installers to chatbotde/buddy-releases (public).
+# Required: In this repo add secret RELEASES_REPO_TOKEN (PAT with repo scope) — see README or docs.
 name: Build and Release
 
 on:
@@ -13,11 +15,11 @@ jobs:
   release:
     name: Build & Release
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [windows-latest]
-    
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -33,36 +35,26 @@ jobs:
           npm install --ignore-scripts
           cd frontend && npm install --legacy-peer-deps
 
-      # Linux specific dependencies for electron-builder (common requirement)
-      - name: Install Linux Dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libicns-utils graphicsmagick 
-
-      # Build & Publish for Windows
-      - name: Build & Publish (Windows)
+      - name: Build (Windows) - no publish to private repo
         if: matrix.os == 'windows-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run build:all
-          npx electron-builder --win --publish always
+          npx electron-builder --win
 
-      # Build & Publish for macOS
-      - name: Build & Publish (macOS)
-        if: matrix.os == 'macos-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm run build:all
-          npx electron-builder --mac --publish always
+      - name: List build output
+        if: matrix.os == 'windows-latest'
+        run: dir dist
+        shell: pwsh
 
-      # Build & Publish for Linux
-      - name: Build & Publish (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Upload to public releases repo
+        if: matrix.os == 'windows-latest' && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.RELEASES_REPO_TOKEN }}
+          repository: chatbotde/buddy-releases
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: dist/*.exe
+          generate_release_notes: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm run build:all
-          npx electron-builder --linux --publish always
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}

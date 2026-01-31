@@ -14,7 +14,7 @@ export interface IWebFrameMain {
     readonly framesInSubtree: IWebFrameMain[];
     readonly frameTreeNodeId: number;
     readonly name: string;
-    readonly frameToken: string;
+    // readonly frameToken: string;
     readonly osProcessId: number;
     readonly processId: number;
     readonly routingId: number;
@@ -38,5 +38,5 @@ export interface IWebFrameMain {
 
 export interface IWebFrameMainService {
     fromId(processId: number, routingId: number): IWebFrameMain | undefined;
-    fromFrameToken(processId: number, frameToken: string): IWebFrameMain | null;
+    // fromFrameToken(processId: number, frameToken: string): IWebFrameMain | null;
 }

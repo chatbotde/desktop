@@ -145,7 +145,7 @@ export class ElectronBaseWindow implements IBaseWindow {
     setThumbnailClip(region: Electron.Rectangle): void { this.win.setThumbnailClip(region); }
     setThumbnailToolTip(toolTip: string): void { this.win.setThumbnailToolTip(toolTip); }
     setAppDetails(options: { appId?: string; appIconPath?: string; appIconIndex?: number; relaunchCommand?: string; relaunchDisplayName?: string }): void { this.win.setAppDetails(options); }
-    setAccentColor(accentColor: boolean | string | null): void { this.win.setAccentColor(accentColor); }
+    setAccentColor(accentColor: boolean | string | null): void { this.win.setAccentColor(accentColor as any); }
     getAccentColor(): string | boolean { return this.win.getAccentColor(); }
     setIcon(icon: Electron.NativeImage | string): void { this.win.setIcon(icon); }
     setWindowButtonVisibility(visible: boolean): void { this.win.setWindowButtonVisibility(visible); }
