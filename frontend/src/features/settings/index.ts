@@ -8,7 +8,7 @@
  */
 
 // Components
-export { 
+export {
   SettingsModal,
   SettingsSidebar,
   SettingsCard
@@ -27,6 +27,7 @@ export {
   BlockingSection,
   LocalLLMSection,
   ModelProfileListSection,
-  CustomModelsSection
+  CustomModelsSection,
+  HelpSection
 } from './sections'
 export type { PersonalizationValues } from './sections'

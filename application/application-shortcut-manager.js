@@ -25,6 +25,17 @@ class ApplicationShortcutManager {
       () => this.toggleInterfaceWindow(),
       'Toggle interface window'
     );
+
+    // Ctrl+H - Quit application
+    this.shortcutRegistry.register(
+      'CommandOrControl+H',
+      () => {
+        const { app } = require('electron');
+        console.log('Shortcut: Ctrl+H pressed - Quitting app');
+        app.exit(0);
+      },
+      'Quit application'
+    );
   }
 
   /**

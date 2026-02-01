@@ -19,7 +19,8 @@ import {
   ModelProfileListSection,
   CustomModelsSection,
   BlockingSection,
-  FeaturesSection
+  FeaturesSection,
+  HelpSection
 } from "../sections"
 
 type SettingsCardProps = {
@@ -135,6 +136,8 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 
             {activeSection === "features" && <FeaturesSection />}
+
+            {activeSection === "help" && <HelpSection isDarkTheme={isDark} />}
           </div>
         </div>
       </div>

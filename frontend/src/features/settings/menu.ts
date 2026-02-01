@@ -7,6 +7,7 @@ import {
   ChartBarIncreasing,
   Key,
   Plug,
+  CircleHelp,
   type LucideIcon,
 } from "lucide-react"
 
@@ -20,6 +21,7 @@ export type SettingsSectionId =
   | "integrations"
   | "blocking"
   | "features"
+  | "help"
 
 export type SettingsMenuItem = {
   id: SettingsSectionId
@@ -37,4 +39,5 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
+  { id: "help", label: "Help", icon: CircleHelp },
 ]

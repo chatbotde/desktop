@@ -11,3 +11,5 @@ export { LocalLLMSection } from './LocalLLMSection'
 export { ModelProfileListSection } from './ModelProfileListSection'
 export { CustomModelsSection } from './CustomModelsSection'
 export { IntegrationsSection } from './IntegrationsSection'
+export { HelpSection } from './HelpSection'
+
