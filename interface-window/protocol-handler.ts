@@ -27,28 +27,35 @@ export class ProtocolHandler {
       // In packaged app, need to handle ASAR packaging
       const appPath = app.getAppPath();
 
-      // Check if we're running from an ASAR archive
-      if (appPath.includes('.asar')) {
-        // When packed in ASAR, app.getAppPath() returns path to app.asar
-        // We need to go up to the parent directory (resources) then to app.asar.unpacked
-        const asarPath = appPath.replace(/\.asar$/, '.asar.unpacked');
-        this.frontendDistPath = path.join(asarPath, 'app-frontend');
+      // Try multiple possible locations for app-frontend
+      const possiblePaths = [];
 
-        // If .asar.unpacked doesn't exist, try the regular path
-        if (!fs.existsSync(this.frontendDistPath)) {
-          // Try relative to the parent of .asar file
-          const parentDir = path.dirname(appPath);
-          this.frontendDistPath = path.join(parentDir, 'app-frontend');
-
-          // If still not found, try in the app.asar itself
-          if (!fs.existsSync(this.frontendDistPath)) {
-            this.frontendDistPath = path.join(appPath, 'app-frontend');
-          }
-        }
-      } else {
-        // Not in ASAR, use direct path
-        this.frontendDistPath = path.join(appPath, 'app-frontend');
+      // 1. Try in resources directory (most common for unpacked files)
+      if (process.resourcesPath) {
+        possiblePaths.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'app-frontend'));
+        possiblePaths.push(path.join(process.resourcesPath, 'app-frontend'));
       }
+
+      // 2. Try ASAR unpacked path
+      if (appPath.includes('.asar')) {
+        const asarPath = appPath.replace(/\.asar$/, '.asar.unpacked');
+        possiblePaths.push(path.join(asarPath, 'app-frontend'));
+      }
+
+      // 3. Try parent directory of ASAR
+      if (appPath.includes('.asar')) {
+        const parentDir = path.dirname(appPath);
+        possiblePaths.push(path.join(parentDir, 'app-frontend'));
+      }
+
+      // 4. Try in the app path itself
+      possiblePaths.push(path.join(appPath, 'app-frontend'));
+
+      // Find the first path that exists
+      this.frontendDistPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+
+      console.log(`ProtocolHandler: Checked paths: ${JSON.stringify(possiblePaths, null, 2)}`);
+      console.log(`ProtocolHandler: Selected path: ${this.frontendDistPath}`);
     }
   }
 
@@ -76,15 +83,60 @@ export class ProtocolHandler {
    * Should be called when app is ready
    */
   setup(): void {
+    // Comprehensive debugging for production builds
+    console.log(`\n======= ProtocolHandler Setup Debug =======`);
+    console.log(`ProtocolHandler: app.isPackaged = ${app.isPackaged}`);
+    console.log(`ProtocolHandler: app.getAppPath() = ${app.getAppPath()}`);
+    console.log(`ProtocolHandler: __dirname = ${__dirname}`);
+    console.log(`ProtocolHandler: process.resourcesPath = ${process.resourcesPath}`);
+    console.log(`ProtocolHandler: Final frontend path = ${this.frontendDistPath}`);
+
     // Verify the frontend path exists
     if (!fs.existsSync(this.frontendDistPath)) {
-      console.error(`ProtocolHandler: Frontend path does not exist: ${this.frontendDistPath}`);
-      console.error(`ProtocolHandler: app.isPackaged = ${app.isPackaged}`);
-      console.error(`ProtocolHandler: app.getAppPath() = ${app.getAppPath()}`);
-      console.error(`ProtocolHandler: __dirname = ${__dirname}`);
+      console.error(`\n!!! ERROR: Frontend path does not exist: ${this.frontendDistPath}`);
+
+      // List what's actually in the app directory
+      const appPath = app.getAppPath();
+      console.error(`\nListing contents of app path: ${appPath}`);
+      try {
+        const files = fs.readdirSync(appPath);
+        console.error(`Contents: ${JSON.stringify(files, null, 2)}`);
+      } catch (e) {
+        console.error(`Could not list app path: ${e}`);
+      }
+
+      // Check parent directory
+      const parentDir = path.dirname(appPath);
+      console.error(`\nListing contents of parent directory: ${parentDir}`);
+      try {
+        const files = fs.readdirSync(parentDir);
+        console.error(`Contents: ${JSON.stringify(files, null, 2)}`);
+      } catch (e) {
+        console.error(`Could not list parent directory: ${e}`);
+      }
+
+      // Check resources path if available
+      if (process.resourcesPath) {
+        console.error(`\nListing contents of resources path: ${process.resourcesPath}`);
+        try {
+          const files = fs.readdirSync(process.resourcesPath);
+          console.error(`Contents: ${JSON.stringify(files, null, 2)}`);
+        } catch (e) {
+          console.error(`Could not list resources path: ${e}`);
+        }
+      }
     } else {
-      console.log(`ProtocolHandler: Frontend path verified: ${this.frontendDistPath}`);
+      console.log(`✓ Frontend path verified: ${this.frontendDistPath}`);
+
+      // List what's in the frontend directory
+      try {
+        const files = fs.readdirSync(this.frontendDistPath);
+        console.log(`Frontend directory contents (${files.length} items): ${files.join(', ')}`);
+      } catch (e) {
+        console.error(`Could not list frontend directory: ${e}`);
+      }
     }
+    console.log(`===========================================\n`);
 
     protocol.handle(this.scheme, (request: Request) => {
       const url = new URL(request.url);

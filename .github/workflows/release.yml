@@ -69,6 +69,25 @@ jobs:
           }
         shell: pwsh
 
+      - name: Final verification before electron-builder
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "=== Final check before electron-builder ==="
+          echo "Current directory contents:"
+          ls -la
+          echo ""
+          echo "app-frontend directory check:"
+          if [ -d "app-frontend" ]; then
+            echo "✓ app-frontend exists"
+            echo "Contents:"
+            ls -la app-frontend/
+            echo "Total files: $(find app-frontend -type f | wc -l)"
+          else
+            echo "✗ app-frontend does NOT exist"
+            exit 1
+          fi
+        shell: bash
+
       - name: Build Electron App (Windows)
         if: matrix.os == 'windows-latest'
         run: npx electron-builder --win --publish never
@@ -78,6 +97,34 @@ jobs:
       - name: List build output
         if: matrix.os == 'windows-latest'
         run: dir dist
+        shell: pwsh
+
+      - name: Verify packaged app structure
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "=== Checking win-unpacked structure ==="
+          if (Test-Path "dist/win-unpacked") {
+            echo "Resources directory:"
+            Get-ChildItem "dist/win-unpacked/resources" | Format-Table Name, Length
+            
+            if (Test-Path "dist/win-unpacked/resources/app.asar") {
+              echo "`napp.asar found"
+            }
+            
+            if (Test-Path "dist/win-unpacked/resources/app.asar.unpacked") {
+              echo "`napp.asar.unpacked contents:"
+              Get-ChildItem "dist/win-unpacked/resources/app.asar.unpacked" -Recurse | Select-Object FullName | Format-Table -AutoSize
+            } else {
+              echo "`n✗ app.asar.unpacked does NOT exist!"
+            }
+            
+            if (Test-Path "dist/win-unpacked/resources/app-frontend") {
+              echo "`napp-frontend found in resources (unexpected location)"
+              Get-ChildItem "dist/win-unpacked/resources/app-frontend" | Format-Table Name, Length
+            }
+          } else {
+            echo "win-unpacked directory not found"
+          }
         shell: pwsh
 
       - name: Verify Token
