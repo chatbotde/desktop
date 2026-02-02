@@ -49,6 +49,12 @@ export class ProtocolHandler {
       // 3. Try in app path itself
       possiblePaths.push(path.join(appPath, 'app-frontend'));
 
+      // 4. Try relative path from __dirname (interface-window/dist)
+      possiblePaths.push(path.join(__dirname, '..', '..', 'app-frontend'));
+
+      // 5. Try resources directory in the app path
+      possiblePaths.push(path.join(appPath, 'resources', 'app-frontend'));
+
       // Find the first path that exists
       this.frontendDistPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
 

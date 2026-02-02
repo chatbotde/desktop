@@ -17,6 +17,7 @@
     "build:utils": "npx tsc -p tsconfig.json",
     "build:interface": "cd interface-window && npm run build",
     "build:all": "npm run build:utils && npm run build:interface && npm run build && node build-frontend.js",
+    "build:prod": "cross-env NODE_ENV=production npm run build:all",
     "dist": "npm run build:all && electron-builder",
     "dist:win": "npm run build:all && electron-builder --win",
     "dist:mac": "npm run build:all && electron-builder --mac",
