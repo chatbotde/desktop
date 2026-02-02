@@ -53,7 +53,6 @@
       "main.js",
       "*.js",
       "application/**/*",
-      "app-frontend/**/*",
       "startup/**/*",
       "utils/**/*",
       "interface-window/**/*",
@@ -65,6 +64,7 @@
       "!node_modules/**/test/**",
       "!node_modules/**/.bin/**",
       "!frontend/**",
+      "!app-frontend/**",
       "!build-frontend.js",
       "!**/*.md",
       "!**/.env",
@@ -82,8 +82,16 @@
       "!**/*.tsx",
       "!**/*.map"
     ],
+    "extraResources": [
+      {
+        "from": "app-frontend",
+        "to": "app-frontend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "asarUnpack": [
-      "app-frontend/**/*",
       "node_modules/selection-hook/**/*",
       "node_modules/**/*.node"
     ],

@@ -24,38 +24,37 @@ export class ProtocolHandler {
       // __dirname is interface-window/dist, go up 2 levels to project root, then to frontend/dist
       this.frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
     } else {
-      // In packaged app, need to handle ASAR packaging
-      const appPath = app.getAppPath();
-
-      // Try multiple possible locations for app-frontend
+      // In packaged app, extraResources are placed in process.resourcesPath
+      // Try multiple possible locations
       const possiblePaths = [];
 
-      // 1. Try in resources directory (most common for unpacked files)
+      // 1. extraResources location (most reliable)
       if (process.resourcesPath) {
-        possiblePaths.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'app-frontend'));
         possiblePaths.push(path.join(process.resourcesPath, 'app-frontend'));
       }
 
-      // 2. Try ASAR unpacked path
-      if (appPath.includes('.asar')) {
-        const asarPath = appPath.replace(/\.asar$/, '.asar.unpacked');
-        possiblePaths.push(path.join(asarPath, 'app-frontend'));
-      }
+      // 2. Fallback to app path locations
+      const appPath = app.getAppPath();
 
-      // 3. Try parent directory of ASAR
       if (appPath.includes('.asar')) {
+        // Try ASAR unpacked location
+        const asarUnpackedPath = appPath.replace(/\.asar$/, '.asar.unpacked');
+        possiblePaths.push(path.join(asarUnpackedPath, 'app-frontend'));
+
+        // Try parent of ASAR
         const parentDir = path.dirname(appPath);
         possiblePaths.push(path.join(parentDir, 'app-frontend'));
       }
 
-      // 4. Try in the app path itself
+      // 3. Try in app path itself
       possiblePaths.push(path.join(appPath, 'app-frontend'));
 
       // Find the first path that exists
       this.frontendDistPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
 
-      console.log(`ProtocolHandler: Checked paths: ${JSON.stringify(possiblePaths, null, 2)}`);
-      console.log(`ProtocolHandler: Selected path: ${this.frontendDistPath}`);
+      console.log(`ProtocolHandler Constructor: Checked paths: ${JSON.stringify(possiblePaths, null, 2)}`);
+      console.log(`ProtocolHandler Constructor: Selected path: ${this.frontendDistPath}`);
+      console.log(`ProtocolHandler Constructor: Path exists: ${fs.existsSync(this.frontendDistPath)}`);
     }
   }
 

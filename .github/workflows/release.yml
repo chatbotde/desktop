@@ -104,23 +104,30 @@ jobs:
         run: |
           echo "=== Checking win-unpacked structure ==="
           if (Test-Path "dist/win-unpacked") {
-            echo "Resources directory:"
+            echo "Resources directory contents:"
             Get-ChildItem "dist/win-unpacked/resources" | Format-Table Name, Length
             
-            if (Test-Path "dist/win-unpacked/resources/app.asar") {
-              echo "`napp.asar found"
-            }
-            
-            if (Test-Path "dist/win-unpacked/resources/app.asar.unpacked") {
-              echo "`napp.asar.unpacked contents:"
-              Get-ChildItem "dist/win-unpacked/resources/app.asar.unpacked" -Recurse | Select-Object FullName | Format-Table -AutoSize
-            } else {
-              echo "`n✗ app.asar.unpacked does NOT exist!"
-            }
-            
+            echo "`n=== Checking for app-frontend in resources (extraResources location) ==="
             if (Test-Path "dist/win-unpacked/resources/app-frontend") {
-              echo "`napp-frontend found in resources (unexpected location)"
-              Get-ChildItem "dist/win-unpacked/resources/app-frontend" | Format-Table Name, Length
+              echo "✓ app-frontend found in resources directory!"
+              $fileCount = (Get-ChildItem "dist/win-unpacked/resources/app-frontend" -Recurse -File).Count
+              echo "Total files in app-frontend: $fileCount"
+              Get-ChildItem "dist/win-unpacked/resources/app-frontend" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+            } else {
+              echo "✗ app-frontend NOT found in resources directory!"
+            }
+            
+            echo "`n=== Checking app.asar ==="
+            if (Test-Path "dist/win-unpacked/resources/app.asar") {
+              echo "✓ app.asar found"
+            }
+            
+            echo "`n=== Checking app.asar.unpacked ==="
+            if (Test-Path "dist/win-unpacked/resources/app.asar.unpacked") {
+              echo "app.asar.unpacked contents:"
+              Get-ChildItem "dist/win-unpacked/resources/app.asar.unpacked" | Format-Table Name
+            } else {
+              echo "app.asar.unpacked does not exist (not needed with extraResources)"
             }
           } else {
             echo "win-unpacked directory not found"
