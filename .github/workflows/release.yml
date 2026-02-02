@@ -32,8 +32,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm install
-          cd frontend && npm install --legacy-peer-deps
+          npm ci
+        shell: bash
+
+      - name: Install Frontend Dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: frontend
+
+      - name: Install Interface Window Dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: interface-window
 
       - name: Build (Windows) - no publish to private repo
         if: matrix.os == 'windows-latest'

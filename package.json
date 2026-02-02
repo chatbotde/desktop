@@ -14,7 +14,7 @@
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "build:utils": "tsc -p tsconfig.json",
+    "build:utils": "npx tsc -p tsconfig.json",
     "build:interface": "cd interface-window && npm run build",
     "build:all": "npm run build:utils && npm run build:interface && npm run build && node build-frontend.js",
     "dist": "npm run build:all && electron-builder",

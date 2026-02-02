@@ -4,10 +4,10 @@
   "description": "Interface window module for SonicThinking - TypeScript setup",
   "main": "interface-window.js",
   "scripts": {
-    "build": "tsc",
-    "build:dev": "tsc -p tsconfig.dev.json",
-    "dev": "tsc --watch -p tsconfig.dev.json",
-    "dev:watch": "tsc --watch",
+    "build": "npx tsc",
+    "build:dev": "npx tsc -p tsconfig.dev.json",
+    "dev": "npx tsc --watch -p tsconfig.dev.json",
+    "dev:watch": "npx tsc --watch",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
