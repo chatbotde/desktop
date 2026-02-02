@@ -83,10 +83,6 @@
       "!**/*.map"
     ],
     "asarUnpack": [
-      "node_modules/ffi-napi/**/*",
-      "node_modules/ref-napi/**/*",
-      "node_modules/ref-struct-napi/**/*",
-      "node_modules/ref-union-napi/**/*",
       "node_modules/selection-hook/**/*",
       "node_modules/**/*.node"
     ],
@@ -188,13 +184,9 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.1.0",
     "exa-js": "^2.0.11",
-    "ffi-napi": "^4.0.3",
     "grammy": "^1.39.3",
     "keytar": "^7.9.0",
     "mic": "^2.1.2",
-    "ref-napi": "^3.0.3",
-    "ref-struct-napi": "^1.1.1",
-    "ref-union-napi": "^1.0.2",
     "replicate": "^1.4.0",
     "selection-hook": "^1.0.12",
     "tesseract.js": "^5.1.1",
