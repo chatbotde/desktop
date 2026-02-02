@@ -24,8 +24,31 @@ export class ProtocolHandler {
       // __dirname is interface-window/dist, go up 2 levels to project root, then to frontend/dist
       this.frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
     } else {
-      // In packaged app, files are in app-frontend at the app root
-      this.frontendDistPath = path.join(app.getAppPath(), 'app-frontend');
+      // In packaged app, need to handle ASAR packaging
+      const appPath = app.getAppPath();
+
+      // Check if we're running from an ASAR archive
+      if (appPath.includes('.asar')) {
+        // When packed in ASAR, app.getAppPath() returns path to app.asar
+        // We need to go up to the parent directory (resources) then to app.asar.unpacked
+        const asarPath = appPath.replace(/\.asar$/, '.asar.unpacked');
+        this.frontendDistPath = path.join(asarPath, 'app-frontend');
+
+        // If .asar.unpacked doesn't exist, try the regular path
+        if (!fs.existsSync(this.frontendDistPath)) {
+          // Try relative to the parent of .asar file
+          const parentDir = path.dirname(appPath);
+          this.frontendDistPath = path.join(parentDir, 'app-frontend');
+
+          // If still not found, try in the app.asar itself
+          if (!fs.existsSync(this.frontendDistPath)) {
+            this.frontendDistPath = path.join(appPath, 'app-frontend');
+          }
+        }
+      } else {
+        // Not in ASAR, use direct path
+        this.frontendDistPath = path.join(appPath, 'app-frontend');
+      }
     }
   }
 
