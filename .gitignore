@@ -24,8 +24,7 @@ release/
 packages/
 
 # Package lock files (optional - you can choose to include these)
-package-lock.json
-frontend/package-lock.json
+
 yarn.lock
 pnpm-lock.yaml
 
