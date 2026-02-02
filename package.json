@@ -9,6 +9,7 @@
     "url": "https://github.com/sonicthinking/buddy.git"
   },
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "dev:frontend": "cd frontend && npm run dev",

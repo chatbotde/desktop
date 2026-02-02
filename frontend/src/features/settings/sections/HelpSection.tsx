@@ -1,5 +1,4 @@
 import { cn } from "@/shared/lib/utils"
-import { Command } from "lucide-react"
 
 interface HelpSectionProps {
     isDarkTheme?: boolean
