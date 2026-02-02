@@ -152,7 +152,7 @@ export class InterfaceWindow {
     // In development, load from Vite dev server
     // In production, use the custom protocol
     const isDev = !app.isPackaged;
-    const url = isDev ? 'http://localhost:5173' : 'buddy-app://frontend/index.html';
+    const url = isDev ? 'http://localhost:5173' : 'buddy-app://app/index.html';
 
     console.log(`InterfaceWindow: Loading URL ${url}`);
     this.window.loadURL(url);

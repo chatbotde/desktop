@@ -20,7 +20,7 @@ export class ProtocolHandler {
     // In development, use frontend/dist; in production, use app-frontend
     const isDev = !app.isPackaged;
     const basePath = app.isPackaged ? app.getAppPath() : __dirname;
-    
+
     if (isDev) {
       this.frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
     } else {
@@ -65,6 +65,7 @@ export class ProtocolHandler {
 
     protocol.handle(this.scheme, (request: Request) => {
       const url = new URL(request.url);
+      // url.pathname contains the path after hostname (e.g., buddy-app://app/index.html -> /index.html)
       let pathname = url.pathname;
 
       // Remove leading slash if present (Windows path compatibility)
@@ -72,18 +73,34 @@ export class ProtocolHandler {
         pathname = pathname.slice(1);
       }
 
-      // Default to index.html for root
-      if (!pathname || pathname === '/') {
+      // Default to index.html for root or empty path
+      if (!pathname || pathname === '' || pathname === '/') {
         pathname = 'index.html';
       }
 
       // Construct file path
       let filePath = path.join(this.frontendDistPath, pathname);
 
+      console.log(`ProtocolHandler: Request for ${request.url}`);
+      console.log(`ProtocolHandler: Resolved pathname: ${pathname}`);
+      console.log(`ProtocolHandler: Looking for file: ${filePath}`);
+
       // If file doesn't exist, fall back to index.html (SPA routing)
       if (!fs.existsSync(filePath)) {
         console.warn(`ProtocolHandler: File not found: ${filePath}, falling back to index.html`);
         filePath = path.join(this.frontendDistPath, 'index.html');
+
+        // Final check if even index.html doesn't exist
+        if (!fs.existsSync(filePath)) {
+          console.error(`ProtocolHandler: index.html not found at: ${filePath}`);
+          console.error(`ProtocolHandler: Listing files in frontendDistPath:`);
+          try {
+            const files = fs.readdirSync(this.frontendDistPath);
+            console.error(`ProtocolHandler: Files found: ${files.join(', ')}`);
+          } catch (e) {
+            console.error(`ProtocolHandler: Could not list directory: ${e}`);
+          }
+        }
       }
 
       return net.fetch(pathToFileURL(filePath).toString());
