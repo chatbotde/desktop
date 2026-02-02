@@ -35,6 +35,10 @@ jobs:
           npm ci
         shell: bash
 
+      - name: Rebuild Native Modules for Electron
+        run: npx electron-builder install-app-deps
+        shell: bash
+
       - name: Install Frontend Dependencies
         run: npm ci --legacy-peer-deps
         working-directory: frontend
@@ -48,6 +52,8 @@ jobs:
         run: |
           npm run build:all
           npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List build output
         if: matrix.os == 'windows-latest'
