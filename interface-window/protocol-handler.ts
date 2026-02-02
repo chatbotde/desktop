@@ -19,13 +19,13 @@ export class ProtocolHandler {
     this.scheme = scheme;
     // In development, use frontend/dist; in production, use app-frontend
     const isDev = !app.isPackaged;
-    const basePath = app.isPackaged ? app.getAppPath() : __dirname;
 
     if (isDev) {
-      this.frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+      // __dirname is interface-window/dist, go up 2 levels to project root, then to frontend/dist
+      this.frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
     } else {
-      // In packaged app, files are in app-frontend
-      this.frontendDistPath = path.join(basePath, 'app-frontend');
+      // In packaged app, files are in app-frontend at the app root
+      this.frontendDistPath = path.join(app.getAppPath(), 'app-frontend');
     }
   }
 
