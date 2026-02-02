@@ -376,12 +376,32 @@ export function setProviderApiKey(providerId: string, apiKey: string): void {
 }
 
 /**
- * Get API key for a provider (from config, env, or stored)
+ * Get API key for a provider (from config, custom providers, env, or stored)
  */
 export function getProviderApiKey(providerId: string): string | undefined {
     // Check manually configured keys first
     const configuredKey = configuredApiKeys.get(providerId);
     if (configuredKey) return configuredKey;
+
+    // Then check custom providers from localStorage (user-configured keys)
+    try {
+        const customProvidersJson = localStorage.getItem('custom-ai-providers');
+        if (customProvidersJson) {
+            const customProviders = JSON.parse(customProvidersJson);
+            // Map provider IDs to custom provider types
+            const providerMap: Record<string, string> = {
+                'google': 'google',
+                'openai': 'openai',
+                'anthropic': 'anthropic',
+            };
+            const customType = providerMap[providerId];
+            if (customType && customProviders[customType]?.enabled && customProviders[customType]?.apiKey) {
+                return customProviders[customType].apiKey;
+            }
+        }
+    } catch {
+        // Ignore localStorage errors
+    }
 
     // Then check environment variables
     const providerConfig = getProvider(providerId);

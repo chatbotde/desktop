@@ -31,8 +31,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: |
-          npm ci
+        run: npm ci
         shell: bash
 
       - name: Rebuild Native Modules for Electron
@@ -47,11 +46,32 @@ jobs:
         run: npm ci --legacy-peer-deps
         working-directory: interface-window
 
-      - name: Build (Windows) - no publish to private repo
+      - name: Build All Components
+        if: matrix.os == 'windows-latest'
+        run: npm run build:all
+        shell: bash
+
+      - name: Verify Frontend Build
         if: matrix.os == 'windows-latest'
         run: |
-          npm run build:all
-          npx electron-builder --win --publish never
+          echo "=== Checking app-frontend directory ==="
+          if (Test-Path "app-frontend") {
+            Get-ChildItem -Path "app-frontend" -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
+            $fileCount = (Get-ChildItem -Path "app-frontend" -Recurse -File).Count
+            echo "Total files in app-frontend: $fileCount"
+            if ($fileCount -eq 0) {
+              Write-Error "app-frontend is empty!"
+              exit 1
+            }
+          } else {
+            Write-Error "app-frontend directory does not exist!"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Build Electron App (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
