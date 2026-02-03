@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Using VITE_ prefix for Vite environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -9,4 +9,6 @@ if (!supabaseUrl || !supabaseKey) {
     console.warn('Supabase URL or Key is missing. Check your .env file.')
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseKey || '')
+export const supabase: SupabaseClient | null = (supabaseUrl && supabaseKey)
+    ? createClient(supabaseUrl, supabaseKey)
+    : null

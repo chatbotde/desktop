@@ -65,6 +65,8 @@ export function useChatHistory() {
             // However, Supabase upsert requires primary key constraint. 
             // Assuming 'id' is PK.
 
+            if (!supabase) return false
+
             const { error } = await supabase
                 .from('chat_history')
                 .upsert({
@@ -125,6 +127,11 @@ export function useChatHistory() {
         const userId = getUserId()
 
         try {
+            if (!supabase) {
+                setIsLoading(false)
+                return
+            }
+
             const { data, error } = await supabase
                 .from('chat_history')
                 .select('*')
@@ -188,6 +195,8 @@ export function useChatHistory() {
 
         // Try to sync immediately
         try {
+            if (!supabase) throw new Error("Supabase not configured")
+
             const { error } = await supabase
                 .from('chat_history')
                 .insert([
@@ -243,6 +252,8 @@ export function useChatHistory() {
             const updates: any = { messages, updatedAt: new Date().toISOString() }
             if (title) updates.title = title
 
+            if (!supabase) throw new Error("Supabase not configured")
+
             const { error } = await supabase
                 .from('chat_history')
                 .update(updates)
@@ -274,6 +285,8 @@ export function useChatHistory() {
         })
 
         try {
+            if (!supabase) throw new Error("Supabase not configured")
+
             const { error } = await supabase
                 .from('chat_history')
                 .delete()
@@ -309,6 +322,9 @@ export function useChatHistory() {
         syncPendingChanges()
 
         const userId = getUserId()
+
+        if (!supabase) return
+
         const channel = supabase
             .channel('chat_history_changes')
             .on(
@@ -329,7 +345,7 @@ export function useChatHistory() {
             .subscribe()
 
         return () => {
-            supabase.removeChannel(channel)
+            supabase?.removeChannel(channel)
         }
     }, [fetchHistory, syncPendingChanges])
 

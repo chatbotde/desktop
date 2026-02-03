@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 interface VoiceSphereProps {
     isActive: boolean;
     volume: number; // 0.0 to 1.0
+    level?: number;  // For visual intensity
     onClick?: () => void;
 }
 
@@ -18,10 +19,11 @@ interface Particle {
     randomOffset: number;
 }
 
-export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onClick }) => {
+export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, level = 0, onClick }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     // Use a ref for volume to access it inside the d3 timer without restarting the effect
     const volumeRef = useRef(volume);
+    const levelRef = useRef(level);
 
     // State to hold earth particles once generated
     const [earthParticles, setEarthParticles] = useState<Particle[]>([]);
@@ -29,6 +31,10 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
     useEffect(() => {
         volumeRef.current = volume;
     }, [volume]);
+
+    useEffect(() => {
+        levelRef.current = level;
+    }, [level]);
 
     // Load Earth Data
     useEffect(() => {
@@ -196,6 +202,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
             }
 
             // 2. Rotation
+            // Base rotation speed
             rotationY += isActive ? 0.008 : 0.002;
 
             // 3. Squeeze Logic (Radial Shrink)
@@ -228,7 +235,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
                 if (p.type === 'core') {
                     // Earth rotation 
                     // Adjust speed to look good
-                    pTheta -= time * 0.5; // Reverse spin to West-to-East
+                    pTheta -= time * 0.5; // Constant spin speed
                     // Remove wiggle for Earth to keep geography stable
                 }
 
@@ -238,18 +245,8 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, onCl
                 let z = r * Math.sin(pPhi) * Math.sin(pTheta);
 
                 // Apply Global Rotation (Y-axis) - applies to both shell and core relative to viewer
-                // Note: Earth already rotating by changing pTheta above. 
-                // Adding global rotationY makes the whole system spin (shell + earth together).
                 const cosY = Math.cos(rotationY);
                 const sinY = Math.sin(rotationY);
-
-                // We actually want the Earth to rotate independently inside the shell?
-                // Or the whole thing rotates?
-                // The current code rotates everything by `rotationY`. 
-                // If we also rotated pTheta for Earth, it spins faster or differently.
-                // Let's rely on global rotation for the main spin, 
-                // but maybe offset Earth slightly if requested.
-                // For now, let's keep them unified so it feels like one device.
 
                 let x1 = x * cosY - z * sinY;
                 let z1 = z * cosY + x * sinY;
