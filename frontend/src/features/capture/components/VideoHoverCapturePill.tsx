@@ -331,7 +331,6 @@ export function VideoHoverCapturePill({
         >
             {/* Capture Button - Click to start/stop recording */}
             <Button
-                onClick={handleVideoClick}
                 className={cn(
                     "rounded-full transition-all duration-200",
                     isDarkTheme

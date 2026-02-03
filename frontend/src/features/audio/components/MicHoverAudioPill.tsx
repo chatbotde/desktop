@@ -327,7 +327,6 @@ export function MicHoverAudioPill({
         >
             {/* Mic Button - Click to start/stop recording */}
             <Button
-                onClick={handleMicClick}
                 className={cn(
                     "rounded-full transition-all duration-200",
                     isDarkTheme
