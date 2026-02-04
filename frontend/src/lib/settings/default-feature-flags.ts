@@ -29,6 +29,15 @@
  * - output-window: Separate output window
  */
 export const DEFAULT_ENABLED_FEATURES: string[] = [
+    // Only Output Window is enabled by default
+    'output-window',         // Output window feature
+]
+
+/**
+ * Feature IDs that should be DISABLED by default
+ * Users can enable these features from the settings after installation
+ */
+export const DEFAULT_DISABLED_FEATURES: string[] = [
     // Plus Button Dropdown Features (Media Upload Card)
     'upload-document',       // Upload documents
     'upload-image',          // Upload images
@@ -41,16 +50,10 @@ export const DEFAULT_ENABLED_FEATURES: string[] = [
     'auto-insert',           // Auto-insert AI responses
     'voice-to-prompt',       // Voice to text transcription
     'text-selection',        // Text selection helper
-    'output-window',         // Output window feature
     'area-screenshot',       // Circle to ask screenshot
     'video-recording',       // Video recording
-]
 
-/**
- * Feature IDs that should be DISABLED by default
- * These are more advanced/experimental features
- */
-export const DEFAULT_DISABLED_FEATURES: string[] = [
+    // Advanced/Experimental Features
     'set-capture-area',          // Set auto-capture area (advanced)
     'exclude-from-screenshot',   // Exclude from screenshot (advanced)
     'auto-screenshot',           // Auto-screenshot (advanced/experimental)

@@ -125,19 +125,30 @@
       "installerHeaderIcon": "icons/icon.ico"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.exe"
+      "artifactName": "${productName}-${version}-${os}-${arch}-portable.exe"
     },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
       "category": "public.app-category.productivity",
       "icon": "icons/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "dmg": {
       "contents": [
@@ -151,17 +162,34 @@
           "type": "link",
           "path": "/Applications"
         }
-      ]
+      ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb",
-        "rpm"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Utility",
       "icon": "icons/icon.png",
-      "maintainer": "sonicthinking"
+      "maintainer": "sonicthinking",
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     },
     "protocols": [
       {

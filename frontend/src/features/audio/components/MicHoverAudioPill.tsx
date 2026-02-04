@@ -265,20 +265,6 @@ export function MicHoverAudioPill({
     }, [cleanupRecorder])
 
     // Handle mic button click - start/stop recording with selected source
-    const handleMicClick = useCallback(async () => {
-        if (isRecording) {
-            // If already recording, stop it
-            handleStopRecording()
-        } else {
-            // Start recording with the selected source
-            setIsPillActive(true)
-            try {
-                await startRecording(source)
-            } catch (error) {
-                alert(`Failed to start recording: ${error instanceof Error ? error.message : String(error)}`)
-            }
-        }
-    }, [isRecording, source, startRecording, handleStopRecording])
 
     const handleSourceClick = useCallback(async (selectedSource: AudioSourceType) => {
         if (isRecording) return
