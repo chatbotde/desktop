@@ -28,17 +28,17 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies (buddy)
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install dependencies (frontend)
         run: |
           cd frontend
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Build interface window
         run: |
           cd interface-window
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Build frontend
@@ -80,17 +80,17 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies (buddy)
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install dependencies (frontend)
         run: |
           cd frontend
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Build interface window
         run: |
           cd interface-window
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Build frontend
@@ -134,17 +134,17 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies (buddy)
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install dependencies (frontend)
         run: |
           cd frontend
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Build interface window
         run: |
           cd interface-window
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Build frontend
