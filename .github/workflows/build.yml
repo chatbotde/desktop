@@ -1,0 +1,205 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - deploy
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # Windows builds - x64 only
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (buddy)
+        run: npm ci
+
+      - name: Install dependencies (frontend)
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build interface window
+        run: |
+          cd interface-window
+          npm ci
+          npm run build
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Build all
+        run: npm run build:all
+
+      - name: Build Electron app (Windows - x64)
+        run: npm run dist:win
+        env:
+          GEMINI_API_KEY: ""
+          OPENAI_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+          DATABASE_URL: ""
+          BETTER_AUTH_SECRET: ""
+          BETTER_AUTH_URL: ""
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonicthinking-windows-x64
+          path: dist/*.exe
+          retention-days: 30
+
+  # macOS builds - Universal only
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (buddy)
+        run: npm ci
+
+      - name: Install dependencies (frontend)
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build interface window
+        run: |
+          cd interface-window
+          npm ci
+          npm run build
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Build all
+        run: npm run build:all
+
+      - name: Build Electron app (macOS - Universal)
+        run: npm run dist:mac
+        env:
+          GEMINI_API_KEY: ""
+          OPENAI_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+          DATABASE_URL: ""
+          BETTER_AUTH_SECRET: ""
+          BETTER_AUTH_URL: ""
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonicthinking-macos-universal
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 30
+
+  # Linux builds - x64 only
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (buddy)
+        run: npm ci
+
+      - name: Install dependencies (frontend)
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build interface window
+        run: |
+          cd interface-window
+          npm ci
+          npm run build
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Build all
+        run: npm run build:all
+
+      - name: Build Electron app (Linux - x64)
+        run: npm run dist:linux
+        env:
+          GEMINI_API_KEY: ""
+          OPENAI_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+          DATABASE_URL: ""
+          BETTER_AUTH_SECRET: ""
+          BETTER_AUTH_URL: ""
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonicthinking-linux-x64
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+          retention-days: 30
+
+  # Release job - runs after all builds complete
+  release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/deploy' || startsWith(github.ref, 'refs/tags/v'))
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/sonicthinking-windows-x64/*
+            artifacts/sonicthinking-macos-universal/*
+            artifacts/sonicthinking-linux-x64/*
+          draft: false
+          prerelease: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/deploy' }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
