@@ -42,15 +42,21 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
           window.dispatchEvent(new Event('toggle-assistant-visibility'));
         }}
         className="
-          w-6 h-6 rounded-full 
-          bg-white/20 hover:bg-white/40 
+          absolute -top-10 right-0
+          w-8 h-8 rounded-full
+          bg-blue-600 hover:bg-blue-500
           flex items-center justify-center 
-          transition-colors duration-200
-          opacity-0 hover:opacity-100 group-hover:opacity-100
+          shadow-lg border border-white/20
+          cursor-pointer
+          transition-all duration-200
+          z-[101]
+          opacity-0 group-hover:opacity-100
+          scale-75 group-hover:scale-100
         "
       >
-        <Mic className="w-3 h-3 text-white" />
+        <Mic className="w-4 h-4 text-white" />
       </div>
+
       {children}
     </div>
   );
