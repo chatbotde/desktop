@@ -9,7 +9,6 @@ const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
 export const useLiveAssistant = () => {
     const [connected, setConnected] = useState(false);
-    const [] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false); // AI is speaking
     const [isUserSpeaking, setIsUserSpeaking] = useState(false); // User is speaking (VAD-like)
     const [volume, setVolume] = useState(0);
@@ -22,6 +21,11 @@ export const useLiveAssistant = () => {
     const isPlayingRef = useRef(false);
     const scheduledTimeRef = useRef(0);
     const connectingRef = useRef(false);
+
+    // System Audio Refs
+    const systemAudioStreamRef = useRef<MediaStream | null>(null);
+    const systemSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const [isSystemAudioActive, setIsSystemAudioActive] = useState(false);
 
     const ensureAudioContext = useCallback(() => {
         if (!audioContextRef.current) {
@@ -94,6 +98,87 @@ export const useLiveAssistant = () => {
             }
         };
     }, []);
+
+    const stopSystemAudio = useCallback(() => {
+        if (systemSourceRef.current) {
+            systemSourceRef.current.disconnect();
+            systemSourceRef.current = null;
+        }
+        if (systemAudioStreamRef.current) {
+            systemAudioStreamRef.current.getTracks().forEach(track => track.stop());
+            systemAudioStreamRef.current = null;
+        }
+        setIsSystemAudioActive(false);
+        console.log('[LiveAssistant] Stopped system audio');
+    }, []);
+
+    const startSystemAudio = useCallback(async () => {
+        try {
+            if (!audioContextRef.current || !processorRef.current) return false;
+
+            // @ts-ignore
+            if (!window.CaptureAPI) {
+                console.error('CaptureAPI not available');
+                return false;
+            }
+
+            // 1. Get Sources
+            // @ts-ignore
+            const result = await window.CaptureAPI.getVideoSources(false); // screens only
+            if (!result.success || !result.sources || result.sources.length === 0) {
+                throw new Error("No screen sources found");
+            }
+            const sourceId = result.sources[0].id; // Primary screen
+
+            // 2. Get Stream (Audio + Dummy Video)
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    // @ts-ignore
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId
+                    }
+                },
+                video: {
+                    // @ts-ignore
+                    mandatory: {
+                        chromeMediaSource: 'desktop',
+                        chromeMediaSourceId: sourceId,
+                        maxWidth: 1,
+                        maxHeight: 1
+                    }
+                }
+            } as any);
+
+            // 3. Extract Audio
+            const audioStream = new MediaStream();
+            stream.getAudioTracks().forEach(track => audioStream.addTrack(track));
+
+            // cleanup video tracks immediately
+            stream.getVideoTracks().forEach(track => track.stop());
+
+            if (audioStream.getAudioTracks().length === 0) {
+                console.warn('No system audio tracks found');
+                return false;
+            }
+
+            systemAudioStreamRef.current = audioStream;
+
+            // 4. Connect to Processor (Mix with Mic)
+            const source = audioContextRef.current.createMediaStreamSource(audioStream);
+            source.connect(processorRef.current);
+            systemSourceRef.current = source;
+
+            setIsSystemAudioActive(true);
+            console.log('[LiveAssistant] Started system audio listening');
+            return true;
+
+        } catch (error) {
+            console.error('Failed to start system audio:', error);
+            stopSystemAudio();
+            return false;
+        }
+    }, [stopSystemAudio]);
 
     const connect = useCallback(async () => {
         if (connected || connectingRef.current) return;
@@ -220,6 +305,20 @@ export const useLiveAssistant = () => {
                                             id: call.id
                                         });
                                     }
+                                } else if (call.name === 'start_system_audio') {
+                                    const success = await startSystemAudio();
+                                    responses.push({
+                                        name: call.name,
+                                        response: { result: success ? "Started listening to system audio." : "Failed to start system audio." },
+                                        id: call.id
+                                    });
+                                } else if (call.name === 'stop_system_audio') {
+                                    stopSystemAudio();
+                                    responses.push({
+                                        name: call.name,
+                                        response: { result: "Stopped listening to system audio." },
+                                        id: call.id
+                                    });
                                 }
                             }
 
@@ -303,14 +402,10 @@ export const useLiveAssistant = () => {
             setConnected(false);
             connectingRef.current = false;
         }
-    }, [connected, ensureAudioContext, playAudioChunk]);
+    }, [connected, ensureAudioContext, playAudioChunk, startSystemAudio, stopSystemAudio]);
 
     const disconnect = useCallback(() => {
         if (sessionRef.current) {
-            // sessionRef.current.close(); // SDK might method might vary, usually just close socket or end session?
-            // Assuming no explicit close method exposed easily or just dereference, but strictly we should clean up.
-            // Looking at docs, session.close() exists possibly? If not, we just stop sending.
-            // SDK documentation usually has close or similar.
             try {
                 // @ts-ignore
                 sessionRef.current.close?.();
@@ -337,7 +432,10 @@ export const useLiveAssistant = () => {
         setIsSpeaking(false);
         setIsUserSpeaking(false);
         setVolume(0);
-    }, []);
+
+        // Also stop system audio
+        stopSystemAudio();
+    }, [stopSystemAudio]);
 
     const isCustomActive = (() => {
         const config = getProviderConfig('google');
@@ -351,6 +449,7 @@ export const useLiveAssistant = () => {
         isSpeaking,
         isUserSpeaking,
         volume,
-        isCustomActive
+        isCustomActive,
+        isSystemAudioActive
     };
 };
