@@ -200,9 +200,10 @@
       }
     ],
     "publish": {
-      "provider": "github",
-      "owner": "chatbotde",
-      "repo": "desktop"
+      "provider": "s3",
+      "bucket": "buddy-releases",
+      "endpoint": "https://d622a56e9ba65f4ab6509fe420d38e95.r2.cloudflarestorage.com",
+      "region": "auto"
     }
   },
   "devDependencies": {
