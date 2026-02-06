@@ -222,6 +222,7 @@
     "dotenv": "^17.2.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.1.0",
+    "electron-updater": "^6.7.3",
     "exa-js": "^2.0.11",
     "grammy": "^1.39.3",
     "keytar": "^7.9.0",

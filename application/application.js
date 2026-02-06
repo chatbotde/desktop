@@ -21,6 +21,7 @@ const { ApplicationShortcutManager } = require('./application-shortcut-manager')
 const { ApplicationIpcHandlers } = require('./application-ipc-handlers');
 const { ApplicationMonitoring } = require('./application-monitoring');
 const { ApplicationLifecycle } = require('./application-lifecycle');
+const { ApplicationUpdater } = require('./application-updater');
 
 class Application {
   /**
@@ -59,6 +60,9 @@ class Application {
 
     // Auto-startup manager
     this.autoStartupManager = null;
+
+    // Auto-updater
+    this.updater = new ApplicationUpdater();
   }
 
   /**
@@ -94,6 +98,9 @@ class Application {
 
       // Initialize auto-startup
       await this.setupAutoStartup();
+
+      // Initialize auto-updater
+      this.updater.initialize();
 
       // Check authentication and show auth window if needed
       this.authHandler.showAuthWindowIfNeeded();
