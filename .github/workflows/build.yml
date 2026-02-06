@@ -3,14 +3,12 @@ name: Build and Release
 on:
   push:
     branches:
-      - main
-      - develop
       - deploy
     tags:
       - 'v*'
   pull_request:
     branches:
-      - main
+      - deploy
   workflow_dispatch:
 
 jobs:
