@@ -33,6 +33,8 @@ class ApplicationUpdater {
 
         autoUpdater.on('update-available', (info) => {
             console.log('ApplicationUpdater: Update available.', info);
+            // We don't necessarily need to show a dialog here since autoDownload is true.
+            // We can wait until it's downloaded.
         });
 
         autoUpdater.on('update-not-available', (info) => {
@@ -52,6 +54,21 @@ class ApplicationUpdater {
 
         autoUpdater.on('update-downloaded', (info) => {
             console.log('ApplicationUpdater: Update downloaded');
+
+            // Notify the user that the update is ready
+            dialog.showMessageBox({
+                type: 'info',
+                title: 'Update Ready',
+                message: `A new version (${info.version}) of SonicThinking is ready to install.`,
+                detail: 'The application will restart to apply the update.',
+                buttons: ['Restart Now', 'Later'],
+                defaultId: 0,
+                cancelId: 1
+            }).then((result) => {
+                if (result.response === 0) {
+                    process.nextTick(() => autoUpdater.quitAndInstall());
+                }
+            });
         });
 
         // Additional generic handling if needed
