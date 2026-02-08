@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
-  <title>SonicThinking</title>
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <title>Sonicthinking</title>
   <style>
     * {
       margin: 0;
@@ -42,7 +44,7 @@
       border-radius: 6px;
       border: none;
       cursor: pointer;
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       color: #fff;
       font-size: 14px;
       display: flex;
@@ -52,7 +54,7 @@
     }
 
     .window-btn:hover {
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .window-btn.close:hover {
@@ -75,12 +77,12 @@
       margin-bottom: 4px;
       letter-spacing: -1px;
       color: #fff;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .tagline {
       font-size: 12px;
-      color: rgba(255,255,255,0.8);
+      color: rgba(255, 255, 255, 0.8);
       margin-bottom: 24px;
     }
 
@@ -122,17 +124,17 @@
     }
 
     .btn-ghost {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       color: #fff;
       margin-top: 8px;
     }
 
     .btn-ghost:hover:not(:disabled) {
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .btn-danger {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       color: #fee2e2;
       margin-top: 6px;
     }
@@ -147,7 +149,7 @@
       align-items: center;
       gap: 10px;
       margin: 16px 0;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255, 255, 255, 0.7);
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
@@ -158,15 +160,15 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .token-input {
       width: 100%;
       padding: 10px;
       font-size: 12px;
-      background: rgba(255,255,255,0.9);
-      border: 1px solid rgba(255,255,255,0.5);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 6px;
       color: #0c4a6e;
       outline: none;
@@ -185,7 +187,7 @@
     .loading-spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid rgba(255,255,255,0.3);
+      border: 2px solid rgba(255, 255, 255, 0.3);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -193,7 +195,9 @@
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .loading-text {
@@ -236,7 +240,7 @@
 
     .user-email {
       font-size: 12px;
-      color: rgba(255,255,255,0.8);
+      color: rgba(255, 255, 255, 0.8);
       margin-bottom: 16px;
     }
 
@@ -256,12 +260,12 @@
     .footer {
       text-align: center;
       font-size: 10px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255, 255, 255, 0.6);
       margin-top: 20px;
     }
 
     .footer a {
-      color: rgba(255,255,255,0.8);
+      color: rgba(255, 255, 255, 0.8);
       text-decoration: none;
     }
 
@@ -270,6 +274,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="title-bar">
     <div class="window-controls">
@@ -280,19 +285,20 @@
   </div>
 
   <div class="auth-container">
-    <div class="logo">SonicThinking</div>
-    <p class="tagline">Your desktop companion</p>
+    <div class="logo">Sonicthinking</div>
+    <p class="tagline">Your digital companion</p>
 
     <!-- Initial View -->
     <div class="auth-view active" id="initialView">
       <button class="btn btn-primary" id="loginBtn">Sign in</button>
       <button class="btn btn-ghost" id="signupBtn">Create account</button>
-      
+      <!--
       <div class="divider">or paste token</div>
-      
-      <input type="text" class="token-input" id="tokenInput" placeholder="Paste token here" autocomplete="off" spellcheck="false">
+
+      <input type="text" class="token-input" id="tokenInput" placeholder="Paste token here" autocomplete="off"
+        spellcheck="false">
       <button class="btn btn-ghost" id="submitTokenBtn">Submit token</button>
-      
+    -->
       <p class="footer">
         <a href="#">Terms</a> · <a href="#">Privacy</a>
       </p>
@@ -383,19 +389,29 @@
 
     $('retryBtn').onclick = () => showView('initial');
     $('backBtn').onclick = () => showView('initial');
-    $('cancelLoadingBtn').onclick = () => { showView('initial'); $('tokenInput').focus(); };
-
-    $('submitTokenBtn').onclick = async () => {
-      const token = $('tokenInput').value.trim();
-      if (!token) { showError('Please enter a token'); return; }
-      if (window.authAPI?.submitManualToken) {
-        showLoading('Verifying...');
-        try { await window.authAPI.submitManualToken(token); }
-        catch (e) { showError(e.message || 'Invalid token'); }
-      }
+    $('cancelLoadingBtn').onclick = () => {
+      showView('initial');
+      $('tokenInput')?.focus();
     };
 
-    $('tokenInput').onkeydown = e => { if (e.key === 'Enter') $('submitTokenBtn').click(); };
+    const submitTokenBtn = $('submitTokenBtn');
+    if (submitTokenBtn) {
+      submitTokenBtn.onclick = async () => {
+        const tokenInput = $('tokenInput');
+        const token = tokenInput?.value.trim();
+        if (!token) { showError('Please enter a token'); return; }
+        if (window.authAPI?.submitManualToken) {
+          showLoading('Verifying...');
+          try { await window.authAPI.submitManualToken(token); }
+          catch (e) { showError(e.message || 'Invalid token'); }
+        }
+      };
+    }
+
+    const tokenInput = $('tokenInput');
+    if (tokenInput) {
+      tokenInput.onkeydown = e => { if (e.key === 'Enter') submitTokenBtn?.click(); };
+    }
 
     // Window controls
     $('closeBtn').onclick = () => window.windowAPI?.close();
@@ -423,4 +439,5 @@
     }
   </script>
 </body>
+
 </html>

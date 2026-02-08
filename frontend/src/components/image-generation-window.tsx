@@ -86,7 +86,7 @@ export function ImageGenerationWindow({
   // Reset position and size when window becomes visible
   useEffect(() => {
     if (isVisible) {
-      setPosition({ x: 0, y: 60 })
+      setPosition({ x: 0, y: 0 })
       setCardSize(DEFAULT_LOADING_SIZE)
       setCurrentImageIndex(0)
       imageDimensionsCache.current.clear()
@@ -145,7 +145,7 @@ export function ImageGenerationWindow({
     if (rect) {
       dragOffset.current = {
         x: e.clientX - rect.left - rect.width / 2,
-        y: e.clientY - rect.top,
+        y: e.clientY - rect.top - rect.height / 2,
       }
     }
   }, [isResizing])
@@ -179,8 +179,8 @@ export function ImageGenerationWindow({
         let newY = startPosY
 
         // Calculations for centered resizing
-        // Since the window is centered using translateX(-50%), 
-        // adjusting width requires shifting X by delta/2 to effectively expand/contract only one side visually relative to handles.
+        // Since the window is centered using translate(-50%, -50%), 
+        // adjusting size requires shifting position by delta/2.
 
         if (direction.includes('e')) {
           newWidth = Math.max(100, startWidth + deltaX)
@@ -192,10 +192,11 @@ export function ImageGenerationWindow({
         }
         if (direction.includes('s')) {
           newHeight = Math.max(100, startHeight + deltaY)
+          newY = startPosY + deltaY / 2
         }
         if (direction.includes('n')) {
           newHeight = Math.max(100, startHeight - deltaY)
-          newY = startPosY + deltaY
+          newY = startPosY + deltaY / 2
         }
 
         setCardSize({ width: newWidth, height: newHeight })
@@ -203,7 +204,7 @@ export function ImageGenerationWindow({
 
       } else if (isDragging) {
         const newX = e.clientX - window.innerWidth / 2 - dragOffset.current.x
-        const newY = e.clientY - dragOffset.current.y
+        const newY = e.clientY - window.innerHeight / 2 - dragOffset.current.y
         setPosition({ x: newX, y: newY })
       }
     },
@@ -254,8 +255,8 @@ export function ImageGenerationWindow({
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
       style={{
-        transform: `translateX(calc(-50% + ${position.x}px))`,
-        top: `${position.y}px`,
+        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
+        top: `50%`,
       }}
       data-no-clickthrough
       onMouseDown={handleMouseDown}

@@ -72,10 +72,10 @@ export function usePromptWindowEvents({
         // VideoData.data is a base64 data URL, so we need to fetch it and create a File
         const response = await fetch(video.data)
         const blob = await response.blob()
-        
+
         // Create a File object from the blob
         const videoFile = new File([blob], video.name, { type: video.type })
-        
+
         handleFilesAdded([videoFile])
         setIsExpanded(true)
         setIsVisible(true)

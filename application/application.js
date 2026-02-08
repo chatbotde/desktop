@@ -120,6 +120,10 @@ class Application {
       // Initialize YouTube transcript system
       const { initializeTranscript } = require('../youtube-transcript');
       initializeTranscript();
+
+      // Initialize Pocket TTS
+      const { initializePocketTTS } = require('../pocket-tts');
+      initializePocketTTS();
     } catch (error) {
       console.error('Application: Error during initialization:', error);
       // Continue with basic functionality
