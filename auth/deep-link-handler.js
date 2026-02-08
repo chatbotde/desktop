@@ -150,11 +150,15 @@ class DeepLinkHandler {
   handleCommandLineArgs(argv) {
     console.log('Deep Link Handler: Processing command line args:', argv);
 
-    // Find URL argument
+    // Find URL argument - support both the configured protocol and hardcoded defaults for robustness
     const url = argv.find(arg => {
       const lowerArg = arg.toLowerCase();
       return lowerArg.startsWith(`${config.PROTOCOL}://`) ||
-        lowerArg.startsWith(`${config.PROTOCOL}:`);
+        lowerArg.startsWith(`${config.PROTOCOL}:`) ||
+        lowerArg.startsWith('buddy://') ||
+        lowerArg.startsWith('buddy:') ||
+        lowerArg.startsWith('sonicthinking://') ||
+        lowerArg.startsWith('sonicthinking:');
     });
 
     if (url) {

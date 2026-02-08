@@ -195,7 +195,8 @@
       {
         "name": "SonicThinking Protocol",
         "schemes": [
-          "sonicthinking"
+          "sonicthinking",
+          "buddy"
         ]
       }
     ],

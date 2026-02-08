@@ -42,7 +42,7 @@ const config = {
    * Custom protocol for deep linking (e.g., buddy://auth/callback)
    * This is used when the web redirects back to the desktop app
    */
-  PROTOCOL: APP_NAME.toLowerCase(),
+  PROTOCOL: 'buddy',
 
   /**
    * Deep link paths

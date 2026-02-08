@@ -50,7 +50,14 @@ class Application {
     this.windowManager = new ApplicationWindowManager(this.shortcutRegistry);
     this.shortcutManager = new ApplicationShortcutManager(
       this.shortcutRegistry,
-      () => this.windowManager.toggleInterfaceWindow()
+      () => {
+        if (this.authHandler.isAuthenticated()) {
+          this.windowManager.toggleInterfaceWindow();
+        } else {
+          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
+          this.authHandler.showAuthWindowIfNeeded();
+        }
+      }
     );
     this.ipcHandlers = new ApplicationIpcHandlers(this.ipcRegistry);
     this.monitoring = new ApplicationMonitoring(
@@ -103,10 +110,17 @@ class Application {
       this.updater.initialize();
 
       // Check authentication and show auth window if needed
-      this.authHandler.showAuthWindowIfNeeded();
+      const isAuth = this.authHandler.isAuthenticated();
 
-      // Create Interface Window
-      this.windowManager.createInterfaceWindow();
+      if (!isAuth) {
+        this.authHandler.showAuthWindowIfNeeded();
+      } else {
+        // Create Interface Window only if authenticated
+        this.windowManager.createInterfaceWindow();
+
+        // Show the window if authenticated (depending on app design, might want to keep it hidden until shortcut)
+        // For now, just ensure it's created and ready
+      }
 
       // Register global shortcuts
       this.shortcutManager.register();
@@ -122,8 +136,8 @@ class Application {
       initializeTranscript();
 
       // Initialize Pocket TTS
-      const { initializePocketTTS } = require('../pocket-tts');
-      initializePocketTTS();
+      // const { initializePocketTTS } = require('../pocket-tts');
+      // initializePocketTTS();
     } catch (error) {
       console.error('Application: Error during initialization:', error);
       // Continue with basic functionality
@@ -160,7 +174,9 @@ class Application {
    * @private
    */
   onAuthSuccess(user) {
-    // Additional logic can be added here if needed
+    console.log('Application: Authentication successful, creating interface window');
+    // Create interface window when user logs in
+    this.windowManager.createInterfaceWindow();
   }
 
   /**
@@ -168,6 +184,8 @@ class Application {
    * @private
    */
   onAuthLogout() {
+    console.log('Application: User logged out, destroying interface window');
+    this.windowManager.destroyInterfaceWindow();
     // Additional logic can be added here if needed
   }
 

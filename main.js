@@ -21,26 +21,9 @@ if (process.platform === 'win32') {
 // This must be done synchronously at startup
 ProtocolHandler.registerPrivileges();
 
-// Handle deep link URLs from command line arguments FIRST
-let pendingDeepLinkUrl = null;
-const deepLinkArg = process.argv.find(arg => arg.startsWith('buddy://') || arg.startsWith('buddy:'));
-if (deepLinkArg) {
-  console.log('Main: Deep link detected in args:', deepLinkArg);
-  pendingDeepLinkUrl = deepLinkArg;
-  const deepLinkIndex = process.argv.indexOf(deepLinkArg);
-  if (deepLinkIndex > -1) {
-    process.argv.splice(deepLinkIndex, 1);
-  }
-}
-
-// Handle deep link after auth initialization
-if (pendingDeepLinkUrl) {
-  const { initializeAuth } = require('./auth');
-  initializeAuth().then(() => {
-    const { deepLinkHandler } = require('./auth');
-    deepLinkHandler.handleUrl(pendingDeepLinkUrl);
-  });
-}
+// Protocols and deep linking are now handled by the Auth module
+// which is initialized during application.initialize() below.
+// This ensures unified handling via DeepLinkHandler.
 
 // Set macOS dock icon
 app.whenReady().then(() => {

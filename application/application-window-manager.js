@@ -32,13 +32,13 @@ class ApplicationWindowManager {
    */
   toggleInterfaceWindow() {
     console.log('Application: Toggle interface window requested');
-    
+
     // Check if application is locked
     if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
       console.log('Application: Cannot toggle - application is locked');
       return;
     }
-    
+
     if (this.interfaceWindow) {
       this.interfaceWindow.toggle();
     } else {
@@ -53,6 +53,20 @@ class ApplicationWindowManager {
    */
   getInterfaceWindow() {
     return this.interfaceWindow;
+  }
+
+  /**
+   * Destroy interface window
+   */
+  destroyInterfaceWindow() {
+    if (this.interfaceWindow) {
+      // Accessing private window property is not ideal but necessary given the structure
+      // or we can add a close/destroy method to InterfaceWindow
+      if (this.interfaceWindow.window) {
+        this.interfaceWindow.window.destroy();
+      }
+      this.interfaceWindow = null;
+    }
   }
 
   /**
