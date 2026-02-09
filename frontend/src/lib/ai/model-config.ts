@@ -54,6 +54,7 @@ function customModelToAIModel(customModel: CustomModel): AIModel {
     isAvailable: true,
     temperature: 0.7,
     isReasoning: false,
+    isCustom: true,
   };
 }
 

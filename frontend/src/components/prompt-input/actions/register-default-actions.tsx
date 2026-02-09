@@ -11,7 +11,6 @@ import { MicHoverAudioPill } from "@/features/audio"
 import { VideoHoverCapturePill } from "@/features/capture/components"
 import { cn } from "@/lib/utils"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
-import { ExpandedLocalModelPopover } from "../expanded-local-model-popover"
 import { ExpandedSubmitButton } from "../expanded-submit-button"
 import { actionButtonRegistry } from "../registry/action-button-registry"
 import type { ExpandedActionsBarContext } from "../types/expanded-actions-context"
@@ -28,9 +27,6 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     onThemeChange,
     themeClasses,
     hoverClass,
-    // Note: isLoading, canSubmit, onSubmit, onStop, groundingEnabled, onToggleGrounding, isGoogleModelSelected
-    // are intentionally NOT destructured here - they are read reactively via getContext() in component functions
-    showLocalControlInPrompt,
     ollamaRunning,
     ollamaModels,
     selectedLocalModelName,
@@ -80,6 +76,10 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
         <ModelSelectorPopover
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}
+          ollamaRunning={ollamaRunning}
+          ollamaModels={ollamaModels}
+          selectedLocalModelName={selectedLocalModelName}
+          onModelSelect={onModelSelect}
         />
       </PromptInputAction>
     ),
@@ -104,25 +104,6 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
         />
       )
     },
-  })
-
-  // Local Model Button (Left side, order: 3, conditional)
-  actionButtonRegistry.register({
-    id: "local-model",
-    order: 3,
-    condition: () => showLocalControlInPrompt,
-    component: (
-      <ExpandedLocalModelPopover
-        key="local-model"
-        ollamaRunning={ollamaRunning}
-        ollamaModels={ollamaModels}
-        selectedLocalModelName={selectedLocalModelName}
-        onModelSelect={onModelSelect}
-        isDarkTheme={isDarkTheme}
-        themeClasses={themeClasses}
-        hoverClass={hoverClass}
-      />
-    ),
   })
 
   // Voice Input Button (Right side, order: 10)

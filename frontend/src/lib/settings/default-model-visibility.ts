@@ -20,12 +20,7 @@ export const DEFAULT_VISIBLE_MODELS: string[] = [
     'gemini-2.5-pro',        // Most capable, best for complex tasks
     'gemini-2.0-flash',      // Previous generation flash
 
-    // OpenAI Models (Popular)
-    'gpt-4o',                // Most capable GPT-4
-    'gpt-4o-mini',           // Fast and affordable
 
-    // Anthropic Models (Quality)
-    'claude-3.5-sonnet',     // Best balance of speed and quality
 ]
 
 /**

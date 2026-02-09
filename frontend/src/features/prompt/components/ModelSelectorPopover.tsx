@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { Settings2 } from "lucide-react"
+import { Settings2, Cloud, User } from "lucide-react"
 import {
   getAvailableModels,
   getSelectedModel,
@@ -14,6 +14,7 @@ import {
 import { getVisibleModels, MODEL_VISIBILITY_CHANGED_EVENT } from "@/lib/settings/model-visibility"
 import { CUSTOM_PROVIDERS_CHANGED_EVENT } from "@/lib/settings/custom-providers"
 import { cn } from "@/shared/lib"
+import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 
 interface ModelSelectorPopoverProps {
   isDarkTheme?: boolean
@@ -22,11 +23,20 @@ interface ModelSelectorPopoverProps {
     icon: string
     fileText: string
   }
+  // Local model props from ExpandedActionsBarContext
+  ollamaRunning?: boolean | null
+  ollamaModels?: string[]
+  selectedLocalModelName?: string | null
+  onModelSelect?: (modelName: string) => void
 }
 
 export function ModelSelectorPopover({
   isDarkTheme = true,
-  themeClasses
+  themeClasses,
+  ollamaRunning,
+  ollamaModels = [],
+  selectedLocalModelName,
+  onModelSelect,
 }: ModelSelectorPopoverProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedModel, setSelectedModelState] = useState<AIModel | null>(null)
@@ -38,7 +48,6 @@ export function ModelSelectorPopover({
     const visibleIds = getVisibleModels()
 
     // Filter to only show visible models
-    // Custom models (id starts with 'custom-') are always shown if not explicitly hidden
     const models = visibleIds === null
       ? allModels // null means show all
       : allModels.filter((m) => visibleIds.includes(m.id) || m.id.startsWith('custom-'))
@@ -61,23 +70,24 @@ export function ModelSelectorPopover({
 
   // Listen for visibility changes from settings
   useEffect(() => {
-    const handler = () => {
-      loadModels()
-    }
+    const handler = () => loadModels()
     window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
     return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
   }, [])
 
   // Listen for custom provider changes
   useEffect(() => {
-    const handler = () => {
-      loadModels()
-    }
+    const handler = () => loadModels()
     window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
     return () => window.removeEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
   }, [])
 
   const handleModelChange = (modelId: string) => {
+    // Clear local model selection if a cloud model is selected
+    if (onModelSelect && selectedLocalModelName) {
+      onModelSelect("") // Hack to clear it in the parent context
+    }
+
     const success = setSelectedModel(modelId)
     if (success) {
       const newModel = visibleModels.find(m => m.id === modelId)
@@ -86,10 +96,20 @@ export function ModelSelectorPopover({
     }
   }
 
-  // Sort alphabetically
-  const sortedModels = [...visibleModels].sort((a, b) =>
-    a.displayName.localeCompare(b.displayName)
-  )
+  const handleLocalModelChange = (modelName: string) => {
+    if (onModelSelect) {
+      unifiedLocalLLMService.setModel(modelName)
+      onModelSelect(modelName)
+      setIsOpen(false)
+    }
+  }
+
+  // Split into cloud and custom
+  const cloudModels = visibleModels.filter(m => !m.isCustom).sort((a, b) => a.displayName.localeCompare(b.displayName))
+  const customModels = visibleModels.filter(m => m.isCustom).sort((a, b) => a.displayName.localeCompare(b.displayName))
+
+  const hasLocalModels = ollamaRunning && ollamaModels.length > 0
+  const hasAnyCustomOrLocal = customModels.length > 0 || hasLocalModels
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -97,40 +117,53 @@ export function ModelSelectorPopover({
         <button
           className="hover:bg-white/10 flex h-8 w-8 items-center justify-center rounded-full transition-colors"
           data-no-clickthrough
+          title="Select model"
         >
           <Settings2 className={`size-5 ${themeClasses.icon}`} />
         </button>
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-60 p-0 border z-[1002]",
-          isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+          "w-72 p-0 border z-[1002] shadow-xl overflow-hidden rounded-xl",
+          isDarkTheme ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
         align="start"
         data-no-clickthrough
       >
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+          {/* Cloud Models Section */}
           <div className="p-2">
-            {sortedModels.length === 0 ? (
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 mb-1 text-[10px] font-bold uppercase tracking-wider",
+              isDarkTheme ? "text-zinc-500" : "text-zinc-400"
+            )}>
+              <Cloud className="size-3" />
+              Cloud Models
+            </div>
+
+            {cloudModels.length === 0 ? (
               <div className={cn(
                 "px-3 py-4 text-center text-sm",
                 isDarkTheme ? "text-zinc-500" : "text-zinc-400"
               )}>
-                No models enabled
+                No cloud models enabled
               </div>
             ) : (
-              sortedModels.map((model) => (
+              cloudModels.map((model) => (
                 <button
                   key={model.id}
                   className={cn(
-                    "w-full px-3 py-2 text-left transition-colors rounded-lg",
-                    isDarkTheme ? "hover:bg-zinc-800" : "hover:bg-zinc-50",
-                    selectedModel?.id === model.id && (
+                    "w-full px-3 py-2 text-left transition-all rounded-lg mb-0.5 group",
+                    isDarkTheme
+                      ? "hover:bg-zinc-800"
+                      : "hover:bg-zinc-50",
+                    selectedModel?.id === model.id && !selectedLocalModelName && (
                       isDarkTheme
-                        ? "bg-blue-900/30 border border-blue-700"
+                        ? "bg-blue-900/20 border border-blue-800/50"
                         : "bg-blue-50 border border-blue-200"
-                    )
+                    ),
+                    !(selectedModel?.id === model.id && !selectedLocalModelName) && "border border-transparent"
                   )}
                   onClick={() => handleModelChange(model.id)}
                 >
@@ -142,15 +175,131 @@ export function ModelSelectorPopover({
                       {model.displayName}
                     </span>
 
-                    {selectedModel?.id === model.id && (
+                    {selectedModel?.id === model.id && !selectedLocalModelName && (
                       <div className={cn(
-                        "h-2 w-2 rounded-full shrink-0",
+                        "h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
                         isDarkTheme ? "bg-blue-400" : "bg-blue-500"
                       )} />
                     )}
                   </div>
                 </button>
               ))
+            )}
+          </div>
+
+          {/* Custom & Local Models Section */}
+          <div className={cn(
+            "p-2 border-t",
+            isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50/30"
+          )}>
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 mb-1 text-[10px] font-bold uppercase tracking-wider",
+              isDarkTheme ? "text-zinc-500" : "text-zinc-400"
+            )}>
+              <User className="size-3" />
+              Custom & Local
+            </div>
+
+            {!hasAnyCustomOrLocal ? (
+              <div className={cn(
+                "px-3 py-4 text-center text-xs italic",
+                isDarkTheme ? "text-zinc-600" : "text-zinc-400"
+              )}>
+                Configure custom APIs or run Ollama locally to see models here
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {/* Custom API Models */}
+                {customModels.map((model) => (
+                  <button
+                    key={model.id}
+                    className={cn(
+                      "w-full px-3 py-2 text-left transition-all rounded-lg group",
+                      isDarkTheme
+                        ? "hover:bg-zinc-800"
+                        : "hover:bg-zinc-50",
+                      selectedModel?.id === model.id && !selectedLocalModelName && (
+                        isDarkTheme
+                          ? "bg-purple-900/20 border border-purple-800/50"
+                          : "bg-purple-50 border border-purple-200"
+                      ),
+                      !(selectedModel?.id === model.id && !selectedLocalModelName) && "border border-transparent"
+                    )}
+                    onClick={() => handleModelChange(model.id)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className={cn(
+                          "font-medium text-sm truncate",
+                          themeClasses.fileText
+                        )}>
+                          {model.displayName}
+                        </span>
+                        <span className={cn(
+                          "px-1.5 py-0.5 text-[9px] rounded uppercase font-bold tracking-tighter",
+                          isDarkTheme ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-700"
+                        )}>
+                          Custom
+                        </span>
+                      </div>
+
+                      {selectedModel?.id === model.id && !selectedLocalModelName && (
+                        <div className={cn(
+                          "h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
+                          isDarkTheme ? "bg-purple-400" : "bg-purple-500"
+                        )} />
+                      )}
+                    </div>
+                  </button>
+                ))}
+
+                {/* Local Ollama Models */}
+                {ollamaModels.map((modelName) => {
+                  const isSelected = selectedLocalModelName === modelName
+                  return (
+                    <button
+                      key={modelName}
+                      className={cn(
+                        "w-full px-3 py-2 text-left transition-all rounded-lg group",
+                        isDarkTheme
+                          ? "hover:bg-zinc-800"
+                          : "hover:bg-zinc-50",
+                        isSelected && (
+                          isDarkTheme
+                            ? "bg-green-900/20 border border-green-800/50"
+                            : "bg-green-50 border border-green-200"
+                        ),
+                        !isSelected && "border border-transparent"
+                      )}
+                      onClick={() => handleLocalModelChange(modelName)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className={cn(
+                            "font-medium text-sm truncate",
+                            themeClasses.fileText
+                          )}>
+                            {modelName}
+                          </span>
+                          <span className={cn(
+                            "px-1.5 py-0.5 text-[9px] rounded uppercase font-bold tracking-tighter",
+                            isDarkTheme ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-700"
+                          )}>
+                            Local
+                          </span>
+                        </div>
+
+                        {isSelected && (
+                          <div className={cn(
+                            "h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]",
+                            isDarkTheme ? "bg-green-400" : "bg-green-500"
+                          )} />
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
         </div>

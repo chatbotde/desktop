@@ -30,4 +30,5 @@ export interface AIModel {
   isAvailable: boolean;
   temperature?: number; // Default temperature for the model (0.0 to 2.0)
   isReasoning?: boolean; // Whether this is a reasoning model
+  isCustom?: boolean; // Whether this is a custom model provided by the user
 }
