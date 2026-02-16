@@ -5,9 +5,11 @@ import { MessageBubble } from '@/features/output-window/components/MessageBubble
 import { ThinkingIndicator } from '@/features/output-window/components/ThinkingIndicator'
 import { ResizeHandle } from '@/features/output-window/components/ResizeHandle'
 import { WindowControls } from '@/features/output-window/components/WindowControls'
-import { useDraggable, useResizable, useAutoScroll } from '@/features/output-window/hooks'
+import { useResizable, useAutoScroll } from '@/features/output-window/hooks'
 import { getThemeClasses } from '@/features/output-window/theme'
 import type { ChatMessage } from '@/features/output-window/types'
+import { motion, AnimatePresence, useDragControls } from "framer-motion"
+import { GripVertical } from "lucide-react"
 
 // Re-export types for backward compatibility
 export type { ChatMessage }
@@ -45,12 +47,12 @@ export function OutputMessages({
     // Use prop theme if provided, otherwise default to true (dark theme)
     const isDarkTheme = propIsDarkTheme !== undefined ? propIsDarkTheme : true
 
-    // Center the output window on mount
+    // Default size logic
     const defaultSize = { width: 600, height: 300 }
-    const collapsedSize = { width: 600, height: 60 } // Just header height when collapsed
+    const collapsedSize = { width: 600, height: 60 }
     const [size, setSize] = useState(defaultSize)
 
-    // Position the window 20px above the bottom and centered horizontally
+    // Position state replaced by motion if needed, but keeping for resizing
     const getCenteredPosition = (windowSize = size) => {
         const width = typeof window !== "undefined" ? window.innerWidth : 1200;
         const height = typeof window !== "undefined" ? window.innerHeight : 800;
@@ -63,35 +65,15 @@ export function OutputMessages({
     const cardRef = useRef<HTMLDivElement>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
-    const wasClosedRef = useRef(false) // Track if window was closed (not just hidden)
+    const dragControls = useDragControls()
 
-    // Use custom hooks for drag, resize, and auto-scroll
-    const { handleDragMouseDown } = useDraggable(setPosition, cardRef)
+    // Use custom hooks for resize and auto-scroll
     const { handleResizeMouseDown } = useResizable(size, setSize, position, setPosition)
     useAutoScroll(messages)
 
     const isVisible = propIsVisible !== undefined ? propIsVisible : internalIsVisible
 
-    // Reset position and size to default when window becomes visible after being closed
-    useEffect(() => {
-        // Only reset if window was closed (not just hidden) and is now visible
-        if (wasClosedRef.current && isVisible) {
-            setIsCollapsed(false)
-            setSize(defaultSize)
-            // Calculate position with the new default size
-            setPosition(getCenteredPosition(defaultSize))
-            // Reset the flag
-            wasClosedRef.current = false
-        }
-    }, [isVisible])
-
-    if (!isVisible) {
-        return null
-    }
-
     const handleClose = () => {
-        // Mark that window was closed (not just hidden)
-        wasClosedRef.current = true
         if (propOnClose) {
             propOnClose()
         } else {
@@ -106,7 +88,6 @@ export function OutputMessages({
     const handleCollapseToggle = () => {
         setIsCollapsed(prev => {
             const newCollapsed = !prev
-            // Adjust size when collapsing/expanding
             if (newCollapsed) {
                 setSize(collapsedSize)
             } else {
@@ -119,106 +100,96 @@ export function OutputMessages({
     const themeClasses = getThemeClasses(isDarkTheme)
 
     return (
-        <Card
-            ref={cardRef}
-            className={`fixed bg-card text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm ${isCollapsed ? 'py-2' : 'py-8'}`}
-            data-no-clickthrough
-            style={{
-                left: `${position.x}px`,
-                top: `${position.y}px`,
-                width: `${size.width}px`,
-                height: `${size.height}px`,
-                zIndex: 0,
-                backgroundColor: themeClasses.cardBg
-            }}
-        >
-            {/* Drag area spanning from left edge to history button */}
-            <div
-                className="absolute top-0 left-0 right-24 h-12 z-30"
-                onMouseDown={handleDragMouseDown}
-            />
-            <WindowControls
-                onClear={handleClear}
-                onClose={handleClose}
-                onCollapse={handleCollapseToggle}
-                isCollapsed={isCollapsed}
-                iconButtonClass={themeClasses.iconButton}
-                onSelectHistory={onSelectHistory}
-            />
-
-            {!isCollapsed && (
-                <CardContent
-                    ref={contentRef}
-                    className={themeClasses.content}
-                    style={{ height: 'calc(100%-30px)', backgroundColor: themeClasses.contentBg }}
+        <AnimatePresence>
+            {isVisible && (
+                <motion.div
+                    drag
+                    dragControls={dragControls}
+                    dragListener={false}
+                    dragMomentum={false}
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="fixed z-[1000]"
+                    style={{
+                        left: `${position.x}px`,
+                        top: `${position.y}px`,
+                    }}
+                    data-no-clickthrough
                 >
-                    {messages.length === 0 ? (
-                        <p className={themeClasses.emptyText}>Welcome</p>
-                    ) : (
-                        <div className="w-full space-y-6 flex flex-col">
-                            {messages.map((msg) => (
-                                <MessageBubble
-                                    key={msg.id}
-                                    id={`message-${msg.id}`}
-                                    message={msg}
-                                    isDarkTheme={isDarkTheme}
-                                    onAddSelectedText={onAddSelectedTextToPrompt}
-                                    onAskSelectedText={onAskSelectedText}
-                                    onExplainSelectedText={onExplainSelectedText}
-                                />
-                            ))}
-                            {/* Show thinking indicator if waiting for response and either:
-                                1. Last message is from user (before assistant message created), or
-                                2. Last message is from assistant but has empty content (before first chunk arrives) */}
-                            {isWaitingForResponse && messages.length > 0 && (
-                                messages[messages.length - 1]?.role === 'user' ||
-                                (messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content)
-                            ) && (
-                                    <ThinkingIndicator isDarkTheme={isDarkTheme} />
-                                )}
-                            <div ref={messagesEndRef} />
+                    <Card
+                        ref={cardRef}
+                        className={`bg-card text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm ${isCollapsed ? 'py-2' : 'py-8'}`}
+                        style={{
+                            width: `${size.width}px`,
+                            height: `${size.height}px`,
+                            backgroundColor: themeClasses.cardBg
+                        }}
+                    >
+                        {/* Drag handle */}
+                        <div
+                            onPointerDown={(e) => dragControls.start(e)}
+                            className="absolute top-2 left-2 z-[60] p-1.5 rounded hover:bg-zinc-800/50 transition-colors cursor-grab active:cursor-grabbing text-zinc-500"
+                        >
+                            <GripVertical className="size-4" />
                         </div>
-                    )}
-                </CardContent>
+
+                        <WindowControls
+                            onClear={handleClear}
+                            onClose={handleClose}
+                            onCollapse={handleCollapseToggle}
+                            isCollapsed={isCollapsed}
+                            iconButtonClass={themeClasses.iconButton}
+                            onSelectHistory={onSelectHistory}
+                        />
+
+                        {!isCollapsed && (
+                            <CardContent
+                                ref={contentRef}
+                                className={themeClasses.content}
+                                style={{ height: 'calc(100%-30px)', backgroundColor: themeClasses.contentBg }}
+                            >
+                                {messages.length === 0 ? (
+                                    <p className={themeClasses.emptyText}>Welcome</p>
+                                ) : (
+                                    <div className="w-full space-y-6 flex flex-col">
+                                        {messages.map((msg) => (
+                                            <MessageBubble
+                                                key={msg.id}
+                                                id={`message-${msg.id}`}
+                                                message={msg}
+                                                isDarkTheme={isDarkTheme}
+                                                onAddSelectedText={onAddSelectedTextToPrompt}
+                                                onAskSelectedText={onAskSelectedText}
+                                                onExplainSelectedText={onExplainSelectedText}
+                                            />
+                                        ))}
+                                        {isWaitingForResponse && messages.length > 0 && (
+                                            messages[messages.length - 1]?.role === 'user' ||
+                                            (messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content)
+                                        ) && (
+                                                <ThinkingIndicator isDarkTheme={isDarkTheme} />
+                                            )}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                )}
+                            </CardContent>
+                        )}
+                        {!isCollapsed && (
+                            <>
+                                {/* Resize handles */}
+                                {['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map((dir) => (
+                                    <ResizeHandle
+                                        key={dir}
+                                        onMouseDown={handleResizeMouseDown}
+                                        direction={dir as any}
+                                    />
+                                ))}
+                            </>
+                        )}
+                    </Card>
+                </motion.div>
             )}
-            {!isCollapsed && (
-                <>
-                    {/* Border resize handles */}
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="n"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="s"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="e"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="w"
-                    />
-                    {/* Corner resize handles */}
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="ne"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="nw"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="se"
-                    />
-                    <ResizeHandle
-                        onMouseDown={handleResizeMouseDown}
-                        direction="sw"
-                    />
-                </>
-            )}
-        </Card>
+        </AnimatePresence>
     )
 }

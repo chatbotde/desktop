@@ -482,8 +482,8 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                 "relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
                 isExpanded ? "rounded-xl" : "rounded-full",
                 isDarkTheme
-                  ? "bg-zinc-950/85 border border-white/10 backdrop-blur-xl"
-                  : "bg-white/95 border border-slate-200 backdrop-blur-xl"
+                  ? "bg-zinc-950 border border-zinc-800"
+                  : "bg-white border border-zinc-200"
               )}
             >
               <AnimatePresence mode="popLayout" initial={false}>
@@ -554,8 +554,8 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                         className={cn(
                           "p-1.5 rounded-full transition-all hover:scale-110 active:scale-95",
                           isDarkTheme
-                            ? "hover:bg-white/10 text-zinc-500 hover:text-zinc-200"
-                            : "hover:bg-black/5 text-zinc-400 hover:text-zinc-700"
+                            ? "bg-zinc-800 text-zinc-500 hover:text-red-400"
+                            : "bg-slate-100/50 text-slate-600 hover:text-red-500"
                         )}
                       >
                         <X className="w-4 h-4" />

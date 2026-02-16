@@ -90,6 +90,20 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "binaries",
+        "to": "binaries",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "models",
+        "to": "models",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "asarUnpack": [
@@ -228,6 +242,7 @@
     "exa-js": "^2.0.11",
     "grammy": "^1.39.3",
     "keytar": "^7.9.0",
+    "openai": "^6.22.0",
     "mic": "^2.1.2",
     "replicate": "^1.4.0",
     "selection-hook": "^1.0.12",

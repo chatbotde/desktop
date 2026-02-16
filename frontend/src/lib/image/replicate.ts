@@ -117,6 +117,83 @@ export async function generateImages(
   }
 }
 
+export interface VideoGenerationOptions {
+  prompt: string;
+  model?: `${string}/${string}` | `${string}/${string}:${string}`;
+  input_video?: string;
+}
+
+export interface VideoGenerationResult {
+  videos: string[];
+  model: string;
+}
+
+/**
+ * Generate videos using Replicate API
+ */
+export async function generateVideos(
+  options: VideoGenerationOptions
+): Promise<VideoGenerationResult> {
+  const replicate = getReplicateClient();
+  const model = options.model || "minimax/video-01"; // High quality video model
+
+  const input: Record<string, any> = {
+    prompt: options.prompt,
+  };
+
+  if (options.input_video) {
+    input.input_video = options.input_video;
+  }
+
+  try {
+    const output = await replicate.run(model, { input });
+
+    let videoUrls: string[] = [];
+
+    if (Array.isArray(output)) {
+      videoUrls = output.map((item: unknown) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const itemObj = item as Record<string, unknown>;
+          if ("url" in itemObj && typeof itemObj.url === "string") {
+            return itemObj.url;
+          }
+        }
+        return String(item);
+      });
+    } else if (typeof output === "string") {
+      videoUrls = [output];
+    } else if (output && typeof output === "object") {
+      const outputObj = output as Record<string, unknown>;
+      if ("url" in outputObj && typeof outputObj.url === "string") {
+        videoUrls = [outputObj.url];
+      } else {
+        // Some models return a specific key for video
+        const possibleKeys = ["video", "output", "video_url"];
+        for (const key of possibleKeys) {
+          if (key in outputObj && typeof outputObj[key] === "string") {
+            videoUrls = [outputObj[key] as string];
+            break;
+          }
+        }
+        if (videoUrls.length === 0) throw new Error("Unexpected output format from Replicate video model");
+      }
+    } else {
+      throw new Error("Unexpected output format from Replicate video model");
+    }
+
+    return {
+      videos: videoUrls,
+      model,
+    };
+  } catch (error) {
+    console.error("Replicate video generation error:", error);
+    throw new Error(
+      `Failed to generate video: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}
+
 /**
  * Check if a model ID is an image generation model
  */

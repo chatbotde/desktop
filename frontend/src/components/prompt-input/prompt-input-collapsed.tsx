@@ -40,6 +40,7 @@ export function PromptInputCollapsed({
   onToggleOutput,
   setClipboardItems,
   setIsExpanded,
+  dragControls,
 }: PromptInputCollapsedProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -135,6 +136,7 @@ export function PromptInputCollapsed({
           isOutputVisible={isOutputVisible}
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}
+          dragControls={dragControls}
         />
       </div>
     </div>

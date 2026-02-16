@@ -153,6 +153,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
           isOutputVisible={ctx.isOutputVisible}
           isDarkTheme={ctx.isDarkTheme}
           themeClasses={ctx.themeClasses}
+          dragControls={ctx.dragControls}
         />
       )
     },

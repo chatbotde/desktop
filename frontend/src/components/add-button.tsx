@@ -176,7 +176,7 @@ AddButton.displayName = "AddButton"
  * A preset AddButton configured for adding content to prompts.
  * Uses appropriate styling for clipboard pill and prompt input contexts.
  */
-export const AddToPromptButton = forwardRef<HTMLButtonElement, Omit<AddButtonProps, 'tooltip'>>(
+export const AddToPromptButton = forwardRef<HTMLButtonElement, AddButtonProps>(
     (props, ref) => (
         <AddButton
             ref={ref}

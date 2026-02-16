@@ -255,6 +255,13 @@ declare global {
       getMimeType: (filePath: string) => Promise<string | null>;
     };
 
+    /**
+     * Whisper Speech-to-Text API
+     */
+    whisperAPI?: {
+      transcribe: (audioData: ArrayBuffer, format: string) => Promise<{ success: boolean; text?: string; error?: string }>;
+    };
+
   }
 }
 

@@ -175,10 +175,10 @@ class ConfigManager {
    */
   subscribe(callback: (config: AppConfig) => void): () => void {
     this.listeners.add(callback)
-    
+
     // Immediately call with current config
     callback(this.config)
-    
+
     return () => {
       this.listeners.delete(callback)
     }
@@ -253,7 +253,7 @@ class ConfigManager {
    */
   private deepMerge<T>(target: T, source: Partial<T>): T {
     const output = { ...target }
-    
+
     for (const key in source) {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         output[key] = this.deepMerge(target[key], source[key] as any)
@@ -261,7 +261,7 @@ class ConfigManager {
         output[key] = source[key] as any
       }
     }
-    
+
     return output
   }
 }
@@ -284,7 +284,7 @@ export const configManager = new ConfigManager()
  * ```
  */
 export function useConfig<K extends keyof AppConfig>(key: K): AppConfig[K] {
-  const [config, setConfig] = React.useState<AppConfig[K]>(() => 
+  const [config, setConfig] = React.useState<AppConfig[K]>(() =>
     configManager.get(key)
   )
 

@@ -24,6 +24,7 @@ interface PromptInputWithActionsProps {
   onThemeChange?: (isDark: boolean) => void;
   isOutputVisible?: boolean;
   onToggleOutput?: () => void;
+  dragControls?: any;
 }
 
 export function PromptInputWithActions({
@@ -35,7 +36,8 @@ export function PromptInputWithActions({
   onMoreClick,
   onThemeChange,
   isOutputVisible,
-  onToggleOutput
+  onToggleOutput,
+  dragControls
 }: PromptInputWithActionsProps) {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -165,6 +167,7 @@ export function PromptInputWithActions({
             onToggleOutput={onToggleOutput}
             setClipboardItems={setClipboardItems}
             setIsExpanded={setIsExpanded}
+            dragControls={dragControls}
           />
         ) : (
           <PromptInputExpanded
@@ -189,6 +192,7 @@ export function PromptInputWithActions({
             onToggleOutput={onToggleOutput}
             setClipboardItems={setClipboardItems}
             setIsExpanded={setIsExpanded}
+            dragControls={dragControls}
           />
         )}
       </div>

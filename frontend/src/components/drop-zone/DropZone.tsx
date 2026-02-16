@@ -148,7 +148,7 @@ const getFilePath = (file: File): string | null => {
  * Read file content and info using FileAPI (uses fs promises in main process)
  * Returns content and metadata, caller should merge with original File object
  */
-const readFileWithFileAPI = async (filePath: string): Promise<{ 
+const readFileWithFileAPI = async (filePath: string): Promise<{
     content: string | null
     metadata: {
         category?: string
@@ -164,10 +164,10 @@ const readFileWithFileAPI = async (filePath: string): Promise<{
 
     try {
         const fileAPI = window.fileAPI!
-        
+
         // Read file content - this uses fs promises in the main process
         const readResult = await fileAPI.readFile(filePath)
-        
+
         if (readResult.success && readResult.content && readResult.fileInfo) {
             return {
                 content: readResult.content,
@@ -248,8 +248,8 @@ export function DropZone({
         const isCodeByExtension = codeExtensions.includes(ext)
 
         // Skip binary files (images, videos, etc.)
-        if (file.type.startsWith('image/') || 
-            file.type.startsWith('video/') || 
+        if (file.type.startsWith('image/') ||
+            file.type.startsWith('video/') ||
             file.type.startsWith('audio/') ||
             file.type.startsWith('application/zip') ||
             file.type.startsWith('application/x-')) {
@@ -316,7 +316,7 @@ export function DropZone({
         for (const file of files) {
             // Extract file path (available in Electron for dropped files)
             const filePath = getFilePath(file)
-            
+
             let fileInfo: DroppedFileInfo = {
                 file,
                 path: filePath || undefined,
@@ -325,12 +325,12 @@ export function DropZone({
             // Try to read file content if requested
             if (readCodeFileContents) {
                 let contentRead = false
-                
+
                 // Priority 1: Use FileAPI (fs promises) if we have a file path and FileAPI is available
                 if (filePath && fileAPIAvailable) {
                     try {
                         const { content, metadata } = await readFileWithFileAPI(filePath)
-                        
+
                         if (content && metadata) {
                             // Successfully read content using FileAPI
                             fileInfo = {
@@ -344,7 +344,7 @@ export function DropZone({
                         console.error('[DropZone] FileAPI error for', file.name, ':', error)
                     }
                 }
-                
+
                 // Fallback: Always try FileReader if FileAPI didn't work or isn't available
                 // FileReader works even without file paths and is more reliable for text files
                 if (!contentRead) {
@@ -445,9 +445,9 @@ export function DropZone({
                         const file = item.getAsFile()
                         if (file) {
                             // Check if we already have this file (avoid duplicates)
-                            const alreadyAdded = droppedFiles.some(f => 
-                                f.name === file.name && 
-                                f.size === file.size && 
+                            const alreadyAdded = droppedFiles.some(f =>
+                                f.name === file.name &&
+                                f.size === file.size &&
                                 f.type === file.type
                             )
                             if (!alreadyAdded) {
@@ -592,8 +592,8 @@ export function DropZone({
                         "absolute inset-0 z-[60] rounded-2xl border-2 border-dashed flex items-center justify-center transition-all duration-200",
                         "animate-in fade-in zoom-in-95",
                         isDarkTheme
-                            ? "bg-blue-500/10 border-blue-400 backdrop-blur-sm"
-                            : "bg-blue-500/10 border-blue-500 backdrop-blur-sm",
+                            ? "bg-blue-500/10 border-blue-400"
+                            : "bg-blue-500/10 border-blue-500",
                         overlayClassName
                     )}
                     data-no-clickthrough

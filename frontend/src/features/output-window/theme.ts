@@ -1,3 +1,5 @@
+import { GLOBAL_THEME } from '@/global/theme'
+
 export interface ThemeClasses {
   card: string
   cardBg: string
@@ -10,25 +12,16 @@ export interface ThemeClasses {
 }
 
 export function getThemeClasses(isDarkTheme: boolean): ThemeClasses {
-  return isDarkTheme
-    ? {
-      card: 'fixed border border-zinc-700 shadow-lg',
-      cardBg: 'oklch(0.14 0.00 0)',
-      dragButton: 'p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-grab active:cursor-grabbing text-zinc-300',
-      iconButton: 'p-1 rounded-full hover:bg-zinc-800 transition-colors text-zinc-300',
-      content: 'p-4 overflow-y-auto',
-      contentBg: 'oklch(0.14 0.00 0)',
-      emptyText: 'text-zinc-400 text-sm text-center',
-      resizeIcon: 'text-zinc-500'
-    }
-    : {
-      card: 'fixed border border-zinc-200 bg-white shadow-lg',
-      cardBg: '#ffffff',
-      dragButton: 'p-1.5 rounded hover:bg-zinc-100 transition-colors cursor-grab active:cursor-grabbing text-zinc-700',
-      iconButton: 'p-1 rounded-full hover:bg-zinc-100 transition-colors text-zinc-700',
-      content: 'p-4 overflow-y-auto bg-white',
-      contentBg: '#ffffff',
-      emptyText: 'text-zinc-600 text-sm text-center',
-      resizeIcon: 'text-zinc-600'
-    }
+  const theme = isDarkTheme ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light;
+
+  return {
+    card: `fixed border border-${isDarkTheme ? 'zinc-800' : 'zinc-200'} shadow-lg`,
+    cardBg: theme.card,
+    dragButton: `p-1.5 rounded hover:bg-${isDarkTheme ? 'zinc-800' : 'zinc-100'} transition-colors cursor-grab active:cursor-grabbing text-${isDarkTheme ? 'zinc-300' : 'zinc-700'}`,
+    iconButton: `p-1 rounded-full hover:bg-${isDarkTheme ? 'zinc-800' : 'zinc-100'} transition-colors text-${isDarkTheme ? 'zinc-300' : 'zinc-700'}`,
+    content: 'p-4 overflow-y-auto',
+    contentBg: theme.card,
+    emptyText: `text-${isDarkTheme ? 'zinc-400' : 'zinc-600'} text-sm text-center`,
+    resizeIcon: `text-${isDarkTheme ? 'zinc-500' : 'zinc-600'}`
+  };
 }

@@ -201,3 +201,9 @@ export interface FileAPI {
     getFileLanguage: (filePath: string) => Promise<string | null>;
     getMimeType: (filePath: string) => Promise<string | null>;
 }
+
+// Whisper API Types
+export interface WhisperAPI {
+    transcribe: (audioData: ArrayBuffer, format: string) => Promise<{ success: boolean; text?: string; error?: string }>;
+}
+

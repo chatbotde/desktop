@@ -16,7 +16,10 @@ import { getSelectedModel } from '../model-config';
 import type { MediaAttachment } from '../gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from '../system-prompts';
 import { checkRateLimit, logUsage } from '../usage-tracker';
-import { generateImages as replicateGenerateImages } from '../../image/replicate';
+import {
+    generateImages as replicateGenerateImages,
+    generateVideos as replicateGenerateVideos
+} from '../../image/replicate';
 import {
     validateMessage,
     validateAttachments,
@@ -411,6 +414,31 @@ export class AISDKUnifiedService {
             throw error;
         }
     }
+
+    /**
+     * Generate videos using Replicate API
+     * @param prompt - The text prompt describing the video to generate
+     * @param modelName - Optional model name
+     * @returns Array of generated video URLs
+     */
+    async generateVideos(prompt: string, modelName?: string): Promise<string[]> {
+        try {
+            console.log(`[AISDKUnifiedService] Generating videos with prompt: "${prompt.slice(0, 50)}..."`);
+
+            const result = await replicateGenerateVideos({
+                prompt,
+                model: modelName as `${string}/${string}` | `${string}/${string}:${string}` | undefined,
+            });
+
+            console.log(`[AISDKUnifiedService] Generated ${result.videos.length} videos using ${result.model}`);
+
+            return result.videos;
+        } catch (error) {
+            console.error('[AISDKUnifiedService] Video generation failed:', error);
+            throw error;
+        }
+    }
+
 
     // ============================================================================
     // History Management

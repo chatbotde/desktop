@@ -13,7 +13,8 @@ import {
     createBlockAPI,
     createAuthAPI,
     createFileAPI,
-    createYouTubeTranscriptAPI
+    createYouTubeTranscriptAPI,
+    createWhisperAPI
 } from './apis';
 
 // Verify contextBridge is available
@@ -102,6 +103,15 @@ try {
     console.log('[Preload] youtubeTranscriptAPI exposed successfully');
 } catch (error) {
     console.error('[Preload] Error exposing youtubeTranscriptAPI:', error);
+}
+
+// Expose whisperAPI
+try {
+    const whisperAPI = createWhisperAPI();
+    contextBridge.exposeInMainWorld('whisperAPI', whisperAPI);
+    console.log('[Preload] whisperAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing whisperAPI:', error);
 }
 
 console.log('[Preload] All APIs exposed, preload script complete');

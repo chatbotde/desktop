@@ -1,6 +1,6 @@
 import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { Button } from "@/shared/components/ui/button"
-import { ArrowUp, Square, ChevronUp, ChevronDown, X } from "lucide-react"
+import { ArrowUp, Square, ChevronUp, ChevronDown, X, GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useRef, useCallback } from "react"
 
@@ -13,6 +13,7 @@ interface ExpandedSubmitButtonProps {
   onToggleOutput?: () => void
   isOutputVisible?: boolean
   isDarkTheme?: boolean
+  dragControls?: any
   themeClasses?: {
     containerBg: string
     containerBorder: string
@@ -36,6 +37,7 @@ export function ExpandedSubmitButton({
   onToggleOutput,
   isOutputVisible,
   isDarkTheme = true,
+  dragControls,
   themeClasses,
 }: ExpandedSubmitButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
@@ -91,7 +93,7 @@ export function ExpandedSubmitButton({
 
   // Only show hover panel when input is empty (not ready to submit)
   const shouldShowPanel = (isPanelActive || isHovered) && !canSubmit && !isLoading
-  const hasActions = onHide || onToggleOutput
+  const hasActions = onHide || onToggleOutput || dragControls
 
   // Default theme values if not provided
   const defaultTheme = {
@@ -156,6 +158,19 @@ export function ExpandedSubmitButton({
             )}
             style={{ backgroundColor: theme.containerBg }}
           >
+            {/* Drag Handle */}
+            {dragControls && (
+              <button
+                onPointerDown={(e) => dragControls.start(e)}
+                className={cn(actionButtonClass, "cursor-grab active:cursor-grabbing")}
+                style={{ backgroundColor: theme.buttonBg }}
+                aria-label="Drag input"
+                data-no-clickthrough
+              >
+                <GripVertical className={`size-4 ${theme.icon}`} />
+              </button>
+            )}
+
             {/* Output Toggle Button */}
             {onToggleOutput && (
               <button

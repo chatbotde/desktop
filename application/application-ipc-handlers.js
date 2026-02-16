@@ -29,6 +29,7 @@ class ApplicationIpcHandlers {
     this.registerOllamaHandlers();
     this.registerEnvironmentHandlers();
     this.registerYouTubeTranscriptHandlers();
+    this.registerWhisperHandlers();
   }
 
   /**
@@ -115,6 +116,31 @@ class ApplicationIpcHandlers {
     } catch (error) {
       console.error('Application: Failed to register YouTube transcript handlers:', error);
     }
+  }
+
+  /**
+   * Register Whisper speech-to-text handlers
+   * @private
+   */
+  registerWhisperHandlers() {
+    const { WhisperManager } = require('./whisper-manager');
+    const whisperManager = new WhisperManager();
+
+    this.ipcRegistry.register('transcribe-audio-buffer', async (event, { audioData, format }) => {
+      try {
+        const buffer = Buffer.from(audioData);
+        const wavPath = await whisperManager.processAudioBuffer(buffer, format);
+        const text = await whisperManager.transcribe(wavPath);
+
+        // Cleanup temp file
+        whisperManager.cleanupFile(wavPath);
+
+        return { success: true, text };
+      } catch (error) {
+        console.error('Application: Transcription failed:', error);
+        return { success: false, error: error.message };
+      }
+    });
   }
 }
 

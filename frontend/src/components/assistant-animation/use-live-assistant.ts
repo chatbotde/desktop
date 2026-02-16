@@ -3,6 +3,7 @@ import { GoogleGenAI, Modality } from '@google/genai';
 import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
 import { getProviderConfig } from '@/lib/settings/custom-providers';
 import { TOOLS_CONFIG } from './assistant-tools';
+import { MemoryService } from '@/lib/memory/memory-service';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -26,6 +27,20 @@ export const useLiveAssistant = () => {
     const systemAudioStreamRef = useRef<MediaStream | null>(null);
     const systemSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const [isSystemAudioActive, setIsSystemAudioActive] = useState(false);
+
+    // Generation States
+    const [imageGeneration, setImageGeneration] = useState<{
+        isVisible: boolean;
+        images: string[];
+        isLoading: boolean;
+    }>({ isVisible: false, images: [], isLoading: false });
+
+    const [videoGeneration, setVideoGeneration] = useState<{
+        isVisible: boolean;
+        videos: string[];
+        isLoading: boolean;
+    }>({ isVisible: false, videos: [], isLoading: false });
+
 
     const ensureAudioContext = useCallback(() => {
         if (!audioContextRef.current) {
@@ -215,8 +230,16 @@ export const useLiveAssistant = () => {
 
             const config = {
                 responseModalities: [Modality.AUDIO],
-                systemInstruction: { parts: [{ text: LIVE_ASSISTANT_PROMPT }] },
-                tools: TOOLS_CONFIG,
+                systemInstruction: {
+                    parts: [{
+                        text: LIVE_ASSISTANT_PROMPT + (
+                            MemoryService.getMemories().length > 0
+                                ? `\n\nYour Memories:\n${MemoryService.getMemories().map(m => `- ${m.content}`).join('\n')}`
+                                : ''
+                        )
+                    }]
+                },
+                tools: TOOLS_CONFIG as any,
             };
 
             const session = await client.live.connect({
@@ -261,7 +284,8 @@ export const useLiveAssistant = () => {
                                                     console.log(`Sending image data (length: ${base64Data.length}) via sendRealtimeInput`);
 
                                                     // Use sendRealtimeInput for visual context (treated as video frames/media chunks)
-                                                    session.sendRealtimeInput({
+                                                    // @ts-ignore
+                                                    sessionRef.current?.sendRealtimeInput({
                                                         media: {
                                                             mimeType,
                                                             data: base64Data
@@ -273,6 +297,7 @@ export const useLiveAssistant = () => {
                                                         response: { result: "Screenshot captured and sent to context successfully." },
                                                         id: call.id
                                                     });
+
                                                 } catch (sendError) {
                                                     console.error('Error sending screenshot to model:', sendError);
                                                     responses.push({
@@ -319,12 +344,115 @@ export const useLiveAssistant = () => {
                                         response: { result: "Stopped listening to system audio." },
                                         id: call.id
                                     });
+                                } else if (call.name === 'generate_image') {
+                                    const { prompt } = (call as any).args;
+                                    setImageGeneration({ isVisible: true, images: [], isLoading: true });
+
+                                    try {
+                                        // We'll use the unified service for generation
+                                        // Importing it inside because of potential circular dependencies/context
+                                        const { aiSDKUnifiedService } = await import('../../lib/ai/ai-sdk/unified-service');
+                                        const imageUrls = await aiSDKUnifiedService.generateImages(prompt);
+
+                                        setImageGeneration({
+                                            isVisible: true,
+                                            images: imageUrls,
+                                            isLoading: false
+                                        });
+
+                                        // Premium Feature: Send the first generated image back to the model 
+                                        // so the assistant "sees" what it just created and can talk about it.
+                                        if (imageUrls.length > 0 && sessionRef.current) {
+                                            try {
+                                                const response = await fetch(imageUrls[0]);
+                                                const blob = await response.blob();
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => {
+                                                    const base64data = (reader.result as string).split(',')[1];
+                                                    // @ts-ignore
+                                                    sessionRef.current?.sendRealtimeInput({
+                                                        media: {
+                                                            mimeType: blob.type,
+                                                            data: base64data
+                                                        }
+                                                    });
+                                                };
+                                                reader.readAsDataURL(blob);
+                                            } catch (fetchErr) {
+                                                console.warn('Failed to send generated image back to context:', fetchErr);
+                                            }
+                                        }
+
+
+                                        responses.push({
+                                            name: call.name,
+                                            response: { result: `Successfully generated ${imageUrls.length} image(s). I can see them now.` },
+                                            id: call.id
+                                        });
+
+                                    } catch (err) {
+                                        console.error('Image generation error:', err);
+                                        setImageGeneration(prev => ({ ...prev, isLoading: false }));
+                                        responses.push({
+                                            name: call.name,
+                                            response: { error: `Failed to generate image: ${err}` },
+                                            id: call.id
+                                        });
+                                    }
+                                } else if (call.name === 'generate_video') {
+                                    const { prompt } = (call as any).args;
+                                    setVideoGeneration({ isVisible: true, videos: [], isLoading: true });
+
+                                    try {
+                                        const { aiSDKUnifiedService } = await import('../../lib/ai/ai-sdk/unified-service');
+                                        const videoUrls = await aiSDKUnifiedService.generateVideos(prompt);
+
+                                        setVideoGeneration({
+                                            isVisible: true,
+                                            videos: videoUrls,
+                                            isLoading: false
+                                        });
+
+                                        responses.push({
+                                            name: call.name,
+                                            response: { result: `Successfully generated ${videoUrls.length} video(s).` },
+                                            id: call.id
+                                        });
+                                    } catch (err) {
+                                        console.error('Video generation error:', err);
+                                        setVideoGeneration(prev => ({ ...prev, isLoading: false }));
+                                        responses.push({
+                                            name: call.name,
+                                            response: { error: `Failed to generate video: ${err}` },
+                                            id: call.id
+                                        });
+                                    }
+                                } else if (call.name === 'remember') {
+                                    const { info } = (call as any).args;
+                                    MemoryService.addMemory(info);
+                                    responses.push({
+                                        name: call.name,
+                                        response: { result: `I have stored this in my memory: "${info}"` },
+                                        id: call.id
+                                    });
+                                } else if (call.name === 'forget') {
+                                    const { info } = (call as any).args;
+                                    const removed = MemoryService.removeMemory(info);
+                                    responses.push({
+                                        name: call.name,
+                                        response: { result: removed ? `I have removed "${info}" from my memory.` : `I couldn't find "${info}" in my memory.` },
+                                        id: call.id
+                                    });
                                 }
+
+
                             }
 
-                            if (responses.length > 0) {
-                                session.sendToolResponse({ functionResponses: responses });
+                            if (responses.length > 0 && sessionRef.current) {
+                                // @ts-ignore
+                                sessionRef.current?.sendToolResponse({ functionResponses: responses });
                             }
+
                         }
                     },
                     onclose: () => {
@@ -450,6 +578,11 @@ export const useLiveAssistant = () => {
         isUserSpeaking,
         volume,
         isCustomActive,
-        isSystemAudioActive
+        isSystemAudioActive,
+        imageGeneration,
+        videoGeneration,
+        closeImageGeneration: () => setImageGeneration(prev => ({ ...prev, isVisible: false })),
+        closeVideoGeneration: () => setVideoGeneration(prev => ({ ...prev, isVisible: false }))
     };
+
 };

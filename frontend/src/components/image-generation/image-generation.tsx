@@ -121,11 +121,11 @@ export function ImageGeneration({
                   />
 
                   {/* Action buttons - appear on hover, top right corner */}
-                  <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10">
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-7 w-7 bg-black/60 hover:bg-black/80 text-white border-0 backdrop-blur-sm"
+                      className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleCopy(imageUrl, index)
@@ -133,36 +133,37 @@ export function ImageGeneration({
                       title={copiedIndex === index ? "Copied!" : "Copy image"}
                     >
                       {copiedIndex === index ? (
-                        <Check className="h-3.5 w-3.5 text-green-400" />
+                        <Check className="h-4 w-4 text-green-400" />
                       ) : (
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-4 w-4" />
                       )}
                     </Button>
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-7 w-7 bg-black/60 hover:bg-black/80 text-white border-0 backdrop-blur-sm"
+                      className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDownload(imageUrl)
                       }}
                       title="Download image"
                     >
-                      <Download className="h-3.5 w-3.5" />
+                      <Download className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-7 w-7 bg-black/60 hover:bg-black/80 text-white border-0 backdrop-blur-sm"
+                      className="h-8 w-8 bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
                       onClick={(e) => {
                         e.stopPropagation()
                         onClose()
                       }}
                       title="Close"
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
+
                 </div>
               </CarouselItem>
             )

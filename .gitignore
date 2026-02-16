@@ -85,3 +85,6 @@ storybook-static/
 # Temporary folders
 tmp/
 temp/
+# Large files and binaries
+binaries/
+models/
