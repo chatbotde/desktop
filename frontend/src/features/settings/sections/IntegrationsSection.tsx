@@ -1,8 +1,8 @@
 /**
  * Integrations Section
  * 
- * MCP (Model Context Protocol) integrations for connecting to external services
- * like Notion, Slack, GitHub, etc. with OAuth support for multi-user apps.
+ * Integrations for connecting to external services like Notion, Slack, GitHub, etc.
+ * with OAuth support for multi-user apps.
  */
 
 import { useState, useEffect, useCallback } from "react"
@@ -17,7 +17,6 @@ import {
     Loader2,
     ChevronRight,
     Sparkles,
-    Database,
 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -619,7 +618,7 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
                     Integrations
                 </div>
                 <p className={cn("text-xs mt-1", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-                    Connect external services to extend AI capabilities with MCP (Model Context Protocol).
+                    Connect external services to extend AI capabilities.
                 </p>
             </div>
 
@@ -791,45 +790,7 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
                 </div>
             )}
 
-            {/* MCP Info */}
-            <div className={cn(
-                "rounded-xl border p-4",
-                isDarkTheme ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50"
-            )}>
-                <div className="flex items-start gap-3">
-                    <div className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0",
-                        isDarkTheme ? "bg-purple-500/20" : "bg-purple-100"
-                    )}>
-                        <Database className={cn("h-4 w-4", isDarkTheme ? "text-purple-400" : "text-purple-600")} />
-                    </div>
-                    <div>
-                        <p className={cn(
-                            "text-sm font-medium",
-                            isDarkTheme ? "text-zinc-100" : "text-zinc-900"
-                        )}>
-                            Model Context Protocol (MCP)
-                        </p>
-                        <p className={cn("text-xs mt-1", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-                            These integrations use the open MCP standard to securely connect AI assistants
-                            with external tools and data sources. Each connection uses OAuth for secure
-                            multi-user authentication.
-                        </p>
-                        <a
-                            href="https://modelcontextprotocol.io"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                                "inline-flex items-center gap-1 text-xs mt-2 hover:underline",
-                                isDarkTheme ? "text-blue-400" : "text-blue-600"
-                            )}
-                        >
-                            Learn more about MCP
-                            <ExternalLink className="h-3 w-3" />
-                        </a>
-                    </div>
-                </div>
-            </div>
+
 
             {/* Setup Dialog */}
             <NotionSetupDialog
