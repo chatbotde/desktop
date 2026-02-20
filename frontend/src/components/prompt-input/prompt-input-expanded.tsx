@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { PromptInput } from "@/components/prompt-kit/prompt-input"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
@@ -51,7 +52,6 @@ export function PromptInputExpanded({
     handleToggleGrounding,
   } = useExpandedLocalLLM()
 
-  // Check if a file is an auto-screenshot
   const isAutoScreenshot = (file: File): boolean => {
     return !!(file as any).__isAutoScreenshot
   }
@@ -59,9 +59,15 @@ export function PromptInputExpanded({
   const canSubmit = useCanSubmit({ input, files, clipboardItems })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
 
-  // Create a dummy setter if not provided (for backwards compatibility)
+  const [isAnimatingIn, setIsAnimatingIn] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsAnimatingIn(false), 50)
+    return () => clearTimeout(timer)
+  }, [])
+
   const clipboardSetter = setClipboardItems ?? (() => { })
-  const expandedSetter = setIsExpanded ?? (() => { }) // Already expanded
+  const expandedSetter = setIsExpanded ?? (() => { })
 
   const handlePaste = usePasteHandler({
     onFilesAdded,
@@ -70,7 +76,15 @@ export function PromptInputExpanded({
   })
 
   return (
-    <div className="relative flex items-start gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}>
+    <div 
+      className={cn(
+        "relative flex items-start gap-2 mx-0 mb-0 overflow-visible",
+        isAnimatingIn 
+          ? "animate-in fade-in zoom-in-95 duration-200 ease-out" 
+          : "animate-in fade-in zoom-in-95 duration-200 ease-out"
+      )}
+      style={{ zIndex: 100 }}
+    >
       <PromptInputHeader
         onClipboardItemAdd={onClipboardItemAdd}
         setInput={setInput}
@@ -85,10 +99,14 @@ export function PromptInputExpanded({
         isLoading={isLoading}
         onSubmit={onSubmit}
         className={cn(
-          "flex-1 flex flex-col rounded-2xl border px-3 py-2 transition-all duration-300 ease-in-out",
-          themeClasses.containerBorder
+          "flex-1 flex flex-col rounded-2xl border px-3 py-2 transition-all duration-200 ease-out overflow-visible",
+          themeClasses.containerBorder,
+          isAnimatingIn ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}
-        style={{ backgroundColor: themeClasses.containerBg }}
+        style={{ 
+          backgroundColor: themeClasses.containerBg,
+          transitionProperty: "opacity, transform, box-shadow, border-color, background-color",
+        }}
       >
         {files.length === 0 && (
           <ExpandedCollapseButton

@@ -13,7 +13,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    strictPort: true,
+    // Allow Vite to automatically use a different free port if 5173 is busy
+    strictPort: false,
     proxy: {
       '/api/tts': {
         target: 'http://localhost:8000',

@@ -9,14 +9,12 @@ import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { ModelSelectorPopover } from "../../model-selector-popover"
 import { MicHoverAudioPill } from "@/features/audio"
 import { VideoHoverCapturePill } from "@/features/capture/components"
-import { cn } from "@/lib/utils"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
 import { ExpandedSubmitButton } from "../expanded-submit-button"
 import { actionButtonRegistry } from "../registry/action-button-registry"
 import type { ExpandedActionsBarContext } from "../types/expanded-actions-context"
 
 export function registerDefaultActions(context: ExpandedActionsBarContext | (() => ExpandedActionsBarContext)) {
-  // Support both direct context and function that returns context (for reactive updates)
   const getContext = typeof context === 'function' ? context : () => context
   const currentContext = getContext()
 
@@ -33,7 +31,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     onModelSelect,
   } = currentContext
 
-  // Media Upload Button (Left side, order: 0)
+  // Media Upload Button (Left side, order: 0) - dropdown appears above input
   actionButtonRegistry.register({
     id: "media-upload",
     order: 0,
@@ -43,17 +41,17 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
           <PopoverTrigger asChild>
             <button
               aria-label="Add action"
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-                hoverClass
-              )}
+              className={hoverClass + " flex h-8 w-8 items-center justify-center rounded-full transition-colors"}
             >
               <Plus className={`size-5 ${themeClasses.icon}`} />
             </button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto p-0 border-none bg-transparent shadow-none mb-2 z-[1002]"
+            className="w-auto p-0 border-none bg-transparent shadow-none"
+            side="top"
             align="start"
+            sideOffset={16}
+            style={{ zIndex: 9999 }}
           >
             <MediaUploadCard
               onFileUpload={onFilesAdded}
@@ -67,7 +65,7 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     ),
   })
 
-  // Model Selector Button (Left side, order: 1)
+  // Model Selector Button (Left side, order: 1) - dropdown appears above
   actionButtonRegistry.register({
     id: "model-selector",
     order: 1,
@@ -86,7 +84,6 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   })
 
   // Grounding Button (Left side, order: 2, conditional)
-  // Use function component to read latest context values reactively
   actionButtonRegistry.register({
     id: "grounding",
     order: 2,
@@ -135,7 +132,6 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   })
 
   // Submit Button (Right side, order: 11)
-  // Use function component to read latest context values reactively
   actionButtonRegistry.register({
     id: "submit",
     order: 11,
@@ -159,4 +155,3 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     },
   })
 }
-

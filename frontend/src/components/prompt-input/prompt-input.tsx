@@ -12,6 +12,7 @@ import { usePromptSubmit } from "./hooks/use-prompt-submit"
 import { useValidationErrorTimeout } from "./hooks/use-validation-error-timeout"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import type { MediaAttachment } from '@/features/chat'
+import { cn } from "@/lib/utils"
 
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
@@ -129,7 +130,12 @@ export function PromptInputWithActions({
       onUrlDropped={handleUrlDropped}
       readCodeFileContents={true}
       isDarkTheme={isDarkTheme}
-      className="relative w-full transition-all duration-300 ease-in-out"
+      className={cn(
+        "relative w-full transition-all",
+        isExpanded 
+          ? "duration-200 ease-out" 
+          : "duration-200 ease-in"
+      )}
     >
       <div
         ref={inputContainerRef}

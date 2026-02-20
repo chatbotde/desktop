@@ -87,7 +87,7 @@ export function PromptInputCollapsed({
               <Plus className={`size-4 ${themeClasses.icon}`} />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none mb-2" align="start">
+          <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none z-[1002]" align="start" side="top" sideOffset={8}>
             <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} onThemeChange={onThemeChange} />
           </PopoverContent>
         </Popover>

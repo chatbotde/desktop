@@ -43,7 +43,7 @@ export function PromptInput({
     <PromptInputContext.Provider
       value={{ value, onValueChange, isLoading, onSubmit }}
     >
-      <div className={cn("relative", className)} style={style}>
+      <div className={cn("relative overflow-visible", className)} style={style}>
         {children}
       </div>
     </PromptInputContext.Provider>

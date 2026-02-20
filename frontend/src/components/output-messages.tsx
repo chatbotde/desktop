@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { MessageBubble } from '@/features/output-window/components/MessageBubble'
 import { ThinkingIndicator } from '@/features/output-window/components/ThinkingIndicator'

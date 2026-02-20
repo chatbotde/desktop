@@ -124,11 +124,13 @@ export function ModelSelectorPopover({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-72 p-0 border z-[1002] shadow-xl overflow-hidden rounded-xl",
+          "w-72 p-0 border shadow-xl overflow-hidden rounded-xl",
           isDarkTheme ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
         )}
-        style={{ backgroundColor: themeClasses.containerBg }}
+        style={{ backgroundColor: themeClasses.containerBg, zIndex: 9999 }}
         align="start"
+        side="top"
+        sideOffset={16}
         data-no-clickthrough
       >
         <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
