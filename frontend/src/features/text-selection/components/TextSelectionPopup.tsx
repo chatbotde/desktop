@@ -6,6 +6,7 @@ import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
 import { AddToPromptButton } from '@/components/add-button'
 import { ReadButton } from '@/components/read-button'
+import { CopyButton } from '@/components/copy-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
@@ -227,7 +228,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       // 1. Deciding position BEFORE appearing
       // Pill dimensions are roughly fixed: ~150x40
-      const PILL_WIDTH = 190 // Increased for new button
+      const PILL_WIDTH = 220 // Increased for new copy button
       const PILL_HEIGHT = 40
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
@@ -423,6 +424,18 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     }
   }, [generatedOutput])
 
+  const handleCopy = useCallback(() => {
+    if (selectionData?.text) {
+      navigator.clipboard.writeText(selectionData.text)
+    }
+  }, [selectionData])
+
+  const handleCopyOutput = useCallback(() => {
+    if (generatedOutput) {
+      navigator.clipboard.writeText(generatedOutput)
+    }
+  }, [generatedOutput])
+
   const handleAddToPromptSelection = () => {
     if (selectionData?.text && onAddToPrompt) {
       onAddToPrompt(selectionData.text)
@@ -513,6 +526,14 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                       "w-px h-4 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
+                    <CopyButton
+                      onClick={handleCopy}
+                      isDarkTheme={isDarkTheme}
+                    />
+                    <div className={cn(
+                      "w-px h-4 mx-0.5",
+                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
+                    )} />
                     <ExpandButton
                       isExpanded={false}
                       onClick={() => setIsExpanded(true)}
@@ -585,7 +606,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                           isStreaming={isGenerating}
                           onInsert={handleInsert}
                           onReplace={handleReplace}
-                          onCopy={() => { }}
+                          onCopy={handleCopyOutput}
                           isDarkTheme={isDarkTheme}
                           className="bg-transparent border-none shadow-none mt-0 mb-0"
                         />
