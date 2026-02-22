@@ -19,21 +19,28 @@ export interface TextSelectionContext {
    * The selected text
    */
   selectedText: string
-  
+
   /**
    * Current message/input text (if any)
    */
   currentMessage?: string
-  
+
   /**
    * Source of the text selection (e.g., 'message-bubble', 'external', 'input')
    */
   source?: string
-  
+
   /**
    * Additional metadata about the selection
    */
   metadata?: Record<string, any>
+}
+
+/**
+ * Helper to wrap a prompt with direct output instructions
+ */
+function wrapDirect(prompt: string): string {
+  return `${DIRECT_OUTPUT_INSTRUCTIONS}\n\nUSER REQUEST:\n${prompt}`
 }
 
 /**
@@ -43,11 +50,11 @@ export function buildTextSelectionAskPrompt(
   context: TextSelectionContext,
   options?: Omit<AskPromptOptions, 'selectedText' | 'userInput'>
 ): string {
-  return buildAskPrompt({
+  return wrapDirect(buildAskPrompt({
     selectedText: context.selectedText,
     userInput: context.currentMessage,
     ...options,
-  })
+  }))
 }
 
 /**
@@ -57,10 +64,10 @@ export function buildTextSelectionExplainPrompt(
   context: TextSelectionContext,
   options?: Omit<ExplainPromptOptions, 'selectedText'>
 ): string {
-  return buildExplainPrompt({
+  return wrapDirect(buildExplainPrompt({
     selectedText: context.selectedText,
     ...options,
-  })
+  }))
 }
 
 /**
@@ -70,11 +77,11 @@ export function buildTextSelectionChangePrompt(
   context: TextSelectionContext,
   options?: Omit<ChangePromptOptions, 'selectedText' | 'instruction'>
 ): string {
-  return buildChangePrompt({
+  return wrapDirect(buildChangePrompt({
     selectedText: context.selectedText,
     instruction: context.currentMessage,
     ...options,
-  })
+  }))
 }
 
 /**
@@ -84,12 +91,26 @@ export function buildTextSelectionAddPrompt(
   context: TextSelectionContext,
   options?: Omit<AddPromptOptions, 'selectedText' | 'userInput'>
 ): string {
-  return buildAddPrompt({
+  return wrapDirect(buildAddPrompt({
     selectedText: context.selectedText,
     userInput: context.currentMessage,
     ...options,
-  })
+  }))
 }
+
+/**
+ * Instructions for the AI to provide direct, minimal output without conversational fillers.
+ */
+export const DIRECT_OUTPUT_INSTRUCTIONS = `
+IMPORTANT: Provide DIRECT OUTPUT ONLY.
+- NO conversational fillers (e.g., "Here is the summary:", "Sure, I can help").
+- NO introductory or concluding remarks.
+- NO additional questions or suggestions at the end.
+- Provide ONLY the requested content itself.
+- If the user asks for a post/email/summary, provide ONLY that text.
+- Provide the SINGLE best version, not multiple options.
+- Ensure the output is ready to be used/sent immediately.
+`.trim()
 
 /**
  * Format selected text for inclusion in a message
@@ -101,16 +122,16 @@ export function formatSelectedTextForMessage(
 ): string {
   const trimmed = selectedText.trim()
   if (!trimmed) return ''
-  
+
   if (includeLabel) {
     return `${label}\n"${trimmed}"`
   }
-  
+
   return trimmed
 }
 
 /**
- * Combine message with selected text
+ * Combine message with selected text and apply direct output instructions
  */
 export function combineMessageWithSelection(
   message: string,
@@ -119,15 +140,30 @@ export function combineMessageWithSelection(
 ): string {
   const trimmedMessage = message.trim()
   const formattedSelection = formatSelectedTextForMessage(selectedText, includeLabel)
-  
+
+  let combined = ''
   if (!trimmedMessage) {
-    return formattedSelection
+    combined = formattedSelection
+  } else if (!formattedSelection) {
+    combined = trimmedMessage
+  } else {
+    combined = `${trimmedMessage}\n\n${formattedSelection}`
   }
-  
-  if (!formattedSelection) {
-    return trimmedMessage
-  }
-  
-  return `${trimmedMessage}\n\n${formattedSelection}`
+
+  return wrapDirect(combined)
+}
+
+/**
+ * Build a highly direct prompt for text selection actions
+ */
+export function buildDirectSelectionPrompt(
+  context: TextSelectionContext,
+  includeLabel = true
+): string {
+  return combineMessageWithSelection(
+    context.currentMessage || '',
+    context.selectedText,
+    includeLabel
+  )
 }
 

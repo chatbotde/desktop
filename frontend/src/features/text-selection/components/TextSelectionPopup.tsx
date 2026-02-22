@@ -12,6 +12,7 @@ import { useFeature } from '@/contexts/FeatureContext'
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { cn } from '@/lib/utils'
+import { combineMessageWithSelection } from '@/services/prompts/text-selection/prompt-builder'
 
 interface SelectionData {
   text: string
@@ -362,10 +363,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim() || isGenerating) return
 
-    let message = prompt.trim()
-    if (selectionData?.text) {
-      message = `${message}\n\nSelected text:\n"${selectionData.text}"`
-    }
+    const message = combineMessageWithSelection(prompt.trim(), selectionData?.text || '')
 
     setIsGenerating(true)
     setGeneratedOutput(null)
