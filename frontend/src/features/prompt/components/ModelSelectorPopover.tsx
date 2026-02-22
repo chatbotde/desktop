@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { Settings2, Cloud, User } from "lucide-react"
+import { Settings2, Cloud, User, Image, Code, Info } from "lucide-react"
 import {
   getAvailableModels,
   getSelectedModel,
@@ -14,7 +14,7 @@ import {
 import { getVisibleModels, MODEL_VISIBILITY_CHANGED_EVENT } from "@/lib/settings/model-visibility"
 import { CUSTOM_PROVIDERS_CHANGED_EVENT } from "@/lib/settings/custom-providers"
 import { cn } from "@/shared/lib"
-import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
+import { unifiedLocalLLMService, type LocalLLMModel, toggleLocalLLMCapability } from "@/lib/ai/local-llm"
 
 interface ModelSelectorPopoverProps {
   isDarkTheme?: boolean
@@ -25,7 +25,7 @@ interface ModelSelectorPopoverProps {
   }
   // Local model props from ExpandedActionsBarContext
   ollamaRunning?: boolean | null
-  ollamaModels?: string[]
+  ollamaModels?: LocalLLMModel[]
   selectedLocalModelName?: string | null
   onModelSelect?: (modelName: string) => void
 }
@@ -41,6 +41,7 @@ export function ModelSelectorPopover({
   const [isOpen, setIsOpen] = useState(false)
   const [selectedModel, setSelectedModelState] = useState<AIModel | null>(null)
   const [visibleModels, setVisibleModels] = useState<AIModel[]>([])
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Load visible models
   const loadModels = () => {
@@ -61,18 +62,22 @@ export function ModelSelectorPopover({
     loadModels()
   }, [])
 
-  // Reload when popover opens
+  // Reload when popover opens or config changes
   useEffect(() => {
     if (isOpen) {
       loadModels()
     }
-  }, [isOpen])
+  }, [isOpen, refreshTrigger])
 
   // Listen for visibility changes from settings
   useEffect(() => {
     const handler = () => loadModels()
     window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
+    window.addEventListener('local-model-config-changed', () => setRefreshTrigger(t => t + 1))
+    return () => {
+      window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
+      window.removeEventListener('local-model-config-changed', () => setRefreshTrigger(t => t + 1))
+    }
   }, [])
 
   // Listen for custom provider changes
@@ -104,6 +109,11 @@ export function ModelSelectorPopover({
     }
   }
 
+  const handleToggleLocalCapability = (e: React.MouseEvent, modelName: string, capability: any) => {
+    e.stopPropagation()
+    toggleLocalLLMCapability(modelName, capability)
+  }
+
   // Split into cloud and custom
   const cloudModels = visibleModels.filter(m => !m.isCustom).sort((a, b) => a.displayName.localeCompare(b.displayName))
   const customModels = visibleModels.filter(m => m.isCustom).sort((a, b) => a.displayName.localeCompare(b.displayName))
@@ -124,7 +134,7 @@ export function ModelSelectorPopover({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-72 p-0 border shadow-xl overflow-hidden rounded-xl",
+          "w-80 p-0 border shadow-xl overflow-hidden rounded-xl",
           isDarkTheme ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
         )}
         style={{ backgroundColor: themeClasses.containerBg, zIndex: 9999 }}
@@ -256,11 +266,11 @@ export function ModelSelectorPopover({
                 ))}
 
                 {/* Local Ollama Models */}
-                {ollamaModels.map((modelName) => {
-                  const isSelected = selectedLocalModelName === modelName
+                {ollamaModels.map((model) => {
+                  const isSelected = selectedLocalModelName === model.name
                   return (
                     <button
-                      key={modelName}
+                      key={model.name}
                       className={cn(
                         "w-full px-3 py-2 text-left transition-all rounded-lg group",
                         isDarkTheme
@@ -273,7 +283,7 @@ export function ModelSelectorPopover({
                         ),
                         !isSelected && "border border-transparent"
                       )}
-                      onClick={() => handleLocalModelChange(modelName)}
+                      onClick={() => handleLocalModelChange(model.name)}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -281,7 +291,7 @@ export function ModelSelectorPopover({
                             "font-medium text-sm truncate",
                             themeClasses.fileText
                           )}>
-                            {modelName}
+                            {model.displayName}
                           </span>
                           <span className={cn(
                             "px-1.5 py-0.5 text-[9px] rounded uppercase font-bold tracking-tighter",
@@ -291,18 +301,44 @@ export function ModelSelectorPopover({
                           </span>
                         </div>
 
-                        {isSelected && (
-                          <div className={cn(
-                            "h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]",
-                            isDarkTheme ? "bg-green-400" : "bg-green-500"
-                          )} />
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {/* Capability Toggles */}
+                          <button
+                            onClick={(e) => handleToggleLocalCapability(e, model.name, 'supportsImages')}
+                            className={cn(
+                              "p-1 rounded hover:bg-zinc-700/50 transition-colors",
+                              model.supportsImages ? "text-emerald-400" : "text-zinc-600 grayscale opacity-40 hover:grayscale-0 hover:opacity-100"
+                            )}
+                            title={model.supportsImages ? "Vision enabled" : "Click to enable vision support"}
+                          >
+                            <Image className="size-3" />
+                          </button>
+
+                          {model.category === 'coding' && (
+                            <Code className="size-3 text-blue-400" />
+                          )}
+
+                          {isSelected && (
+                            <div className={cn(
+                              "h-2 w-2 rounded-full shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)] ml-1",
+                              isDarkTheme ? "bg-green-400" : "bg-green-500"
+                            )} />
+                          )}
+                        </div>
                       </div>
                     </button>
                   )
                 })}
               </div>
             )}
+          </div>
+
+          <div className={cn(
+            "p-2 border-t text-[10px] italic flex items-center gap-2",
+            isDarkTheme ? "text-zinc-500 bg-zinc-950" : "text-zinc-400 bg-zinc-50"
+          )}>
+            <Info className="size-3 shrink-0" />
+            <span>Click icons to manually enable vision/capabilities if not detected correctly.</span>
           </div>
         </div>
       </PopoverContent>

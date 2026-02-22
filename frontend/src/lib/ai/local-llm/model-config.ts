@@ -2,7 +2,7 @@
  * Local LLM Model Configuration
  * 
  * This file contains model definitions specifically for local LLM providers (Ollama).
- * These models are separate from cloud-based models and can be scaled independently.
+ * Models are dynamically discovered from Ollama and enhanced with metadata.
  */
 
 export interface LocalLLMModel {
@@ -22,168 +22,121 @@ export interface LocalLLMModel {
 }
 
 /**
- * Predefined local LLM models
- * These are common models available in Ollama
+ * Metadata hints for common local LLM models.
+ * These are used to enhance dynamically discovered models.
  */
-export const LOCAL_LLM_MODELS: LocalLLMModel[] = [
-  // Text Models
-  {
-    id: 'ollama/llama3.2',
-    name: 'llama3.2',
+const MODEL_METADATA_HINTS: Record<string, Partial<LocalLLMModel>> = {
+  'llama3.2': {
     displayName: 'Llama 3.2',
     description: 'Meta Llama 3.2 - Fast and efficient text generation',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 128000,
     recommended: true,
     size: '3B',
   },
-  {
-    id: 'ollama/llama3.1',
-    name: 'llama3.1',
+  'llama3.1': {
     displayName: 'Llama 3.1',
     description: 'Meta Llama 3.1 - High quality text generation',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 128000,
     recommended: true,
     size: '8B',
   },
-  {
-    id: 'ollama/mistral',
-    name: 'mistral',
+  'mistral': {
     displayName: 'Mistral 7B',
     description: 'Mistral 7B - Efficient and capable language model',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 32000,
     recommended: true,
     size: '7B',
   },
-  {
-    id: 'ollama/codellama',
-    name: 'codellama',
+  'codellama': {
     displayName: 'Code Llama',
     description: 'Code Llama - Specialized for code generation and understanding',
     category: 'coding',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation', 'code-completion'],
     contextWindow: 100000,
     recommended: true,
     size: '7B',
   },
-  {
-    id: 'ollama/phi3',
-    name: 'phi3',
+  'phi3': {
     displayName: 'Phi-3',
     description: 'Microsoft Phi-3 - Small but capable model',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 128000,
     recommended: false,
     size: '3.8B',
   },
-  {
-    id: 'ollama/gemma2',
-    name: 'gemma2',
+  'gemma2': {
     displayName: 'Gemma 2',
     description: 'Google Gemma 2 - Open source language model',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 8192,
     recommended: true,
     size: '9B',
   },
-  {
-    id: 'ollama/gemma3-270m',
-    name: 'gemma3:270m',
+  'gemma3:270m': {
     displayName: 'Gemma 3 270M',
     description: 'Google Gemma 3 270M - Ultra-lightweight and fast model',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 8192,
     recommended: true,
     size: '270M',
   },
-  
-  // Multimodal Models (Vision)
-  {
-    id: 'ollama/llava',
-    name: 'llava',
+  'llava': {
     displayName: 'LLaVA',
     description: 'LLaVA - Large Language and Vision Assistant with image understanding',
     category: 'multimodal',
     supportsImages: true,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'images', 'visual-understanding'],
     contextWindow: 4096,
     recommended: true,
     size: '7B',
   },
-  {
-    id: 'ollama/bakllava',
-    name: 'bakllava',
-    displayName: 'BakLLaVA',
-    description: 'BakLLaVA - Alternative vision-language model',
-    category: 'multimodal',
-    supportsImages: true,
-    supportsAudio: false,
-    supportsVideo: false,
-    capabilities: ['text', 'images', 'visual-understanding'],
-    contextWindow: 4096,
-    recommended: false,
-    size: '7B',
-  },
-  {
-    id: 'ollama/llava-llama3',
-    name: 'llava-llama3',
+  'llava-llama3': {
     displayName: 'LLaVA Llama 3',
     description: 'LLaVA based on Llama 3 - Enhanced vision capabilities',
     category: 'multimodal',
     supportsImages: true,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'images', 'visual-understanding'],
     contextWindow: 8192,
     recommended: true,
     size: '8B',
   },
-  {
-    id: 'gemma3:latest',
-    name: 'gemma3:latest',
+  'gemma3:latest': {
     displayName: 'Gemma 3 Latest',
     description: 'Google Gemma 3 Latest - Latest version of Gemma 3',
     category: 'text',
-    supportsImages: false,
-    supportsAudio: false,
-    supportsVideo: false,
     capabilities: ['text', 'code-generation'],
     contextWindow: 8192,
     recommended: true,
     size: '3B',
-  },
-];
+  }
+};
+
+/**
+ * Predefined local LLM models (for backward compatibility and initial display)
+ */
+export const LOCAL_LLM_MODELS: LocalLLMModel[] = Object.entries(MODEL_METADATA_HINTS).map(([name, hint]) => ({
+  id: `ollama/${name.replace(/:/g, '-')}`,
+  name,
+  displayName: hint.displayName || name,
+  description: hint.description || `Ollama model: ${name}`,
+  category: hint.category || 'text',
+  supportsImages: hint.supportsImages || false,
+  supportsAudio: hint.supportsAudio || false,
+  supportsVideo: hint.supportsVideo || false,
+  capabilities: hint.capabilities || ['text'],
+  contextWindow: hint.contextWindow || 8192,
+  recommended: hint.recommended || false,
+  size: hint.size,
+}));
 
 /**
  * Local LLM Model Configuration Manager
@@ -191,14 +144,14 @@ export const LOCAL_LLM_MODELS: LocalLLMModel[] = [
 export class LocalLLMModelConfigManager {
   private static instance: LocalLLMModelConfigManager;
   private selectedModelId: string | null = null;
-  private modelConfigs: Map<string, LocalLLMModel> = new Map();
-  private availableModels: string[] = []; // Models available in Ollama
+  private discoveredModels: Map<string, LocalLLMModel> = new Map();
+  private availableNames: string[] = [];
+
+  private hasBeenChecked: boolean = false;
+  private capabilityOverrides: Record<string, Partial<LocalLLMModel>> = {};
 
   private constructor() {
-    // Initialize with predefined models
-    LOCAL_LLM_MODELS.forEach(model => {
-      this.modelConfigs.set(model.id, model);
-    });
+    this.loadOverrides();
   }
 
   static getInstance(): LocalLLMModelConfigManager {
@@ -209,68 +162,121 @@ export class LocalLLMModelConfigManager {
   }
 
   /**
+   * Load overrides from localStorage
+   */
+  private loadOverrides() {
+    try {
+      const saved = localStorage.getItem('local-llm-overrides');
+      if (saved) {
+        this.capabilityOverrides = JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load local LLM overrides:', e);
+    }
+  }
+
+  /**
+   * Save overrides to localStorage
+   */
+  private saveOverrides() {
+    localStorage.setItem('local-llm-overrides', JSON.stringify(this.capabilityOverrides));
+    // Rebuild discovered models to apply changes
+    this.updateAvailableModels(this.availableNames);
+  }
+
+  /**
+   * Toggle a capability for a model
+   */
+  toggleCapability(modelName: string, capability: keyof Pick<LocalLLMModel, 'supportsImages' | 'supportsAudio' | 'supportsVideo'>) {
+    if (!this.capabilityOverrides[modelName]) {
+      this.capabilityOverrides[modelName] = {};
+    }
+
+    // Get current value (including hints/guessing)
+    const model = this.getModelByOllamaName(modelName);
+    const currentValue = model ? model[capability] : false;
+
+    this.capabilityOverrides[modelName][capability] = !currentValue;
+    this.saveOverrides();
+
+    // Dispatch event to notify UI
+    window.dispatchEvent(new CustomEvent('local-model-config-changed'));
+  }
+
+  /**
    * Update available models from Ollama
    */
   async updateAvailableModels(ollamaModels: string[]) {
-    this.availableModels = ollamaModels;
+    this.availableNames = ollamaModels;
+    this.hasBeenChecked = true;
+
+    // Clear and rebuild discovered models
+    this.discoveredModels.clear();
+    ollamaModels.forEach(name => {
+      const model = this.createModelEntry(name);
+      this.discoveredModels.set(model.id, model);
+    });
+
+    console.log(`[LocalLLMModelConfig] Discovered ${this.discoveredModels.size} models from Ollama`);
   }
 
   /**
-   * Get all predefined models
+   * Create a model entry based on name and metadata hints
    */
-  getPredefinedModels(): LocalLLMModel[] {
-    return Array.from(this.modelConfigs.values());
+  private createModelEntry(name: string): LocalLLMModel {
+    // Try to find a hint for this model (check exact name or base name without tag)
+    const baseName = name.split(':')[0];
+    const hint = MODEL_METADATA_HINTS[name] || MODEL_METADATA_HINTS[baseName] || {};
+    const override = this.capabilityOverrides[name] || {};
+
+    const isVision = name.toLowerCase().includes('llava') ||
+      name.toLowerCase().includes('vision') ||
+      hint.supportsImages;
+
+    const isCoding = name.toLowerCase().includes('coder') ||
+      name.toLowerCase().includes('code') ||
+      hint.category === 'coding';
+
+    return {
+      id: `ollama/${name.replace(/:/g, '-')}`,
+      name: name,
+      displayName: hint.displayName || this.formatModelName(name),
+      description: hint.description || `Ollama model: ${name}`,
+      category: hint.category || (isVision ? 'multimodal' : isCoding ? 'coding' : 'text'),
+      supportsImages: override.supportsImages !== undefined ? override.supportsImages : !!isVision,
+      supportsAudio: override.supportsAudio !== undefined ? override.supportsAudio : (hint.supportsAudio || false),
+      supportsVideo: override.supportsVideo !== undefined ? override.supportsVideo : (hint.supportsVideo || false),
+      capabilities: hint.capabilities || (isVision ? ['text', 'images'] : ['text']),
+      contextWindow: hint.contextWindow || 8192,
+      recommended: hint.recommended || false,
+      size: hint.size,
+    };
   }
 
   /**
-   * Get models that are available in Ollama
-   * Includes both predefined models and dynamically discovered models
+   * Get all currently available models
    */
   getAvailableModels(): LocalLLMModel[] {
-    const predefined = this.getPredefinedModels();
-    
-    if (this.availableModels.length === 0) {
-      // If we haven't checked yet, return all predefined models
-      return predefined;
+    if (this.discoveredModels.size > 0) {
+      return Array.from(this.discoveredModels.values());
     }
-    
-    // Get predefined models that are available
-    const availablePredefined = predefined.filter(model => 
-      this.availableModels.includes(model.name)
-    );
-    
-    // Create dynamic models for any Ollama models not in our predefined list
-    const predefinedNames = new Set(predefined.map(m => m.name));
-    const dynamicModels: LocalLLMModel[] = this.availableModels
-      .filter(name => !predefinedNames.has(name))
-      .map(name => ({
-        id: `ollama/${name.replace(/:/g, '-')}`,
-        name: name,
-        displayName: this.formatModelName(name),
-        description: `Ollama model: ${name}`,
-        category: 'text' as const,
-        supportsImages: name.toLowerCase().includes('llava') || name.toLowerCase().includes('vision'),
-        supportsAudio: false,
-        supportsVideo: false,
-        capabilities: name.toLowerCase().includes('llava') || name.toLowerCase().includes('vision')
-          ? ['text', 'images']
-          : ['text'],
-        contextWindow: 8192,
-        recommended: false,
-      }));
-    
-    return [...availablePredefined, ...dynamicModels];
+
+    // If we have checked and found nothing, return empty
+    if (this.hasBeenChecked) {
+      return [];
+    }
+
+    // If no models discovered yet (initial state), return predefined models as placeholders
+    return LOCAL_LLM_MODELS;
   }
 
   /**
    * Format model name for display
    */
   private formatModelName(name: string): string {
-    // Convert "gemma3:270m" to "Gemma 3 270M"
     return name
       .split(':')
       .map(part => {
-        // Capitalize first letter and handle numbers
         return part.charAt(0).toUpperCase() + part.slice(1).replace(/(\d+)([a-z])/gi, '$1 $2');
       })
       .join(' ');
@@ -295,27 +301,17 @@ export class LocalLLMModelConfigManager {
    */
   getSelectedModel(): LocalLLMModel | null {
     if (!this.selectedModelId) return null;
-    return this.modelConfigs.get(this.selectedModelId) || null;
+    return this.discoveredModels.get(this.selectedModelId) ||
+      LOCAL_LLM_MODELS.find(m => m.id === this.selectedModelId) ||
+      null;
   }
 
   /**
    * Set the selected model
    */
   setSelectedModel(modelId: string) {
-    if (this.modelConfigs.has(modelId)) {
-      this.selectedModelId = modelId;
-      console.log('[LocalLLMModelConfig] Model set to:', modelId);
-    } else {
-      // Check if it's a dynamic model in available models
-      const availableModels = this.getAvailableModels();
-      const foundModel = availableModels.find(m => m.id === modelId);
-      if (foundModel) {
-        this.selectedModelId = modelId;
-        console.log('[LocalLLMModelConfig] Dynamic model set to:', modelId);
-      } else {
-        console.warn(`[LocalLLMModelConfig] Model ${modelId} not found in local LLM config`);
-      }
-    }
+    this.selectedModelId = modelId;
+    console.log('[LocalLLMModelConfig] Selected model set to:', modelId);
   }
 
   /**
@@ -329,26 +325,25 @@ export class LocalLLMModelConfigManager {
    * Get model by Ollama name
    */
   getModelByOllamaName(ollamaName: string): LocalLLMModel | null {
-    const model = Array.from(this.modelConfigs.values()).find(m => m.name === ollamaName);
-    return model || null;
+    return this.getAvailableModels().find(m => m.name === ollamaName) || null;
   }
 
   /**
    * Check if a model is available
    */
   isModelAvailable(modelId: string): boolean {
-    const model = this.modelConfigs.get(modelId);
-    if (!model) return false;
-    
-    if (this.availableModels.length === 0) return true; // Haven't checked yet
-    return this.availableModels.includes(model.name);
+    if (this.availableNames.length === 0) return true; // Assume available if not checked yet
+    const model = this.getModelById(modelId);
+    return model ? this.availableNames.includes(model.name) : false;
   }
 
   /**
    * Get model by ID
    */
   getModelById(modelId: string): LocalLLMModel | null {
-    return this.modelConfigs.get(modelId) || null;
+    return this.discoveredModels.get(modelId) ||
+      LOCAL_LLM_MODELS.find(m => m.id === modelId) ||
+      null;
   }
 }
 

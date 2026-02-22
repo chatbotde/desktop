@@ -77,7 +77,7 @@ export class UnifiedLocalLLMService {
    */
   setModel(modelIdOrName: string) {
     console.log('[UnifiedLocalLLMService] setModel called with:', modelIdOrName);
-    
+
     // Try to find by model ID first
     if (modelIdOrName.startsWith('ollama/')) {
       localLLMModelConfig.setSelectedModel(modelIdOrName);
@@ -103,7 +103,7 @@ export class UnifiedLocalLLMService {
         // Check if this model already exists in available models
         const availableModels = localLLMModelConfig.getAvailableModels();
         const existingModel = availableModels.find(m => m.name === modelIdOrName);
-        
+
         if (existingModel) {
           console.log('[UnifiedLocalLLMService] Found model in available models:', existingModel.name);
           localLLMModelConfig.setSelectedModel(existingModel.id);
@@ -123,12 +123,12 @@ export class UnifiedLocalLLMService {
         }
       }
     }
-    
+
     // Store the model name directly for reliable tracking
     const finalModelName = ollamaService.getCurrentModel();
     this.currentModelName = finalModelName;
     console.log('[UnifiedLocalLLMService] Model name stored:', this.currentModelName);
-    
+
     // Verify the model was set
     const verifyModel = this.getCurrentModel();
     console.log('[UnifiedLocalLLMService] Model set verification:', verifyModel?.name || 'null');
@@ -146,7 +146,7 @@ export class UnifiedLocalLLMService {
       if (existingModel) {
         return existingModel;
       }
-      
+
       // Create a temporary model entry for dynamic models
       return {
         id: `ollama/${this.currentModelName.replace(/:/g, '-')}`,
@@ -164,14 +164,14 @@ export class UnifiedLocalLLMService {
         recommended: false,
       };
     }
-    
+
     // Fallback: check config
     const model = localLLMModelConfig.getSelectedModel();
     if (model) {
       this.currentModelName = model.name; // Sync stored name
       return model;
     }
-    
+
     // Last resort: check ollamaService
     const ollamaModelName = ollamaService.getCurrentModel();
     if (ollamaModelName && ollamaModelName !== 'llama3.2') {
@@ -182,7 +182,7 @@ export class UnifiedLocalLLMService {
       if (existingModel) {
         return existingModel;
       }
-      
+
       // Create a temporary model entry for dynamic models
       return {
         id: `ollama/${ollamaModelName.replace(/:/g, '-')}`,
@@ -200,7 +200,7 @@ export class UnifiedLocalLLMService {
         recommended: false,
       };
     }
-    
+
     return null;
   }
 
@@ -232,7 +232,7 @@ export class UnifiedLocalLLMService {
    * @param modelIdOrName - Optional model ID (e.g., 'ollama/gemma3-270m') or Ollama model name (e.g., 'gemma3:270m')
    */
   async sendMessage(
-    message: string, 
+    message: string,
     attachments?: MediaAttachment[],
     modelIdOrName?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
@@ -248,7 +248,7 @@ export class UnifiedLocalLLMService {
         // Try to find by Ollama name
         selectedModel = localLLMModelConfig.getModelByOllamaName(modelIdOrName);
       }
-      
+
       // If not found in config, use the name directly (for dynamic models)
       if (!selectedModel) {
         modelName = modelIdOrName;
@@ -281,7 +281,9 @@ export class UnifiedLocalLLMService {
     if (attachments?.length && selectedModel) {
       const hasImages = attachments.some(a => a.mediaType === 'image');
       if (hasImages && !selectedModel.supportsImages) {
-        throw new Error(`Model ${selectedModel.displayName} does not support images. Please use a vision model like LLaVA.`);
+        // Just log a warning for local models instead of blocking, 
+        // as the user might have manually enabled it or the guess might be wrong.
+        console.warn(`[UnifiedLocalLLMService] Model ${selectedModel.displayName} might not support images, but proceeding as requested.`);
       }
     }
 
@@ -293,7 +295,7 @@ export class UnifiedLocalLLMService {
    * Send a message and get the complete response (non-streaming)
    */
   async sendMessageComplete(
-    message: string, 
+    message: string,
     attachments?: MediaAttachment[],
     modelId?: string
   ): Promise<string> {
@@ -366,13 +368,13 @@ export const unifiedLocalLLMService = new UnifiedLocalLLMService();
 
 // Convenience functions
 export const sendLocalLLMMessage = (
-  message: string, 
+  message: string,
   attachments?: MediaAttachment[],
   modelId?: string
 ) => unifiedLocalLLMService.sendMessage(message, attachments, modelId);
 
 export const sendLocalLLMMessageComplete = (
-  message: string, 
+  message: string,
   attachments?: MediaAttachment[],
   modelId?: string
 ) => unifiedLocalLLMService.sendMessageComplete(message, attachments, modelId);

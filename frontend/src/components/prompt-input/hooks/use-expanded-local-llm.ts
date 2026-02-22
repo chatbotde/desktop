@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react"
-import { ollamaService, isOllamaConfigured } from "@/lib/ai/local-llm/ollama"
-import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
+import { unifiedLocalLLMService, type LocalLLMModel } from "@/lib/ai/local-llm"
 import { getShowLocalModelControl, subscribeShowLocalModelControl } from "@/lib/settings/prompt-controls"
 import { getSelectedModel } from "@/lib/ai/model-config"
 import { getGroundingEnabled, setGroundingEnabled, subscribeGroundingEnabled } from "@/lib/settings/grounding-toggle"
 
 export function useExpandedLocalLLM() {
   const [ollamaRunning, setOllamaRunning] = useState<boolean | null>(null)
-  const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const [ollamaModels, setOllamaModels] = useState<LocalLLMModel[]>([])
   const [selectedLocalModelName, setSelectedLocalModelName] = useState<string | null>(
     () => unifiedLocalLLMService.getCurrentModel()?.name ?? null
   )
@@ -19,18 +18,18 @@ export function useExpandedLocalLLM() {
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      const running = await isOllamaConfigured()
-      if (cancelled) return
-      setOllamaRunning(running)
-      if (running) {
-        const models = await ollamaService.listModels()
+      ; (async () => {
+        // Use unifiedLocalLLMService to initialize and update configuration
+        const result = await unifiedLocalLLMService.initialize()
         if (cancelled) return
-        setOllamaModels(models)
-      } else {
-        setOllamaModels([])
-      }
-    })()
+
+        setOllamaRunning(result.success)
+        if (result.success) {
+          setOllamaModels(unifiedLocalLLMService.getAvailableModels())
+        } else {
+          setOllamaModels([])
+        }
+      })()
     return () => {
       cancelled = true
     }

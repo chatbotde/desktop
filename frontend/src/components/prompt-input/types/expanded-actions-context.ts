@@ -1,3 +1,5 @@
+import type { LocalLLMModel } from "@/lib/ai/local-llm"
+
 export interface ExpandedActionsBarContext {
   onFilesAdded?: (files: File[]) => void
   isDarkTheme: boolean
@@ -29,7 +31,7 @@ export interface ExpandedActionsBarContext {
   // Local model
   showLocalControlInPrompt: boolean
   ollamaRunning: boolean | null
-  ollamaModels: string[]
+  ollamaModels: LocalLLMModel[]
   selectedLocalModelName: string | null
   onModelSelect: (modelName: string) => void
 }

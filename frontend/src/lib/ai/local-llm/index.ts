@@ -43,7 +43,15 @@ export {
   type OllamaMessage,
 } from './ollama';
 
-// Export model configuration
+import { localLLMModelConfig, type LocalLLMModel } from './model-config';
+
+// Add convenience export for toggling capabilities
+export const toggleLocalLLMCapability = (
+  modelName: string,
+  capability: keyof Pick<LocalLLMModel, 'supportsImages' | 'supportsAudio' | 'supportsVideo'>
+) => localLLMModelConfig.toggleCapability(modelName, capability);
+
+// Re-export model configuration
 export {
   LocalLLMModelConfigManager,
   localLLMModelConfig,
