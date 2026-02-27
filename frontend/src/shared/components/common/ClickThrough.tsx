@@ -74,7 +74,7 @@ const ClickThrough = () => {
 		const findInteractiveHost = (start: HTMLElement | null) => {
 			let el: HTMLElement | null = start
 			// Limit traversal to keep pointermove cheap
-			for (let i = 0; i < 10 && el; i++) {
+			for (let i = 0; i < 20 && el; i++) {
 				if (el.matches(INTERACTIVE_SELECTOR)) return el
 				if (isScrollable(el)) return el
 				el = el.parentElement

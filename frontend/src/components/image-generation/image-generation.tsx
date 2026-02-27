@@ -53,6 +53,7 @@ export function ImageGeneration({
   }, [api, onImageIndexChange])
 
   const handleCopy = async (imageUrl: string, index: number) => {
+    console.log('[ImageGeneration] handleCopy attempting to copy:', imageUrl);
     try {
       const response = await fetch(imageUrl)
       const blob = await response.blob()
@@ -62,7 +63,15 @@ export function ImageGeneration({
       setCopiedIndex(index)
       setTimeout(() => setCopiedIndex(null), 2000)
     } catch (error) {
-      console.error("Failed to copy image:", error)
+      console.error("Failed to copy image blob:", error)
+      // Fallback to copying URL if fetch/blob fails
+      try {
+        await navigator.clipboard.writeText(imageUrl);
+        setCopiedIndex(index)
+        setTimeout(() => setCopiedIndex(null), 2000)
+      } catch (urlError) {
+        console.error("Failed to copy image URL as fallback:", urlError);
+      }
     }
   }
 
@@ -89,12 +98,13 @@ export function ImageGeneration({
 
   return (
     <div
+      data-no-clickthrough
       className={cn("relative w-full h-full", className)}
     >
       <Carousel
         setApi={setApi}
         className="w-full h-full"
-        opts={{ watchDrag: false }}
+        opts={{ watchDrag: true }}
       >
         <CarouselContent className="h-full">
           {images.map((originalUrl, index) => {
@@ -121,11 +131,16 @@ export function ImageGeneration({
                   />
 
                   {/* Action buttons - appear on hover, top right corner */}
-                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10">
+                  <div
+                    data-no-clickthrough
+                    className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10"
+                  >
                     <Button
+                      data-no-clickthrough
                       variant="secondary"
                       size="icon"
                       className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleCopy(imageUrl, index)
@@ -139,9 +154,11 @@ export function ImageGeneration({
                       )}
                     </Button>
                     <Button
+                      data-no-clickthrough
                       variant="secondary"
                       size="icon"
                       className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDownload(imageUrl)
@@ -151,9 +168,11 @@ export function ImageGeneration({
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button
+                      data-no-clickthrough
                       variant="secondary"
                       size="icon"
                       className="h-8 w-8 bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation()
                         onClose()
@@ -174,12 +193,12 @@ export function ImageGeneration({
         {images.length > 1 && (
           <>
             <CarouselPrevious
+              data-no-clickthrough
               className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-sm z-20"
-              onClick={(e) => e.stopPropagation()}
             />
             <CarouselNext
+              data-no-clickthrough
               className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-sm z-20"
-              onClick={(e) => e.stopPropagation()}
             />
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-20">
               <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">

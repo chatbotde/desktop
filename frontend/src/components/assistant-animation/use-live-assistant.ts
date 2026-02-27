@@ -95,7 +95,7 @@ export const useLiveAssistant = () => {
         const currentTime = audioContextRef.current.currentTime;
         // If scheduled time is in the past, reset it
         if (scheduledTimeRef.current < currentTime) {
-            scheduledTimeRef.current = currentTime;
+            scheduledTimeRef.current = currentTime + 0.05; // Add a small 50ms buffer to prevent stutter
         }
 
         source.start(scheduledTimeRef.current);
@@ -236,7 +236,7 @@ export const useLiveAssistant = () => {
                             MemoryService.getMemories().length > 0
                                 ? `\n\nYour Memories:\n${MemoryService.getMemories().map(m => `- ${m.content}`).join('\n')}`
                                 : ''
-                        )
+                        ) + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. NEVER switch languages randomly. You MUST always speak in the same language that the user is currently speaking.\n4. Do not use conversational filler words."
                     }]
                 },
                 tools: TOOLS_CONFIG as any,
@@ -252,6 +252,12 @@ export const useLiveAssistant = () => {
                         connectingRef.current = false;
                     },
                     onmessage: async (message: any) => {
+                        if (message.serverContent?.interrupted) {
+                            console.log('Model interrupted by user, clearing queue');
+                            audioQueueRef.current = [];
+                            scheduledTimeRef.current = audioContextRef.current?.currentTime || 0;
+                        }
+
                         if (message.serverContent?.modelTurn?.parts) {
                             for (const part of message.serverContent.modelTurn.parts) {
                                 if (part.inlineData?.data) {
@@ -473,6 +479,9 @@ export const useLiveAssistant = () => {
                 audio: {
                     sampleRate: 16000,
                     channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
                 }
             });
             mediaStreamRef.current = stream;
@@ -480,7 +489,7 @@ export const useLiveAssistant = () => {
             if (!audioContextRef.current) return;
 
             const source = audioContextRef.current.createMediaStreamSource(stream);
-            const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+            const processor = audioContextRef.current.createScriptProcessor(2048, 1, 1);
 
             processor.onaudioprocess = (e) => {
                 const inputData = e.inputBuffer.getChannelData(0);

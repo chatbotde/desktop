@@ -7,9 +7,9 @@
  * import { useTheme, useFeature, useToast } from '@/shared/providers'
  */
 
-export { 
-  ThemeProvider, 
-  useTheme, 
+export {
+  ThemeProvider,
+  useTheme,
   useIsDark,
   useThemeClass,
   type Theme,
@@ -19,3 +19,4 @@ export {
 } from './ThemeProvider'
 export { FeatureProvider, useFeature } from './FeatureProvider'
 export { ToastProvider, useToast } from './ToastProvider'
+export { AnimationsProvider, useAnimations, type AnimationId } from './AnimationsProvider'

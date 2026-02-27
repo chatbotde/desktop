@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ThemeProvider, FeatureProvider } from '@/shared/providers'
+import { ThemeProvider, FeatureProvider, AnimationsProvider } from '@/shared/providers'
 import { FeatureEffects } from '@/features/feature-flags'
 
 interface AppProvidersProps {
@@ -23,8 +23,10 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider>
       <FeatureProvider>
-        <FeatureEffects />
-        {children}
+        <AnimationsProvider>
+          <FeatureEffects />
+          {children}
+        </AnimationsProvider>
       </FeatureProvider>
     </ThemeProvider>
   )

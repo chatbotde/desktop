@@ -52,7 +52,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                 const generatedParticles: Particle[] = [];
                 const coreRadius = 35; // Match previous core radius
 
-                // Helper to check point inside polygon (from rotate-earth.tsx)
+                // Helper to check point inside polygon
                 const pointInPolygon = (point: [number, number], polygon: number[][]): boolean => {
                     const [x, y] = point;
                     let inside = false;

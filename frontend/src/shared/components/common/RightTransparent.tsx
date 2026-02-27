@@ -57,6 +57,29 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
         <Mic className="w-4 h-4 text-white" />
       </div>
 
+      {/* Cat Assistant Toggle */}
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          window.dispatchEvent(new Event('toggle-cat-assistant-visibility'));
+        }}
+        className="
+          absolute -top-20 right-0
+          w-8 h-8 rounded-full
+          bg-amber-600 hover:bg-amber-500
+          flex items-center justify-center 
+          shadow-lg border border-white/20
+          cursor-pointer
+          transition-all duration-200
+          z-[101]
+          opacity-0 group-hover:opacity-100
+          scale-75 group-hover:scale-100
+        "
+        title="Cat Assistant"
+      >
+        <span className="text-sm leading-none">🐱</span>
+      </div>
+
       {children}
     </div>
   );

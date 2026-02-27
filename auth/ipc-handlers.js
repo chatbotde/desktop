@@ -155,7 +155,7 @@ function registerAuthIpcHandlers() {
    */
   ipcMain.on('auth:subscribe', (event) => {
     authStateListeners.add(event.sender);
-    
+
     // Send current state immediately
     event.reply('auth:state-changed', {
       isAuthenticated: authService.isLoggedIn(),
@@ -201,17 +201,17 @@ function registerAuthIpcHandlers() {
     try {
       // Stop session monitoring
       authService.stopSessionMonitoring();
-      
+
       // Clear stored credentials
       await tokenStore.clearAll();
-      
+
       // Reset auth service state
       authService.user = null;
       authService.isAuthenticated = false;
-      
+
       // Broadcast state change
       broadcastAuthEvent('auth:state-changed', { isAuthenticated: false, user: null });
-      
+
       console.log('Auth IPC: Tokens cleared successfully');
       return { success: true };
     } catch (error) {

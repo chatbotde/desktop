@@ -11,6 +11,8 @@
 export {
   ScreenCaptureModal,
   AreaScreenshotOverlay,
+  RectangleSelectOverlay,
+  ScreenshotSelectionPopup,
   ScreenshotButton,
   VideoRecorderPill,
   VideoRecordButton

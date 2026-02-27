@@ -8,6 +8,7 @@ import {
   Key,
   Plug,
   CircleHelp,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react"
 
@@ -21,6 +22,7 @@ export type SettingsSectionId =
   | "integrations"
   | "blocking"
   | "features"
+  | "animations"
   | "help"
 
 export type SettingsMenuItem = {
@@ -39,5 +41,6 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
+  { id: "animations", label: "Animations", icon: Sparkles },
   { id: "help", label: "Help", icon: CircleHelp },
 ]

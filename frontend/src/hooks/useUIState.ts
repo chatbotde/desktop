@@ -8,6 +8,8 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [showVideoScroll, setShowVideoScroll] = useState(false)
   const [showAreaScreenshot, setShowAreaScreenshot] = useState(false)
   const [areaScreenshotCallback, setAreaScreenshotCallback] = useState<((area: { x: number; y: number; width: number; height: number }) => void) | null>(null)
+  const [showRectangleScreenshot, setShowRectangleScreenshot] = useState(false)
+  const [rectangleScreenshotCallback, setRectangleScreenshotCallback] = useState<((area: { x: number; y: number; width: number; height: number }) => void) | null>(null)
   // Use global theme from ThemeProvider instead of local state
   const isDarkTheme = useIsDark()
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null)
@@ -48,6 +50,10 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setShowAreaScreenshot,
     areaScreenshotCallback,
     setAreaScreenshotCallback,
+    showRectangleScreenshot,
+    setShowRectangleScreenshot,
+    rectangleScreenshotCallback,
+    setRectangleScreenshotCallback,
     isDarkTheme,
     recordedAudio,
     setRecordedAudio,

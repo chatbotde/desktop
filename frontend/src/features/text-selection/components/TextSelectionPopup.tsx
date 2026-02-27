@@ -229,7 +229,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
       // 1. Deciding position BEFORE appearing
       // Pill dimensions are roughly fixed: ~150x40
-      const PILL_WIDTH = 220 // Increased for new copy button
+      const PILL_WIDTH = 190 // Reduced after commenting out audio button
       const PILL_HEIGHT = 40
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
@@ -515,7 +515,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                       "w-px h-4 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
-                    <ReadButton
+                    {/* <ReadButton
                       onClick={handleRead}
                       isDarkTheme={isDarkTheme}
                       isLoading={isPlaying}
@@ -523,7 +523,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                     <div className={cn(
                       "w-px h-4 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} />
+                    )} /> */}
                     <CopyButton
                       onClick={handleCopy}
                       isDarkTheme={isDarkTheme}

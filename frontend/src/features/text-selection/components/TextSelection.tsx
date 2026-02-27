@@ -120,8 +120,7 @@ export function TextSelectionInput({
 
       {/* Actions bar */}
       <div className={cn(
-        "flex items-center justify-between gap-1 px-2 py-1.5",
-        isDarkTheme ? "border-t border-white/5" : "border-t border-zinc-200/50"
+        "flex items-center justify-between gap-1 px-2 py-1.5"
       )}>
         <div className="flex items-center gap-1">
           {isGenerating && (

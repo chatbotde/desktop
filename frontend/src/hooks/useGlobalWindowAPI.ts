@@ -6,6 +6,8 @@ interface UseGlobalWindowAPIProps {
   setIsOutputVisible: (visible: boolean) => void
   setAreaScreenshotCallback: (callback: ((area: { x: number; y: number; width: number; height: number }) => void) | null) => void
   setShowAreaScreenshot: (show: boolean) => void
+  setRectangleScreenshotCallback: (callback: ((area: { x: number; y: number; width: number; height: number }) => void) | null) => void
+  setShowRectangleScreenshot: (show: boolean) => void
 }
 
 declare global {
@@ -19,7 +21,9 @@ export const useGlobalWindowAPI = ({
   addMessage,
   setIsOutputVisible,
   setAreaScreenshotCallback,
-  setShowAreaScreenshot
+  setShowAreaScreenshot,
+  setRectangleScreenshotCallback,
+  setShowRectangleScreenshot
 }: UseGlobalWindowAPIProps) => {
   useEffect(() => {
     window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
@@ -27,17 +31,22 @@ export const useGlobalWindowAPI = ({
       if (outputWindowEnabled) setIsOutputVisible(true)
     }
 
-    // Listen for area screenshot requests
     const handleShowAreaScreenshot = (event: CustomEvent) => {
       setAreaScreenshotCallback(() => event.detail.onCapture)
       setShowAreaScreenshot(true)
     }
+    const handleShowRectangleScreenshot = (event: CustomEvent) => {
+      setRectangleScreenshotCallback(() => event.detail.onCapture)
+      setShowRectangleScreenshot(true)
+    }
 
     window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
+    window.addEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
 
     return () => {
       window.addOutputMessage = undefined
       window.removeEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
+      window.removeEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
     }
-  }, [outputWindowEnabled, addMessage, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot])
+  }, [outputWindowEnabled, addMessage, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot])
 }

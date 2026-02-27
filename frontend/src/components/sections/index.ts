@@ -1,4 +1,5 @@
 export { AudioRecordingSection } from './AudioRecordingSection'
 export { VideoScrollSection } from './VideoScrollSection'
 export { AreaScreenshotSection } from './AreaScreenshotSection'
+export { RectangleScreenshotSection } from './RectangleScreenshotSection'
 export { ExplanationSection } from './ExplanationSection'

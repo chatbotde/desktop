@@ -23,7 +23,7 @@ interface VideoHoverCapturePillProps {
     onScreenshotAdded?: (file: File) => void
 }
 
-type CaptureAction = 'video' | 'area-screenshot' | 'quick-screenshot' | 'auto-screenshot' | 'set-area'
+type CaptureAction = 'video' | 'area-screenshot' | 'rectangle-screenshot' | 'quick-screenshot' | 'auto-screenshot' | 'set-area'
 
 interface ActionButtonProps {
     onClick: () => void
@@ -246,11 +246,10 @@ export function VideoHoverCapturePill({
         }
     }, [onScreenshotAdded])
 
-    // Handle area screenshot - trigger area selection overlay
+    // Handle area screenshot (freehand draw) - trigger area selection overlay
     const handleAreaScreenshot = useCallback(() => {
         setIsPillActive(false)
         setIsCapturing(true)
-
         const event = new CustomEvent('show-area-screenshot', {
             detail: {
                 onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
@@ -263,12 +262,11 @@ export function VideoHoverCapturePill({
                         if (result.success && result.screenshot) {
                             const blob = dataUrlToBlob(result.screenshot.data)
                             const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
-
-                            window.dispatchEvent(new CustomEvent('prompt-add-files', {
-                                detail: { files: [file] }
+                            const centerX = area.x + area.width / 2
+                            const centerY = area.y + area.height / 2
+                            window.dispatchEvent(new CustomEvent('screenshot-selection-captured', {
+                                detail: { file, position: { x: centerX, y: centerY } }
                             }))
-
-                            onScreenshotAdded?.(file)
                         } else {
                             console.error('Area screenshot failed:', result.error)
                         }
@@ -281,7 +279,42 @@ export function VideoHoverCapturePill({
             },
         })
         window.dispatchEvent(event)
-    }, [onScreenshotAdded])
+    }, [])
+
+    // Handle rectangle screenshot - drag rectangle, then popup (Add to prompt / Expand to ask)
+    const handleRectangleScreenshot = useCallback(() => {
+        setIsPillActive(false)
+        setIsCapturing(true)
+        const event = new CustomEvent('show-rectangle-screenshot', {
+            detail: {
+                onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
+                    try {
+                        if (!window.CaptureAPI) {
+                            console.error('CaptureAPI is not available')
+                            return
+                        }
+                        const result = await (window.CaptureAPI as any).takeAreaScreenshot(area)
+                        if (result.success && result.screenshot) {
+                            const blob = dataUrlToBlob(result.screenshot.data)
+                            const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+                            const centerX = area.x + area.width / 2
+                            const centerY = area.y + area.height / 2
+                            window.dispatchEvent(new CustomEvent('screenshot-selection-captured', {
+                                detail: { file, position: { x: centerX, y: centerY } }
+                            }))
+                        } else {
+                            console.error('Rectangle screenshot failed:', result.error)
+                        }
+                    } catch (err) {
+                        console.error('Error taking rectangle screenshot:', err)
+                    } finally {
+                        setIsCapturing(false)
+                    }
+                },
+            },
+        })
+        window.dispatchEvent(event)
+    }, [])
 
     // Handle set area capture - toggle feature
     const handleSetAreaCapture = useCallback(() => {
@@ -308,11 +341,12 @@ export function VideoHoverCapturePill({
             'video': handleVideoClick,
             'quick-screenshot': handleQuickScreenshot,
             'area-screenshot': handleAreaScreenshot,
+            'rectangle-screenshot': handleRectangleScreenshot,
             'auto-screenshot': handleToggleAutoScreenshot,
             'set-area': handleSetAreaCapture,
         }
         handlers[action]()
-    }, [handleVideoClick, handleQuickScreenshot, handleAreaScreenshot, handleToggleAutoScreenshot, handleSetAreaCapture])
+    }, [handleVideoClick, handleQuickScreenshot, handleAreaScreenshot, handleRectangleScreenshot, handleToggleAutoScreenshot, handleSetAreaCapture])
 
     // Memoize button class
     const actionButtonClass = useMemo(() => cn(
@@ -394,12 +428,24 @@ export function VideoHoverCapturePill({
                         <ActionButton
                             onClick={() => handleActionClick('area-screenshot')}
                             disabled={isCapturing}
-                            ariaLabel="Circle to Ask"
-                            title="Circle to Ask"
+                            ariaLabel="Draw shape to capture"
+                            title="Draw shape to capture area"
                             className={actionButtonClass}
                             isDarkTheme={isDarkTheme}
                         >
                             <Circle className="h-4 w-4" />
+                        </ActionButton>
+
+                        <ActionButton
+                            onClick={() => handleActionClick('rectangle-screenshot')}
+                            disabled={isCapturing}
+                            ariaLabel="Select to ask"
+                            title="Select to ask — drag rectangle, then add to prompt or ask AI"
+                            className={cn(actionButtonClass, "w-auto min-w-0 gap-1.5 px-2.5")}
+                            isDarkTheme={isDarkTheme}
+                        >
+                            <Square className="h-4 w-4 shrink-0" />
+                            
                         </ActionButton>
 
                         <ActionButton
