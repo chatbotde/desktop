@@ -3,7 +3,7 @@
  * Provides freehand drawing to select area for screenshot
  */
 
-import { useEffect, useRef} from 'react'
+import { useEffect, useRef } from 'react'
 
 interface AreaScreenshotOverlayProps {
   onCapture: (area: { x: number; y: number; width: number; height: number; path?: Array<{ x: number; y: number }> }) => void
@@ -52,7 +52,7 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
       pathPointsRef.current = [{ x: e.clientX, y: e.clientY }]
 
       ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'
+      ctx.fillStyle = 'white'
       ctx.lineWidth = 3
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
@@ -81,17 +81,44 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
       pathPointsRef.current.push({ x, y })
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.beginPath()
+
+      // Draw dark overlay
+      ctx.save()
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.restore()
 
       if (pathPointsRef.current.length > 0) {
+        // Punch a transparent hole for the drawn area
+        ctx.save()
+        ctx.globalCompositeOperation = 'destination-out'
+        ctx.beginPath()
         const first = pathPointsRef.current[0]
         ctx.moveTo(first.x, first.y)
-
         for (let i = 1; i < pathPointsRef.current.length; i++) {
           ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
         }
+        ctx.closePath()
+        ctx.fill()
+        ctx.restore()
 
+        // Draw the stroke on top
+        ctx.save()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
+        ctx.lineWidth = 3
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.shadowBlur = 10
+        ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
+        ctx.beginPath()
+        ctx.moveTo(first.x, first.y)
+        for (let i = 1; i < pathPointsRef.current.length; i++) {
+          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+        }
         ctx.stroke()
+        ctx.restore()
       }
     }
 
@@ -103,11 +130,46 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
       isDrawingRef.current = false
 
       if (pathPointsRef.current.length > 0) {
-        const firstPoint = pathPointsRef.current[0]
-        ctx.lineTo(firstPoint.x, firstPoint.y)
+        // Redraw with closed path and transparent inside
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        // Dark overlay
+        ctx.save()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.restore()
+
+        // Punch transparent hole
+        ctx.save()
+        ctx.globalCompositeOperation = 'destination-out'
+        const first = pathPointsRef.current[0]
+        ctx.beginPath()
+        ctx.moveTo(first.x, first.y)
+        for (let i = 1; i < pathPointsRef.current.length; i++) {
+          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+        }
         ctx.closePath()
         ctx.fill()
+        ctx.restore()
+
+        // Stroke border
+        ctx.save()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
+        ctx.lineWidth = 3
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.shadowBlur = 10
+        ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
+        ctx.beginPath()
+        ctx.moveTo(first.x, first.y)
+        for (let i = 1; i < pathPointsRef.current.length; i++) {
+          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+        }
+        ctx.closePath()
         ctx.stroke()
+        ctx.restore()
       }
 
       if (pathPointsRef.current.length < minPathLength) {

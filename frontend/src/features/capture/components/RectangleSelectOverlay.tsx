@@ -42,11 +42,25 @@ export function RectangleSelectOverlay({ onCapture, onCancel }: RectangleSelectO
       const y = Math.min(startPointRef.current.y, currentPointRef.current.y)
       const width = Math.abs(currentPointRef.current.x - startPointRef.current.x)
       const height = Math.abs(currentPointRef.current.y - startPointRef.current.y)
+      const radius = 10
+      // Clear the selected area with rounded corners
+      ctx.save()
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.clip()
       ctx.clearRect(x, y, width, height)
-      ctx.strokeStyle = '#3b82f6'
+      ctx.restore()
+      // Stroke the rounded border
+      ctx.shadowColor = 'rgba(96, 165, 250, 0.5)'
+      ctx.shadowBlur = 6
+      ctx.strokeStyle = '#60a5fa'
       ctx.lineWidth = 2
-      ctx.setLineDash([6, 3])
-      ctx.strokeRect(x, y, width, height)
+      ctx.setLineDash([])
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.stroke()
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
       if (width > 20 && height > 20) {
         ctx.font = '12px Inter, sans-serif'
         ctx.fillStyle = '#3b82f6'
@@ -145,7 +159,7 @@ export function RectangleSelectOverlay({ onCapture, onCancel }: RectangleSelectO
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[999999] bg-transparent cursor-crosshair"
+      className="fixed inset-0 z-[999999] bg-transparent cursor-default"
       data-no-clickthrough
     >
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999998]" />

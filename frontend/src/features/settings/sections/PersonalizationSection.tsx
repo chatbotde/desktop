@@ -106,6 +106,7 @@ export function PersonalizationSection({
             </SelectTrigger>
             <SelectContent
               className={cn(
+                "z-[9999999]",
                 isDarkTheme
                   ? "bg-zinc-800 border-zinc-700"
                   : "bg-white border-zinc-300"

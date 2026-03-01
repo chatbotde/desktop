@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { X } from "lucide-react"
 
 import { Card } from "@/shared/components/ui/card"
@@ -24,6 +24,33 @@ import {
   HelpSection
 } from "../sections"
 
+// ── localStorage keys ──
+const STORAGE_KEY_PERSONALIZATION = "buddy_personalization"
+const STORAGE_KEY_GENERAL = "buddy_general_settings"
+
+/** Read a JSON value from localStorage, falling back to `fallback` on any error. */
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) return JSON.parse(raw) as T
+  } catch {
+    /* corrupted data – use fallback */
+  }
+  return fallback
+}
+
+// ── Default values ──
+const DEFAULT_PERSONALIZATION: PersonalizationValues = {
+  nickname: "",
+  occupation: "Engineering student",
+  customInstructions: "",
+  baseStyle: "professional",
+}
+
+const DEFAULT_GENERAL = {
+  language: "english",
+}
+
 type SettingsCardProps = {
   initialSection?: SettingsSectionId
   onRequestClose?: () => void
@@ -35,16 +62,23 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
 
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(initialSection)
 
-  const [personalization, setPersonalization] = useState<PersonalizationValues>({
-    nickname: "",
-    occupation: "Engineering student",
-    customInstructions: "",
-    baseStyle: "professional",
-  })
+  // Initialise from localStorage (or defaults on first launch)
+  const [personalization, setPersonalization] = useState<PersonalizationValues>(
+    () => loadFromStorage(STORAGE_KEY_PERSONALIZATION, DEFAULT_PERSONALIZATION)
+  )
 
-  const [generalSettings, setGeneralSettings] = useState({
-    language: "english",
-  })
+  const [generalSettings, setGeneralSettings] = useState(
+    () => loadFromStorage(STORAGE_KEY_GENERAL, DEFAULT_GENERAL)
+  )
+
+  // Auto-save to localStorage whenever values change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_PERSONALIZATION, JSON.stringify(personalization))
+  }, [personalization])
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_GENERAL, JSON.stringify(generalSettings))
+  }, [generalSettings])
 
   const activeLabel = SETTINGS_MENU_ITEMS.find((i) => i.id === activeSection)?.label ?? "Settings"
 

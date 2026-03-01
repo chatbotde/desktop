@@ -66,7 +66,7 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
         className="
           absolute -top-20 right-0
           w-8 h-8 rounded-full
-          bg-amber-600 hover:bg-amber-500
+          bg-blue-600 hover:bg-blue-500
           flex items-center justify-center 
           shadow-lg border border-white/20
           cursor-pointer
@@ -77,7 +77,7 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
         "
         title="Cat Assistant"
       >
-        <span className="text-sm leading-none">🐱</span>
+        <span className="text-sm leading-none"></span>
       </div>
 
       {children}

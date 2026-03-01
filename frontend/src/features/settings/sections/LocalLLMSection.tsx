@@ -157,7 +157,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
             <SelectTrigger className="w-[280px]">
               <SelectValue placeholder={availableModels.length ? "Select a model" : "No models found"} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[9999999]">
               {availableModels.map((m) => (
                 <SelectItem key={m} value={m}>
                   {m}
