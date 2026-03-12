@@ -9,10 +9,12 @@ class ApplicationShortcutManager {
   /**
    * @param {GlobalShortcutRegistry} shortcutRegistry
    * @param {Function} toggleInterfaceWindow - Callback to toggle interface window
+   * @param {Function} showAndConnectAssistant - Callback to show window and connect assistant
    */
-  constructor(shortcutRegistry, toggleInterfaceWindow) {
+  constructor(shortcutRegistry, toggleInterfaceWindow, showAndConnectAssistant = null) {
     this.shortcutRegistry = shortcutRegistry;
     this.toggleInterfaceWindow = toggleInterfaceWindow;
+    this.showAndConnectAssistant = showAndConnectAssistant;
   }
 
   /**
@@ -36,6 +38,22 @@ class ApplicationShortcutManager {
       },
       'Quit application'
     );
+
+    // Ctrl+\ - Show assistant sphere and connect
+    if (this.showAndConnectAssistant) {
+      console.log('ApplicationShortcutManager: Registering Ctrl+\\ shortcut');
+      const accelerator = process.platform === 'darwin' ? 'Command+\\' : 'Control+\\';
+      this.shortcutRegistry.register(
+        accelerator,
+        () => {
+          console.log('Shortcut: Ctrl+\\ pressed - Showing and connecting assistant');
+          this.showAndConnectAssistant();
+        },
+        'Show and connect assistant'
+      );
+    } else {
+      console.log('ApplicationShortcutManager: showAndConnectAssistant is null, not registering Ctrl+\\');
+    }
   }
 
   /**

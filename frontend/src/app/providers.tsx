@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { ThemeProvider, FeatureProvider, AnimationsProvider } from '@/shared/providers'
 import { FeatureEffects } from '@/features/feature-flags'
+import { VoiceProvider } from '@/features/voice'
+
 
 interface AppProvidersProps {
   children: ReactNode
@@ -24,10 +26,13 @@ export function AppProviders({ children }: AppProvidersProps) {
     <ThemeProvider>
       <FeatureProvider>
         <AnimationsProvider>
-          <FeatureEffects />
-          {children}
+          <VoiceProvider>
+            <FeatureEffects />
+            {children}
+          </VoiceProvider>
         </AnimationsProvider>
       </FeatureProvider>
     </ThemeProvider>
+
   )
 }

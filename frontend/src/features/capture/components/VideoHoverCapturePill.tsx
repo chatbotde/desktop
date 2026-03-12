@@ -445,7 +445,7 @@ export function VideoHoverCapturePill({
                             isDarkTheme={isDarkTheme}
                         >
                             <Square className="h-4 w-4 shrink-0" />
-                            
+
                         </ActionButton>
 
                         <ActionButton

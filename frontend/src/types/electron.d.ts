@@ -253,7 +253,11 @@ declare global {
       getFileCategory: (filePath: string) => Promise<string>;
       getFileLanguage: (filePath: string) => Promise<string | null>;
       getMimeType: (filePath: string) => Promise<string | null>;
+      writeFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
+      writeFileBinary: (filePath: string, base64: string) => Promise<{ success: boolean; error?: string }>;
+      mkdir: (dirPath: string, recursive?: boolean) => Promise<{ success: boolean; error?: string }>;
     };
+
 
     /**
      * Whisper Speech-to-Text API

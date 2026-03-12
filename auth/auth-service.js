@@ -41,6 +41,7 @@ class AuthService extends EventEmitter {
   /**
    * Initialize the auth service
    * Checks for existing session and restores it
+   * Supports offline mode - trusts local tokens if server is unreachable
    * @returns {Promise<Object|null>} User data if authenticated
    */
   async initialize() {
@@ -51,40 +52,68 @@ class AuthService extends EventEmitter {
       const hasCredentials = await tokenStore.hasCredentials();
 
       if (hasCredentials) {
-        console.log('Auth Service: Found stored credentials, validating...');
+        console.log('Auth Service: Found stored credentials, checking local validity...');
 
-        // Try to validate the session
-        const isValid = await this.validateSession();
+        // Check if local token is valid (not expired)
+        const accessToken = await tokenStore.getAccessToken();
+        const sessionToken = await tokenStore.getSessionToken();
+        const token = accessToken || sessionToken;
 
-        if (isValid) {
-          // Restore user data
+        if (token && !tokenStore.isTokenExpired(token, config.TOKEN_REFRESH_THRESHOLD)) {
+          // Local token is valid - restore user immediately (offline mode)
           this.user = await tokenStore.getUserData();
           this.isAuthenticated = true;
 
-          // Start session monitoring
-          this.startSessionMonitoring();
+          console.log('Auth Service: Local session valid, restored (offline mode)');
 
-          console.log('Auth Service: Session restored successfully');
+          // Try server validation in background but don't wait for it
+          this.validateSessionInBackground();
+
           this.emit('auth:restored', this.user);
+          return this.user;
+        }
+
+        // Token is expired locally, try to refresh
+        console.log('Auth Service: Local token expired, attempting refresh...');
+        const refreshed = await this.refreshTokens();
+
+        if (refreshed) {
+          this.user = await tokenStore.getUserData();
+          this.isAuthenticated = true;
+
+          console.log('Auth Service: Token refreshed successfully');
+          this.startSessionMonitoring();
+          this.emit('auth:refreshed', this.user);
 
           return this.user;
-        } else {
-          console.log('Auth Service: Stored session is invalid, attempting refresh...');
-
-          // Try to refresh the token
-          const refreshed = await this.refreshTokens();
-
-          if (refreshed) {
-            this.user = await tokenStore.getUserData();
-            this.isAuthenticated = true;
-            this.startSessionMonitoring();
-
-            console.log('Auth Service: Session refreshed successfully');
-            this.emit('auth:refreshed', this.user);
-
-            return this.user;
-          }
         }
+
+        // Refresh failed - try server validation as last resort
+        console.log('Auth Service: Refresh failed, trying server validation...');
+        const isValid = await this.validateSession();
+
+        if (isValid) {
+          this.user = await tokenStore.getUserData();
+          this.isAuthenticated = true;
+          this.startSessionMonitoring();
+          this.emit('auth:restored', this.user);
+          return this.user;
+        }
+
+        // Server validation failed - check if we still have valid local token
+        const currentToken = await tokenStore.getAccessToken() || await tokenStore.getSessionToken();
+        if (currentToken && !tokenStore.isTokenExpired(currentToken, 0)) {
+          // Still have valid local token - allow offline access
+          this.user = await tokenStore.getUserData();
+          this.isAuthenticated = true;
+          console.log('Auth Service: Using offline mode (local token still valid)');
+          this.emit('auth:restored', this.user);
+          return this.user;
+        }
+
+        // All validation failed - clear invalid credentials
+        console.log('Auth Service: All validation failed, clearing credentials');
+        await tokenStore.clearAll();
       }
 
       console.log('Auth Service: No valid session found');
@@ -96,6 +125,33 @@ class AuthService extends EventEmitter {
       this.emit('auth:error', error);
       return null;
     }
+  }
+
+  /**
+   * Validate session with server in background (non-blocking)
+   * @private
+   */
+  async validateSessionInBackground() {
+    setTimeout(async () => {
+      try {
+        console.log('Auth Service: Background session validation...');
+        const isValid = await this.validateSession();
+
+        if (isValid) {
+          console.log('Auth Service: Background validation - session is valid');
+        } else {
+          // Try refresh in background
+          const refreshed = await this.refreshTokens();
+          if (refreshed) {
+            console.log('Auth Service: Background validation - token refreshed');
+          } else {
+            console.log('Auth Service: Background validation - using offline mode');
+          }
+        }
+      } catch (error) {
+        console.log('Auth Service: Background validation skipped (offline mode):', error.message);
+      }
+    }, 2000); // Wait 2 seconds before checking
   }
 
   // ===========================================

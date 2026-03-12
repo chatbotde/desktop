@@ -6,8 +6,8 @@
  * or ask AI about the screenshot in place.
  */
 
-import * as React from 'react'
 import { useState, useEffect, useCallback, useRef } from 'react'
+
 import { X } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from '@/features/text-selection/components/TextSelection'
@@ -18,7 +18,8 @@ import { useFileToAttachment } from '@/components/prompt-input/hooks/use-file-to
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { cn } from '@/lib/utils'
-import type { MediaAttachment } from '@/features/output-window'
+
+
 
 const DIRECT_OUTPUT_INSTRUCTIONS = `
 IMPORTANT: Provide DIRECT OUTPUT ONLY.
@@ -35,14 +36,14 @@ function wrapWithImageContext(prompt: string): string {
 }
 
 export interface ScreenshotSelectionPopupProps {
-  onSendMessage?: (message: string, attachments?: MediaAttachment[]) => Promise<void>
   isDarkTheme?: boolean
 }
 
+
 export function ScreenshotSelectionPopup({
-  onSendMessage,
   isDarkTheme = true,
 }: ScreenshotSelectionPopupProps) {
+
   const [isVisible, setIsVisible] = useState(false)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const [file, setFile] = useState<File | null>(null)

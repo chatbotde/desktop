@@ -1,9 +1,11 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import type { ComponentType } from 'react'
 import { ANIMATION_REGISTRY } from '@/shared/registry/animationRegistry'
 import { GenericLottieOverlay } from './GenericLottieOverlay'
+import { useAnimations } from '@/shared/providers/AnimationsProvider'
+import LogoIntro from '@/shared/components/common/logointro'
 
 // ── Non-animation overlays (these are NOT in the registry) ────────────────────
 import { GlobalAssistantOverlay } from './GlobalAssistantOverlay'
@@ -43,20 +45,35 @@ const STATIC_OVERLAYS: ComponentType[] = [
 ]
 
 /**
+ * Guards a custom overlay behind the animation-enabled check.
+ * Custom overlay components themselves must NOT contain the
+ * isAnimationEnabled check — doing so causes a dangerous `return null`
+ * from inside a positioned component which can collapse the Electron window.
+ */
+function CustomOverlayGuard({ id, children }: { id: string; children: React.ReactNode }) {
+    const { isAnimationEnabled } = useAnimations()
+    if (!isAnimationEnabled(id)) return null
+    return <>{children}</>
+}
+
+/**
  * OverlayRegistry — Orchestrates the rendering of ALL overlays.
  *
- * • Static/non-animation overlays are listed in STATIC_OVERLAYS above.
- * • Animation overlays are driven entirely by ANIMATION_REGISTRY:
- *     - "custom" entries render their own component (lazy loaded).
- *     - All other entries are rendered through GenericLottieOverlay.
- *
- * ➡ To add a new Lottie animation, just add an entry in animationRegistry.ts.
- *   Nothing to change here.
+ * • LogoIntro plays on startup as a transparent overlay on top of everything.
+ *   It unmounts itself once the snap animation completes.
+ * • All other overlays render normally and are NOT affected by the intro.
  */
 export function OverlayRegistry() {
+    const [introComplete, setIntroComplete] = useState(false)
+
     return (
         <>
-            {/* Static / non-animation overlays */}
+            {/* Logo Intro — floats on top, unmounts when done. Does NOT affect other overlays. */}
+            {!introComplete && (
+                <LogoIntro onComplete={() => setIntroComplete(true)} />
+            )}
+
+            {/* Static / non-animation overlays — always rendered */}
             {STATIC_OVERLAYS.map((Overlay, index) => (
                 <Overlay key={`static-${index}`} />
             ))}
@@ -66,9 +83,14 @@ export function OverlayRegistry() {
                 if (entry.custom && entry.customOverlay) {
                     const CustomOverlay = entry.customOverlay
                     return (
-                        <Suspense key={entry.id} fallback={null}>
-                            <CustomOverlay />
-                        </Suspense>
+                        // CustomOverlayGuard checks isAnimationEnabled OUTSIDE the
+                        // custom component so the component itself never needs to
+                        // guard itself (which can cause window-collapse on toggle).
+                        <CustomOverlayGuard key={entry.id} id={entry.id}>
+                            <Suspense fallback={null}>
+                                <CustomOverlay />
+                            </Suspense>
+                        </CustomOverlayGuard>
                     )
                 }
 
@@ -80,3 +102,4 @@ export function OverlayRegistry() {
         </>
     )
 }
+

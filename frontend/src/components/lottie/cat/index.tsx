@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import SnapEffectContainer from "@/shared/components/common/SnapEffectContainer";
 import SleepingCat from "./sleeping";
 import SitCat from "./sit";
 import RightJumpCat from "./right-jump";
@@ -141,17 +142,19 @@ const CatBuddy: React.FC<CatBuddyProps> = ({
             : CAT_POSTURE_SEQUENCE[stepIndex].posture;
 
     return (
-        <div
-            onClick={onClick}
-            style={{
-                display: "inline-flex",
-                cursor: onClick ? "pointer" : "default",
-                // Smooth posture swap — avoids jarring jumps.
-                transition: "opacity 0.2s ease",
-            }}
-        >
-            {renderPostureSvg(activePosture, width, height, className, style)}
-        </div>
+        <SnapEffectContainer>
+            <div
+                onClick={onClick}
+                style={{
+                    display: "inline-flex",
+                    cursor: onClick ? "pointer" : "default",
+                    // Smooth posture swap — avoids jarring jumps.
+                    transition: "opacity 0.2s ease",
+                }}
+            >
+                {renderPostureSvg(activePosture, width, height, className, style)}
+            </div>
+        </SnapEffectContainer>
     );
 };
 

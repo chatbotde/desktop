@@ -21,6 +21,10 @@ export function HelpSection({
             description: "Hide/Show Interface Window",
             keys: ["Ctrl", "I"],
         },
+        {
+            description: "Assistant Global",
+            keys: ["Ctrl", "\\"],
+        },
     ]
 
     return (

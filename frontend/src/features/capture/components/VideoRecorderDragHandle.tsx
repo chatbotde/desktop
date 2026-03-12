@@ -37,8 +37,8 @@ export function VideoRecorderDragHandle({
                     <GripVertical className={cn("size-3.5", themeClasses.icon)} />
                 </div>
             </TooltipTrigger>
-            <TooltipContent 
-                side="top" 
+            <TooltipContent
+                side="top"
                 className={cn(
                     isDarkTheme ? "bg-zinc-800 text-zinc-100 border-zinc-700" : "bg-zinc-100 text-zinc-900 border-zinc-300"
                 )}

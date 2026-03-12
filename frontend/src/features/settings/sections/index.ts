@@ -13,4 +13,6 @@ export { CustomModelsSection } from './CustomModelsSection'
 export { IntegrationsSection } from './IntegrationsSection'
 export { HelpSection } from './HelpSection'
 export { AnimationsSection } from './AnimationsSection'
+export { VoiceSection } from './VoiceSection'
+
 

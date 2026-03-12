@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { Settings2, Cloud, User, Image, Code, Info } from "lucide-react"
+import { Settings2, Cloud, User, Image, Code } from "lucide-react"
 import {
   getAvailableModels,
   getSelectedModel,
@@ -134,7 +134,7 @@ export function ModelSelectorPopover({
       </PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-80 p-0 border shadow-xl overflow-hidden rounded-xl",
+          "w-64 p-0 border shadow-xl overflow-hidden rounded-xl",
           isDarkTheme ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-white"
         )}
         style={{ backgroundColor: themeClasses.containerBg, zIndex: 9999 }}
@@ -143,7 +143,7 @@ export function ModelSelectorPopover({
         sideOffset={16}
         data-no-clickthrough
       >
-        <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+        <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
           {/* Cloud Models Section */}
           <div className="p-2">
             <div className={cn(
@@ -333,13 +333,7 @@ export function ModelSelectorPopover({
             )}
           </div>
 
-          <div className={cn(
-            "p-2 border-t text-[10px] italic flex items-center gap-2",
-            isDarkTheme ? "text-zinc-500 bg-zinc-950" : "text-zinc-400 bg-zinc-50"
-          )}>
-            <Info className="size-3 shrink-0" />
-            <span>Click icons to manually enable vision/capabilities if not detected correctly.</span>
-          </div>
+
         </div>
       </PopoverContent>
     </Popover>

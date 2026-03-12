@@ -21,8 +21,10 @@ import {
   BlockingSection,
   FeaturesSection,
   AnimationsSection,
+  VoiceSection,
   HelpSection
 } from "../sections"
+
 
 // ── localStorage keys ──
 const STORAGE_KEY_PERSONALIZATION = "buddy_personalization"
@@ -174,7 +176,10 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
 
             {activeSection === "animations" && <AnimationsSection />}
 
+            {activeSection === "voice" && <VoiceSection isDarkTheme={isDark} />}
+
             {activeSection === "help" && <HelpSection isDarkTheme={isDark} />}
+
           </div>
         </div>
       </div>

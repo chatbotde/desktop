@@ -128,7 +128,7 @@ export function AudioPreview({
 
     try {
       const localModel = unifiedLocalLLMService.getCurrentModel()
-      
+
       let responseStream: AsyncGenerator<string, void, unknown>;
       if (localModel) {
         const init = await unifiedLocalLLMService.initialize()
@@ -233,14 +233,14 @@ export function AudioPreview({
           isDarkTheme={isDarkTheme}
         />
 
-          <AudioPreviewControls
-            audioBlob={audioBlob}
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-            onDownload={handleDownload}
-            onUse={onUse}
-            isDarkTheme={isDarkTheme}
-          />
+        <AudioPreviewControls
+          audioBlob={audioBlob}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onDownload={handleDownload}
+          onUse={onUse}
+          isDarkTheme={isDarkTheme}
+        />
       </div>
     </div>
   )

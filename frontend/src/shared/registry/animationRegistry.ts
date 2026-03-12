@@ -232,6 +232,30 @@ export const ANIMATION_REGISTRY: AnimationEntry[] = [
         aiKeywords: ['landing', 'arrival', 'finish', 'complete', 'done', 'success', 'descend', 'plane', 'approach'],
     },
     {
+        id: 'lefthand',
+        label: 'Left Hand',
+        description: 'A golden left hand displayed at the bottom-left corner of the screen.',
+        custom: true,
+        customOverlay: lazy(() => import('@/app/overlays/LeftHandOverlay').then(m => ({ default: m.LeftHandOverlay }))),
+
+        aiUrlPath: 'ambient/gesture/left-hand',
+        aiTitle: 'Golden left hand gesture overlay at bottom-left',
+        aiMetaDescription: 'A golden left hand shown at the bottom-left corner. Trigger when the user mentions hands, gestures, waving, pointing left, or wants a decorative hand element.',
+        aiKeywords: ['hand', 'left', 'gesture', 'wave', 'point', 'golden', 'palm', 'finger'],
+    },
+    {
+        id: 'righthand',
+        label: 'Right Hand',
+        description: 'A golden right hand displayed at the bottom-right corner of the screen.',
+        custom: true,
+        customOverlay: lazy(() => import('@/app/overlays/RightHandOverlay').then(m => ({ default: m.RightHandOverlay }))),
+
+        aiUrlPath: 'ambient/gesture/right-hand',
+        aiTitle: 'Golden right hand gesture overlay at bottom-right',
+        aiMetaDescription: 'A golden right hand shown at the bottom-right corner. Trigger when the user mentions hands, gestures, waving, pointing right, or wants a decorative hand element on the right side.',
+        aiKeywords: ['hand', 'right', 'gesture', 'wave', 'point', 'golden', 'palm', 'finger'],
+    },
+    {
         id: 'test',
         label: 'Test Sandbox',
         description: 'Experimental sandbox for testing components.',

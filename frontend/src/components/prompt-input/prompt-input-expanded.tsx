@@ -76,11 +76,11 @@ export function PromptInputExpanded({
   })
 
   return (
-    <div 
+    <div
       className={cn(
         "relative flex items-start gap-2 mx-0 mb-0 overflow-visible",
-        isAnimatingIn 
-          ? "animate-in fade-in zoom-in-95 duration-200 ease-out" 
+        isAnimatingIn
+          ? "animate-in fade-in zoom-in-95 duration-200 ease-out"
           : "animate-in fade-in zoom-in-95 duration-200 ease-out"
       )}
       style={{ zIndex: 100 }}
@@ -103,7 +103,7 @@ export function PromptInputExpanded({
           themeClasses.containerBorder,
           isAnimatingIn ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}
-        style={{ 
+        style={{
           backgroundColor: themeClasses.containerBg,
           transitionProperty: "opacity, transform, box-shadow, border-color, background-color",
         }}

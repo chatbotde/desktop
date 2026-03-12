@@ -9,8 +9,10 @@ import {
   Plug,
   CircleHelp,
   Sparkles,
+  Mic2,
   type LucideIcon,
 } from "lucide-react"
+
 
 export type SettingsSectionId =
   | "personalization"
@@ -23,7 +25,9 @@ export type SettingsSectionId =
   | "blocking"
   | "features"
   | "animations"
+  | "voice"
   | "help"
+
 
 export type SettingsMenuItem = {
   id: SettingsSectionId
@@ -42,5 +46,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
   { id: "animations", label: "Animations", icon: Sparkles },
+  { id: "voice", label: "Voice Cloning", icon: Mic2 },
   { id: "help", label: "Help", icon: CircleHelp },
+
 ]

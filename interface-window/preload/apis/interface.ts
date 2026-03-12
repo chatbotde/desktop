@@ -50,7 +50,7 @@ export function createInterfaceAPI(): InterfaceAPI {
 
         // Receive message from main process
         onMessage: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed'];
+            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect'];
             if (validChannels.includes(channel)) {
                 // Deliberately strip event as it includes `sender` 
                 ipcRenderer.on(channel, (_event: IpcRendererEvent, ...args: any[]) => func(...args));
@@ -59,7 +59,7 @@ export function createInterfaceAPI(): InterfaceAPI {
 
         // Remove message listener
         removeMessageListener: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed'];
+            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect'];
             if (validChannels.includes(channel)) {
                 ipcRenderer.removeListener(channel, func);
             }

@@ -76,6 +76,11 @@ export function createFileAPI(): FileAPI {
          * @param filePath - Path to file
          * @returns MIME type or null
          */
-        getMimeType: (filePath: string) => ipcRenderer.invoke('fs:get-mime-type', filePath)
+        getMimeType: (filePath: string) => ipcRenderer.invoke('fs:get-mime-type', filePath),
+
+        writeFile: (filePath: string, content: string) => ipcRenderer.invoke('fs:write-file', filePath, content),
+        writeFileBinary: (filePath: string, base64: string) => ipcRenderer.invoke('fs:write-file-binary', filePath, base64),
+        mkdir: (dirPath: string, recursive: boolean = true) => ipcRenderer.invoke('fs:mkdir', dirPath, recursive),
     };
 }
+

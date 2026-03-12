@@ -215,6 +215,42 @@ export class FileSystem {
     }
   }
 
+  /**
+   * Write file asynchronously
+   * @param filePath - Path to the file
+   * @param content - File content (string or Buffer)
+   * @returns Promise resolving when done
+   */
+  async writeFile(filePath: string, content: string | Buffer): Promise<void> {
+    try {
+      // Ensure the directory exists
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        await fsPromises.mkdir(dir, { recursive: true });
+      }
+      await fsPromises.writeFile(filePath, content);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to write file "${filePath}": ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Create directory asynchronously
+   * @param dirPath - Path to the directory
+   * @param recursive - Whether to create parent directories (default: true)
+   * @returns Promise resolving when done
+   */
+  async mkdir(dirPath: string, recursive: boolean = true): Promise<void> {
+    try {
+      await fsPromises.mkdir(dirPath, { recursive });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to create directory "${dirPath}": ${errorMessage}`);
+    }
+  }
+
+
 
   /**
    * Check if file or directory exists asynchronously

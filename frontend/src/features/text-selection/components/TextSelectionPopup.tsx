@@ -9,6 +9,8 @@ import { ReadButton } from '@/components/read-button'
 import { CopyButton } from '@/components/copy-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
+import { useVoiceContext } from '@/features/voice'
+
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { cn } from '@/lib/utils'
@@ -43,6 +45,9 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const { isFeatureEnabled } = useFeature()
+  const { activeVoiceId, getVoicePath, presetVoices } = useVoiceContext()
+
+
 
   const popupRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -85,13 +90,14 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     handleStopAudio()
   }, [stopAutoHide, handleStopAudio])
 
-  const handleRead = useCallback(async () => {
+  const handleRead = useCallback(async (textOverride?: string) => {
     if (isPlaying) {
       handleStopAudio()
       return
     }
 
-    if (!selectionData?.text?.trim()) return
+    const textToRead = textOverride || selectionData?.text
+    if (!textToRead?.trim()) return
 
     setIsPlaying(true)
     // extend auto-hide while playing/loading
@@ -99,9 +105,28 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
     try {
       const formData = new FormData()
-      formData.append('text', selectionData.text)
+      formData.append('text', textToRead)
+
+      // Add voice parameters if available
+      if (activeVoiceId) {
+        const isPreset = presetVoices.some(v => v.id === activeVoiceId)
+        if (isPreset) {
+          // Preset voice name
+          formData.append('voice_url', activeVoiceId)
+        } else {
+          // Cloned voice path
+          const voicePath = getVoicePath(activeVoiceId)
+          if (voicePath) {
+            // We send the local absolute path as voice_url
+            // the pocket-tts server will read it directly from disk
+            formData.append('voice_url', voicePath)
+          }
+        }
+      }
+
 
       const response = await fetch('/api/tts', {
+
         method: 'POST',
         body: formData,
       })
@@ -205,7 +230,9 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       setIsPlaying(false)
       startAutoHide()
     }
-  }, [selectionData, isPlaying, handleStopAudio, stopAutoHide, startAutoHide])
+  }, [selectionData, isPlaying, handleStopAudio, stopAutoHide, startAutoHide, activeVoiceId, getVoicePath, presetVoices])
+
+
 
   const handleStop = useCallback(() => {
     stopRef.current = true
@@ -515,15 +542,15 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                       "w-px h-4 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
-                    {/* <ReadButton
-                      onClick={handleRead}
+                    <ReadButton
+                      onClick={() => handleRead()}
                       isDarkTheme={isDarkTheme}
                       isLoading={isPlaying}
                     />
                     <div className={cn(
                       "w-px h-4 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} /> */}
+                    )} />
                     <CopyButton
                       onClick={handleCopy}
                       isDarkTheme={isDarkTheme}
@@ -605,6 +632,15 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                           onInsert={handleInsert}
                           onReplace={handleReplace}
                           onCopy={handleCopyOutput}
+                          onRead={() => {
+                            if (generatedOutput) {
+                              // We need to pass the content specifically for the output
+                              // But handleRead uses selectionData.text by default.
+                              // Let's refactor handleRead or create handleReadOutput
+                              handleRead(generatedOutput)
+                            }
+                          }}
+                          isReading={isPlaying}
                           isDarkTheme={isDarkTheme}
                           className="bg-transparent border-none shadow-none mt-0 mb-0"
                         />

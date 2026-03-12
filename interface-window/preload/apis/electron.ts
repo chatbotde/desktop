@@ -67,5 +67,13 @@ export function createElectronAPI(): ElectronAPI {
         showItemInFolder: (fullPath: string) => ipcRenderer.invoke('shell:showItemInFolder', fullPath),
     };
 
+    // Explicitly define app methods as Proxies don't survive contextBridge
+    electronAPI.app = {
+        getPath: (pathName: string) => ipcRenderer.invoke('app:getPath', pathName),
+        getVersion: () => ipcRenderer.invoke('app:getVersion'),
+        getName: () => ipcRenderer.invoke('app:getName'),
+        getLocale: () => ipcRenderer.invoke('app:getLocale'),
+    } as any;
+
     return electronAPI;
 }

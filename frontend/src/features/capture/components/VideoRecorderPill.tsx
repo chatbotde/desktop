@@ -247,7 +247,7 @@ export function VideoRecorderPill({
                             </div>
                         </div>
 
-                       
+
                     </div>
                 )}
             </div>

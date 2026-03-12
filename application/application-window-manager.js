@@ -79,6 +79,30 @@ class ApplicationWindowManager {
       this.interfaceWindow.window.webContents.send(channel, data);
     }
   }
+
+  /**
+   * Show interface window and trigger assistant connection
+   */
+  showAndConnectAssistant() {
+    console.log('Application: Show and connect assistant requested');
+
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot show assistant - application is locked');
+      return;
+    }
+
+    if (this.interfaceWindow) {
+      this.interfaceWindow.show();
+      this.sendToInterfaceWindow('assistant-connect', {});
+    } else {
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
+      this.interfaceWindow.create();
+      this.interfaceWindow.show();
+      setTimeout(() => {
+        this.sendToInterfaceWindow('assistant-connect', {});
+      }, 1000);
+    }
+  }
 }
 
 module.exports = { ApplicationWindowManager };

@@ -4,6 +4,7 @@ import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
 import { Markdown } from "@/shared/components/markdown/Markdown"
+import { ReadButton } from "@/components/read-button"
 
 export interface TextSelectionOutputProps {
   /** The generated output content */
@@ -20,6 +21,10 @@ export interface TextSelectionOutputProps {
   className?: string
   /** Speed of the typewriter effect (characters per second) */
   streamingSpeed?: number
+  /** Callback when read is clicked (TTS) */
+  onRead?: () => void
+  /** Whether the text is currently being read */
+  isReading?: boolean
   /** Whether to use dark theme styling */
   isDarkTheme?: boolean
 }
@@ -51,6 +56,8 @@ export function TextSelectionOutput({
   onInsert,
   onReplace,
   onCopy,
+  onRead,
+  isReading = false,
   className,
   streamingSpeed = 80, // characters per second
   isDarkTheme = true,
@@ -287,6 +294,15 @@ export function TextSelectionOutput({
         )}
       >
         <div className="flex items-center gap-2">
+          {/* Read button */}
+          {onRead && (
+            <ReadButton
+              onClick={onRead}
+              isDarkTheme={isDarkTheme}
+              isLoading={isReading}
+            />
+          )}
+
           {/* Copy button */}
           <Button
             size="sm"

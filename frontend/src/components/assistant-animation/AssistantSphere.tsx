@@ -26,6 +26,26 @@ export const AssistantSphere = () => {
         return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
     }, []);
 
+    // Listen for assistant-connect command from main process (Ctrl+\)
+    useEffect(() => {
+        const handleAssistantConnect = () => {
+            setIsVisible(true);
+            if (!connected) {
+                connect();
+            }
+        };
+
+        if (window.interfaceAPI?.onMessage) {
+            window.interfaceAPI.onMessage('assistant-connect', handleAssistantConnect);
+        }
+
+        return () => {
+            if (window.interfaceAPI?.removeMessageListener) {
+                window.interfaceAPI.removeMessageListener('assistant-connect', handleAssistantConnect);
+            }
+        };
+    }, [connected, connect]);
+
     // Automatically disconnect when hidden
     useEffect(() => {
         if (!isVisible && connected) {

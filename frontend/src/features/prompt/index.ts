@@ -8,7 +8,7 @@
  */
 
 // Components
-export { 
+export {
   PromptInput,
   PromptInputCollapsed,
   PromptInputExpanded,

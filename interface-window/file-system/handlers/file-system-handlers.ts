@@ -184,5 +184,53 @@ export function registerFileSystemHandlers(): void {
         return fileSystem.getMimeType(filePath);
     });
 
+    /**
+     * Write file content
+     */
+    ipcMain.handle('fs:write-file', async (_event, filePath: string, content: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            await fileSystem.writeFile(filePath, content);
+            return { success: true };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    /**
+     * Write file as binary (from base64)
+     */
+    ipcMain.handle('fs:write-file-binary', async (_event, filePath: string, base64: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const data = base64.replace(/^data:.*?;base64,/, '');
+            const buffer = Buffer.from(data, 'base64');
+            await fileSystem.writeFile(filePath, buffer);
+            return { success: true };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    /**
+     * Create directory
+     */
+    ipcMain.handle('fs:mkdir', async (_event, dirPath: string, recursive: boolean = true): Promise<{ success: boolean; error?: string }> => {
+        try {
+            await fileSystem.mkdir(dirPath, recursive);
+            return { success: true };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+
     console.log('[FileSystem] IPC handlers registered successfully');
 }

@@ -1,6 +1,5 @@
 import { ImageGeneration } from '../../components/image-generation/image-generation';
 import { motion, useDragControls } from 'motion/react';
-import { useAnimations } from '@/shared/providers/AnimationsProvider';
 import { useRef, useCallback, useState } from 'react';
 
 // ─── Resize types ──────────────────────────────────────────────────
@@ -24,7 +23,6 @@ const GRIP = 6; // edge hitbox in px
  * natural size. Resize from any edge/corner. Drag from the title bar.
  */
 export const TestComponent = () => {
-    const { isAnimationEnabled } = useAnimations();
     const dragControls = useDragControls();
     const isResizing = useRef(false);
 
@@ -74,8 +72,6 @@ export const TestComponent = () => {
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
     }, [posOffset]);
-
-    if (!isAnimationEnabled('test')) return null;
 
     // ─── Edge / corner handle ────────────────────────────────────
     const H = ({ e: edge }: { e: ResizeEdge }) => {

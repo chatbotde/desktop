@@ -57,6 +57,14 @@ class Application {
           console.log('Application: Shortcut pressed but not authenticated, showing auth window');
           this.authHandler.showAuthWindowIfNeeded();
         }
+      },
+      () => {
+        if (this.authHandler.isAuthenticated()) {
+          this.windowManager.showAndConnectAssistant();
+        } else {
+          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
+          this.authHandler.showAuthWindowIfNeeded();
+        }
       }
     );
     this.ipcHandlers = new ApplicationIpcHandlers(this.ipcRegistry);
@@ -134,13 +142,20 @@ class Application {
       // Initialize YouTube transcript system
       const { initializeTranscript } = require('../youtube-transcript');
       initializeTranscript();
+
+      // Initialize PocketTTS service
+      try {
+        const { initializePocketTTS } = require('../../pocket-tts/index.js');
+        initializePocketTTS();
+      } catch (err) {
+        console.error('Application: Failed to initialize PocketTTS:', err);
+      }
     } catch (error) {
       console.error('Application: Error during initialization:', error);
       // Continue with basic functionality
       this.shortcutManager.register();
     }
   }
-
   /**
    * Setup auto-startup functionality
    * @private
