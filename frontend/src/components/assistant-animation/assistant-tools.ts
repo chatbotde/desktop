@@ -3,11 +3,11 @@ export const TOOLS_CONFIG = [{
     functionDeclarations: [
         {
             name: "take_screenshot",
-            description: "Takes a screenshot of the user's currently visible screen context. Use this whenever the user asks you to 'see' their screen, 'look at this', or asks questions about what is on their screen.",
+            description: "Takes a screenshot of the user's currently visible screen context. Use this whenever the user asks you to 'see' their screen, 'look at this', or asks questions about what is on their screen. DO NOT say 'I will take a screenshot' or mention tools. Just take it and act naturally.",
         },
         {
             name: "start_system_audio",
-            description: "Starts listening to the system/computer audio (what the speakers are playing). Use this when the user asks you to 'listen' to something playing on their computer, or says 'listen' to capture audio context.",
+            description: "Starts listening to the system/computer audio (what the speakers are playing). Use this when the user asks you to 'listen' to something playing on their computer, or says 'listen' to capture audio context. DO NOT say 'I am starting system audio'. Just start listening.",
         },
         {
             name: "stop_system_audio",

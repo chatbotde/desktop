@@ -19,6 +19,7 @@ export const useLiveAssistant = () => {
     const processorRef = useRef<ScriptProcessorNode | null>(null);
     const sessionRef = useRef<any>(null);
     const audioQueueRef = useRef<Float32Array[]>([]);
+    const sourceNodesRef = useRef<AudioBufferSourceNode[]>([]);
     const isPlayingRef = useRef(false);
     const scheduledTimeRef = useRef(0);
     const connectingRef = useRef(false);
@@ -72,46 +73,43 @@ export const useLiveAssistant = () => {
     }, []);
 
     const processAudioQueue = useCallback(() => {
-        if (isPlayingRef.current || audioQueueRef.current.length === 0 || !audioContextRef.current) return;
+        if (audioQueueRef.current.length === 0 || !audioContextRef.current) return;
 
-        isPlayingRef.current = true;
-        setIsSpeaking(true);
-
-        const chunk = audioQueueRef.current.shift();
-        if (!chunk) {
-            isPlayingRef.current = false;
-            setIsSpeaking(false);
-            return;
-        }
-
-        const buffer = audioContextRef.current.createBuffer(1, chunk.length, 24000);
-        buffer.copyToChannel(chunk as Float32Array<ArrayBuffer>, 0);
-
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContextRef.current.destination);
-
-        // Schedule playback
         const currentTime = audioContextRef.current.currentTime;
-        // If scheduled time is in the past, reset it
         if (scheduledTimeRef.current < currentTime) {
-            scheduledTimeRef.current = currentTime + 0.05; // Add a small 50ms buffer to prevent stutter
+            scheduledTimeRef.current = currentTime + 0.05; 
         }
 
-        source.start(scheduledTimeRef.current);
-        scheduledTimeRef.current += buffer.duration;
+        while (audioQueueRef.current.length > 0) {
+            const chunk = audioQueueRef.current.shift();
+            if (!chunk) continue;
 
-        source.onended = () => {
-            if (audioQueueRef.current.length === 0) {
-                isPlayingRef.current = false;
-                setIsSpeaking(false);
-                // Reset scheduled time if queue is empty to avoid drift delay
-                scheduledTimeRef.current = audioContextRef.current?.currentTime || 0;
-            } else {
-                isPlayingRef.current = false; // logic flow will pick up next chunk immediately if we call processAudioQueue
-                processAudioQueue();
-            }
-        };
+            const buffer = audioContextRef.current.createBuffer(1, chunk.length, 24000);
+            buffer.copyToChannel(chunk as Float32Array<ArrayBuffer>, 0);
+
+            const source = audioContextRef.current.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContextRef.current.destination);
+            
+            sourceNodesRef.current.push(source);
+
+            source.start(scheduledTimeRef.current);
+            scheduledTimeRef.current += buffer.duration;
+            
+            setIsSpeaking(true);
+            isPlayingRef.current = true;
+
+            source.onended = () => {
+                sourceNodesRef.current = sourceNodesRef.current.filter(s => s !== source);
+                if (sourceNodesRef.current.length === 0 && audioQueueRef.current.length === 0) {
+                    isPlayingRef.current = false;
+                    setIsSpeaking(false);
+                    if (audioContextRef.current) {
+                        scheduledTimeRef.current = audioContextRef.current.currentTime;
+                    }
+                }
+            };
+        }
     }, []);
 
     const stopSystemAudio = useCallback(() => {
@@ -236,7 +234,7 @@ export const useLiveAssistant = () => {
                             MemoryService.getMemories().length > 0
                                 ? `\n\nYour Memories:\n${MemoryService.getMemories().map(m => `- ${m.content}`).join('\n')}`
                                 : ''
-                        ) + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. NEVER switch languages randomly. You MUST always speak in the same language that the user is currently speaking.\n4. Do not use conversational filler words."
+                        ) + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. NEVER switch languages randomly. You MUST always speak in the same language that the user is currently speaking.\n4. Do not use conversational filler words.\n5. NEVER mention that you are using a tool. For example, if you take a screenshot, do not say 'I am using the take_screenshot tool', just act naturally like you are looking at their screen. Same for listening to audio."
                     }]
                 },
                 tools: TOOLS_CONFIG as any,
@@ -255,7 +253,13 @@ export const useLiveAssistant = () => {
                         if (message.serverContent?.interrupted) {
                             console.log('Model interrupted by user, clearing queue');
                             audioQueueRef.current = [];
+                            sourceNodesRef.current.forEach(source => {
+                                try { source.stop(); } catch(e) {}
+                            });
+                            sourceNodesRef.current = [];
                             scheduledTimeRef.current = audioContextRef.current?.currentTime || 0;
+                            setIsSpeaking(false);
+                            isPlayingRef.current = false;
                         }
 
                         if (message.serverContent?.modelTurn?.parts) {
@@ -559,6 +563,14 @@ export const useLiveAssistant = () => {
             processorRef.current.disconnect();
             processorRef.current = null;
         }
+
+        sourceNodesRef.current.forEach(source => {
+            try { source.stop(); } catch(e) {}
+        });
+        sourceNodesRef.current = [];
+        audioQueueRef.current = [];
+        scheduledTimeRef.current = 0;
+        isPlayingRef.current = false;
 
         // Don't close AudioContext if we want to reuse it, but suspend it
         if (audioContextRef.current) {

@@ -141,6 +141,11 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       audioContextRef.current = new AudioContextClass({ latencyHint: 'interactive' })
       const ctx = audioContextRef.current
 
+      // Add a GainNode to increase volume
+      const gainNode = ctx.createGain()
+      gainNode.gain.value = 20.0 // Boost volume (8.0x multiplier)
+      gainNode.connect(ctx.destination)
+
       if (ctx.state === 'suspended') {
         await ctx.resume()
       }
@@ -204,7 +209,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
 
         const source = ctx.createBufferSource()
         source.buffer = audioBuffer
-        source.connect(ctx.destination)
+        source.connect(gainNode)
 
         let startTime = nextTimeRef.current
         if (startTime < ctx.currentTime) startTime = ctx.currentTime
