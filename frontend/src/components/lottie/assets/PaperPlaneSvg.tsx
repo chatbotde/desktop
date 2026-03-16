@@ -1,11 +1,23 @@
 import React from 'react';
-import type { SvgProps } from './BasketballSvg';
 
-export const PaperPlaneSvg: React.FC<SvgProps> = ({ width = "100%", height = "100%", ...props }) => {
+export interface SvgProps extends React.SVGProps<SVGSVGElement> {
+    width?: string | number;
+    height?: string | number;
+    iconMode?: boolean;
+}
+
+export const PaperPlaneSvg: React.FC<SvgProps> = ({ width = "100%", height = "100%", iconMode, ...props }) => {
     return (
-        <svg viewBox="0 0 1200 800" width={width} height={height} preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <svg 
+            viewBox={iconMode ? "-100 -100 200 200" : "0 0 1200 800"} 
+            width={width} 
+            height={height} 
+            preserveAspectRatio={iconMode ? "xMidYMid meet" : "xMidYMid slice"} 
+            xmlns="http://www.w3.org/2000/svg" 
+            {...props}
+        >
             {/* Plane Geometry */}
-            <g transform="scale(0.6)">
+            <g transform={iconMode ? "scale(1) rotate(-30)" : "scale(0.6)"}>
                 {/* Top Right Wing (Brightest) */}
                 <polygon points="60,0 -60,-50 -40,0" fill="hsla(0, 0%, 100%, 0.99)" />
                 {/* Bottom Left Wing (Shaded) */}

@@ -14,26 +14,19 @@ export function SettingsOverlay() {
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: '100%', opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                    className="fixed inset-0 z-50 flex justify-end"
+                    className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex shadow-2xl pointer-events-auto h-[85vh]"
                     style={{ zIndex: GLOBAL_THEME.zIndex.modal }}
                 >
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-transparent"
-                        onClick={() => uiState.setShowSettings(false)}
-                    />
 
                     {/* Side Panel Content */}
                     <motion.div
-                        className="relative w-full max-w-2xl h-full bg-transparent flex flex-col shadow-2xl"
+                        className="relative w-[800px] h-full bg-transparent flex flex-col pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="h-full overflow-hidden flex items-center justify-end p-4">
-                            <SettingsCard onRequestClose={() => uiState.setShowSettings(false)} />
-                        </div>
+                        <SettingsCard 
+                            onRequestClose={() => uiState.setShowSettings(false)} 
+                            className="w-full h-full rounded-2xl border"
+                        />
                     </motion.div>
                 </motion.div>
             )}

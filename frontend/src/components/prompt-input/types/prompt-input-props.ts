@@ -19,7 +19,6 @@ export interface BasePromptInputProps {
   onThemeChange?: (isDark: boolean) => void
   isOutputVisible?: boolean
   onToggleOutput?: () => void
-  dragControls?: any
 }
 
 export interface PromptInputCollapsedProps extends BasePromptInputProps {

@@ -1,5 +1,5 @@
 import { Button } from "@/shared/components/ui/button"
-import { ArrowUp, Square, ChevronsUp, ChevronUp, ChevronDown, X, GripVertical } from "lucide-react"
+import { ArrowUp, Square, ChevronsUp, ChevronUp, ChevronDown, X } from "lucide-react"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { cn } from "@/lib/utils"
 import { useState, useRef, useCallback } from "react"
@@ -14,7 +14,6 @@ interface CollapsedSubmitButtonProps {
   onToggleOutput?: () => void
   isOutputVisible?: boolean
   isDarkTheme?: boolean
-  dragControls?: any
   themeClasses?: {
     containerBg: string
     containerBorder: string
@@ -39,7 +38,6 @@ export function CollapsedSubmitButton({
   onToggleOutput,
   isOutputVisible,
   isDarkTheme = true,
-  dragControls,
   themeClasses,
 }: CollapsedSubmitButtonProps) {
   const [isHovered, setIsHovered] = useState(false)
@@ -168,19 +166,6 @@ export function CollapsedSubmitButton({
             )}
             style={{ backgroundColor: theme.containerBg }}
           >
-            {/* Drag Handle */}
-            {dragControls && (
-              <button
-                onPointerDown={(e) => dragControls.start(e)}
-                className={cn(actionButtonClass, "cursor-grab active:cursor-grabbing")}
-                style={{ backgroundColor: theme.buttonBg }}
-                aria-label="Drag input"
-                data-no-clickthrough
-              >
-                <GripVertical className={`size-4 ${theme.icon}`} />
-              </button>
-            )}
-
             {/* Output Toggle Button */}
             {onToggleOutput && (
               <button

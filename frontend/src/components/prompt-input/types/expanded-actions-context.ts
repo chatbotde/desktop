@@ -23,7 +23,6 @@ export interface ExpandedActionsBarContext {
   onHide?: () => void
   onToggleOutput?: () => void
   isOutputVisible?: boolean
-  dragControls?: any
   // Grounding
   isGoogleModelSelected: boolean
   groundingEnabled: boolean

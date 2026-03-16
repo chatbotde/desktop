@@ -36,7 +36,6 @@ export function PromptInputExpanded({
   onToggleOutput,
   setClipboardItems,
   setIsExpanded,
-  dragControls,
 }: PromptInputExpandedProps) {
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
   const textareaRef = useTextareaAutoResize(input)
@@ -170,7 +169,6 @@ export function PromptInputExpanded({
           ollamaModels={ollamaModels}
           selectedLocalModelName={selectedLocalModelName}
           onModelSelect={setSelectedLocalModelName}
-          dragControls={dragControls}
           className="relative z-10 shrink-0"
         />
       </PromptInput>

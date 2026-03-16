@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus, Trash2, Check } from "lucide-react"
+import { Trash2, Check } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { VoiceRecorder } from "./VoiceRecorder"

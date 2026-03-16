@@ -3,19 +3,21 @@ import { getThemeClasses } from "@/shared/utils/theme"
 import { useAnimations } from "@/shared/providers/AnimationsProvider"
 import { ANIMATION_REGISTRY } from "@/shared/registry/animationRegistry"
 import {
-    FighterPlane,
-    Basketball,
-    PaperPlane,
-    Sun,
-    Start,
-    Skateboard,
-    RollsRoyce,
     SitCat,
     TrimPlane,
-    PitchDownPlane,
-    LeftHand,
-    RightHand
+    PitchDownPlane
 } from "@/components/lottie"
+import {
+    BasketballSvg as Basketball,
+    PaperPlaneSvg as PaperPlane,
+    SunSvg as Sun,
+    StartSvg as Start,
+    SkateboardSvg as Skateboard,
+    RollsRoyceSvg as RollsRoyce,
+    FighterPlaneSvg as FighterPlane,
+    LeftHandSvg as LeftHand,
+    RightHandSvg as RightHand
+} from "@/components/lottie/assets"
 import { Sparkles, Bug } from "lucide-react"
 
 /**
@@ -43,20 +45,20 @@ export function AnimationsSection() {
                 </p>
             </div>
 
-            <div className="flex flex-wrap gap-4 mt-6">
+            <div className="flex flex-wrap gap-1 mt-4">
                 {ANIMATION_REGISTRY.map((anim) => {
                     const isEnabled = isAnimationEnabled(anim.id);
                     // Map animation IDs to the actual SVG components
                     const getIcon = () => {
                         const iconProps = { width: 32, height: 32 };
                         switch (anim.id) {
-                            case 'fighterplane': return <FighterPlane />;
-                            case 'basketball': return <Basketball />;
-                            case 'paperplane': return <PaperPlane />;
-                            case 'sun': return <Sun />;
-                            case 'start': return <Start />;
-                            case 'skateboard': return <Skateboard />;
-                            case 'rollsroyce': return <RollsRoyce />;
+                            case 'fighterplane': return <FighterPlane {...iconProps} iconMode />;
+                            case 'basketball': return <Basketball {...iconProps} />;
+                            case 'paperplane': return <PaperPlane {...iconProps} iconMode />;
+                            case 'sun': return <Sun {...iconProps} />;
+                            case 'start': return <Start {...iconProps} />;
+                            case 'skateboard': return <Skateboard {...iconProps} />;
+                            case 'rollsroyce': return <RollsRoyce {...iconProps} />;
                             case 'cat': return <SitCat {...iconProps} />;
                             case 'trimplane': return <TrimPlane {...iconProps} />;
                             case 'pitchdownplane': return <PitchDownPlane {...iconProps} />;
@@ -73,43 +75,17 @@ export function AnimationsSection() {
                             onClick={() => toggleAnimation(anim.id)}
                             title={`${anim.label}: ${anim.description}`}
                             className={getThemeClasses(isDark, {
-                                dark: isEnabled
-                                    ? "bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[0_4px_20px_rgba(37,99,235,0.25)]"
-                                    : "bg-zinc-900/40 border-zinc-800/50 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/60",
-                                light: isEnabled
-                                    ? "bg-blue-500/10 border-blue-400/50 text-blue-600 shadow-sm"
-                                    : "bg-white border-zinc-200 text-zinc-400 hover:border-zinc-300"
+                                dark: isEnabled ? "bg-zinc-700/80 shadow-[0_0_12px_rgba(255,255,255,0.1)] ring-1 ring-zinc-500/30" : "hover:bg-zinc-800/50",
+                                light: isEnabled ? "bg-zinc-200/80 shadow-md ring-1 ring-zinc-300" : "hover:bg-zinc-100"
                             }, `
-                                flex items-center justify-center 
-                                w-20 h-20 rounded-2xl border
-                                transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
-                                hover:scale-105 active:scale-95
-                                relative group overflow-hidden
+                                w-11 h-11 flex items-center justify-center rounded-lg
+                                transition-all duration-200 ease-in-out
                             `)}
                         >
-                            {/* Icon Container */}
-                            <div className={`
-                                w-full h-full flex items-center justify-center pointer-events-none transform transition-all duration-500
-                                ${isEnabled ? 'scale-110 opacity-100 rotate-0' : 'scale-90 opacity-40 grayscale group-hover:opacity-60'}
-                            `}>
-                                <div className="w-10 h-10 flex items-center justify-center">
+                            <div className={`w-full h-full flex items-center justify-center transition-all duration-300 ${isEnabled ? 'scale-[1.15]' : 'scale-100'}`}>
+                                <div className="flex items-center justify-center text-zinc-500 pointer-events-none">
                                     {getIcon()}
                                 </div>
-                            </div>
-
-                            {/* Enable Status Glow Bar */}
-                            {isEnabled && (
-                                <div className="absolute bottom-0 left-2 right-2 h-1 bg-blue-500 rounded-t-full shadow-[0_-4px_12px_rgba(59,130,246,0.8)]" />
-                            )}
-
-                            {/* Hover Tooltip Overlay for Description */}
-                            <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-                                <span className="text-[10px] font-bold text-white uppercase tracking-wider mb-1 px-2 py-0.5 bg-blue-600 rounded-full">
-                                    {anim.label}
-                                </span>
-                                <span className="text-[9px] text-zinc-300 leading-tight">
-                                    {anim.description}
-                                </span>
                             </div>
                         </button>
                     )

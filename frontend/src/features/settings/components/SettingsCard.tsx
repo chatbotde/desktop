@@ -56,9 +56,10 @@ const DEFAULT_GENERAL = {
 type SettingsCardProps = {
   initialSection?: SettingsSectionId
   onRequestClose?: () => void
+  className?: string
 }
 
-export function SettingsCard({ initialSection = "personalization", onRequestClose }: SettingsCardProps) {
+export function SettingsCard({ initialSection = "personalization", onRequestClose, className }: SettingsCardProps) {
   const isDark = useIsDark()
   const themeClasses = useMemo(() => getThemeClasses(isDark), [isDark])
 
@@ -87,13 +88,14 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
   return (
     <Card
       className={cn(
-        "w-full max-w-3xl overflow-hidden shadow-xl rounded-xl border p-0",
-        themeClasses.containerBorder
+        "overflow-hidden shadow-xl border p-0 flex flex-col",
+        themeClasses.containerBorder,
+        className || "w-full max-w-3xl rounded-xl"
       )}
       style={{ backgroundColor: themeClasses.containerBg }}
       data-no-clickthrough
     >
-      <div className={cn("flex", "h-[520px] max-h-[80vh] min-h-[360px]")}>
+      <div className={cn("flex flex-1 min-h-0", !className && "h-[520px] max-h-[80vh] min-h-[360px]")}>
         <SettingsSidebar
           items={SETTINGS_MENU_ITEMS}
           activeSection={activeSection}

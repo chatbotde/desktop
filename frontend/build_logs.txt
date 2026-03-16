@@ -1,0 +1,11 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/lottie/assets/index.ts(2,1): error TS2308: Module './BasketballSvg' has already exported a member named 'SvgProps'. Consider explicitly re-exporting to resolve the ambiguity.
+src/components/lottie/assets/index.ts(5,1): error TS2308: Module './BasketballSvg' has already exported a member named 'SvgProps'. Consider explicitly re-exporting to resolve the ambiguity.
+src/components/prompt-input/actions/register-default-actions.tsx(152,11): error TS2322: Type '{ key: string; isLoading: boolean; canSubmit: boolean; onSubmit: () => void; onStop: (() => void) | undefined; onHide: (() => void) | undefined; onToggleOutput: (() => void) | undefined; isOutputVisible: boolean | undefined; isDarkTheme: boolean; themeClasses: { ...; }; dragControls: any; }' is not assignable to type 'IntrinsicAttributes & ExpandedSubmitButtonProps'.
+  Property 'dragControls' does not exist on type 'IntrinsicAttributes & ExpandedSubmitButtonProps'.
+src/components/prompt-input/actions/register-default-actions.tsx(152,29): error TS2339: Property 'dragControls' does not exist on type 'ExpandedActionsBarContext'.
+src/components/prompt-input/collapsed-submit-button.tsx(42,3): error TS6133: 'dragControls' is declared but its value is never read.
+src/features/voice/components/VoiceManager.tsx(2,10): error TS6133: 'Plus' is declared but its value is never read.
