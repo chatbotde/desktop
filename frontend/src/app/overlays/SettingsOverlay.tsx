@@ -23,8 +23,8 @@ export function SettingsOverlay() {
                         className="relative w-[800px] h-full bg-transparent flex flex-col pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <SettingsCard 
-                            onRequestClose={() => uiState.setShowSettings(false)} 
+                        <SettingsCard
+                            onRequestClose={() => uiState.setShowSettings(false)}
                             className="w-full h-full rounded-2xl border"
                         />
                     </motion.div>

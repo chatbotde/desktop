@@ -146,3 +146,7 @@ class ApplicationIpcHandlers {
 
 module.exports = { ApplicationIpcHandlers };
 
+
+
+module.exports = { ApplicationIpcHandlers };
+

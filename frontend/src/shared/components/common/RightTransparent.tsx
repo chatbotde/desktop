@@ -1,6 +1,6 @@
 import React from 'react';
-import { Mic } from 'lucide-react';
-import SitCat from '@/components/lottie/cat/sit';
+// import { Mic } from 'lucide-react';
+// import SitCat from '@/components/lottie/cat/sit';
 
 interface RightTransparentProps {
   onClick?: () => void;
@@ -39,7 +39,7 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
       {/* Side Actions - Placed to the LEFT of the bar */}
       <div className="absolute right-full top-1/2 -translate-y-1/2 flex flex-col gap-4 mr-4 pointer-events-none">
         {/* Cat Assistant Toggle */}
-        <div
+        {/* <div
           onClick={(e) => {
             e.stopPropagation();
             window.dispatchEvent(new Event('toggle-cat-assistant-visibility'));
@@ -58,10 +58,10 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
           title="Cat Assistant"
         >
           <SitCat width={20} height={20} />
-        </div>
+        </div> */}
 
         {/* Voice Assistant Toggle */}
-        <div
+        {/* <div
           onClick={(e) => {
             e.stopPropagation();
             window.dispatchEvent(new Event('toggle-assistant-visibility'));
@@ -80,7 +80,7 @@ const RightTransparent: React.FC<RightTransparentProps> = ({
           title="Voice Assistant"
         >
           <Mic className="w-4 h-4 text-white" />
-        </div>
+        </div> */}
       </div>
 
       {children}

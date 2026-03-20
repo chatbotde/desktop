@@ -22,6 +22,8 @@ export declare class FileSystem {
     private readonly fileTypeMap;
     constructor();
     readFile(filePath: string, encoding?: BufferEncoding): Promise<string>;
+    writeFile(filePath: string, content: string | Buffer): Promise<void>;
+    mkdir(dirPath: string, recursive?: boolean): Promise<void>;
     exists(filePath: string): Promise<boolean>;
     readdir(dirPath: string): Promise<string[]>;
     stat(filePath: string): Promise<fs.Stats>;

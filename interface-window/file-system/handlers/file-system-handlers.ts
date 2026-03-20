@@ -4,7 +4,23 @@
  */
 
 import { ipcMain } from 'electron';
-import { fileSystem, FileTypeCategory } from '../../../utils/file-system';
+
+type FileTypeCategoryValue =
+    | 'code'
+    | 'image'
+    | 'document'
+    | 'audio'
+    | 'video'
+    | 'archive'
+    | 'config'
+    | 'data'
+    | 'font'
+    | 'other';
+
+const { fileSystem, FileTypeCategory } = require('../../../../utils/dist/file-system') as {
+    fileSystem: any;
+    FileTypeCategory: Record<string, FileTypeCategoryValue>;
+};
 
 /**
  * File info returned to renderer
@@ -14,7 +30,7 @@ export interface FileInfo {
     name: string;
     extension: string;
     size: number;
-    category: FileTypeCategory;
+    category: FileTypeCategoryValue;
     language?: string;
     mimeType?: string;
     description?: string;
@@ -166,7 +182,7 @@ export function registerFileSystemHandlers(): void {
     /**
      * Get file type category
      */
-    ipcMain.handle('fs:get-file-category', (_event, filePath: string): FileTypeCategory => {
+    ipcMain.handle('fs:get-file-category', (_event, filePath: string): FileTypeCategoryValue => {
         return fileSystem.getFileCategory(filePath);
     });
 

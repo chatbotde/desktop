@@ -4,7 +4,6 @@ import { X } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
-import { AddToPromptButton } from '@/components/add-button'
 import { ReadButton } from '@/components/read-button'
 import { CopyButton } from '@/components/copy-button'
 import { ExpandButton } from '@/components/expand-button'
@@ -30,12 +29,11 @@ interface SelectionData {
 
 interface TextSelectionPopupProps {
   onSendMessage?: (message: string) => Promise<void>
-  onAddToPrompt?: (text: string) => void
   /** Whether to use dark theme styling */
   isDarkTheme?: boolean
 }
 
-export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSelectionPopupProps) {
+export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectionData, setSelectionData] = useState<SelectionData | null>(null)
@@ -68,7 +66,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     if (!isExpanded && !isGenerating && !isPlaying) {
       timerRef.current = setTimeout(() => {
         setIsVisible(false)
-      }, 6000) // 6 seconds
+      }, 10000) // 10 seconds
     }
   }, [isExpanded, isGenerating, isPlaying, stopAutoHide])
 
@@ -260,9 +258,9 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       }
 
       // 1. Deciding position BEFORE appearing
-      // Pill dimensions are roughly fixed: ~150x40
-      const PILL_WIDTH = 190 // Reduced after commenting out audio button
-      const PILL_HEIGHT = 40
+      // Pill dimensions are roughly fixed: ~200x48
+      const PILL_WIDTH = 200
+      const PILL_HEIGHT = 48
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
       const padding = 20
@@ -309,7 +307,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
         setIsVisible(false)
-      }, 6000)
+      }, 10000)
     }
 
     if (window.interfaceAPI?.onMessage) {
@@ -466,12 +464,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
     }
   }, [generatedOutput])
 
-  const handleAddToPromptSelection = () => {
-    if (selectionData?.text && onAddToPrompt) {
-      onAddToPrompt(selectionData.text)
-      handleClose()
-    }
-  }
+
 
   useEffect(() => {
     if (isExpanded) stopAutoHide()
@@ -525,8 +518,8 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                 "relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
                 isExpanded ? "rounded-xl" : "rounded-full",
                 isDarkTheme
-                  ? "bg-zinc-950 border border-zinc-800"
-                  : "bg-white border border-zinc-200"
+                  ? "bg-zinc-950 border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.15)]"
+                  : "bg-white border border-blue-200/50 shadow-[0_0_20px_rgba(37,99,235,0.1)]"
               )}
             >
               <AnimatePresence mode="popLayout" initial={false}>
@@ -537,31 +530,25 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
-                    className="flex items-center gap-1 p-1 whitespace-nowrap"
+                    className="flex items-center gap-1.5 p-1.5 whitespace-nowrap"
                   >
-                    <AddToPromptButton
-                      onClick={handleAddToPromptSelection}
-                      isDarkTheme={isDarkTheme}
-                    />
-                    <div className={cn(
-                      "w-px h-4 mx-0.5",
-                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} />
                     <ReadButton
                       onClick={() => handleRead()}
                       isDarkTheme={isDarkTheme}
                       isLoading={isPlaying}
+                      size="md"
                     />
                     <div className={cn(
-                      "w-px h-4 mx-0.5",
+                      "w-px h-5 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
                     <CopyButton
                       onClick={handleCopy}
                       isDarkTheme={isDarkTheme}
+                      size="md"
                     />
                     <div className={cn(
-                      "w-px h-4 mx-0.5",
+                      "w-px h-5 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
                     <ExpandButton
@@ -569,22 +556,23 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                       onClick={() => setIsExpanded(true)}
                       isDarkTheme={isDarkTheme}
                       tooltip="Expand to ask AI"
+                      size="md"
                     />
                     <div className={cn(
-                      "w-px h-4 mx-0.5",
+                      "w-px h-5 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
                     <button
                       onClick={handleClose}
                       className={cn(
-                        "p-1 px-1.5 rounded-full transition-all hover:scale-110 active:scale-95",
+                        "p-1.5 px-2 rounded-full transition-all hover:scale-110 active:scale-95",
                         isDarkTheme
                           ? "hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
                           : "hover:bg-slate-100/50 text-slate-600 hover:text-red-500"
                       )}
                       title="Dismiss"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </motion.div>
                 ) : (
@@ -622,7 +610,7 @@ export function TextSelectionPopup({ onAddToPrompt, isDarkTheme = true }: TextSe
                       placeholder="Ask AI about this selection..."
                       isGenerating={isGenerating}
                       isDarkTheme={isDarkTheme}
-                      className="bg-transparent border-none shadow-none"
+                      className="bg-black border-none shadow-none"
                     />
                     {(generatedOutput || isGenerating) && (
                       <motion.div

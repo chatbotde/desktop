@@ -23,8 +23,8 @@ class TextSelectionMonitor {
         this.lastSelectionTime = 0;
         this.selectionHook = null;
         this.debounceTimer = null;
-        this.debounceDelay = 300;
-        this.minTimeBetweenSameSelection = 1000;
+        this.debounceDelay = 100;
+        this.minTimeBetweenSameSelection = 500;
     }
 
     startMonitoring() {

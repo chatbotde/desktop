@@ -1,12 +1,12 @@
 import React from 'react';
 
-export interface SvgProps extends React.SVGProps<SVGSVGElement> {
+export interface FighterPlaneSvgProps extends React.SVGProps<SVGSVGElement> {
     width?: string | number;
     height?: string | number;
     iconMode?: boolean;
 }
 
-export const FighterPlaneSvg: React.FC<SvgProps> = ({ iconMode, ...props }) => {
+export const FighterPlaneSvg: React.FC<FighterPlaneSvgProps> = ({ iconMode, ...props }) => {
     const SvgContent = (
         <svg 
             viewBox={iconMode ? "-150 -150 300 300" : "0 0 1200 800"} 

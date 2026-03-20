@@ -113,7 +113,7 @@ export function UserMessageBubble({
                         onClick={() => {
                           const video = videoRefs.current.get(attachment.id)
                           if (!video) return
-                          
+
                           if (playingVideos.has(attachment.id)) {
                             video.pause()
                             setPlayingVideos(prev => {
@@ -169,7 +169,7 @@ export function UserMessageBubble({
 
         {/* Message content */}
         <div className="break-words overflow-hidden relative text-white bg-blue-500 rounded-2xl px-3.5 py-2 shadow-sm">
-          <div 
+          <div
             ref={contentRef}
             className={cn(
               "relative",
