@@ -4,8 +4,6 @@ import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
 import { Markdown } from "@/shared/components/markdown/Markdown"
-import { ReadButton } from "@/components/read-button"
-
 export interface TextSelectionOutputProps {
   /** The generated output content */
   content: string
@@ -56,8 +54,6 @@ export function TextSelectionOutput({
   onInsert,
   onReplace,
   onCopy,
-  onRead,
-  isReading = false,
   className,
   streamingSpeed = 80, // characters per second
   isDarkTheme = true,
@@ -295,6 +291,7 @@ export function TextSelectionOutput({
       >
         <div className="flex items-center gap-2">
           {/* Read button */}
+          {/* 
           {onRead && (
             <ReadButton
               onClick={onRead}
@@ -302,6 +299,7 @@ export function TextSelectionOutput({
               isLoading={isReading}
             />
           )}
+          */}
 
           {/* Copy button */}
           <Button

@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, CircleEllipsis, MessageSquare } from 'lucide-react'
+import { Mic, CircleEllipsis } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
 import { getThemeClasses } from "@/features/prompt"
 import { AudioSourceSelector } from './AudioSourceSelector'
 import { AudioRecorderControls } from './AudioRecorderControls'
-import { TranscriptionToggle } from './TranscriptionToggle'
-import { LiveTranscriptionPanel } from './LiveTranscriptionPanel'
 import {
     Tooltip,
     TooltipContent,
@@ -43,7 +41,7 @@ export function MicHoverAudioPill({
     const [, setIsHovered] = useState(false)
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
-    const [showTranscription, setShowTranscription] = useState(false)
+    const [showTranscription] = useState(false)
     const [isAssistantVisible, setIsAssistantVisible] = useState(false)
     const transcriptionContainerRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -99,8 +97,6 @@ export function MicHoverAudioPill({
         isTranscribing,
         startTranscription,
         stopTranscription,
-        setTranscriptionText,
-        setPartialText,
         clearTranscription
     } = useLiveTranscription({
         onTranscriptionUpdate,
@@ -276,23 +272,6 @@ export function MicHoverAudioPill({
         }
     }, [isRecording, startRecording])
 
-    const handleAddTranscription = useCallback(() => {
-        const fullText = `${transcriptionText} ${partialText}`.trim()
-        if (!fullText) return
-        try {
-            window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: fullText } }))
-        } catch (error) {
-            console.error('[MicHoverAudioPill] Failed to dispatch prompt-add-text event:', error)
-        }
-    }, [transcriptionText, partialText])
-
-    const handleClearTranscription = useCallback(() => {
-        setTranscriptionText('')
-        setPartialText('')
-    }, [setTranscriptionText, setPartialText])
-
-
-
     // Auto-scroll transcription
     useEffect(() => {
         if (transcriptionContainerRef.current && (transcriptionText || partialText)) {
@@ -362,14 +341,16 @@ export function MicHoverAudioPill({
                             />
                         )}
 
+                        {/* 
                         <TranscriptionToggle
                             showTranscription={showTranscription}
                             onToggle={() => setShowTranscription(!showTranscription)}
                             isRecording={isRecording}
                             isDarkTheme={isDarkTheme}
                         />
+                        */}
 
-                        {/* Speech to Text UI Button */}
+                        {/* Speech to Text UI Button - Commented out for Beta Development
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -397,6 +378,7 @@ export function MicHoverAudioPill({
                                 <p>Speech to Text</p>
                             </TooltipContent>
                         </Tooltip>
+                        */}
 
                         {/* Assistant Toggle Button */}
                         <Tooltip>
@@ -427,6 +409,7 @@ export function MicHoverAudioPill({
                             </TooltipContent>
                         </Tooltip>
 
+                        {/* 
                         <LiveTranscriptionPanel
                             showTranscription={showTranscription}
                             isRecording={isRecording}
@@ -442,6 +425,7 @@ export function MicHoverAudioPill({
                             isDarkTheme={isDarkTheme}
                             onTextChange={setTranscriptionText}
                         />
+                        */}
 
 
                     </div>

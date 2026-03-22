@@ -122,12 +122,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     useGlobalWindowAPI({
         outputWindowEnabled,
         addMessage: messageManager.addMessage,
+        setIsInputVisible: uiState.setIsInputVisible,
         setIsOutputVisible: uiState.setIsOutputVisible,
         setAreaScreenshotCallback: uiState.setAreaScreenshotCallback,
         setShowAreaScreenshot: uiState.setShowAreaScreenshot,
         setRectangleScreenshotCallback: uiState.setRectangleScreenshotCallback,
         setShowRectangleScreenshot: uiState.setShowRectangleScreenshot
     })
+
 
     // Wrapper for handleSendMessage that also manages output window visibility
     const handleSendMessage = async (message: string, attachments?: MediaAttachment[]) => {

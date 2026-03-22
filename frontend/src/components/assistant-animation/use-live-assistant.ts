@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
+import { getLiveAssistantLanguageClause } from '@/lib/settings/general-settings';
 import { getProviderConfig } from '@/lib/settings/custom-providers';
 import { TOOLS_CONFIG } from './assistant-tools';
 import { MemoryService } from '@/lib/memory/memory-service';
@@ -234,7 +235,7 @@ export const useLiveAssistant = () => {
                             MemoryService.getMemories().length > 0
                                 ? `\n\nYour Memories:\n${MemoryService.getMemories().map(m => `- ${m.content}`).join('\n')}`
                                 : ''
-                        ) + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. NEVER switch languages randomly. You MUST always speak in the same language that the user is currently speaking.\n4. Do not use conversational filler words.\n5. NEVER mention that you are using a tool. For example, if you take a screenshot, do not say 'I am using the take_screenshot tool', just act naturally like you are looking at their screen. Same for listening to audio."
+                        ) + getLiveAssistantLanguageClause() + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. Follow LANGUAGE PREFERENCE when it appears above if the user's spoken language is unclear; when they are clearly speaking one language, respond in that language.\n4. Do not use conversational filler words.\n5. NEVER mention that you are using a tool. For example, if you take a screenshot, do not say 'I am using the take_screenshot tool', just act naturally like you are looking at their screen. Same for listening to audio."
                     }]
                 },
                 tools: TOOLS_CONFIG as any,

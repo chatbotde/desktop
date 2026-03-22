@@ -65,6 +65,14 @@ class Application {
           console.log('Application: Shortcut pressed but not authenticated, showing auth window');
           this.authHandler.showAuthWindowIfNeeded();
         }
+      },
+      () => {
+        if (this.authHandler.isAuthenticated()) {
+          this.windowManager.showPromptInput();
+        } else {
+          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
+          this.authHandler.showAuthWindowIfNeeded();
+        }
       }
     );
     this.ipcHandlers = new ApplicationIpcHandlers(this.ipcRegistry);

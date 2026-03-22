@@ -76,7 +76,7 @@ export function GeneralSection({
             </SelectContent>
           </Select>
           <p className={cn("text-xs", textColor)}>
-            Select the language for the application interface and output.
+            Preferred language for assistant replies (chat, local LLM, and live voice when the model follows instructions). UI stays in English.
           </p>
         </div>
       </div>

@@ -5,11 +5,20 @@ import { useFeature } from "@/contexts/FeatureContext"
 import { cn } from "@/lib/utils"
 import { getFeaturesForList } from "@/features/feature-flags"
 
-export function DynamicFeatureList() {
+interface DynamicFeatureListProps {
+  includeIds?: string[]
+}
+
+export function DynamicFeatureList({ includeIds }: DynamicFeatureListProps) {
   const { isFeatureEnabled, toggleFeature } = useFeature()
-  const features = getFeaturesForList()
+  let features = getFeaturesForList()
+
+  if (includeIds) {
+    features = features.filter(f => includeIds.includes(f.id))
+  }
 
   const handleFeatureClick = (featureId: string) => {
+    if (featureId === "output-window") return
     toggleFeature(featureId)
   }
 
@@ -21,7 +30,9 @@ export function DynamicFeatureList() {
       <div className="flex flex-wrap gap-3">
         {features.map((feature) => {
           const Icon = feature.icon
-          const isActive = isFeatureEnabled(feature.id)
+          const isAlwaysEnabled = feature.id === "output-window"
+          const isActive = isAlwaysEnabled || isFeatureEnabled(feature.id)
+          
           return (
             <Button
               key={feature.id}
@@ -31,7 +42,8 @@ export function DynamicFeatureList() {
                 "h-10 gap-2 rounded-full px-5 text-sm font-medium transition-all",
                 isActive
                   ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                  : "bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
+                  : "bg-zinc-800 text-zinc-100 hover:bg-zinc-700",
+                isAlwaysEnabled && "cursor-default opacity-90 hover:bg-blue-600"
               )}
             >
               <Icon className="size-4" />
@@ -43,3 +55,5 @@ export function DynamicFeatureList() {
     </div>
   )
 }
+
+

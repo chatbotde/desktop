@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useCallback } from "react"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 import { DropZone } from "@/components/drop-zone"
@@ -45,7 +45,15 @@ export function PromptInputWithActions({
   const [internalVisible, setInternalVisible] = useState(true)
   const [clipboardItems, setClipboardItems] = useState<string[]>([])
   const [validationError, setValidationError] = useState<string | null>(null)
-  const inputContainerRef = useRef<HTMLDivElement>(null)
+
+  const attachInputContainer = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return
+    requestAnimationFrame(() => {
+      node
+        .querySelector<HTMLElement>('[aria-label="Message input"]')
+        ?.focus({ preventScroll: true })
+    })
+  }, [])
 
   // Hooks
   const { convertFilesToAttachments } = useFileToAttachment()
@@ -136,7 +144,7 @@ export function PromptInputWithActions({
       )}
     >
       <div
-        ref={inputContainerRef}
+        ref={attachInputContainer}
         style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}
       >
         {validationError && (

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 interface UseGlobalWindowAPIProps {
   outputWindowEnabled: boolean
   addMessage: (message: string, role?: 'user' | 'assistant') => void
+  setIsInputVisible: (visible: boolean) => void
   setIsOutputVisible: (visible: boolean) => void
   setAreaScreenshotCallback: (callback: ((area: { x: number; y: number; width: number; height: number }) => void) | null) => void
   setShowAreaScreenshot: (show: boolean) => void
@@ -19,6 +20,7 @@ declare global {
 export const useGlobalWindowAPI = ({
   outputWindowEnabled,
   addMessage,
+  setIsInputVisible,
   setIsOutputVisible,
   setAreaScreenshotCallback,
   setShowAreaScreenshot,
@@ -40,13 +42,31 @@ export const useGlobalWindowAPI = ({
       setShowRectangleScreenshot(true)
     }
 
+    const handleShowPromptInput = () => {
+      console.log('[useGlobalWindowAPI] Received show-prompt-input message')
+      setIsInputVisible(true)
+      // Ensure the window can receive mouse events for the input
+      if (window.interfaceAPI?.setIgnoreMouseEvents) {
+        window.interfaceAPI.setIgnoreMouseEvents(false)
+      }
+    }
+
+
     window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
     window.addEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
+
+    if (window.interfaceAPI?.onMessage) {
+      window.interfaceAPI.onMessage('show-prompt-input', handleShowPromptInput)
+    }
 
     return () => {
       window.addOutputMessage = undefined
       window.removeEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
       window.removeEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
+      if (window.interfaceAPI?.removeMessageListener) {
+        window.interfaceAPI.removeMessageListener('show-prompt-input', handleShowPromptInput)
+      }
     }
-  }, [outputWindowEnabled, addMessage, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot])
+  }, [outputWindowEnabled, addMessage, setIsInputVisible, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot])
 }
+

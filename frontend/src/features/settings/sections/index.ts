@@ -10,9 +10,9 @@ export { BlockingSection } from './BlockingSection'
 export { LocalLLMSection } from './LocalLLMSection'
 export { ModelProfileListSection } from './ModelProfileListSection'
 export { CustomModelsSection } from './CustomModelsSection'
-export { IntegrationsSection } from './IntegrationsSection'
+// export { IntegrationsSection } from './IntegrationsSection'
 export { HelpSection } from './HelpSection'
-export { AnimationsSection } from './AnimationsSection'
-export { VoiceSection } from './VoiceSection'
+// export { AnimationsSection } from './AnimationsSection'
+// export { VoiceSection } from './VoiceSection'
 
 

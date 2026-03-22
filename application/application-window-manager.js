@@ -103,6 +103,30 @@ class ApplicationWindowManager {
       }, 1000);
     }
   }
+
+  /**
+   * Show interface window and open the prompt input (same effect as clicking the right edge strip).
+   */
+  showPromptInput() {
+    console.log('Application: Show prompt input requested');
+
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot show prompt input - application is locked');
+      return;
+    }
+
+    if (this.interfaceWindow) {
+      this.interfaceWindow.show();
+      this.sendToInterfaceWindow('show-prompt-input', {});
+    } else {
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
+      this.interfaceWindow.create();
+      this.interfaceWindow.show();
+      setTimeout(() => {
+        this.sendToInterfaceWindow('show-prompt-input', {});
+      }, 1000);
+    }
+  }
 }
 
 module.exports = { ApplicationWindowManager };

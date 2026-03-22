@@ -14,16 +14,20 @@ export function HelpSection({
 
     const shortcuts = [
         {
-            description: "Close the application",
+            description: "Close application",
             keys: ["Ctrl", "H"],
         },
         {
-            description: "Hide/Show Interface Window",
+            description: "Hide/Show",
             keys: ["Ctrl", "I"],
         },
         {
-            description: "Assistant Global",
+            description: "Assistant",
             keys: ["Ctrl", "\\"],
+        },
+        {
+            description: "Open prompt input",
+            keys: ["Ctrl", "K"],
         },
     ]
 

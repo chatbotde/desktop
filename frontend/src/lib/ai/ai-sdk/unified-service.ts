@@ -36,6 +36,7 @@ import {
     isProviderConfigured,
     type ProviderId,
 } from './index';
+import { getResponseLanguageSystemSuffix, mergeSystemPromptWithResponseLanguage } from '@/lib/settings/general-settings';
 
 // ============================================================================
 // Types
@@ -82,6 +83,8 @@ export class AISDKUnifiedService {
     private chatHistory: Map<string, ChatHistory> = new Map();
     private currentSystemPrompt: SystemPrompt | null = null;
     private usageTrackingEnabled: boolean = true;
+    /** Base system text from the selected prompt (without language suffix). */
+    private baseSystemContext: string = '';
     private globalSystemContext: string = '';
 
     constructor() {
@@ -92,6 +95,16 @@ export class AISDKUnifiedService {
     // ============================================================================
     // Chat History Management
     // ============================================================================
+
+    private refreshDerivedSystemContext(): void {
+        const suffix = getResponseLanguageSystemSuffix();
+        this.globalSystemContext = suffix
+            ? `${this.baseSystemContext}\n\n${suffix}`
+            : this.baseSystemContext;
+        this.chatHistory.forEach((history) => {
+            history.systemPrompt = this.globalSystemContext || undefined;
+        });
+    }
 
     private getOrCreateHistory(providerId: string): ChatHistory {
         if (!this.chatHistory.has(providerId)) {
@@ -185,12 +198,8 @@ export class AISDKUnifiedService {
             this.currentSystemPrompt = prompt;
         }
 
-        this.globalSystemContext = this.currentSystemPrompt.prompt;
-
-        // Update system context in all existing histories
-        this.chatHistory.forEach((history) => {
-            history.systemPrompt = this.globalSystemContext;
-        });
+        this.baseSystemContext = this.currentSystemPrompt.prompt;
+        this.refreshDerivedSystemContext();
 
         console.log(`✅ System prompt set to: ${this.currentSystemPrompt.name}`);
     }
@@ -203,12 +212,8 @@ export class AISDKUnifiedService {
             prompt,
         };
 
-        this.globalSystemContext = prompt;
-
-        // Update system context in all existing histories
-        this.chatHistory.forEach((history) => {
-            history.systemPrompt = prompt;
-        });
+        this.baseSystemContext = prompt;
+        this.refreshDerivedSystemContext();
 
         console.log(`✅ Custom system prompt applied: ${name}`);
     }
@@ -218,12 +223,8 @@ export class AISDKUnifiedService {
     }
 
     addSystemContext(context: string): void {
-        this.globalSystemContext = context;
-
-        // Update in all histories
-        this.chatHistory.forEach((history) => {
-            history.systemPrompt = context;
-        });
+        this.baseSystemContext = context;
+        this.refreshDerivedSystemContext();
     }
 
     // ============================================================================
@@ -311,6 +312,9 @@ export class AISDKUnifiedService {
 
         // Convert message and attachments to Message
         const userMessage = await this.convertAttachmentsToContent(message, attachments);
+
+        // Re-read preferred response language from settings before each turn
+        this.refreshDerivedSystemContext();
 
         // Add to history
         this.addToHistory(providerId, userMessage);
@@ -530,7 +534,10 @@ export class AISDKUnifiedService {
             maxOutputTokens?: number;
         }
     ): Promise<AsyncGenerator<string, void, unknown>> {
-        const result = await ai.stream(provider, modelId, prompt, options);
+        const result = await ai.stream(provider, modelId, prompt, {
+            ...options,
+            system: mergeSystemPromptWithResponseLanguage(options?.system),
+        });
 
         async function* generator(): AsyncGenerator<string, void, unknown> {
             for await (const chunk of result.textStream) {
@@ -554,7 +561,10 @@ export class AISDKUnifiedService {
             maxOutputTokens?: number;
         }
     ): Promise<string> {
-        const result = await ai.generate(provider, modelId, prompt, options);
+        const result = await ai.generate(provider, modelId, prompt, {
+            ...options,
+            system: mergeSystemPromptWithResponseLanguage(options?.system),
+        });
         return result.text;
     }
 }

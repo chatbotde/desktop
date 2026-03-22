@@ -1,4 +1,5 @@
 import type { MediaAttachment } from '../gemini';
+import { getResponseLanguageSystemSuffix } from '@/lib/settings/general-settings';
 
 // Ollama API configuration
 const OLLAMA_BASE_URL = import.meta.env.VITE_OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
@@ -155,6 +156,24 @@ export class OllamaChatService {
     }
   }
 
+  /** Build API messages: optional stored system + fresh language suffix (reads settings each request). */
+  private composeMessagesWithResponseLanguage(): OllamaMessage[] {
+    const lang = getResponseLanguageSystemSuffix();
+    const hist = this.chatHistory;
+    if (!lang) return [...hist];
+
+    let systemContent: string | undefined;
+    let rest: OllamaMessage[];
+    if (hist[0]?.role === 'system') {
+      systemContent = hist[0].content;
+      rest = hist.slice(1);
+    } else {
+      rest = [...hist];
+    }
+    systemContent = systemContent ? `${systemContent}\n\n${lang}` : lang;
+    return [{ role: 'system', content: systemContent }, ...rest];
+  }
+
   private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -199,7 +218,7 @@ export class OllamaChatService {
       try {
         const requestBody: OllamaChatRequest = {
           model: model,
-          messages: self.chatHistory,
+          messages: self.composeMessagesWithResponseLanguage(),
           stream: true,
           options: {
             temperature: 0.7,

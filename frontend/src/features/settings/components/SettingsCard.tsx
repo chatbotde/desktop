@@ -8,6 +8,10 @@ import { getThemeClasses } from "@/features/prompt/theme"
 import { useIsDark } from "@/shared/providers"
 import { getThemeClasses as getThemeUtils } from "@/shared/utils/theme"
 
+import {
+  BUDDY_GENERAL_SETTINGS_STORAGE_KEY,
+  DEFAULT_BUDDY_GENERAL_SETTINGS,
+} from "@/lib/settings/general-settings"
 import { SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
 import { SettingsSidebar } from "./SettingsSidebar"
 import {
@@ -20,15 +24,15 @@ import {
   CustomModelsSection,
   BlockingSection,
   FeaturesSection,
-  AnimationsSection,
-  VoiceSection,
+  // AnimationsSection,
+  // VoiceSection,
   HelpSection
 } from "../sections"
 
 
 // ── localStorage keys ──
 const STORAGE_KEY_PERSONALIZATION = "buddy_personalization"
-const STORAGE_KEY_GENERAL = "buddy_general_settings"
+const STORAGE_KEY_GENERAL = BUDDY_GENERAL_SETTINGS_STORAGE_KEY
 
 /** Read a JSON value from localStorage, falling back to `fallback` on any error. */
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -49,9 +53,7 @@ const DEFAULT_PERSONALIZATION: PersonalizationValues = {
   baseStyle: "professional",
 }
 
-const DEFAULT_GENERAL = {
-  language: "english",
-}
+const DEFAULT_GENERAL = DEFAULT_BUDDY_GENERAL_SETTINGS
 
 type SettingsCardProps = {
   initialSection?: SettingsSectionId
@@ -176,9 +178,9 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
 
             {activeSection === "features" && <FeaturesSection />}
 
-            {activeSection === "animations" && <AnimationsSection />}
+            {/* {activeSection === "animations" && <AnimationsSection />} */}
 
-            {activeSection === "voice" && <VoiceSection isDarkTheme={isDark} />}
+            {/* {activeSection === "voice" && <VoiceSection isDarkTheme={isDark} />} */}
 
             {activeSection === "help" && <HelpSection isDarkTheme={isDark} />}
 

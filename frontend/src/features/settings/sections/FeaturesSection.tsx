@@ -45,7 +45,6 @@ export function FeaturesSection() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Theme Selector - can be extended for more themes */}
           {availableThemes.length > 2 ? (
             <select
               value={theme}
@@ -99,11 +98,10 @@ export function FeaturesSection() {
         </div>
       </div>
 
-      <DynamicFeatureList />
+      <DynamicFeatureList includeIds={["clipboard", "text-selection", "exclude-from-screenshot", "output-window"]} />
     </div>
   )
 }
-
 
 
 

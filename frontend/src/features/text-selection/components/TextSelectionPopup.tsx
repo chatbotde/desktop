@@ -4,7 +4,6 @@ import { X } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
-import { ReadButton } from '@/components/read-button'
 import { CopyButton } from '@/components/copy-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
@@ -532,6 +531,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                     exit={{ opacity: 0, scale: 0.8 }}
                     className="flex items-center gap-1.5 p-1.5 whitespace-nowrap"
                   >
+                    {/* 
                     <ReadButton
                       onClick={() => handleRead()}
                       isDarkTheme={isDarkTheme}
@@ -542,6 +542,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                       "w-px h-5 mx-0.5",
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
+                    */}
                     <CopyButton
                       onClick={handleCopy}
                       isDarkTheme={isDarkTheme}
