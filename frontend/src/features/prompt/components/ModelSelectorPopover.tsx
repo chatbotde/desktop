@@ -9,6 +9,7 @@ import {
   getAvailableModels,
   getSelectedModel,
   setSelectedModel,
+  isModelWorking,
   type AIModel,
 } from "@/lib/ai/model-config"
 import { getVisibleModels, MODEL_VISIBILITY_CHANGED_EVENT } from "@/lib/settings/model-visibility"
@@ -48,10 +49,11 @@ export function ModelSelectorPopover({
     const allModels = getAvailableModels()
     const visibleIds = getVisibleModels()
 
-    // Filter to only show visible models
-    const models = visibleIds === null
+    // Filter to only show visible models AND those that are "working"
+    const models = (visibleIds === null
       ? allModels // null means show all
       : allModels.filter((m) => visibleIds.includes(m.id) || m.id.startsWith('custom-'))
+    ).filter(isModelWorking)
 
     setVisibleModels(models)
     setSelectedModelState(getSelectedModel())

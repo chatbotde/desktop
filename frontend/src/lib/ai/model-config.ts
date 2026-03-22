@@ -230,6 +230,19 @@ export const modelConfigManager = ModelConfigManager.getInstance();
 // Initialize from storage on import
 modelConfigManager.initializeFromStorage();
 
+import { isProviderConfigured } from './ai-sdk/providers';
+
+/**
+ * Check if a model is "working" (configured with API key or custom)
+ */
+export const isModelWorking = (model: AIModel): boolean => {
+  // Custom models are already filtered by their setup logic
+  if (model.id.startsWith('custom-') || model.isCustom) return true
+  
+  // Use the provider registry to check if this provider is configured (API key or local)
+  return isProviderConfigured(model.provider)
+}
+
 // Export utility functions
 export const getSelectedModel = () => modelConfigManager.getSelectedModel();
 export const setSelectedModel = (modelId: string) => modelConfigManager.setSelectedModel(modelId);

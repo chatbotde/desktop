@@ -13,6 +13,7 @@ import { ExpandedGroundingButton } from "../expanded-grounding-button"
 import { ExpandedSubmitButton } from "../expanded-submit-button"
 import { actionButtonRegistry } from "../registry/action-button-registry"
 import type { ExpandedActionsBarContext } from "../types/expanded-actions-context"
+import { getAvailableModels, isModelWorking } from "@/lib/ai/model-config"
 
 export function registerDefaultActions(context: ExpandedActionsBarContext | (() => ExpandedActionsBarContext)) {
   const getContext = typeof context === 'function' ? context : () => context
@@ -69,6 +70,12 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   actionButtonRegistry.register({
     id: "model-selector",
     order: 1,
+    condition: () => {
+      const workingCloudModels = getAvailableModels().some(isModelWorking)
+      const ctx = getContext()
+      const hasLocalModels = !!(ctx.ollamaRunning && ctx.ollamaModels && ctx.ollamaModels.length > 0)
+      return !!(workingCloudModels || hasLocalModels)
+    },
     component: (
       <PromptInputAction tooltip="Select model" key="model-selector">
         <ModelSelectorPopover
