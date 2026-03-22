@@ -9,6 +9,8 @@ import { useTextSelectionActions } from '@/hooks/useTextSelectionActions'
 import { useFeature } from '@/contexts/FeatureContext'
 import type { MediaAttachment } from '@/features/output-window'
 import { getSelectedModel } from '@/lib/ai/model-config'
+import { unifiedAIService } from '@/lib/ai'
+import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 
 // Define the type for our context
 interface AppContextType {
@@ -19,6 +21,8 @@ interface AppContextType {
     setCurrentChatId: (id: string | null) => void
     handleLoadHistory: (messages: any[], chatId?: string) => void
     handleClearMessages: () => void
+    /** Clears saved chats, on-screen messages, and cloud/local model conversation memory. */
+    handleClearAllHistory: () => Promise<void>
     handleSendMessage: (message: string, attachments?: MediaAttachment[]) => Promise<void>
     outputWindowEnabled: boolean
 }
@@ -37,7 +41,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     })
 
     // Chat History
-    const { saveChat, updateChat } = useChatHistory()
+    const { saveChat, updateChat, clearAllChats } = useChatHistory()
     const [currentChatId, setCurrentChatId] = useState<string | null>(null)
     const isAutoSavingRef = useRef(false)
     const messagesLengthRef = useRef(0)
@@ -105,6 +109,13 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         uiState.clearExplanation()
     }
 
+    const handleClearAllHistory = async () => {
+        await clearAllChats()
+        handleClearMessages()
+        unifiedAIService.clearAllHistory()
+        unifiedLocalLLMService.clearHistory()
+    }
+
     // Auto-screenshot feature - automatically takes screenshots when user starts typing
     useAutoScreenshot({
         onScreenshot: (file, isAutoScreenshot) => {
@@ -168,6 +179,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         setCurrentChatId,
         handleLoadHistory,
         handleClearMessages,
+        handleClearAllHistory,
         handleSendMessage,
         outputWindowEnabled
     }

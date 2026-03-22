@@ -12,6 +12,7 @@ export interface ChatHistoryItem {
 
 const USER_ID_KEY = 'buddy_device_user_id'
 const CHAT_HISTORY_KEY = 'buddy_chat_history'
+export const BUDDY_CHAT_HISTORY_CLEARED_EVENT = 'buddy-chat-history-cleared'
 
 function getUserId() {
     let id = localStorage.getItem(USER_ID_KEY)
@@ -47,6 +48,16 @@ export function useChatHistory() {
                 console.error('Failed to parse local history', e)
             }
         }
+    }, [])
+
+    // Keep all hook instances in sync when history is cleared from settings (or elsewhere)
+    useEffect(() => {
+        const onCleared = () => {
+            setHistory([])
+            historyRef.current = []
+        }
+        window.addEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
+        return () => window.removeEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
     }, [])
 
     // Save to local storage whenever history changes
@@ -301,6 +312,23 @@ export function useChatHistory() {
         }
     }, [])
 
+    /** Remove every saved chat locally, on the server (for this device user), and notify other `useChatHistory` instances. */
+    const clearAllChats = useCallback(async () => {
+        const userId = getUserId()
+        setHistory([])
+        historyRef.current = []
+        saveToLocal([])
+        window.dispatchEvent(new CustomEvent(BUDDY_CHAT_HISTORY_CLEARED_EVENT))
+
+        try {
+            if (!supabase) return
+            const { error } = await supabase.from('chat_history').delete().eq('userId', userId)
+            if (error) throw error
+        } catch (err) {
+            console.error('Error clearing remote chat history:', err)
+        }
+    }, [])
+
     // Listen for online status to sync
     useEffect(() => {
         const handleOnline = () => {
@@ -355,6 +383,7 @@ export function useChatHistory() {
         saveChat,
         updateChat,
         deleteChat,
+        clearAllChats,
         refreshHistory: fetchHistory,
         isSyncing
     }

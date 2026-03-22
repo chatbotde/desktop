@@ -4,7 +4,7 @@ import { GLOBAL_THEME } from '@/global/theme'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function SettingsOverlay() {
-    const { uiState } = useAppState()
+    const { uiState, handleClearAllHistory } = useAppState()
 
     return (
         <AnimatePresence>
@@ -25,6 +25,7 @@ export function SettingsOverlay() {
                     >
                         <SettingsCard
                             onRequestClose={() => uiState.setShowSettings(false)}
+                            onClearAllChatHistory={handleClearAllHistory}
                             className="w-full h-full rounded-2xl border"
                         />
                     </motion.div>

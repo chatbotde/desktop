@@ -59,9 +59,16 @@ type SettingsCardProps = {
   initialSection?: SettingsSectionId
   onRequestClose?: () => void
   className?: string
+  /** Wired from app shell: clears saved chats, transcript, and AI memory (General → Chat history). */
+  onClearAllChatHistory?: () => void | Promise<void>
 }
 
-export function SettingsCard({ initialSection = "personalization", onRequestClose, className }: SettingsCardProps) {
+export function SettingsCard({
+  initialSection = "personalization",
+  onRequestClose,
+  className,
+  onClearAllChatHistory,
+}: SettingsCardProps) {
   const isDark = useIsDark()
   const themeClasses = useMemo(() => getThemeClasses(isDark), [isDark])
 
@@ -163,6 +170,7 @@ export function SettingsCard({ initialSection = "personalization", onRequestClos
                 value={generalSettings}
                 onChange={setGeneralSettings}
                 isDarkTheme={isDark}
+                onClearAllChatHistory={onClearAllChatHistory}
               />
             )}
 
