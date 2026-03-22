@@ -237,8 +237,17 @@ export function TextSelectionActions({
       const selectedTextTrimmed = selectedText?.trim() || ''
 
       if (selectedTextTrimmed) {
-        const textToInsert = `${selectedTextTrimmed} ${generatedOutput}`
-        await tsfAPI.focusAndReplaceText(textToInsert)
+        // Prepend a space if there's selected text to maintain separation
+        let textToInsert = ` ${generatedOutput}`
+        
+        // Use the new method that appends instead of replacing
+        if (tsfAPI.focusAndInsertAtEnd) {
+          await tsfAPI.focusAndInsertAtEnd(textToInsert)
+        } else {
+          // Fallback for older interface-window version
+          let fallbackText = `${selectedTextTrimmed} ${generatedOutput}`
+          await tsfAPI.focusAndReplaceText(fallbackText)
+        }
       } else {
         await tsfAPI.focusAndInsertText(generatedOutput)
       }

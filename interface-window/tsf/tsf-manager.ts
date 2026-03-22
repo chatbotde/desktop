@@ -390,6 +390,67 @@ export class TsfManager extends EventEmitter {
     }
 
     /**
+     * Focus last window, move to end of selection, and insert text
+     */
+    async focusAndInsertAtEnd(text: string): Promise<boolean> {
+        if (!this.enabled) {
+            console.log('TSF Manager: Disabled');
+            return false;
+        }
+
+        if (!this.initialized) {
+            await this.initialize();
+        }
+
+        if (!text || typeof text !== 'string') {
+            console.error('TSF Manager: Invalid text provided');
+            return false;
+        }
+
+        try {
+            console.log('🔍 TSF Manager: Getting last tracked application for insert at end...');
+            const lastFocus = this.lastExternalFocusInfo || await this.getLastFocusedWindow();
+
+            if (!lastFocus || !lastFocus.processName) {
+                console.warn('⚠️ TSF Manager: No external application tracked yet!');
+                return false;
+            }
+
+            console.log(`📍 TSF Manager: Target app: ${lastFocus.processName}`);
+            
+            // Focus the window first
+            await this.focusLastWindow();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // Simulate Right Arrow to move caret to the end of the selection
+            console.log('➡️ TSF Manager: Simulating Right Arrow...');
+            await new Promise<void>((resolve) => {
+                const { spawn } = require('child_process');
+                const ps = spawn('powershell', [
+                    '-NoProfile',
+                    '-NonInteractive',
+                    '-Command',
+                    "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('{RIGHT}')"
+                ]);
+                ps.on('close', () => resolve());
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // Now insert the text normally
+            const success = await tsf.insertText(text);
+            
+            if (success) {
+                this.emit('text-inserted', { text, focusInfo: lastFocus, method: 'focus-and-insert-at-end' });
+            }
+            return success;
+        } catch (err) {
+            console.error('TSF Manager: Error in focusAndInsertAtEnd:', err);
+            return false;
+        }
+    }
+
+    /**
      * Get selected text from focused application
      */
     async getSelectedText(): Promise<string> {

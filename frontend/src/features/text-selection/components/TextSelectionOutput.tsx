@@ -139,10 +139,8 @@ export function TextSelectionOutput({
         setDisplayedContent(content.slice(0, nextIndex))
         currentIndex = nextIndex
 
-        // Auto-scroll to bottom
-        if (contentRef.current) {
-          contentRef.current.scrollTop = contentRef.current.scrollHeight
-        }
+        // Auto-scroll removed to allow users to read from the top without forced scroll
+
 
         animationRef.current = window.setTimeout(animate, charInterval * batchSize)
       } else {

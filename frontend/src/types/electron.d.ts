@@ -139,6 +139,7 @@ declare global {
       getLastFocusedWindow: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
       focusLastWindow: () => Promise<boolean>;
       focusAndInsertText: (text: string) => Promise<boolean>;
+      focusAndInsertAtEnd: (text: string) => Promise<boolean>;
       focusAndInsertRichContent: (content: RichContentData) => Promise<boolean>;
       getSelectedText: () => Promise<string>;
       replaceSelectedText: (text: string) => Promise<boolean>;

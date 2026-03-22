@@ -432,8 +432,17 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
       if (!tsfAPI) return
       await tsfAPI.initialize()
       const selectedText = selectionData?.text?.trim() || ''
-      let textToInsert = selectedText ? `${selectedText} ${generatedOutput}` : generatedOutput
-      await tsfAPI.focusAndReplaceText(textToInsert)
+      // Prepend a space if there's selected text to maintain separation
+      let textToInsert = selectedText ? ` ${generatedOutput}` : generatedOutput
+      
+      // Use the new method that appends instead of replacing
+      if (tsfAPI.focusAndInsertAtEnd) {
+        await tsfAPI.focusAndInsertAtEnd(textToInsert)
+      } else {
+        // Fallback for older interface-window version
+        let fallbackText = selectedText ? `${selectedText} ${generatedOutput}` : generatedOutput
+        await tsfAPI.focusAndReplaceText(fallbackText)
+      }
     } catch (error) {
       console.error('Error inserting text:', error)
     }

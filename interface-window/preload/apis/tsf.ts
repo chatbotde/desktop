@@ -114,6 +114,13 @@ export function createTsfAPI(): TsfAPI {
         focusAndInsertText: (text: string) => ipcRenderer.invoke('tsf:focus-and-insert-text', text),
 
         /**
+         * Focus last window, move cursor right to unselect, and insert text at end
+         * @param text - Text to insert
+         * @returns Success status
+         */
+        focusAndInsertAtEnd: (text: string) => ipcRenderer.invoke('tsf:focus-and-insert-at-end', text),
+
+        /**
          * Focus last window and insert rich content (HTML, images, RTF, etc.)
          * Uses clipboard + paste method (bypasses TSF, as TSF only supports plain text)
          * @param content - Rich content data (text, HTML, image, RTF, or combination)
