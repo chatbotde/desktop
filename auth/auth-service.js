@@ -52,67 +52,29 @@ class AuthService extends EventEmitter {
       const hasCredentials = await tokenStore.hasCredentials();
 
       if (hasCredentials) {
-        console.log('Auth Service: Found stored credentials, checking local validity...');
+        console.log('Auth Service: Found stored credentials, keeping session active (desktop mode)...');
 
-        // Check if local token is valid (not expired)
         const accessToken = await tokenStore.getAccessToken();
         const sessionToken = await tokenStore.getSessionToken();
         const token = accessToken || sessionToken;
 
-        if (token && !tokenStore.isTokenExpired(token, config.TOKEN_REFRESH_THRESHOLD)) {
-          // Local token is valid - restore user immediately (offline mode)
+        if (token) {
+          // Always restore user immediately if token exists
           this.user = await tokenStore.getUserData();
           this.isAuthenticated = true;
 
-          console.log('Auth Service: Local session valid, restored (offline mode)');
+          console.log('Auth Service: Local session restored (persistent mode)');
 
-          // Try server validation in background but don't wait for it
+          // Try server validation/refresh in background but don't wait for it
           this.validateSessionInBackground();
-
-          this.emit('auth:restored', this.user);
-          return this.user;
-        }
-
-        // Token is expired locally, try to refresh
-        console.log('Auth Service: Local token expired, attempting refresh...');
-        const refreshed = await this.refreshTokens();
-
-        if (refreshed) {
-          this.user = await tokenStore.getUserData();
-          this.isAuthenticated = true;
-
-          console.log('Auth Service: Token refreshed successfully');
           this.startSessionMonitoring();
-          this.emit('auth:refreshed', this.user);
 
-          return this.user;
-        }
-
-        // Refresh failed - try server validation as last resort
-        console.log('Auth Service: Refresh failed, trying server validation...');
-        const isValid = await this.validateSession();
-
-        if (isValid) {
-          this.user = await tokenStore.getUserData();
-          this.isAuthenticated = true;
-          this.startSessionMonitoring();
           this.emit('auth:restored', this.user);
           return this.user;
         }
 
-        // Server validation failed - check if we still have valid local token
-        const currentToken = await tokenStore.getAccessToken() || await tokenStore.getSessionToken();
-        if (currentToken && !tokenStore.isTokenExpired(currentToken, 0)) {
-          // Still have valid local token - allow offline access
-          this.user = await tokenStore.getUserData();
-          this.isAuthenticated = true;
-          console.log('Auth Service: Using offline mode (local token still valid)');
-          this.emit('auth:restored', this.user);
-          return this.user;
-        }
-
-        // All validation failed - clear invalid credentials
-        console.log('Auth Service: All validation failed, clearing credentials');
+        // Just in case token retrieval failed but hasCredentials was true
+        console.log('Auth Service: No valid token, clearing credentials');
         await tokenStore.clearAll();
       }
 
@@ -474,10 +436,9 @@ class AuthService extends EventEmitter {
         const refreshed = await this.refreshTokens();
 
         if (!refreshed) {
-          console.log('Auth Service: Failed to refresh, session expired');
-          this.isAuthenticated = false;
-          this.user = null;
-          this.emit('auth:expired');
+          console.log('Auth Service: Failed to refresh, preserving session for desktop app');
+          // Removed manual expiration: users remain logged in offline or when tokens expire,
+          // until they explicitly log out.
         }
       }
     }, config.SESSION_CHECK_INTERVAL);

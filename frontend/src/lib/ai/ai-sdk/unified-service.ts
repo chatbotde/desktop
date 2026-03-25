@@ -16,6 +16,30 @@ import { getSelectedModel } from '../model-config';
 import type { MediaAttachment } from '../gemini';
 import { getDefaultSystemPrompt, getSystemPromptById, type SystemPrompt } from '../system-prompts';
 import { checkRateLimit, logUsage } from '../usage-tracker';
+import { checkCanMakeRequest, subscriptionService } from '../../subscription';
+
+export class SubscriptionLockedError extends Error {
+    public readonly plan: string;
+    public readonly trialDaysUsed: number;
+    public readonly trialDaysTotal: number;
+    public readonly upgradeUrl: string;
+    public readonly isSubscriptionLocked: boolean = true;
+
+    constructor(
+        message: string,
+        plan: string,
+        trialDaysUsed: number,
+        trialDaysTotal: number,
+        upgradeUrl: string
+    ) {
+        super(message);
+        this.name = 'SubscriptionLockedError';
+        this.plan = plan;
+        this.trialDaysUsed = trialDaysUsed;
+        this.trialDaysTotal = trialDaysTotal;
+        this.upgradeUrl = upgradeUrl;
+    }
+}
 import {
     generateImages as replicateGenerateImages,
     generateVideos as replicateGenerateVideos
@@ -272,6 +296,20 @@ export class AISDKUnifiedService {
 
         if (!selectedModel) {
             throw new Error('No AI model selected. Please select a model from the model selector.');
+        }
+
+        // Check subscription status (deepest layer - before any AI request)
+        const subscriptionCheck = await checkCanMakeRequest();
+        if (!subscriptionCheck.allowed) {
+            const status = subscriptionCheck.status;
+            const upgradeUrl = subscriptionService.getUpgradeUrl();
+            throw new SubscriptionLockedError(
+                subscriptionCheck.reason || 'Your 10-day free trial has ended',
+                status?.plan || 'free',
+                status?.trialDaysUsed || 0,
+                status?.trialDaysTotal || 10,
+                upgradeUrl
+            );
         }
 
         // Validate attachments against model capabilities
