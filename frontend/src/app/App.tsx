@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import ClickThrough from '@/components/click-through'
 import { AppStateProvider } from './context/AppContext'
 import { OverlayRegistry } from './overlays/OverlayRegistry'
-import { UpgradePopup } from '@/components/upgrade-popup'
-import { redeemVipCode, setTrialExpiredForTesting, resetTrialForTesting } from '@/lib/subscription'
+import { UpgradePopup, DeleteHistoryCard } from '@/components/upgrade-popup'
+import { redeemVipCode } from '@/lib/subscription'
 
 /**
  * App - Root component of the application.
@@ -31,6 +31,8 @@ function App() {
     upgradeUrl: '',
     errorMessage: '',
   })
+
+  const [deleteHistoryKey, setDeleteHistoryKey] = useState(0)
 
   // Handle upgrade popup events from chat
   useEffect(() => {
@@ -62,7 +64,6 @@ function App() {
   useEffect(() => {
     console.log('[App] Component mounted, checking for CaptureAPI...');
 
-    // Check after a short delay in case preload hasn't finished
     const timeout = setTimeout(() => {
       console.log('[App] window.CaptureAPI:', window.CaptureAPI);
       if (!window.CaptureAPI) {
@@ -100,26 +101,15 @@ function App() {
           upgradeUrl={upgradePopupState.upgradeUrl}
         />
 
-        {/* DEV TESTING BUTTONS - Remove in production */}
-        <div className="fixed bottom-4 right-4 flex gap-2 z-50">
-          <button
-            onClick={() => {
-              setTrialExpiredForTesting()
-              window.location.reload()
+        {/* Delete History Card - Bottom Left */}
+        <div className="fixed bottom-4 left-4 z-40">
+          <DeleteHistoryCard 
+            key={deleteHistoryKey}
+            onDelete={() => {
+              window.dispatchEvent(new CustomEvent('clear-all-chats'))
+              setDeleteHistoryKey(k => k + 1)
             }}
-            className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-500"
-          >
-            DEV: Expire Trial
-          </button>
-          <button
-            onClick={() => {
-              resetTrialForTesting()
-              window.location.reload()
-            }}
-            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-500"
-          >
-            DEV: Reset Trial
-          </button>
+          />
         </div>
       </div>
     </AppStateProvider>

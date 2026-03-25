@@ -3,12 +3,12 @@
  * 
  * Handles subscription status checking for free trial vs paid plans.
  * Applies to ALL users regardless of model type (cloud, custom API, local models).
- * Free trial: 10 days, then requires upgrade.
  * 
- * VIP Codes: Users can enter a code to get temporary access (stored locally).
+ * SECURITY: All validation is done server-side via Supabase.
+ * VIP codes are validated server-side, not stored locally.
  */
 
-export type SubscriptionPlan = 'free' | 'monthly' | 'vip' | 'yearly';
+export type SubscriptionPlan = 'free' | 'monthly' | 'yearly';
 
 export interface SubscriptionStatus {
   plan: SubscriptionPlan;
@@ -19,16 +19,10 @@ export interface SubscriptionStatus {
   canMakeRequest: boolean;
   isVip: boolean;
   vipExpiresAt?: string;
+  validatedAt?: number;
 }
 
 const TRIAL_DAYS = 10;
-const VIP_CODE_STORAGE_KEY = 'sonicthinking_vip_code';
-
-const VALID_VIP_CODES: Record<string, number> = {
-  'VIP2024': 30,
-  'DEVTEST': 30,
-  'BETA2024': 30,
-};
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -53,22 +47,6 @@ function getApiBaseUrl(): string {
          'http://localhost:3000';
 }
 
-function getStoredVipCode(): { code: string; expiresAt: string } | null {
-  try {
-    const stored = localStorage.getItem(VIP_CODE_STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {}
-  return null;
-}
-
-function isVipCodeValid(vipData: { code: string; expiresAt: string } | null): boolean {
-  if (!vipData) return false;
-  const expires = new Date(vipData.expiresAt);
-  return expires > new Date();
-}
-
 export class SubscriptionService {
   private cachedStatus: SubscriptionStatus | null = null;
   private cacheTimeout: number = 60000;
@@ -84,37 +62,6 @@ export class SubscriptionService {
     }
 
     const token = await getAuthToken();
-    const vipData = getStoredVipCode();
-    const isVip = isVipCodeValid(vipData);
-    
-    if (isVip) {
-      const status: SubscriptionStatus = {
-        plan: 'vip',
-        isActive: true,
-        trialDaysUsed: 0,
-        trialDaysTotal: TRIAL_DAYS,
-        canMakeRequest: true,
-        isVip: true,
-        vipExpiresAt: vipData?.expiresAt,
-      };
-      this.cachedStatus = status;
-      this.lastFetchTime = now;
-      return status;
-    }
-    
-    if (this.isTrialExpiredForTesting()) {
-      const status: SubscriptionStatus = {
-        plan: 'free',
-        isActive: false,
-        trialDaysUsed: TRIAL_DAYS,
-        trialDaysTotal: TRIAL_DAYS,
-        canMakeRequest: false,
-        isVip: false,
-      };
-      this.cachedStatus = status;
-      this.lastFetchTime = now;
-      return status;
-    }
     
     if (!token) {
       return {
@@ -122,8 +69,9 @@ export class SubscriptionService {
         isActive: false,
         trialDaysUsed: 0,
         trialDaysTotal: TRIAL_DAYS,
-        canMakeRequest: true,
+        canMakeRequest: false,
         isVip: false,
+        validatedAt: now,
       };
     }
 
@@ -146,12 +94,19 @@ export class SubscriptionService {
       
       const status: SubscriptionStatus = {
         plan: data.plan || 'free',
-        isActive: data.isActive ?? true,
-        trialDaysUsed: data.trialDaysUsed ?? this.calculateTrialDays(data.createdAt),
+        isActive: data.isActive ?? false,
+        trialDaysUsed: data.trialDaysUsed ?? this.calculateTrialDays(data.trialStartedAt),
         trialDaysTotal: TRIAL_DAYS,
         expiresAt: data.expiresAt,
-        canMakeRequest: this.canMakeRequest(data.plan || 'free', data.trialDaysUsed ?? this.calculateTrialDays(data.createdAt)),
-        isVip: false,
+        canMakeRequest: this.canMakeRequest(
+          data.plan || 'free',
+          data.trialDaysUsed ?? this.calculateTrialDays(data.trialStartedAt),
+          data.isVip,
+          data.isActive
+        ),
+        isVip: data.isVip ?? false,
+        vipExpiresAt: data.vipExpiresAt,
+        validatedAt: now,
       };
 
       this.cachedStatus = status;
@@ -163,15 +118,13 @@ export class SubscriptionService {
     }
   }
 
-  private calculateTrialDays(createdAt?: string): number {
-    if (!createdAt) {
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 5);
-      return 5;
+  private calculateTrialDays(trialStartedAt?: string): number {
+    if (!trialStartedAt) {
+      return 0;
     }
-    const created = new Date(createdAt);
+    const started = new Date(trialStartedAt);
     const now = new Date();
-    const diffTime = now.getTime() - created.getTime();
+    const diffTime = now.getTime() - started.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return Math.min(diffDays, TRIAL_DAYS);
   }
@@ -182,24 +135,34 @@ export class SubscriptionService {
       isActive: false,
       trialDaysUsed: 0,
       trialDaysTotal: TRIAL_DAYS,
-      canMakeRequest: true,
+      canMakeRequest: false,
       isVip: false,
+      validatedAt: Date.now(),
     };
   }
 
-  private canMakeRequest(plan: SubscriptionPlan, trialDaysUsed: number): boolean {
-    if (plan === 'monthly' || plan === 'yearly') {
+  private canMakeRequest(plan: SubscriptionPlan, trialDaysUsed: number, isVip?: boolean, isActive?: boolean): boolean {
+    if (isVip) {
       return true;
     }
+
+    if ((plan === 'monthly' || plan === 'yearly') && Boolean(isActive)) {
+      return true;
+    }
+
     return trialDaysUsed < TRIAL_DAYS;
   }
 
   async checkCanMakeRequest(): Promise<{ allowed: boolean; reason?: string; status?: SubscriptionStatus }> {
-    const status = await this.getSubscriptionStatus();
-    
-    if (status.isVip) {
-      return { allowed: true, status };
+    const serverValidation = await this.validateSubscriptionWithServer();
+    if (!serverValidation.allowed) {
+      return {
+        allowed: false,
+        reason: serverValidation.reason || 'Unable to validate subscription. Please sign in again.',
+      };
     }
+
+    const status = await this.getSubscriptionStatus();
     
     if (!status.canMakeRequest) {
       let upgradeMessage = '';
@@ -221,6 +184,51 @@ export class SubscriptionService {
       allowed: true,
       status,
     };
+  }
+
+  async validateSubscriptionWithServer(): Promise<{ allowed: boolean; reason?: string }> {
+    const token = await getAuthToken();
+    
+    if (!token) {
+      return {
+        allowed: false,
+        reason: 'Please log in to use AI features.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/subscription/validate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 402 || response.status === 403) {
+        const data = await response.json();
+        return {
+          allowed: false,
+          reason: data.message || 'Subscription expired. Please upgrade to continue.',
+        };
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        allowed: data.allowed === true,
+        reason: data.message,
+      };
+    } catch (error) {
+      console.error('[SubscriptionService] Server validation failed:', error);
+      return {
+        allowed: false,
+        reason: 'Could not validate subscription. Check connection and try again.',
+      };
+    }
   }
 
   async recordRequest(): Promise<void> {
@@ -251,8 +259,6 @@ export class SubscriptionService {
         return 'Monthly Plan';
       case 'yearly':
         return 'Yearly Plan';
-      case 'vip':
-        return 'VIP Access';
       default:
         return 'Unknown';
     }
@@ -267,66 +273,49 @@ export class SubscriptionService {
     this.lastFetchTime = 0;
   }
 
-  redeemVipCode(code: string): { success: boolean; message: string; expiresAt?: string } {
-    const normalizedCode = code.toUpperCase().trim();
+  async redeemVipCode(code: string): Promise<{ success: boolean; message: string; expiresAt?: string }> {
+    const token = await getAuthToken();
     
-    if (VALID_VIP_CODES[normalizedCode]) {
-      const days = VALID_VIP_CODES[normalizedCode];
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + days);
-      
-      localStorage.setItem(VIP_CODE_STORAGE_KEY, JSON.stringify({
-        code: normalizedCode,
-        expiresAt: expiresAt.toISOString(),
-      }));
-      
+    if (!token) {
+      return {
+        success: false,
+        message: 'Please log in to redeem VIP code.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/vip/redeem`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: code.toUpperCase().trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Invalid VIP code.',
+        };
+      }
+
       this.clearCache();
       
       return {
         success: true,
-        message: `VIP code activated! You now have ${days} days of VIP access.`,
-        expiresAt: expiresAt.toISOString(),
+        message: `VIP code activated! You now have ${data.days} days of VIP access.`,
+        expiresAt: data.expiresAt,
       };
-    }
-    
-    return {
-      success: false,
-      message: 'Invalid VIP code. Please check and try again.',
-    };
-  }
-
-  getVipStatus(): { isVip: boolean; expiresAt?: string } {
-    const vipData = getStoredVipCode();
-    const isValid = isVipCodeValid(vipData);
-    
-    if (isValid) {
+    } catch (error) {
+      console.error('[SubscriptionService] Failed to redeem VIP code:', error);
       return {
-        isVip: true,
-        expiresAt: vipData?.expiresAt,
+        success: false,
+        message: 'Failed to redeem code. Please try again.',
       };
     }
-    
-    return { isVip: false };
-  }
-
-  clearVipCode(): void {
-    localStorage.removeItem(VIP_CODE_STORAGE_KEY);
-    this.clearCache();
-  }
-
-  setTrialExpiredForTesting(): void {
-    localStorage.setItem('__dev_trial_expired', 'true');
-    this.clearCache();
-  }
-
-  resetTrialForTesting(): void {
-    localStorage.removeItem('__dev_trial_expired');
-    localStorage.removeItem(VIP_CODE_STORAGE_KEY);
-    this.clearCache();
-  }
-
-  isTrialExpiredForTesting(): boolean {
-    return localStorage.getItem('__dev_trial_expired') === 'true';
   }
 }
 
@@ -336,7 +325,3 @@ export const getSubscriptionStatus = (forceRefresh?: boolean) =>
 export const checkCanMakeRequest = () => subscriptionService.checkCanMakeRequest();
 export const recordRequest = () => subscriptionService.recordRequest();
 export const redeemVipCode = (code: string) => subscriptionService.redeemVipCode(code);
-export const getVipStatus = () => subscriptionService.getVipStatus();
-export const clearVipCode = () => subscriptionService.clearVipCode();
-export const setTrialExpiredForTesting = () => subscriptionService.setTrialExpiredForTesting();
-export const resetTrialForTesting = () => subscriptionService.resetTrialForTesting();

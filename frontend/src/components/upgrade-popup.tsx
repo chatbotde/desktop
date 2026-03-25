@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import { X, Crown, Calendar, Gift, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Crown, Calendar, Gift, ChevronRight, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared/components/ui/button';
 import { Progress } from '@/shared/components/ui/progress';
 import { Input } from '@/shared/components/ui/input';
 import { Badge } from '@/shared/components/ui/badge';
-import { getThemeClasses } from '@/shared/utils/theme';
 import { useIsDark } from '@/shared/providers';
+import { getThemeClasses } from '@/shared/utils/theme';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/shared/components/ui/dialog';
 
 interface UpgradePopupProps {
   isVisible: boolean;
@@ -96,8 +104,8 @@ export function UpgradePopup({
       dark: "bg-zinc-900 border-zinc-800",
       light: "bg-white border-zinc-200"
     }, "relative w-full max-w-[340px] p-5 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border overflow-hidden"),
-    textTitle: getThemeClasses(isDark, { dark: "text-zinc-100", light: "text-zinc-900" }),
-    textMuted: getThemeClasses(isDark, { dark: "text-zinc-400", light: "text-zinc-600" }),
+    textTitle: getThemeClasses(isDark, { dark: "text-zinc-100", light: "text-zinc-900" }, "text-base font-semibold"),
+    textMuted: getThemeClasses(isDark, { dark: "text-zinc-400", light: "text-zinc-600" }, "text-xs"),
     codeBg: getThemeClasses(isDark, { dark: "bg-zinc-800/50", light: "bg-zinc-50" }),
   };
 
@@ -262,4 +270,69 @@ export function UpgradePopup({
       )}
     </AnimatePresence>
   );
+}
+
+interface DeleteHistoryCardProps {
+  onDelete: () => void
+  isLoading?: boolean
+}
+
+export function DeleteHistoryCard({ onDelete, isLoading = false }: DeleteHistoryCardProps) {
+  const isDark = useIsDark()
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const bgClass = isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'
+  const textPrimary = isDark ? 'text-zinc-100' : 'text-zinc-900'
+  const textMuted = isDark ? 'text-zinc-400' : 'text-zinc-600'
+  const borderClass = isDark ? 'border-zinc-700' : 'border-zinc-300'
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setShowConfirm(true)}
+        className={cn(
+          "flex items-center gap-2 text-xs",
+          textMuted,
+          "hover:bg-red-500/10 hover:text-red-500"
+        )}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        Delete History
+      </Button>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className={cn("sm:max-w-md", bgClass)}>
+          <DialogHeader>
+            <DialogTitle className={textPrimary}>
+              Delete Chat History
+            </DialogTitle>
+            <DialogDescription className={textMuted}>
+              Are you sure you want to delete all chat history? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirm(false)}
+              className={borderClass}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onDelete()
+                setShowConfirm(false)
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Deleting...' : 'Delete All'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }

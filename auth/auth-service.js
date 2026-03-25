@@ -59,22 +59,35 @@ class AuthService extends EventEmitter {
         const token = accessToken || sessionToken;
 
         if (token) {
-          // Always restore user immediately if token exists
-          this.user = await tokenStore.getUserData();
-          this.isAuthenticated = true;
+          if (!tokenStore.isTokenExpired(token, config.TOKEN_REFRESH_THRESHOLD)) {
+            this.user = await tokenStore.getUserData();
+            this.isAuthenticated = true;
 
-          console.log('Auth Service: Local session restored (persistent mode)');
+            console.log('Auth Service: Local session restored (token valid)');
 
-          // Try server validation/refresh in background but don't wait for it
-          this.validateSessionInBackground();
-          this.startSessionMonitoring();
+            this.validateSessionInBackground();
+            this.startSessionMonitoring();
 
-          this.emit('auth:restored', this.user);
-          return this.user;
+            this.emit('auth:restored', this.user);
+            return this.user;
+          }
+
+          console.log('Auth Service: Stored token expired, attempting refresh...');
+          const refreshed = await this.refreshTokens();
+
+          if (refreshed) {
+            this.user = await tokenStore.getUserData();
+            this.isAuthenticated = true;
+
+            console.log('Auth Service: Session restored after token refresh');
+            this.startSessionMonitoring();
+            this.emit('auth:restored', this.user);
+            return this.user;
+          }
         }
 
         // Just in case token retrieval failed but hasCredentials was true
-        console.log('Auth Service: No valid token, clearing credentials');
+        console.log('Auth Service: No valid token/session, clearing credentials');
         await tokenStore.clearAll();
       }
 
@@ -436,9 +449,12 @@ class AuthService extends EventEmitter {
         const refreshed = await this.refreshTokens();
 
         if (!refreshed) {
-          console.log('Auth Service: Failed to refresh, preserving session for desktop app');
-          // Removed manual expiration: users remain logged in offline or when tokens expire,
-          // until they explicitly log out.
+          console.log('Auth Service: Failed to refresh, expiring local session');
+          await tokenStore.clearAll();
+          this.isAuthenticated = false;
+          this.user = null;
+          this.stopSessionMonitoring();
+          this.emit('auth:expired');
         }
       }
     }, config.SESSION_CHECK_INTERVAL);
