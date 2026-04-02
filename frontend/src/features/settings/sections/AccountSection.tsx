@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 
@@ -9,84 +9,79 @@ interface User {
   image?: string
 }
 
+// Auth state store for useSyncExternalStore
+interface AuthState {
+  user: User | null
+  loading: boolean
+}
+
+let currentAuthState: AuthState = { user: null, loading: true }
+const listeners = new Set<() => void>()
+
+function notifyListeners() {
+  listeners.forEach(cb => cb())
+}
+
 export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isClearingTokens, setIsClearingTokens] = useState(false)
 
-  // Fetch user data on mount and subscribe to auth state changes
-  useEffect(() => {
-    if (!window.authAPI) {
-      console.warn("AuthAPI is not available")
-      setLoading(false)
-      return
-    }
-
-    // Subscribe to auth state updates (this will send current state immediately)
-    window.authAPI.subscribe()
-
-    // Fetch user data as initial check
-    const fetchUser = async () => {
-      try {
-        // Make sure window.authAPI and getUser exist before calling
-        if (!window.authAPI || typeof window.authAPI.getUser !== "function") {
-          setUser(null)
-          return
-        }
-        const userData = await window.authAPI.getUser()
-        if (userData) {
-          setUser(userData)
-        } else {
-          setUser(null)
-        }
-      } catch (error) {
-        console.error("Failed to fetch user:", error)
-      } finally {
-        setLoading(false)
+  // Subscribe to auth state changes
+  const authState = useSyncExternalStore(
+    useCallback(() => {
+      if (!window.authAPI) {
+        currentAuthState = { user: null, loading: false }
+        notifyListeners()
+        return () => {}
       }
-    }
 
-    fetchUser()
+      // Subscribe to auth state updates
+      window.authAPI.subscribe()
 
-    // Listen for auth state changes (this receives updates from the main process)
-    // The subscription will send the current state immediately when subscribed
-    const unsubscribeStateChange = window.authAPI.onStateChange((state) => {
-      console.log("Auth state changed:", state)
-      setUser(state.user || null)
-      setLoading(false)
-    })
+      // Initial fetch
+      window.authAPI.getUser?.().then((userData: User | null) => {
+        currentAuthState = { user: userData, loading: false }
+        notifyListeners()
+      }).catch(() => {
+        currentAuthState = { user: null, loading: false }
+        notifyListeners()
+      })
 
-    // Listen for auth success events (when login completes)
-    const unsubscribeAuthSuccess = window.authAPI.onAuthSuccess((user) => {
-      console.log("Auth success:", user)
-      setUser(user)
-      setLoading(false)
-    })
+      const unsubscribeStateChange = window.authAPI.onStateChange((state: { user?: User }) => {
+        currentAuthState = { user: state.user || null, loading: false }
+        notifyListeners()
+      })
 
-    // Listen for logout events
-    const unsubscribeLogout = window.authAPI.onLogout(() => {
-      console.log("Logged out")
-      setUser(null)
-    })
+      const unsubscribeAuthSuccess = window.authAPI.onAuthSuccess((user: User) => {
+        currentAuthState = { user, loading: false }
+        notifyListeners()
+      })
 
-    // Listen for session restored (when app starts with existing session)
-    const unsubscribeRestored = window.authAPI.onSessionRestored((user) => {
-      console.log("Session restored:", user)
-      setUser(user)
-      setLoading(false)
-    })
+      const unsubscribeLogout = window.authAPI.onLogout(() => {
+        currentAuthState = { user: null, loading: false }
+        notifyListeners()
+      })
 
-    return () => {
-      if (window.authAPI) {
-        window.authAPI.unsubscribe()
+      const unsubscribeRestored = window.authAPI.onSessionRestored((user: User) => {
+        currentAuthState = { user, loading: false }
+        notifyListeners()
+      })
+
+      return () => {
+        if (window.authAPI) {
+          window.authAPI.unsubscribe()
+        }
+        unsubscribeStateChange()
+        unsubscribeAuthSuccess()
+        unsubscribeLogout()
+        unsubscribeRestored()
       }
-      unsubscribeStateChange()
-      unsubscribeAuthSuccess()
-      unsubscribeLogout()
-      unsubscribeRestored()
-    }
-  }, [])
+    }, []),
+    () => currentAuthState,
+    () => ({ user: null, loading: false })
+  )
+
+  const { user, loading } = authState
 
   const handleSignOut = async () => {
     if (!window.authAPI) {
@@ -115,7 +110,8 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
     try {
       const result = await window.authAPI.clearTokens()
       if (result.success) {
-        setUser(null)
+        currentAuthState = { user: null, loading: false }
+        notifyListeners()
         console.log("Tokens cleared successfully")
       } else {
         console.error("Failed to clear tokens:", result.error)

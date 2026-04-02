@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useState, useRef, useSyncExternalStore, useCallback } from "react"
 import { Copy, Download, Check, X, Play, Pause, Volume2, VolumeX } from "lucide-react"
 import {
     Carousel,
@@ -31,43 +31,47 @@ export function VideoGeneration({
     onVideoIndexChange,
     onClose,
 }: VideoGenerationProps) {
-    const [copiedIndex, setCopiedIndex] = React.useState<number | null>(null)
-    const [api, setApi] = React.useState<CarouselApi>()
-    const [currentIndex, setCurrentIndex] = React.useState(0)
-    const [isPlaying, setIsPlaying] = React.useState(true)
-    const [isMuted, setIsMuted] = React.useState(true)
-    const videoRefs = React.useRef<(HTMLVideoElement | null)[]>([])
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+    const [api, setApi] = useState<CarouselApi>()
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const [isPlaying, setIsPlaying] = useState(true)
+    const [isMuted, setIsMuted] = useState(true)
+    const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
-    // Listen to carousel changes
-    React.useEffect(() => {
-        if (!api) return
+    // Listen to carousel changes - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            if (!api) return () => {}
 
-        const onSelect = () => {
-            const index = api.selectedScrollSnap()
-            setCurrentIndex(index)
-            onVideoIndexChange?.(index)
+            const onSelect = () => {
+                const index = api.selectedScrollSnap()
+                setCurrentIndex(index)
+                onVideoIndexChange?.(index)
 
-            // Pause all other videos, play current if it was playing
-            videoRefs.current.forEach((ref, i) => {
-                if (ref) {
-                    if (i === index) {
-                        if (isPlaying) ref.play().catch(() => { })
-                    } else {
-                        ref.pause()
-                        ref.currentTime = 0
+                // Pause all other videos, play current if it was playing
+                videoRefs.current.forEach((ref, i) => {
+                    if (ref) {
+                        if (i === index) {
+                            if (isPlaying) ref.play().catch(() => { })
+                        } else {
+                            ref.pause()
+                            ref.currentTime = 0
+                        }
                     }
-                }
-            })
-        }
+                })
+            }
 
-        api.on("select", onSelect)
-        // Call once to set initial index
-        onSelect()
+            api.on("select", onSelect)
+            // Call once to set initial index
+            onSelect()
 
-        return () => {
-            api.off("select", onSelect)
-        }
-    }, [api, onVideoIndexChange, isPlaying])
+            return () => {
+                api.off("select", onSelect)
+            }
+        }, [api, onVideoIndexChange, isPlaying]),
+        () => null,
+        () => null
+    )
 
     const togglePlay = (index: number) => {
         const video = videoRefs.current[index]

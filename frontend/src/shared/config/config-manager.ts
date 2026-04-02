@@ -284,15 +284,16 @@ export const configManager = new ConfigManager()
  * ```
  */
 export function useConfig<K extends keyof AppConfig>(key: K): AppConfig[K] {
-  const [config, setConfig] = React.useState<AppConfig[K]>(() =>
-    configManager.get(key)
+  // Use syncExternalStore for config subscription
+  const config = React.useSyncExternalStore(
+    React.useCallback((callback) => {
+      return configManager.subscribe(() => {
+        callback()
+      })
+    }, []),
+    () => configManager.get(key),
+    () => configManager.get(key)
   )
-
-  React.useEffect(() => {
-    return configManager.subscribe((fullConfig) => {
-      setConfig(fullConfig[key])
-    })
-  }, [key])
 
   return config
 }

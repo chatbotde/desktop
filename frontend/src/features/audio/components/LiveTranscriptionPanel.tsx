@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useSyncExternalStore, useRef, useCallback } from "react"
 import { X, Pause, Play, Copy, Check } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { getThemeClasses, getHoverClass } from "@/features/prompt"
@@ -58,20 +58,29 @@ export function LiveTranscriptionPanel({
 
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    // Auto-scroll when text changes
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-        }
-    }, [transcriptionText, partialText])
+    // Auto-scroll when text changes - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+            }
+            return () => {}
+        }, [transcriptionText, partialText]),
+        () => null,
+        () => null
+    )
 
-    // Reset position if window resizes significantly or on first mount
-    useEffect(() => {
-        // Ensure it's on screen initially
-        if (position.y > window.innerHeight - 100) {
-            setPosition(p => ({ ...p, y: window.innerHeight - 450 }))
-        }
-    }, [])
+    // Reset position if window resizes significantly or on first mount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (position.y > window.innerHeight - 100) {
+                setPosition(p => ({ ...p, y: window.innerHeight - 450 }))
+            }
+            return () => {}
+        }, []),
+        () => null,
+        () => null
+    )
 
     const handleCopy = () => {
         const textToCopy = `${transcriptionText} ${partialText} `.trim()

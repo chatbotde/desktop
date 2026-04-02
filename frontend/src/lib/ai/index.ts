@@ -24,7 +24,6 @@ export {
   aiSDKUnifiedService as unifiedAIService,
   sendMessageAISDK as sendMessage,
   sendMessageCompleteAISDK as sendMessageComplete,
-  SubscriptionLockedError,
 } from './ai-sdk/unified-service';
 
 export {
@@ -101,12 +100,3 @@ export * from './local-llm';
 // Use this for easy multi-provider AI integration
 export * from './ai-sdk';
 
-// Export subscription service
-export {
-  subscriptionService,
-  getSubscriptionStatus,
-  checkCanMakeRequest,
-  recordRequest,
-  type SubscriptionPlan,
-  type SubscriptionStatus,
-} from '../subscription';

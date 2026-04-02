@@ -3,7 +3,7 @@
  * A floating pill UI for screen video recording with FPS control
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { cn } from "@/shared/lib"
 import { getThemeClasses } from "@/features/prompt"
 import { useDraggable } from '@/features/output-window'
@@ -70,19 +70,23 @@ export function VideoRecorderPill({
         resumeRecording,
     } = useVideoRecording()
 
-    // Close settings when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-                setShowSettings(false)
+    // Close settings when clicking outside - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const handleClickOutside = (e: MouseEvent) => {
+                if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+                    setShowSettings(false)
+                }
             }
-        }
 
-        if (showSettings) {
-            document.addEventListener('mousedown', handleClickOutside)
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [showSettings])
+            if (showSettings) {
+                document.addEventListener('mousedown', handleClickOutside)
+            }
+            return () => document.removeEventListener('mousedown', handleClickOutside)
+        }, [showSettings]),
+        () => null,
+        () => null
+    )
 
     // Handle start recording
     const handleStartRecording = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useSyncExternalStore, useCallback } from 'react'
 import { cn } from '@/shared/lib'
 import { MessageContent } from '@/components/prompt-kit/message'
 import { MessageActions } from './MessageActions'
@@ -15,17 +15,22 @@ export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
   const [shouldShowToggle, setShouldShowToggle] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  // Check if content is long enough to need collapsing
-  useEffect(() => {
-    if (role === 'user' && contentRef.current) {
-      const lineHeight = 28
-      const maxCollapsedLines = 3
-      const maxHeight = lineHeight * maxCollapsedLines
-      
-      const needsToggle = contentRef.current.scrollHeight > maxHeight + 10
-      setShouldShowToggle(needsToggle)
-    }
-  }, [content, role])
+  // Check if content is long enough to need collapsing - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (role === 'user' && contentRef.current) {
+        const lineHeight = 28
+        const maxCollapsedLines = 3
+        const maxHeight = lineHeight * maxCollapsedLines
+        
+        const needsToggle = contentRef.current.scrollHeight > maxHeight + 10
+        setShouldShowToggle(needsToggle)
+      }
+      return () => {}
+    }, [content, role]),
+    () => null,
+    () => null
+  )
 
   const messageStyles = cn(
     "text-white transition-all duration-300 break-words overflow-hidden relative",

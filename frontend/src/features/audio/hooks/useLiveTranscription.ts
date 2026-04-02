@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { createStreamingService, isAssemblyAIConfigured } from '@/lib/audio'
 import type { IStreamingTranscriptionService, TranscriptionEvent } from '@/lib/audio'
 
@@ -89,14 +89,18 @@ export function useLiveTranscription({ onTranscriptionUpdate, isEnabled }: UseLi
         setPartialText('')
     }, [])
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (transcriptionServiceRef.current) {
-                transcriptionServiceRef.current.stop().catch(console.error)
+    // Cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                if (transcriptionServiceRef.current) {
+                    transcriptionServiceRef.current.stop().catch(console.error)
+                }
             }
-        }
-    }, [])
+        }, []),
+        () => null,
+        () => null
+    )
 
     return {
         transcriptionText,

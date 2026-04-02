@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { createChatMessage } from '@/utils/message-utils'
 import type { ChatMessage, MediaAttachment } from '../types'
-import { sendMessage as sendCloudMessage, unifiedAIService, SubscriptionLockedError } from '@/lib/ai'
+import { sendMessage as sendCloudMessage, unifiedAIService } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { getSelectedModel } from '@/lib/ai/model-config'
 
@@ -165,15 +165,11 @@ export const useMessageManager = (
         return
       }
 
-      const isSubscriptionLocked = err instanceof SubscriptionLockedError
-      
-      const errorMessage = isSubscriptionLocked 
+      const errorMessage = err instanceof Error
         ? err.message
-        : err instanceof Error
-          ? err.message
-          : typeof err === 'string'
-            ? err
-            : 'Unknown error'
+        : typeof err === 'string'
+          ? err
+          : 'Unknown error'
 
       // For image generation errors, show in console but don't add to output window
       if (isImageModel) {
@@ -182,38 +178,16 @@ export const useMessageManager = (
         if (callbacks?.setIsGeneratingImages) {
           callbacks.setIsGeneratingImages(false)
         }
-        // Optionally show error in image window or a toast notification
-        // For now, just log it
         return
       }
 
       // For regular messages, add error to output window
-      // Check if this is a subscription lock error
-      if (isSubscriptionLocked && err instanceof SubscriptionLockedError) {
-        // Dispatch custom event to show upgrade popup
-        window.dispatchEvent(new CustomEvent('show-upgrade-popup', { 
-          detail: {
-            plan: err.plan,
-            trialDaysUsed: err.trialDaysUsed,
-            trialDaysTotal: err.trialDaysTotal,
-            upgradeUrl: err.upgradeUrl,
-            message: err.message,
-          }
-        }))
-        
-        const errorResponse = createChatMessage(
-          `⚠️ ${err.message}`,
-          'assistant'
-        )
-        setOutputMessages(prev => [...prev, errorResponse])
-      } else {
-        const errorResponse = createChatMessage(
-          `Sorry, I could not get a response right now. (${errorMessage})`,
-          'assistant'
-        )
-        setOutputMessages(prev => [...prev, errorResponse])
-        console.error('AI response failed:', err)
-      }
+      const errorResponse = createChatMessage(
+        `Sorry, I could not get a response right now. (${errorMessage})`,
+        'assistant'
+      )
+      setOutputMessages(prev => [...prev, errorResponse])
+      console.error('AI response failed:', err)
     } finally {
       // Only set waiting to false if we were actually waiting (not image model)
       if (!isImageModel) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { LeftHand } from '@/components/lottie/left-hand'
 import { GLOBAL_THEME } from '@/global/theme'
 
@@ -19,12 +19,17 @@ export function LeftHandOverlay() {
     const isDraggingRef = useRef(false)
     const positionRef = useRef({ x: 0, y: 0 })
 
-    // Bootstrap position on mount
-    useEffect(() => {
-        const startY = typeof window !== 'undefined' ? window.innerHeight - HAND_SIZE : 800
-        setPosition({ x: 0, y: startY })
-        positionRef.current = { x: 0, y: startY }
-    }, [])
+    // Bootstrap position on mount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            const startY = typeof window !== 'undefined' ? window.innerHeight - HAND_SIZE : 800
+            setPosition({ x: 0, y: startY })
+            positionRef.current = { x: 0, y: startY }
+            return () => {}
+        }, []),
+        () => null,
+        () => null
+    )
 
     const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
         e.currentTarget.setPointerCapture(e.pointerId)

@@ -5,7 +5,7 @@
  * Uses @google/genai SDK's live.connect() for WebSocket communication.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 
 export type AudioState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'error';
@@ -377,7 +377,7 @@ export function useGeminiLiveAudioStream(options: UseGeminiLiveAudioStreamOption
                 }
                 
                 const int16Data = float32ToInt16(new Float32Array(inputData));
-                const base64 = arrayBufferToBase64(int16Data.buffer);
+                const base64 = arrayBufferToBase64(int16Data.buffer as ArrayBuffer);
 
                 try {
                     sessionRef.current.sendRealtimeInput({
@@ -426,16 +426,20 @@ export function useGeminiLiveAudioStream(options: UseGeminiLiveAudioStreamOption
         }
     }, [state.isStreaming, startStreaming, stopStreaming]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            isActiveRef.current = false;
-            cleanup();
-            if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
-                playbackContextRef.current.close().catch(() => {});
-            }
-        };
-    }, [cleanup]);
+    // Cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                isActiveRef.current = false;
+                cleanup();
+                if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
+                    playbackContextRef.current.close().catch(() => {});
+                }
+            };
+        }, [cleanup]),
+        () => null,
+        () => null
+    );
 
     return {
         ...state,

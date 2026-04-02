@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { v4 as uuidv4 } from "uuid"
 import type { ClonedVoice } from "../types"
 import { PRESET_VOICES } from "../types"
@@ -13,42 +13,48 @@ export function useVoices() {
     // Storage for local paths
     const [voicePaths, setVoicePaths] = useState<Record<string, string>>({})
 
-    useEffect(() => {
-        const init = async () => {
-            const savedMeta = localStorage.getItem(VOICES_METADATA_KEY)
-            if (savedMeta) {
-                try {
-                    const voices = JSON.parse(savedMeta) as ClonedVoice[]
-                    setClonedVoices(voices)
+    // Load voices from localStorage on mount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const init = async () => {
+                const savedMeta = localStorage.getItem(VOICES_METADATA_KEY)
+                if (savedMeta) {
+                    try {
+                        const voices = JSON.parse(savedMeta) as ClonedVoice[]
+                        setClonedVoices(voices)
 
-                    const paths: Record<string, string> = {}
-                    for (const v of voices) {
-                        try {
-                            const userData = await (window as any).electronAPI.app.getPath('userData')
-                            const voicePath = `${userData}/voices/${v.id}.wav`
-                            if (await (window as any).fileAPI.exists(voicePath)) {
-                                paths[v.id] = voicePath
+                        const paths: Record<string, string> = {}
+                        for (const v of voices) {
+                            try {
+                                const userData = await (window as any).electronAPI.app.getPath('userData')
+                                const voicePath = `${userData}/voices/${v.id}.wav`
+                                if (await (window as any).fileAPI.exists(voicePath)) {
+                                    paths[v.id] = voicePath
+                                }
+                            } catch (err) {
+                                console.error(`Failed to verify voice path for ${v.id}`, err)
                             }
-                        } catch (err) {
-                            console.error(`Failed to verify voice path for ${v.id}`, err)
                         }
+                        setVoicePaths(paths)
+                    } catch (e) {
+                        console.error("Failed to parse saved voices", e)
                     }
-                    setVoicePaths(paths)
-                } catch (e) {
-                    console.error("Failed to parse saved voices", e)
+                }
+
+                const savedActiveId = localStorage.getItem("sonic-active-voice-id")
+                if (savedActiveId) {
+                    setActiveVoiceId(savedActiveId)
+                } else {
+                    setActiveVoiceId(PRESET_VOICES[0].id)
                 }
             }
 
-            const savedActiveId = localStorage.getItem("sonic-active-voice-id")
-            if (savedActiveId) {
-                setActiveVoiceId(savedActiveId)
-            } else {
-                setActiveVoiceId(PRESET_VOICES[0].id)
-            }
-        }
-
-        init()
-    }, [])
+            init()
+            return () => {}
+        }, []),
+        () => null,
+        () => null
+    )
 
     const saveVoices = useCallback((voices: ClonedVoice[]) => {
         setClonedVoices(voices)

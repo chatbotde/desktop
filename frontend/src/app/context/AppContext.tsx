@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode, useState, useRef, useEffect } from 'react'
+import { createContext, useContext, type ReactNode, useState, useRef, useSyncExternalStore, useCallback } from 'react'
 import { useUIState } from '@/hooks/useUIState'
 import { useMessageManager } from '@/hooks/useMessageManager'
 import { useChatHistory } from '@/hooks/useChatHistory'
@@ -46,47 +46,51 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     const isAutoSavingRef = useRef(false)
     const messagesLengthRef = useRef(0)
 
-    // Autosave when messages change
-    useEffect(() => {
-        // Skip if messages haven't changed length (avoid redundant saves on re-renders)
-        // or if empty
-        if (messageManager.outputMessages.length === 0) {
-            if (messagesLengthRef.current > 0) {
-                // Just cleared
-                messagesLengthRef.current = 0
-            }
-            return
-        }
-
-        if (messageManager.outputMessages.length === messagesLengthRef.current) {
-            return
-        }
-
-        // Debounce save
-        const timeoutId = setTimeout(async () => {
-            if (isAutoSavingRef.current) return
-            isAutoSavingRef.current = true
-
-            try {
-                if (currentChatId) {
-                    await updateChat(currentChatId, messageManager.outputMessages)
-                } else if (messageManager.outputMessages.length > 0) {
-                    // Create new chat if not exists
-                    const firstUserMessage = messageManager.outputMessages.find(m => m.role === 'user')
-                    const title = firstUserMessage ? firstUserMessage.content.slice(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '') : 'New Chat'
-                    const newId = await saveChat(title, messageManager.outputMessages)
-                    if (newId) setCurrentChatId(newId)
+    // Autosave when messages change - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            // Skip if messages haven't changed length (avoid redundant saves on re-renders)
+            // or if empty
+            if (messageManager.outputMessages.length === 0) {
+                if (messagesLengthRef.current > 0) {
+                    // Just cleared
+                    messagesLengthRef.current = 0
                 }
-                messagesLengthRef.current = messageManager.outputMessages.length
-            } catch (e) {
-                console.error('Autosave failed:', e)
-            } finally {
-                isAutoSavingRef.current = false
+                return () => {}
             }
-        }, 2000) // 2 second debounce
 
-        return () => clearTimeout(timeoutId)
-    }, [messageManager.outputMessages, currentChatId, saveChat, updateChat])
+            if (messageManager.outputMessages.length === messagesLengthRef.current) {
+                return () => {}
+            }
+
+            // Debounce save
+            const timeoutId = setTimeout(async () => {
+                if (isAutoSavingRef.current) return
+                isAutoSavingRef.current = true
+
+                try {
+                    if (currentChatId) {
+                        await updateChat(currentChatId, messageManager.outputMessages)
+                    } else if (messageManager.outputMessages.length > 0) {
+                        // Create new chat if not exists
+                        const firstUserMessage = messageManager.outputMessages.find(m => m.role === 'user')
+                        const title = firstUserMessage ? firstUserMessage.content.slice(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '') : 'New Chat'
+                        const newId = await saveChat(title, messageManager.outputMessages)
+                        if (newId) setCurrentChatId(newId)
+                    }
+                    messagesLengthRef.current = messageManager.outputMessages.length
+                } catch (e) {
+                    console.error('Autosave failed:', e)
+                } finally {
+                    isAutoSavingRef.current = false
+                }
+            }, 2000) // 2 second debounce
+
+            return () => clearTimeout(timeoutId)
+        }, [messageManager.outputMessages, currentChatId, saveChat, updateChat]),
+        () => null,
+        () => null
+    )
 
     const handleLoadHistory = (messages: any[], chatId?: string) => {
         // Parse dates if necessary

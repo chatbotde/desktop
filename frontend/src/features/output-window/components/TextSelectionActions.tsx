@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import { Plus, ArrowRight, Replace, Sparkles } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
@@ -66,96 +66,112 @@ export function TextSelectionActions({
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const [showContent, setShowContent] = useState(false)
 
-  // Smooth entrance animation
-  useEffect(() => {
-    if (isVisible) {
-      // Small delay for smooth entrance
-      const timer = setTimeout(() => setShowContent(true), 50)
-      return () => clearTimeout(timer)
-    } else {
-      setShowContent(false)
-    }
-  }, [isVisible])
+  // Smooth entrance animation - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (isVisible) {
+        const timer = setTimeout(() => setShowContent(true), 50)
+        return () => clearTimeout(timer)
+      } else {
+        setShowContent(false)
+        return () => {}
+      }
+    }, [isVisible]),
+    () => null,
+    () => null
+  )
 
-  // Reset state when popup becomes invisible
-  useEffect(() => {
-    if (!isVisible) {
-      setIsExpanded(false)
-      setPrompt('')
-      setIsGenerating(false)
-      setGeneratedOutput(null)
-      setShowContent(false)
-    }
-  }, [isVisible])
+  // Reset state when popup becomes invisible - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isVisible) {
+        setIsExpanded(false)
+        setPrompt('')
+        setIsGenerating(false)
+        setGeneratedOutput(null)
+        setShowContent(false)
+      }
+      return () => {}
+    }, [isVisible]),
+    () => null,
+    () => null
+  )
 
-  // Adjust position to keep popup within viewport
-  useEffect(() => {
-    if (!isVisible || !popupRef.current) return
+  // Adjust position to keep popup within viewport - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isVisible || !popupRef.current) return () => {}
 
-    const popup = popupRef.current
-    const rect = popup.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
+      const popup = popupRef.current
+      const rect = popup.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
 
-    let x = position.x
-    let y = position.y
+      let x = position.x
+      let y = position.y
 
-    // Adjust horizontal position - center on selection
-    const halfW = rect.width / 2
-    if (x + halfW > viewportWidth - 10) {
-      x = viewportWidth - 10 - halfW
-    }
-    if (x - halfW < 10) {
-      x = 10 + halfW
-    }
+      const halfW = rect.width / 2
+      if (x + halfW > viewportWidth - 10) {
+        x = viewportWidth - 10 - halfW
+      }
+      if (x - halfW < 10) {
+        x = 10 + halfW
+      }
 
-    // Adjust vertical position - prefer showing below selection
-    if (y + rect.height > viewportHeight - 10) {
-      y = position.y - rect.height - 10
-    }
-    if (y < 10) {
-      y = 10
-    }
+      if (y + rect.height > viewportHeight - 10) {
+        y = position.y - rect.height - 10
+      }
+      if (y < 10) {
+        y = 10
+      }
 
-    setAdjustedPosition({ x, y })
-  }, [position, isVisible, isExpanded, generatedOutput])
+      setAdjustedPosition({ x, y })
+      return () => {}
+    }, [position, isVisible, isExpanded, generatedOutput]),
+    () => null,
+    () => null
+  )
 
-  // Close popup when clicking outside
-  useEffect(() => {
-    if (!isVisible) return
+  // Close popup when clicking outside - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isVisible) return () => {}
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        const selection = window.getSelection()
-        if (!selection || selection.toString().trim().length === 0) {
-          onClose()
+      const handleClickOutside = (event: MouseEvent) => {
+        if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+          const selection = window.getSelection()
+          if (!selection || selection.toString().trim().length === 0) {
+            onClose()
+          }
         }
       }
-    }
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (isExpanded) {
-          setIsExpanded(false)
-          setPrompt('')
-          setGeneratedOutput(null)
-        } else {
-          onClose()
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          if (isExpanded) {
+            setIsExpanded(false)
+            setPrompt('')
+            setGeneratedOutput(null)
+          } else {
+            onClose()
+          }
         }
       }
-    }
 
-    const timeout = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('keydown', handleEscape)
-    }, 100)
+      const timeout = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside)
+        document.addEventListener('keydown', handleEscape)
+      }, 100)
 
-    return () => {
-      clearTimeout(timeout)
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isVisible, onClose, isExpanded])
+      return () => {
+        clearTimeout(timeout)
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('keydown', handleEscape)
+      }
+    }, [isVisible, onClose, isExpanded]),
+    () => null,
+    () => null
+  )
 
   const handleAdd = useCallback(() => {
     if (selectedText.trim() && onAdd) {

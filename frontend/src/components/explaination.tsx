@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useSyncExternalStore, useRef, useCallback } from 'react'
 import { X, Maximize2, Minimize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/components/ui/button'
@@ -26,72 +26,78 @@ export function Explanation({
   const [calculatedPosition, setCalculatedPosition] = useState<{ x: number; y: number } | null>(null)
   const explanationRef = useRef<HTMLDivElement>(null)
 
-  // Calculate position dynamically based on selection position
-  useEffect(() => {
-    if (!explanation || !position) {
-      setCalculatedPosition(null)
-      return
-    }
+  // Calculate position dynamically based on selection position - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (!explanation || !position) {
+        setCalculatedPosition(null)
+        return () => {}
+      }
 
-    if (!explanationRef.current) return
+      if (!explanationRef.current) return () => {}
 
-    const rect = explanationRef.current.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const padding = 20
+      const rect = explanationRef.current.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      const padding = 20
 
-    // Default to showing above the selection
-    let x = position.x
-    let y = position.y - rect.height - 20
+      let x = position.x
+      let y = position.y - rect.height - 20
 
-    // If not enough space above, show below
-    if (y < padding) {
-      y = position.y + 60 // Space for the selection actions popup
-    }
+      if (y < padding) {
+        y = position.y + 60
+      }
 
-    // Ensure it doesn't go below viewport
-    if (y + rect.height > viewportHeight - padding) {
-      y = viewportHeight - rect.height - padding
-    }
+      if (y + rect.height > viewportHeight - padding) {
+        y = viewportHeight - rect.height - padding
+      }
 
-    // Adjust horizontal position to keep within viewport
-    const halfWidth = rect.width / 2
-    if (x - halfWidth < padding) {
-      x = padding + halfWidth
-    }
-    if (x + halfWidth > viewportWidth - padding) {
-      x = viewportWidth - padding - halfWidth
-    }
+      const halfWidth = rect.width / 2
+      if (x - halfWidth < padding) {
+        x = padding + halfWidth
+      }
+      if (x + halfWidth > viewportWidth - padding) {
+        x = viewportWidth - padding - halfWidth
+      }
 
-    setCalculatedPosition({ x, y })
-  }, [explanation, position, size])
+      setCalculatedPosition({ x, y })
+      return () => {}
+    }, [explanation, position, size]),
+    () => null,
+    () => null
+  )
 
-  // Handle resizing
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+  // Handle resizing - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      const handleMouseMove = (e: MouseEvent) => {
+        if (isResizing) {
+          const deltaX = e.clientX - resizeStart.x
+          const deltaY = e.clientY - resizeStart.y
+          setSize({
+            width: Math.max(300, Math.min(800, resizeStart.width + deltaX)),
+            height: Math.max(150, Math.min(600, resizeStart.height + deltaY))
+          })
+        }
+      }
+
+      const handleMouseUp = () => {
+        setIsResizing(false)
+      }
+
       if (isResizing) {
-        const deltaX = e.clientX - resizeStart.x
-        const deltaY = e.clientY - resizeStart.y
-        setSize({
-          width: Math.max(300, Math.min(800, resizeStart.width + deltaX)),
-          height: Math.max(150, Math.min(600, resizeStart.height + deltaY))
-        })
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+        return () => {
+          document.removeEventListener('mousemove', handleMouseMove)
+          document.removeEventListener('mouseup', handleMouseUp)
+        }
       }
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-    }
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-      }
-    }
-  }, [isResizing, resizeStart])
+      return () => {}
+    }, [isResizing, resizeStart]),
+    () => null,
+    () => null
+  )
 
   const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()

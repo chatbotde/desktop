@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSyncExternalStore, useRef, useState, useCallback } from 'react'
 import { useAnimations } from '@/shared/providers/AnimationsProvider'
 import { GLOBAL_THEME } from '@/global/theme'
 import CatBuddy from '@/components/lottie/cat'
@@ -146,24 +146,27 @@ export function CatOverlay() {
         stopTalkCycle()
     }, [stopTalkCycle])
 
-    // ── Bootstrap on mount ───────────────────────────────────────────────────
-    useEffect(() => {
-        if (!isAnimationEnabled('cat')) return
+    // Bootstrap on mount and animation enabled change - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            if (!isAnimationEnabled('cat')) return () => {}
 
-        const startX = window.innerWidth - REST_X_FROM_RIGHT
-        xRef.current = startX
-        yRef.current = 0
-        setX(startX)
-        setY(0)
+            const startX = window.innerWidth - REST_X_FROM_RIGHT
+            xRef.current = startX
+            yRef.current = 0
+            setX(startX)
+            setY(0)
 
-        startIdleSequence()
+            startIdleSequence()
 
-        return () => {
-            stopIdleSequence()
-            stopTalkCycle()
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAnimationEnabled])
+            return () => {
+                stopIdleSequence()
+                stopTalkCycle()
+            }
+        }, [isAnimationEnabled, startIdleSequence, stopIdleSequence, stopTalkCycle]),
+        () => null,
+        () => null
+    )
 
     // ── Drag handlers ────────────────────────────────────────────────────────
     const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {

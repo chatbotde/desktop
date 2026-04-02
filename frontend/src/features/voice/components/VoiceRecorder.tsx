@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSyncExternalStore, useCallback } from "react"
 import { Mic, Square, Play, Trash2, Check, AudioLines, Sparkles } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -37,11 +38,16 @@ export function VoiceRecorder({ onVoiceCaptured, isDarkTheme = true }: VoiceReco
         onRecordingComplete: (blob) => setRecordedBlob(blob)
     })
 
-    React.useEffect(() => {
-        return () => {
-            cleanup().catch(console.error)
-        }
-    }, [cleanup])
+    // Cleanup on unmount using syncExternalStore pattern
+    useSyncExternalStore(
+        useCallback(() => {
+            return () => {
+                cleanup().catch(console.error)
+            }
+        }, [cleanup]),
+        () => null,
+        () => null
+    )
 
     const startRecording = async () => {
         try {

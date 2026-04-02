@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, type ReactElement } from 'react';
+import React, { useState, useRef, useCallback, useSyncExternalStore, type ReactElement } from 'react';
 
 interface Particle {
     x: number;
@@ -154,42 +154,46 @@ const SnapEffectContainer: React.FC<SnapEffectContainerProps> = ({
         }
     };
 
-    // Animation Tick
-    useEffect(() => {
-        if (!isSnapping || particles.length === 0) return;
+    // Animation Tick - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (!isSnapping || particles.length === 0) return () => {};
 
-        let raf: number;
-        const tick = () => {
-            setParticles(prev => {
-                const updated = prev
-                    .map(p => {
-                        if (p.delay > 0) return { ...p, delay: p.delay - 0.016 };
-                        return {
-                            ...p,
-                            x: p.x + p.vx,
-                            y: p.y + p.vy,
-                            alpha: Math.max(0, p.alpha - 0.003), // slower fade
-                            vx: p.vx * 0.98 + 0.01,
-                            vy: p.vy * 0.98 - 0.01,
-                        };
-                    })
-                    .filter(p => p.alpha > 0);
+            let raf: number;
+            const tick = () => {
+                setParticles(prev => {
+                    const updated = prev
+                        .map(p => {
+                            if (p.delay > 0) return { ...p, delay: p.delay - 0.016 };
+                            return {
+                                ...p,
+                                x: p.x + p.vx,
+                                y: p.y + p.vy,
+                                alpha: Math.max(0, p.alpha - 0.003), // slower fade
+                                vx: p.vx * 0.98 + 0.01,
+                                vy: p.vy * 0.98 - 0.01,
+                            };
+                        })
+                        .filter(p => p.alpha > 0);
 
-                if (updated.length === 0) {
-                    setIsSnapping(false);
-                    onComplete?.();
-                    setDefsHtml('');
-                    return [];
-                } else {
-                    raf = requestAnimationFrame(tick);
-                    return updated;
-                }
-            });
-        };
+                    if (updated.length === 0) {
+                        setIsSnapping(false);
+                        onComplete?.();
+                        setDefsHtml('');
+                        return [];
+                    } else {
+                        raf = requestAnimationFrame(tick);
+                        return updated;
+                    }
+                });
+            };
 
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [isSnapping, onComplete]);
+            raf = requestAnimationFrame(tick);
+            return () => cancelAnimationFrame(raf);
+        }, [isSnapping, onComplete, particles.length]),
+        () => null,
+        () => null
+    )
 
     return (
         <div

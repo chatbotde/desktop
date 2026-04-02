@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore, useMemo } from 'react'
 import { Video, Camera, Square, Circle, Timer, Focus, Loader2 } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
@@ -134,14 +134,18 @@ export function VideoHoverCapturePill({
     // Keep the pill open while recording
     const shouldShowPill = isPillActive || isRecording
 
-    // Cleanup timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current)
+    // Cleanup timeout on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                if (hoverTimeoutRef.current) {
+                    clearTimeout(hoverTimeoutRef.current)
+                }
             }
-        }
-    }, [])
+        }, []),
+        () => null,
+        () => null
+    )
 
     // Clear timeout helper
     const clearHoverTimeout = useCallback(() => {

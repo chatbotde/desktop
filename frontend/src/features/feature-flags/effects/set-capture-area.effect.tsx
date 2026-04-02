@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useSyncExternalStore, useCallback } from "react"
 import { useFeature } from "@/contexts/FeatureContext"
 import { SetAreaOverlay, SetAreaIndicator } from "@/features/capture/components"
 import { CaptureAreaStore } from "@/features/capture/capture-area-store"
@@ -12,16 +12,20 @@ export function FeatureEffect() {
 
     const isCapturingRef = useRef(false)
 
-    useEffect(() => {
-        if (!enabled) {
-            setIsVisible(false)
-            return
-        }
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (!enabled) {
+                setIsVisible(false)
+                return () => {}
+            }
 
-        const handler = () => setIsVisible(true)
-        window.addEventListener('trigger-set-capture-area', handler)
-        return () => window.removeEventListener('trigger-set-capture-area', handler)
-    }, [enabled])
+            const handler = () => setIsVisible(true)
+            window.addEventListener('trigger-set-capture-area', handler)
+            return () => window.removeEventListener('trigger-set-capture-area', handler)
+        }, [enabled]),
+        () => null,
+        () => null
+    )
 
 
     if (!enabled) return null

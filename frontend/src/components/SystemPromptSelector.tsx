@@ -3,18 +3,23 @@
  * Allows users to switch between different AI assistant modes
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore, useCallback } from 'react';
 import { unifiedAIService, SYSTEM_PROMPTS, type SystemPrompt } from '@/lib/ai';
 
 export function SystemPromptSelector() {
   const [selectedPrompt, setSelectedPrompt] = useState<SystemPrompt | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    // Get current system prompt on mount
-    const current = unifiedAIService.getCurrentSystemPrompt();
-    setSelectedPrompt(current);
-  }, []);
+  // Get current system prompt on mount - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const current = unifiedAIService.getCurrentSystemPrompt();
+      setSelectedPrompt(current);
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handlePromptChange = (promptId: string) => {
     unifiedAIService.setSystemPrompt(promptId);

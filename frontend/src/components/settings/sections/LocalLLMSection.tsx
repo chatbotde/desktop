@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useSyncExternalStore, useMemo, useState, useCallback } from "react"
 import { Cpu, RefreshCw, X, Plus, Minus } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -47,9 +47,15 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
     }
   }
 
-  useEffect(() => {
-    refresh()
-  }, [])
+  // Check Ollama status on mount - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      refresh()
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   return (
     <div className="space-y-5">

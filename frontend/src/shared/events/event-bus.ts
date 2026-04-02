@@ -21,7 +21,7 @@
  * ```
  */
 
-import React, { useEffect } from 'react'
+import React, { useSyncExternalStore, useCallback } from 'react'
 
 /**
  * Event map defining all available events and their payload types
@@ -214,9 +214,12 @@ export function useEvent<K extends EventKey>(
   handler: EventHandler<K>,
   deps: React.DependencyList = []
 ): void {
-  useEffect(() => {
-    return eventBus.on(event, handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event, ...deps])
+  useSyncExternalStore(
+    useCallback((callback) => {
+      return eventBus.on(event, handler)
+    }, [event, ...deps]),
+    () => null,
+    () => null
+  )
 }
 

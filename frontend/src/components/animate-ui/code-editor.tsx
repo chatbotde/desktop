@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useSyncExternalStore, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createHighlighter } from 'shiki';
 import { Copy, Check, Download } from 'lucide-react';
@@ -59,28 +59,33 @@ export function CodeEditor({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const highlight = async () => {
-      try {
-        const lang = normalizeLanguage(language);
-        const highlighter = await getHighlighter();
-        
-        const highlighted = highlighter.codeToHtml(code, {
-          lang,
-          theme: theme === 'dark' ? 'github-dark' : 'github-light'
-        });
-        setHtml(highlighted);
-      } catch (error) {
-        console.error('Error highlighting code:', error);
-        // Fallback to plain code display
-        setHtml(`<pre><code>${code}</code></pre>`);
-      }
-    };
+  // Syntax highlighting - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      const highlight = async () => {
+        try {
+          const lang = normalizeLanguage(language);
+          const highlighter = await getHighlighter();
+          
+          const highlighted = highlighter.codeToHtml(code, {
+            lang,
+            theme: theme === 'dark' ? 'github-dark' : 'github-light'
+          });
+          setHtml(highlighted);
+        } catch (error) {
+          console.error('Error highlighting code:', error);
+          setHtml(`<pre><code>${code}</code></pre>`);
+        }
+      };
 
-    if (code) {
-      highlight();
-    }
-  }, [code, language, theme]);
+      if (code) {
+        highlight();
+      }
+      return () => {}
+    }, [code, language, theme]),
+    () => null,
+    () => null
+  )
 
   const handleCopy = async () => {
     try {

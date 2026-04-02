@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useSyncExternalStore, useCallback } from 'react'
 
 interface UseGlobalWindowAPIProps {
   outputWindowEnabled: boolean
@@ -27,46 +27,48 @@ export const useGlobalWindowAPI = ({
   setRectangleScreenshotCallback,
   setShowRectangleScreenshot
 }: UseGlobalWindowAPIProps) => {
-  useEffect(() => {
-    window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
-      addMessage(message, role)
-      if (outputWindowEnabled) setIsOutputVisible(true)
-    }
-
-    const handleShowAreaScreenshot = (event: CustomEvent) => {
-      setAreaScreenshotCallback(() => event.detail.onCapture)
-      setShowAreaScreenshot(true)
-    }
-    const handleShowRectangleScreenshot = (event: CustomEvent) => {
-      setRectangleScreenshotCallback(() => event.detail.onCapture)
-      setShowRectangleScreenshot(true)
-    }
-
-    const handleShowPromptInput = () => {
-      console.log('[useGlobalWindowAPI] Received show-prompt-input message')
-      setIsInputVisible(true)
-      // Ensure the window can receive mouse events for the input
-      if (window.interfaceAPI?.setIgnoreMouseEvents) {
-        window.interfaceAPI.setIgnoreMouseEvents(false)
+  useSyncExternalStore(
+    useCallback((callback) => {
+      window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
+        addMessage(message, role)
+        if (outputWindowEnabled) setIsOutputVisible(true)
       }
-    }
 
-
-    window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
-    window.addEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
-
-    if (window.interfaceAPI?.onMessage) {
-      window.interfaceAPI.onMessage('show-prompt-input', handleShowPromptInput)
-    }
-
-    return () => {
-      window.addOutputMessage = undefined
-      window.removeEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
-      window.removeEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
-      if (window.interfaceAPI?.removeMessageListener) {
-        window.interfaceAPI.removeMessageListener('show-prompt-input', handleShowPromptInput)
+      const handleShowAreaScreenshot = (event: CustomEvent) => {
+        setAreaScreenshotCallback(() => event.detail.onCapture)
+        setShowAreaScreenshot(true)
       }
-    }
-  }, [outputWindowEnabled, addMessage, setIsInputVisible, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot])
+      const handleShowRectangleScreenshot = (event: CustomEvent) => {
+        setRectangleScreenshotCallback(() => event.detail.onCapture)
+        setShowRectangleScreenshot(true)
+      }
+
+      const handleShowPromptInput = () => {
+        console.log('[useGlobalWindowAPI] Received show-prompt-input message')
+        setIsInputVisible(true)
+        if (window.interfaceAPI?.setIgnoreMouseEvents) {
+          window.interfaceAPI.setIgnoreMouseEvents(false)
+        }
+      }
+
+      window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
+      window.addEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
+
+      if (window.interfaceAPI?.onMessage) {
+        window.interfaceAPI.onMessage('show-prompt-input', handleShowPromptInput)
+      }
+
+      return () => {
+        window.addOutputMessage = undefined
+        window.removeEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
+        window.removeEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
+        if (window.interfaceAPI?.removeMessageListener) {
+          window.interfaceAPI.removeMessageListener('show-prompt-input', handleShowPromptInput)
+        }
+      }
+    }, [outputWindowEnabled, addMessage, setIsInputVisible, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot]),
+    () => null,
+    () => null
+  )
 }
 

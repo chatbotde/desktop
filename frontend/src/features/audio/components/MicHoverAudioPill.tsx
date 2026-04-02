@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { Mic, CircleEllipsis } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
@@ -48,21 +48,12 @@ export function MicHoverAudioPill({
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Refs to track latest transcription values (like LiveTranscriptionButton)
-    const transcriptionTextRef = useRef('')
-    const partialTextRef = useRef('')
-    const showTranscriptionRef = useRef(false)
-
-    const themeClasses = getThemeClasses(isDarkTheme)
-
-    // Handle recording complete - only add audio file if transcription was NOT active
+    // HOOKS MUST BE CALLED BEFORE ANY VARIABLE USAGE
     const handleRecordingComplete = useCallback((blob: Blob) => {
         console.log('[MicHoverAudioPill] Recording complete, size:', blob.size, 'bytes')
-        console.log('[MicHoverAudioPill] showTranscription was:', showTranscriptionRef.current)
+        console.log('[MicHoverAudioPill] showTranscription was:', showTranscription)
 
-        // If transcription was active, don't add audio file (transcription text will be added in handleStopRecording)
-        if (!showTranscriptionRef.current) {
-            // Convert blob to File and dispatch event to add to prompt
+        if (!showTranscription) {
             const file = new File([blob], `recording-${Date.now()}.webm`, { type: blob.type })
             try {
                 window.dispatchEvent(new CustomEvent('prompt-add-files', { detail: { files: [file] } }))
@@ -72,12 +63,9 @@ export function MicHoverAudioPill({
             }
         }
 
-        // Call the optional callback
         onRecordingComplete?.(blob)
-
-        // Hide the pill after recording is complete
         setIsPillActive(false)
-    }, [onRecordingComplete])
+    }, [onRecordingComplete, showTranscription])
 
     const {
         isRecording,
@@ -103,18 +91,13 @@ export function MicHoverAudioPill({
         isEnabled: showTranscription
     })
 
-    // Keep refs in sync with state (for use in callbacks)
-    useEffect(() => {
-        transcriptionTextRef.current = transcriptionText
-    }, [transcriptionText])
+    const themeClasses = getThemeClasses(isDarkTheme)
 
-    useEffect(() => {
-        partialTextRef.current = partialText
-    }, [partialText])
-
-    useEffect(() => {
-        showTranscriptionRef.current = showTranscription
-    }, [showTranscription])
+    // Use refs directly - assign after hooks are called
+    const transcriptionTextRef = useRef(transcriptionText)
+    transcriptionTextRef.current = transcriptionText
+    const partialTextRef = useRef(partialText)
+    partialTextRef.current = partialText
 
     // Keep the pill open while recording
     const shouldShowPill = isPillActive || isRecording
@@ -164,10 +147,10 @@ export function MicHoverAudioPill({
 
     // Custom stop handler that auto-adds transcription to prompt
     const handleStopRecording = useCallback(async () => {
-        console.log('[MicHoverAudioPill] Stopping recording, showTranscription:', showTranscriptionRef.current)
+        console.log('[MicHoverAudioPill] Stopping recording, showTranscription:', showTranscription)
 
         // If transcription is active, handle it specially
-        if (showTranscriptionRef.current) {
+        if (showTranscription) {
             // Stop transcription first
             await stopTranscription()
 
@@ -194,74 +177,38 @@ export function MicHoverAudioPill({
 
         // Stop recording (this will trigger handleRecordingComplete)
         stopRecording()
-    }, [stopTranscription, stopRecording, clearTranscription])
+    }, [stopTranscription, stopRecording, clearTranscription, showTranscription])
 
-    // Sync transcription start/stop with recording state
-    useEffect(() => {
-        // Toggle track enablement based on paused state
-        if (activeStream) {
-            activeStream.getAudioTracks().forEach(track => {
-                track.enabled = !isPaused
-            })
+    // Assistant visibility event listener using useSyncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const handler = () => setIsAssistantVisible(prev => !prev)
+            window.addEventListener('toggle-assistant-visibility', handler)
+            return () => window.removeEventListener('toggle-assistant-visibility', handler)
+        }, []),
+        () => null,
+        () => null
+    )
+
+    // Cleanup on unmount - use ref pattern
+    const cleanupRef = useRef<(() => void) | null>(null)
+    cleanupRef.current = () => {
+        if (creditSaveTimeoutRef.current) {
+            clearTimeout(creditSaveTimeoutRef.current)
         }
-
-        const shouldTranscribe = isRecording && showTranscription && activeStream
-
-        if (!shouldTranscribe) {
-            if (isTranscribing) stopTranscription()
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
-                creditSaveTimeoutRef.current = null
-            }
-            return
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current)
         }
-
-        if (isPaused) {
-            if (isTranscribing && !creditSaveTimeoutRef.current) {
-                creditSaveTimeoutRef.current = setTimeout(() => {
-                    stopTranscription()
-                    creditSaveTimeoutRef.current = null
-                }, 10000)
-            }
-        } else {
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
-                creditSaveTimeoutRef.current = null
-            }
-            if (!isTranscribing) {
-                startTranscription(activeStream!)
-            }
-        }
-    }, [isRecording, showTranscription, activeStream, isTranscribing, startTranscription, stopTranscription, isPaused])
-
-    // Cleanup timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
-            }
-            if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current)
-            }
-        }
-    }, [])
-
-    // Sync assistant visibility state
-    useEffect(() => {
-        const handleVisibilityToggle = () => setIsAssistantVisible(prev => !prev)
-        window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle)
-        return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle)
-    }, [])
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            cleanupRecorder().catch(console.error)
-        }
-    }, [cleanupRecorder])
+        cleanupRecorder().catch(console.error)
+    }
+    // Register cleanup
+    useSyncExternalStore(
+        () => () => cleanupRef.current?.(),
+        () => null,
+        () => null
+    )
 
     // Handle mic button click - start/stop recording with selected source
-
     const handleSourceClick = useCallback(async (selectedSource: AudioSourceType) => {
         if (isRecording) return
         setSource(selectedSource)
@@ -271,17 +218,6 @@ export function MicHoverAudioPill({
             alert(`Failed to start recording: ${error instanceof Error ? error.message : String(error)}`)
         }
     }, [isRecording, startRecording])
-
-    // Auto-scroll transcription
-    useEffect(() => {
-        if (transcriptionContainerRef.current && (transcriptionText || partialText)) {
-            const container = transcriptionContainerRef.current
-            const scrollElement = container.querySelector('[style*="overflow-y"]') as HTMLElement
-            if (scrollElement) {
-                scrollElement.scrollTop = scrollElement.scrollHeight
-            }
-        }
-    }, [transcriptionText, partialText])
 
     return (
         <div

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSyncExternalStore, useCallback } from "react"
 import { cn } from "@/lib/utils"
 
 interface PromptInputContextValue {
@@ -62,14 +63,19 @@ export function PromptInputTextarea({
   const { value, onValueChange, onSubmit } = usePromptInput()
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize textarea
-  React.useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      const scrollHeight = textareaRef.current.scrollHeight
-      textareaRef.current.style.height = Math.min(scrollHeight, 200) + 'px'
-    }
-  }, [value])
+  // Auto-resize textarea - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        const scrollHeight = textareaRef.current.scrollHeight
+        textareaRef.current.style.height = Math.min(scrollHeight, 200) + 'px'
+      }
+      return () => {}
+    }, [value]),
+    () => null,
+    () => null
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

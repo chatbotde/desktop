@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useSyncExternalStore, useState, useRef, useCallback } from 'react'
 import { CaptureAreaStore } from '../capture-area-store'
 
 const BORDER_WIDTH = 5
@@ -10,25 +10,33 @@ export function SetAreaIndicator() {
     const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number; corner: string } | null>(null)
     const areaRef = useRef(area)
     
-    // Keep ref in sync with state
-    useEffect(() => {
-        areaRef.current = area
-    }, [area])
+    // Keep ref in sync with state - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            areaRef.current = area
+            return () => {}
+        }, [area]),
+        () => null,
+        () => null
+    )
 
-    useEffect(() => {
-        // Get initial area
-        const initialArea = CaptureAreaStore.getArea()
-        setArea(initialArea)
+    // Subscribe to CaptureAreaStore - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const initialArea = CaptureAreaStore.getArea()
+            setArea(initialArea)
 
-        // Subscribe to changes
-        const unsubscribe = CaptureAreaStore.subscribe((newArea) => {
-            setArea(newArea)
-        })
+            const unsubscribe = CaptureAreaStore.subscribe((newArea) => {
+                setArea(newArea)
+            })
 
-        return () => {
-            unsubscribe()
-        }
-    }, [])
+            return () => {
+                unsubscribe()
+            }
+        }, []),
+        () => null,
+        () => null
+    )
 
     const handleMouseDown = (e: React.MouseEvent, corner: string) => {
         e.preventDefault()

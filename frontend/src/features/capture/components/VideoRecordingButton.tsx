@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useSyncExternalStore } from 'react'
 import { Video, Square, Loader2 } from 'lucide-react'
 import { cn } from '@/shared/lib'
 import { Button } from '@/shared/components/ui/button'
@@ -107,13 +107,18 @@ export function VideoRecordingButton({
     }
   }, [stopRecording, handleRecordingComplete])
 
-  // Reset isActive when recording state returns to idle
-  useEffect(() => {
-    if (recordingState === 'idle' && !isActive) {
-      // Recording was stopped externally or completed
-      setIsActive(false)
-    }
-  }, [recordingState, isActive])
+  // Reset isActive when recording state returns to idle - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (recordingState === 'idle' && !isActive) {
+        // Recording was stopped externally or completed
+        setIsActive(false)
+      }
+      return () => {}
+    }, [recordingState, isActive]),
+    () => null,
+    () => null
+  )
 
   // Determine button state
   const isConnecting = isActive && recordingState === 'idle'

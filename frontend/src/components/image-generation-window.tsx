@@ -1,7 +1,7 @@
 import { ImageGeneration } from "./image-generation/image-generation"
 import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/lib/utils"
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useSyncExternalStore } from "react"
 import { ResizeHandle } from "@/features/output-window/components/ResizeHandle"
 import type { ResizeDirection } from "@/features/output-window/hooks/useResizable"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
@@ -81,14 +81,19 @@ export function ImageGenerationWindow({
   // Use fallback image if no images provided (for testing)
   const displayImages = (images && images.length > 0) ? images : [FALLBACK_IMAGE]
 
-  // Reset position and size when window becomes visible
-  useEffect(() => {
-    if (isVisible) {
-      setCardSize(DEFAULT_LOADING_SIZE)
-      setCurrentImageIndex(0)
-      imageDimensionsCache.current.clear()
-    }
-  }, [isVisible])
+  // Reset position and size when window becomes visible - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (isVisible) {
+        setCardSize(DEFAULT_LOADING_SIZE)
+        setCurrentImageIndex(0)
+        imageDimensionsCache.current.clear()
+      }
+      return () => {}
+    }, [isVisible]),
+    () => null,
+    () => null
+  )
 
   // Load and cache image dimensions
   const loadImageDimensions = useCallback((imageUrl: string): Promise<CardDimensions> => {
@@ -113,17 +118,22 @@ export function ImageGenerationWindow({
     })
   }, [])
 
-  // Update card size when images change or current index changes
-  useEffect(() => {
-    if (!isLoading) {
-      const currentImage = displayImages[currentImageIndex]
-      if (currentImage) {
-        loadImageDimensions(currentImage).then(setCardSize)
+  // Update card size when images change or current index changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isLoading) {
+        const currentImage = displayImages[currentImageIndex]
+        if (currentImage) {
+          loadImageDimensions(currentImage).then(setCardSize)
+        }
+      } else if (isLoading) {
+        setCardSize(DEFAULT_LOADING_SIZE)
       }
-    } else if (isLoading) {
-      setCardSize(DEFAULT_LOADING_SIZE)
-    }
-  }, [displayImages, currentImageIndex, isLoading, loadImageDimensions])
+      return () => { }
+    }, [displayImages, currentImageIndex, isLoading, loadImageDimensions]),
+    () => null,
+    () => null
+  )
 
   // Handle image index change from carousel
   const handleImageIndexChange = useCallback((index: number) => {
@@ -177,16 +187,22 @@ export function ImageGenerationWindow({
     setIsResizing(false)
   }, [])
 
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener("mousemove", handleGlobalMouseMove)
-      window.addEventListener("mouseup", handleGlobalMouseUp)
-    }
-    return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove)
-      window.removeEventListener("mouseup", handleGlobalMouseUp)
-    }
-  }, [isResizing, handleGlobalMouseMove, handleGlobalMouseUp])
+  // Global mouse event listeners for resizing - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (isResizing) {
+        window.addEventListener("mousemove", handleGlobalMouseMove)
+        window.addEventListener("mouseup", handleGlobalMouseUp)
+        return () => {
+          window.removeEventListener("mousemove", handleGlobalMouseMove)
+          window.removeEventListener("mouseup", handleGlobalMouseUp)
+        }
+      }
+      return () => {}
+    }, [isResizing, handleGlobalMouseMove, handleGlobalMouseUp]),
+    () => null,
+    () => null
+  )
 
 
   const themeClasses = {

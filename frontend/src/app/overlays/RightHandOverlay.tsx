@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { RightHand } from '@/components/lottie/right-hand'
 import { GLOBAL_THEME } from '@/global/theme'
 
@@ -19,16 +19,30 @@ export function RightHandOverlay() {
     const isDraggingRef = useRef(false)
     const positionRef = useRef({ x: 0, y: 0 })
 
-    // Bootstrap position on mount
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-        const startX = window.innerWidth - HAND_SIZE
-        const startY = window.innerHeight - HAND_SIZE
-        setPosition({ x: startX, y: startY })
-        positionRef.current = { x: startX, y: startY }
+    // Bootstrap position on mount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            if (typeof window === 'undefined') return () => {}
+            const startX = window.innerWidth - HAND_SIZE
+            const startY = window.innerHeight - HAND_SIZE
+            setPosition({ x: startX, y: startY })
+            positionRef.current = { x: startX, y: startY }
+            return () => {}
+        }, []),
+        () => null,
+        () => null
+    )
 
-        // Handle window resize optionally, but hard-position is fine for now
-    }, [])
+    const isScaledRef = useRef(isScaled)
+    // Sync isScaled to ref - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            isScaledRef.current = isScaled
+            return () => {}
+        }, [isScaled]),
+        () => null,
+        () => null
+    )
 
     const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -46,11 +60,6 @@ export function RightHandOverlay() {
         isDraggingRef.current = true
         setIsDragging(true)
     }, [])
-
-    const isScaledRef = useRef(isScaled)
-    useEffect(() => {
-        isScaledRef.current = isScaled
-    }, [isScaled])
 
     const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
         if (!isDraggingRef.current) return

@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useRef, useState, useSyncExternalStore } from "react"
 
 export type Mode = "typewriter" | "fade"
 
@@ -54,18 +54,14 @@ function useTextStream({
   const streamRef = useRef<AbortController | null>(null)
   const completedRef = useRef(false)
   const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
-  useEffect(() => {
-    speedRef.current = speed
-    modeRef.current = mode
-    fadeDurationRef.current = fadeDuration
-    segmentDelayRef.current = segmentDelay
-    characterChunkSizeRef.current = characterChunkSize
-  }, [speed, mode, fadeDuration, segmentDelay, characterChunkSize])
-
-  useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
+  // Sync refs directly instead of useEffect
+  speedRef.current = speed
+  modeRef.current = mode
+  fadeDurationRef.current = fadeDuration
+  segmentDelayRef.current = segmentDelay
+  characterChunkSizeRef.current = characterChunkSize
 
   const getChunkSize = useCallback(() => {
     if (typeof characterChunkSizeRef.current === "number") {
@@ -250,18 +246,22 @@ function useTextStream({
     }
   }, [textStream, isComplete, processStringTypewriter])
 
-  useEffect(() => {
-    startStreaming()
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+  // Start streaming - use syncExternalStore for lifecycle
+  useSyncExternalStore(
+    useCallback((callback) => {
+      startStreaming()
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+        if (streamRef.current) {
+          streamRef.current.abort()
+        }
       }
-      if (streamRef.current) {
-        streamRef.current.abort()
-      }
-    }
-  }, [textStream, startStreaming])
+    }, [textStream, startStreaming]),
+    () => null,
+    () => null
+  )
 
   return {
     displayedText,
@@ -299,7 +299,9 @@ function ResponseStream({
   segmentDelay,
   characterChunkSize,
 }: ResponseStreamProps) {
-  const animationEndRef = useRef<(() => void) | null>(null)
+  // Use ref directly instead of useEffect
+  const animationEndRef = useRef(onComplete ?? null)
+  animationEndRef.current = onComplete ?? null
 
   const {
     displayedText,
@@ -316,10 +318,6 @@ function ResponseStream({
     segmentDelay,
     characterChunkSize,
   })
-
-  useEffect(() => {
-    animationEndRef.current = onComplete ?? null
-  }, [onComplete])
 
   const handleLastSegmentAnimationEnd = useCallback(() => {
     if (animationEndRef.current && isComplete) {

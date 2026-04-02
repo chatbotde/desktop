@@ -3,7 +3,7 @@
  * Provides freehand drawing to select area for screenshot
  */
 
-import { useEffect, useRef } from 'react'
+import { useSyncExternalStore, useRef, useCallback } from 'react'
 
 interface AreaScreenshotOverlayProps {
   onCapture: (area: { x: number; y: number; width: number; height: number; path?: Array<{ x: number; y: number }> }) => void
@@ -17,218 +17,218 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
   const pathPointsRef = useRef<Array<{ x: number; y: number }>>([])
   const minPathLength = 20
 
-  // Disable clickthrough when overlay is active
-  useEffect(() => {
-    const api = window.interfaceAPI
-    const setIgnore = api?.setIgnoreMouseEvents
+  // Disable clickthrough when overlay is active - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const api = window.interfaceAPI
+      const setIgnore = api?.setIgnoreMouseEvents
 
-    if (setIgnore) {
-      // Disable clickthrough (window captures clicks)
-      console.log('[AreaScreenshotOverlay] Disabling clickthrough for area selection')
-      setIgnore(false)
+      if (setIgnore) {
+        console.log('[AreaScreenshotOverlay] Disabling clickthrough for area selection')
+        setIgnore(false)
 
-      return () => {
-        // Re-enable clickthrough when overlay is closed
-        console.log('[AreaScreenshotOverlay] Re-enabling clickthrough')
-        setIgnore(true, { forward: true })
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const overlay = overlayRef.current
-    if (!canvas || !overlay) return
-
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      isDrawingRef.current = true
-      pathPointsRef.current = [{ x: e.clientX, y: e.clientY }]
-
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
-      ctx.fillStyle = 'white'
-      ctx.lineWidth = 3
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.shadowBlur = 10
-      ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
-
-      ctx.beginPath()
-      ctx.moveTo(e.clientX, e.clientY)
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDrawingRef.current) return
-
-      e.preventDefault()
-      e.stopPropagation()
-
-      const x = e.clientX
-      const y = e.clientY
-
-      const lastPoint = pathPointsRef.current[pathPointsRef.current.length - 1]
-      if (lastPoint) {
-        const distance = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2))
-        if (distance < 2) return
-      }
-
-      pathPointsRef.current.push({ x, y })
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-      // Draw dark overlay
-      ctx.save()
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.restore()
-
-      if (pathPointsRef.current.length > 0) {
-        // Punch a transparent hole for the drawn area
-        ctx.save()
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.beginPath()
-        const first = pathPointsRef.current[0]
-        ctx.moveTo(first.x, first.y)
-        for (let i = 1; i < pathPointsRef.current.length; i++) {
-          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+        return () => {
+          console.log('[AreaScreenshotOverlay] Re-enabling clickthrough')
+          setIgnore(true, { forward: true })
         }
-        ctx.closePath()
-        ctx.fill()
-        ctx.restore()
+      }
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
-        // Draw the stroke on top
-        ctx.save()
-        ctx.globalCompositeOperation = 'source-over'
+  // Mouse event listeners for drawing - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const canvas = canvasRef.current
+      const overlay = overlayRef.current
+      if (!canvas || !overlay) return () => {}
+
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return () => {}
+
+      const handleMouseDown = (e: MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        isDrawingRef.current = true
+        pathPointsRef.current = [{ x: e.clientX, y: e.clientY }]
+
         ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
+        ctx.fillStyle = 'white'
         ctx.lineWidth = 3
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
         ctx.shadowBlur = 10
         ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
+
         ctx.beginPath()
-        ctx.moveTo(first.x, first.y)
-        for (let i = 1; i < pathPointsRef.current.length; i++) {
-          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
-        }
-        ctx.stroke()
-        ctx.restore()
+        ctx.moveTo(e.clientX, e.clientY)
       }
-    }
 
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!isDrawingRef.current) return
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isDrawingRef.current) return
 
-      e.preventDefault()
-      e.stopPropagation()
-      isDrawingRef.current = false
+        e.preventDefault()
+        e.stopPropagation()
 
-      if (pathPointsRef.current.length > 0) {
-        // Redraw with closed path and transparent inside
+        const x = e.clientX
+        const y = e.clientY
+
+        const lastPoint = pathPointsRef.current[pathPointsRef.current.length - 1]
+        if (lastPoint) {
+          const distance = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2))
+          if (distance < 2) return
+        }
+
+        pathPointsRef.current.push({ x, y })
+
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-        // Dark overlay
         ctx.save()
         ctx.globalCompositeOperation = 'source-over'
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         ctx.restore()
 
-        // Punch transparent hole
-        ctx.save()
-        ctx.globalCompositeOperation = 'destination-out'
-        const first = pathPointsRef.current[0]
-        ctx.beginPath()
-        ctx.moveTo(first.x, first.y)
-        for (let i = 1; i < pathPointsRef.current.length; i++) {
-          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+        if (pathPointsRef.current.length > 0) {
+          ctx.save()
+          ctx.globalCompositeOperation = 'destination-out'
+          ctx.beginPath()
+          const first = pathPointsRef.current[0]
+          ctx.moveTo(first.x, first.y)
+          for (let i = 1; i < pathPointsRef.current.length; i++) {
+            ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+          }
+          ctx.closePath()
+          ctx.fill()
+          ctx.restore()
+
+          ctx.save()
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
+          ctx.lineWidth = 3
+          ctx.lineCap = 'round'
+          ctx.lineJoin = 'round'
+          ctx.shadowBlur = 10
+          ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
+          ctx.beginPath()
+          ctx.moveTo(first.x, first.y)
+          for (let i = 1; i < pathPointsRef.current.length; i++) {
+            ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+          }
+          ctx.stroke()
+          ctx.restore()
         }
-        ctx.closePath()
-        ctx.fill()
-        ctx.restore()
-
-        // Stroke border
-        ctx.save()
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
-        ctx.lineWidth = 3
-        ctx.lineCap = 'round'
-        ctx.lineJoin = 'round'
-        ctx.shadowBlur = 10
-        ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
-        ctx.beginPath()
-        ctx.moveTo(first.x, first.y)
-        for (let i = 1; i < pathPointsRef.current.length; i++) {
-          ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
-        }
-        ctx.closePath()
-        ctx.stroke()
-        ctx.restore()
       }
 
-      if (pathPointsRef.current.length < minPathLength) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        pathPointsRef.current = []
-        return
-      }
+      const handleMouseUp = (e: MouseEvent) => {
+        if (!isDrawingRef.current) return
 
-      const xs = pathPointsRef.current.map(p => p.x)
-      const ys = pathPointsRef.current.map(p => p.y)
-      const minX = Math.min(...xs)
-      const maxX = Math.max(...xs)
-      const minY = Math.min(...ys)
-      const maxY = Math.max(...ys)
-
-      const selectionArea = {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-        path: pathPointsRef.current
-      }
-
-      onCapture(selectionArea)
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
         e.preventDefault()
-        if (isDrawingRef.current) {
+        e.stopPropagation()
+        isDrawingRef.current = false
+
+        if (pathPointsRef.current.length > 0) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+          ctx.save()
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+          ctx.restore()
+
+          ctx.save()
+          ctx.globalCompositeOperation = 'destination-out'
+          const first = pathPointsRef.current[0]
+          ctx.beginPath()
+          ctx.moveTo(first.x, first.y)
+          for (let i = 1; i < pathPointsRef.current.length; i++) {
+            ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+          }
+          ctx.closePath()
+          ctx.fill()
+          ctx.restore()
+
+          ctx.save()
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.strokeStyle = 'rgba(59, 130, 246, 0.9)'
+          ctx.lineWidth = 3
+          ctx.lineCap = 'round'
+          ctx.lineJoin = 'round'
+          ctx.shadowBlur = 10
+          ctx.shadowColor = 'rgba(59, 130, 246, 0.8)'
+          ctx.beginPath()
+          ctx.moveTo(first.x, first.y)
+          for (let i = 1; i < pathPointsRef.current.length; i++) {
+            ctx.lineTo(pathPointsRef.current[i].x, pathPointsRef.current[i].y)
+          }
+          ctx.closePath()
+          ctx.stroke()
+          ctx.restore()
+        }
+
+        if (pathPointsRef.current.length < minPathLength) {
           ctx.clearRect(0, 0, canvas.width, canvas.height)
           pathPointsRef.current = []
-          isDrawingRef.current = false
-        } else {
-          onCancel()
+          return
+        }
+
+        const xs = pathPointsRef.current.map(p => p.x)
+        const ys = pathPointsRef.current.map(p => p.y)
+        const minX = Math.min(...xs)
+        const maxX = Math.max(...xs)
+        const minY = Math.min(...ys)
+        const maxY = Math.max(...ys)
+
+        const selectionArea = {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+          path: pathPointsRef.current
+        }
+
+        onCapture(selectionArea)
+      }
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          if (isDrawingRef.current) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            pathPointsRef.current = []
+            isDrawingRef.current = false
+          } else {
+            onCancel()
+          }
         }
       }
-    }
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
+      const handleResize = () => {
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+      }
 
-    // Attach mouse events to the overlay div, not the canvas
-    overlay.addEventListener('mousedown', handleMouseDown)
-    overlay.addEventListener('mousemove', handleMouseMove)
-    overlay.addEventListener('mouseup', handleMouseUp)
-    document.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('resize', handleResize)
+      overlay.addEventListener('mousedown', handleMouseDown)
+      overlay.addEventListener('mousemove', handleMouseMove)
+      overlay.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('keydown', handleKeyDown)
+      window.addEventListener('resize', handleResize)
 
-    return () => {
-      overlay.removeEventListener('mousedown', handleMouseDown)
-      overlay.removeEventListener('mousemove', handleMouseMove)
-      overlay.removeEventListener('mouseup', handleMouseUp)
-      document.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [onCapture, onCancel])
+      return () => {
+        overlay.removeEventListener('mousedown', handleMouseDown)
+        overlay.removeEventListener('mousemove', handleMouseMove)
+        overlay.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('keydown', handleKeyDown)
+        window.removeEventListener('resize', handleResize)
+      }
+    }, [onCapture, onCancel]),
+    () => null,
+    () => null
+  )
 
   // Paper airplane cursor SVG
   const cursorSvg = `<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg" viewBox="-76.32 -76.32 661.44 661.44">

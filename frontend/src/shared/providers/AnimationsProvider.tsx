@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useSyncExternalStore, useCallback, type ReactNode } from 'react'
 import { ALL_ANIMATION_IDS } from '@/shared/registry/animationRegistry'
 
 /**
@@ -29,9 +29,14 @@ export function AnimationsProvider({ children }: { children: ReactNode }) {
         return new Set<string>(ALL_ANIMATION_IDS)
     })
 
-    useEffect(() => {
-        localStorage.setItem('enabled-animations', JSON.stringify(Array.from(enabledAnimations)))
-    }, [enabledAnimations])
+    useSyncExternalStore(
+        useCallback((callback) => {
+            localStorage.setItem('enabled-animations', JSON.stringify(Array.from(enabledAnimations)))
+            return () => {}
+        }, [enabledAnimations]),
+        () => null,
+        () => null
+    )
 
     const isAnimationEnabled = (id: string): boolean => {
         return enabledAnimations.has(id)

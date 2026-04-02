@@ -1,7 +1,7 @@
 
 import { motion, AnimatePresence } from 'motion/react'
 import { Search, Trash2, CloudOff } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useSyncExternalStore, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { useChatHistory } from '@/hooks/useChatHistory'
@@ -45,21 +45,25 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
     // 3 items = ~120px
     const maxVisibleHeight = 120 // Height for 3 items
 
-    // Click outside to close
+    // Click outside to close - using syncExternalStore
     const ref = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (ref.current && !ref.current.contains(event.target as Node)) {
-                onClose()
+    useSyncExternalStore(
+        useCallback((callback) => {
+            function handleClickOutside(event: MouseEvent) {
+                if (ref.current && !ref.current.contains(event.target as Node)) {
+                    onClose()
+                }
             }
-        }
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside)
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-        }
-    }, [isOpen, onClose])
+            if (isOpen) {
+                document.addEventListener('mousedown', handleClickOutside)
+            }
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside)
+            }
+        }, [isOpen, onClose]),
+        () => null,
+        () => null
+    )
 
     return (
         <AnimatePresence>

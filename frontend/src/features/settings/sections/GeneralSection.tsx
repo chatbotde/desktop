@@ -1,10 +1,11 @@
 import { useState } from "react"
-import { Trash2 } from "lucide-react"
+import { Trash2, PanelRight } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 
 import { Label } from "@/shared/components/ui/label"
 import { Button } from "@/shared/components/ui/button"
+import { Switch } from "@/shared/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
 import {
   AlertDialog,
@@ -19,6 +20,7 @@ import { getThemeClasses as getThemeUtils } from "@/shared/utils/theme"
 
 export interface GeneralSettingsValues {
   language: string
+  showRightTransparent: boolean
 }
 
 interface GeneralSectionProps {
@@ -44,6 +46,10 @@ export function GeneralSection({
     onChange({ ...value, language })
   }
 
+  const handleShowRightTransparentChange = (showRightTransparent: boolean) => {
+    onChange({ ...value, showRightTransparent })
+  }
+
   const runClearHistory = async () => {
     if (!onClearAllChatHistory) return
     setIsClearing(true)
@@ -67,6 +73,26 @@ export function GeneralSection({
       </div>
 
       <div className="space-y-4">
+        {/* Show Right Transparent Bar Toggle */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PanelRight className={cn("h-4 w-4", labelColor)} />
+              <Label htmlFor="showRightTransparent" className={labelColor}>
+                Right-side transparent bar
+              </Label>
+            </div>
+            <Switch
+              id="showRightTransparent"
+              checked={value.showRightTransparent}
+              onCheckedChange={handleShowRightTransparentChange}
+            />
+          </div>
+          <p className={cn("text-xs", textColor)}>
+            Show the transparent trigger bar on the right edge of the screen. Disable to hide it if you prefer using keyboard shortcuts only.
+          </p>
+        </div>
+
         {/* Language Selection */}
         <div className="space-y-2">
           <Label htmlFor="language" className={labelColor}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { VoiceSphere } from './assistant-sphere';
 import { useLiveAssistant } from './use-live-assistant';
@@ -20,38 +20,52 @@ export const AssistantSphere = () => {
         closeVideoGeneration
     } = useLiveAssistant();
 
-    useEffect(() => {
-        const handleVisibilityToggle = () => setIsVisible(prev => !prev);
-        window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle);
-        return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
-    }, []);
+    // Listen for visibility toggle - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            const handleVisibilityToggle = () => setIsVisible(prev => !prev);
+            window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+            return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+        }, []),
+        () => null,
+        () => null
+    )
 
-    // Listen for assistant-connect command from main process (Ctrl+\)
-    useEffect(() => {
-        const handleAssistantConnect = () => {
-            setIsVisible(true);
-            if (!connected) {
-                connect();
+    // Listen for assistant-connect command from main process - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            const handleAssistantConnect = () => {
+                setIsVisible(true);
+                if (!connected) {
+                    connect();
+                }
+            };
+
+            if (window.interfaceAPI?.onMessage) {
+                window.interfaceAPI.onMessage('assistant-connect', handleAssistantConnect);
             }
-        };
 
-        if (window.interfaceAPI?.onMessage) {
-            window.interfaceAPI.onMessage('assistant-connect', handleAssistantConnect);
-        }
+            return () => {
+                if (window.interfaceAPI?.removeMessageListener) {
+                    window.interfaceAPI.removeMessageListener('assistant-connect', handleAssistantConnect);
+                }
+            };
+        }, [connected, connect]),
+        () => null,
+        () => null
+    )
 
-        return () => {
-            if (window.interfaceAPI?.removeMessageListener) {
-                window.interfaceAPI.removeMessageListener('assistant-connect', handleAssistantConnect);
+    // Automatically disconnect when hidden - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            if (!isVisible && connected) {
+                disconnect();
             }
-        };
-    }, [connected, connect]);
-
-    // Automatically disconnect when hidden
-    useEffect(() => {
-        if (!isVisible && connected) {
-            disconnect();
-        }
-    }, [isVisible, connected, disconnect]);
+            return () => {}
+        }, [isVisible, connected, disconnect]),
+        () => null,
+        () => null
+    )
 
     if (!isVisible) return null;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore, useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -94,29 +94,33 @@ export function ModelSelector({
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    // Initialize models and selected model
-    const allModels = getAvailableModels();
-    const visibleModelIds = getVisibleModels();
-    const models = visibleModelIds === null ? allModels : allModels.filter((m) => visibleModelIds.includes(m.id));
-    const currentModel = getSelectedModel();
-    
-    setAvailableModels(models);
-    setSelectedModelState(currentModel);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => {
+  // Initialize models and listen for visibility changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      // Initialize models and selected model
       const allModels = getAvailableModels();
       const visibleModelIds = getVisibleModels();
       const models = visibleModelIds === null ? allModels : allModels.filter((m) => visibleModelIds.includes(m.id));
+      const currentModel = getSelectedModel();
+      
       setAvailableModels(models);
-      setSelectedModelState(getSelectedModel());
-    };
+      setSelectedModelState(currentModel);
 
-    window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
-    return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
-  }, []);
+      // Listen for visibility changes
+      const handler = () => {
+        const allModels = getAvailableModels();
+        const visibleModelIds = getVisibleModels();
+        const models = visibleModelIds === null ? allModels : allModels.filter((m) => visibleModelIds.includes(m.id));
+        setAvailableModels(models);
+        setSelectedModelState(getSelectedModel());
+      };
+
+      window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
+      return () => window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler);
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handleModelChange = (modelId: string) => {
     const success = setSelectedModel(modelId);

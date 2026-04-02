@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 
@@ -15,47 +15,52 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isClearingTokens, setIsClearingTokens] = useState(false)
 
-  // Fetch user data on mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!window.authAPI) {
-        console.warn("AuthAPI is not available")
-        setLoading(false)
-        return
-      }
-
-      try {
-        const userData = await window.authAPI.getUser()
-        setUser(userData)
-      } catch (error) {
-        console.error("Failed to fetch user:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUser()
-
-    // Listen for auth state changes
-    if (window.authAPI) {
-      const unsubscribe = window.authAPI.onStateChange((state) => {
-        setUser(state.user)
-        if (!state.isAuthenticated) {
-          setUser(null)
+  // Fetch user data on mount and listen for auth state changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const fetchUser = async () => {
+        if (!window.authAPI) {
+          console.warn("AuthAPI is not available")
+          setLoading(false)
+          return
         }
-      })
 
-      // Listen for logout events
-      const unsubscribeLogout = window.authAPI.onLogout(() => {
-        setUser(null)
-      })
-
-      return () => {
-        unsubscribe()
-        unsubscribeLogout()
+        try {
+          const userData = await window.authAPI.getUser()
+          setUser(userData)
+        } catch (error) {
+          console.error("Failed to fetch user:", error)
+        } finally {
+          setLoading(false)
+        }
       }
-    }
-  }, [])
+
+      fetchUser()
+
+      // Listen for auth state changes
+      if (window.authAPI) {
+        const unsubscribe = window.authAPI.onStateChange((state) => {
+          setUser(state.user)
+          if (!state.isAuthenticated) {
+            setUser(null)
+          }
+        })
+
+        // Listen for logout events
+        const unsubscribeLogout = window.authAPI.onLogout(() => {
+          setUser(null)
+        })
+
+        return () => {
+          unsubscribe()
+          unsubscribeLogout()
+        }
+      }
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handleSignOut = async () => {
     if (!window.authAPI) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore, useCallback } from 'react'
 import type { Size, Position } from '../types'
 
 export type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
@@ -25,9 +25,11 @@ export function useResizable(
   })
   const [direction, setDirection] = useState<ResizeDirection>('se')
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isResizing) {
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isResizing) return () => {}
+
+      const handleMouseMove = (e: MouseEvent) => {
         const deltaX = e.clientX - resizeStart.x
         const deltaY = e.clientY - resizeStart.y
         let newWidth = resizeStart.width
@@ -56,21 +58,22 @@ export function useResizable(
           setPosition({ x: newX, y: newY })
         }
       }
-    }
 
-    const handleMouseUp = () => {
-      setIsResizing(false)
-    }
+      const handleMouseUp = () => {
+        setIsResizing(false)
+      }
 
-    if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
       }
-    }
-  }, [isResizing, resizeStart, setSize, direction, setPosition])
+    }, [isResizing, resizeStart, setSize, direction, setPosition]),
+    () => null,
+    () => null
+  )
 
   const handleResizeMouseDown = (e: React.MouseEvent, dir: ResizeDirection) => {
     e.preventDefault()

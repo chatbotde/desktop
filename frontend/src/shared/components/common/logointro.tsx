@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useSyncExternalStore, useCallback } from 'react';
 
 interface LogoIntroProps {
     /** Called when the entire intro animation sequence is complete */
@@ -50,104 +50,112 @@ const LogoIntro: React.FC<LogoIntroProps> = ({
     const particlesGenerated = useRef(false);
 
     // ── Phase 1 → Phase 1.5: after logo draws, start fading it out ────────
-    useEffect(() => {
-        if (phase !== 'logo') return;
-        const timer = setTimeout(() => {
-            // Generate particles while SVG paths are still mounted
-            const newParticles: Particle[] = [];
-            const particleCountPerPath = 400;
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (phase !== 'logo') return () => {};
+            const timer = setTimeout(() => {
+                const newParticles: Particle[] = [];
+                const particleCountPerPath = 400;
 
-            Object.entries(pathRefs).forEach(([key, ref]) => {
-                if (!ref.current) return;
-                const path = ref.current;
-                const length = path.getTotalLength();
-                const color = colors[key as keyof typeof colors];
+                Object.entries(pathRefs).forEach(([key, ref]) => {
+                    if (!ref.current) return;
+                    const path = ref.current;
+                    const length = path.getTotalLength();
+                    const color = colors[key as keyof typeof colors];
 
-                for (let i = 0; i < particleCountPerPath; i++) {
-                    const distance = Math.random() * length;
-                    const point = path.getPointAtLength(distance);
+                    for (let i = 0; i < particleCountPerPath; i++) {
+                        const distance = Math.random() * length;
+                        const point = path.getPointAtLength(distance);
 
-                    newParticles.push({
-                        x: point.x,
-                        y: point.y,
-                        // Lower initial burst velocities for smoother separation
-                        vx: (Math.random() - 0.5) * 0.3,
-                        vy: (Math.random() - 0.5) * 0.3,
-                        size: Math.random() * 2.0 + 0.5,
-                        color,
-                        alpha: 1,
-                        // Widen delay spread so particles disintegrate gradually instead of all at once
-                        delay: Math.random() * 1.5,
-                    });
+                        newParticles.push({
+                            x: point.x,
+                            y: point.y,
+                            vx: (Math.random() - 0.5) * 0.3,
+                            vy: (Math.random() - 0.5) * 0.3,
+                            size: Math.random() * 2.0 + 0.5,
+                            color,
+                            alpha: 1,
+                            delay: Math.random() * 1.5,
+                        });
+                    }
+                });
 
-                }
-            });
+                setParticles(newParticles);
+                particlesGenerated.current = true;
+                setLogoOpacity(0);
+                setPhase('fading');
+            }, logoDisplayDuration);
 
-            // Store particles, start fading logo
-            setParticles(newParticles);
-            particlesGenerated.current = true;
-            setLogoOpacity(0); // triggers CSS transition
-            setPhase('fading');
-        }, logoDisplayDuration);
-
-        return () => clearTimeout(timer);
-    }, [phase, logoDisplayDuration]);
+            return () => clearTimeout(timer);
+        }, [phase, logoDisplayDuration, colors]),
+        () => null,
+        () => null
+    )
 
     // ── Phase 1.5 → Phase 2: after logo fades, switch to snap ─────────────
-    useEffect(() => {
-        if (phase !== 'fading') return;
-        const timer = setTimeout(() => {
-            setPhase('snap');
-        }, 500); // matches the CSS transition duration
-        return () => clearTimeout(timer);
-    }, [phase]);
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (phase !== 'fading') return () => {};
+            const timer = setTimeout(() => {
+                setPhase('snap');
+            }, 500);
+            return () => clearTimeout(timer);
+        }, [phase]),
+        () => null,
+        () => null
+    )
 
     // ── Phase 2: Animate particles ────────────────────────────────────────
-    useEffect(() => {
-        if (phase !== 'snap' || !particlesGenerated.current) return;
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (phase !== 'snap' || !particlesGenerated.current) return () => {};
 
-        let raf: number;
-        const tick = () => {
-            setParticles(prev => {
-                const updated = prev
-                    .map(p => {
-                        if (p.delay > 0) return { ...p, delay: p.delay - 0.016 };
-                        return {
-                            ...p,
-                            x: p.x + p.vx,
-                            y: p.y + p.vy,
-                            // Slower fading
-                            alpha: Math.max(0, p.alpha - 0.003),
-                            // Add slight drag (p.vx * 0.99) and very subtle directional drift
-                            vx: p.vx * 0.99 + 0.001,
-                            vy: p.vy * 0.99 - 0.002,
-                        };
-                    })
-                    .filter(p => p.alpha > 0);
+            let raf: number;
+            const tick = () => {
+                setParticles(prev => {
+                    const updated = prev
+                        .map(p => {
+                            if (p.delay > 0) return { ...p, delay: p.delay - 0.016 };
+                            return {
+                                ...p,
+                                x: p.x + p.vx,
+                                y: p.y + p.vy,
+                                alpha: Math.max(0, p.alpha - 0.003),
+                                vx: p.vx * 0.99 + 0.001,
+                                vy: p.vy * 0.99 - 0.002,
+                            };
+                        })
+                        .filter(p => p.alpha > 0);
 
-                if (updated.length === 0) {
-                    setPhase('fadeout');
-                } else {
-                    raf = requestAnimationFrame(tick);
-                }
-                return updated;
-            });
-        };
+                    if (updated.length === 0) {
+                        setPhase('fadeout');
+                    } else {
+                        raf = requestAnimationFrame(tick);
+                    }
+                    return updated;
+                });
+            };
 
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [phase]);
+            raf = requestAnimationFrame(tick);
+            return () => cancelAnimationFrame(raf);
+        }, [phase]),
+        () => null,
+        () => null
+    )
 
     // ── Phase 3: smooth fade-out of entire overlay ────────────────────────
-    useEffect(() => {
-        if (phase !== 'fadeout') return;
-        // Wait for the CSS fade-out transition to finish
-        const timer = setTimeout(() => {
-            setPhase('done');
-            onComplete?.();
-        }, 800); // matches the CSS transition duration below
-        return () => clearTimeout(timer);
-    }, [phase, onComplete]);
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (phase !== 'fadeout') return () => {};
+            const timer = setTimeout(() => {
+                setPhase('done');
+                onComplete?.();
+            }, 800);
+            return () => clearTimeout(timer);
+        }, [phase, onComplete]),
+        () => null,
+        () => null
+    )
 
     // Once done, stop rendering entirely
     if (phase === 'done') return null;

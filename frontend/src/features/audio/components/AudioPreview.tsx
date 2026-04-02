@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useSyncExternalStore, useCallback } from 'react'
 import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 import { createPrerecordedService, isAssemblyAIConfigured } from '@/lib/audio'
@@ -44,15 +44,19 @@ export function AudioPreview({
 
   const themeClasses = getThemeClasses(isDarkTheme)
 
-  // Create object URL for the audio blob
-  useEffect(() => {
-    const url = URL.createObjectURL(audioBlob)
-    setAudioUrl(url)
+  // Create object URL for the audio blob - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const url = URL.createObjectURL(audioBlob)
+      setAudioUrl(url)
 
-    return () => {
-      URL.revokeObjectURL(url)
-    }
-  }, [audioBlob])
+      return () => {
+        URL.revokeObjectURL(url)
+      }
+    }, [audioBlob]),
+    () => null,
+    () => null
+  )
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying)

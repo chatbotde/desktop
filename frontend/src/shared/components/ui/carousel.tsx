@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSyncExternalStore, useCallback } from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -88,21 +89,30 @@ function Carousel({
     [scrollPrev, scrollNext]
   )
 
-  React.useEffect(() => {
-    if (!api || !setApi) return
-    setApi(api)
-  }, [api, setApi])
+  React.useSyncExternalStore(
+    useCallback((callback) => {
+      if (!api || !setApi) return () => {}
+      setApi(api)
+      return () => {}
+    }, [api, setApi]),
+    () => null,
+    () => null
+  )
 
-  React.useEffect(() => {
-    if (!api) return
-    onSelect(api)
-    api.on("reInit", onSelect)
-    api.on("select", onSelect)
+  React.useSyncExternalStore(
+    useCallback((callback) => {
+      if (!api) return () => {}
+      onSelect(api)
+      api.on("reInit", onSelect)
+      api.on("select", onSelect)
 
-    return () => {
-      api?.off("select", onSelect)
-    }
-  }, [api, onSelect])
+      return () => {
+        api?.off("select", onSelect)
+      }
+    }, [api, onSelect]),
+    () => null,
+    () => null
+  )
 
   return (
     <CarouselContext.Provider

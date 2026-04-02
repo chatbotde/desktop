@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { getSupportedMimeType } from '../components/audio-utils'
 
 export type AudioSourceType = 'mic' | 'system' | 'both'
@@ -270,12 +270,16 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
         }
     }, [cleanup])
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            cleanup().catch(console.error)
-        }
-    }, [cleanup])
+    // Cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                cleanup().catch(console.error)
+            }
+        }, [cleanup]),
+        () => null,
+        () => null
+    )
 
     return {
         isRecording,

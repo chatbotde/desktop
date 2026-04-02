@@ -1,6 +1,6 @@
 import { Button } from '@/shared/components/ui/button'
 import { ArrowUp } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore, useState, useCallback } from 'react'
 
 interface ScrollToTopButtonProps {
   isVisible?: boolean
@@ -32,24 +32,29 @@ export function ScrollToTopButton({
     }
   })
 
-  // If no isVisible is provided, create internal visibility logic
-  useEffect(() => {
-    if (isVisible !== undefined) return
+  // If no isVisible is provided, create internal visibility logic - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (isVisible !== undefined) return () => {}
 
-    const container = containerRef?.current || window
-    const handleScroll = () => {
-      if (containerRef?.current) {
-        setInternalVisible(containerRef.current.scrollTop > 200)
-      } else {
-        setInternalVisible(window.pageYOffset > 200)
+      const container = containerRef?.current || window
+      const handleScroll = () => {
+        if (containerRef?.current) {
+          setInternalVisible(containerRef.current.scrollTop > 200)
+        } else {
+          setInternalVisible(window.pageYOffset > 200)
+        }
       }
-    }
 
-    if (container) {
-      container.addEventListener('scroll', handleScroll)
-      return () => container.removeEventListener('scroll', handleScroll)
-    }
-  }, [containerRef, isVisible])
+      if (container) {
+        container.addEventListener('scroll', handleScroll)
+        return () => container.removeEventListener('scroll', handleScroll)
+      }
+      return () => {}
+    }, [containerRef, isVisible]),
+    () => null,
+    () => null
+  )
 
   const shouldShow = isVisible !== undefined ? isVisible : internalVisible
 

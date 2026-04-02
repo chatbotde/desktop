@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { Key, Plus, Trash2, Globe, Check, Eye, EyeOff, Image, Music, Video, ChevronsUpDown, Mic } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -436,10 +436,15 @@ export function CustomModelsSection({ isDarkTheme = false }: { isDarkTheme?: boo
   const [providers, setProviders] = useState<CustomProvidersStore>(() => getCustomProviders())
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
-  // Load providers on mount
-  useEffect(() => {
-    setProviders(getCustomProviders())
-  }, [])
+  // Load providers on mount - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      setProviders(getCustomProviders())
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handleUpdateProvider = useCallback(
     (provider: CustomProviderType, updates: Partial<CustomProvidersStore[CustomProviderType]>) => {

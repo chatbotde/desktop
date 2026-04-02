@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useSyncExternalStore, useCallback } from 'react'
 import { useIsDark } from '@/shared/providers'
 
 export const useUIState = (outputWindowEnabled: boolean) => {
@@ -23,12 +23,17 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
-  // If the user disables the Output Window feature, hide the window immediately.
-  useEffect(() => {
-    if (!outputWindowEnabled && isOutputVisible) {
-      setIsOutputVisible(false)
-    }
-  }, [outputWindowEnabled, isOutputVisible])
+  // If the user disables the Output Window feature, hide the window immediately - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!outputWindowEnabled && isOutputVisible) {
+        setIsOutputVisible(false)
+      }
+      return () => {}
+    }, [outputWindowEnabled, isOutputVisible]),
+    () => null,
+    () => null
+  )
 
   // Theme is now managed globally by ThemeProvider, no need for local theme management
 

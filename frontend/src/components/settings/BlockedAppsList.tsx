@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore, useCallback } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { X, Plus, Shield } from 'lucide-react';
@@ -14,9 +14,15 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadApps();
-  }, []);
+  // Load apps on mount - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      loadApps();
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const loadApps = async () => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { X, Copy, Zap, Image, FileText, Code, FileImage } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -334,68 +334,73 @@ export function ClipboardPill({ onAdd, onAddImage, isDarkTheme = true }: Clipboa
         updateState({ isVisible: false })
     }, [content, onAdd, onAddImage, updateState])
 
-    useEffect(() => {
-        // Don't monitor clipboard if feature is disabled
-        if (!isFeatureEnabled('clipboard')) {
-            return
-        }
+    // Clipboard monitoring - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            if (!isFeatureEnabled('clipboard')) {
+                return () => {}
+            }
 
-        const checkClipboard = async () => {
-            const newContent = await readClipboardContent()
+            const checkClipboard = async () => {
+                const newContent = await readClipboardContent()
 
-            if (newContent) {
-                const newHash = generateContentHash(newContent)
+                if (newContent) {
+                    const newHash = generateContentHash(newContent)
 
-                // Only update if content has changed
-                if (newHash !== globalState.lastCheckHash) {
-                    updateState({
-                        lastCheckHash: newHash,
-                        content: newContent,
-                        isVisible: true
-                    })
+                    if (newHash !== globalState.lastCheckHash) {
+                        updateState({
+                            lastCheckHash: newHash,
+                            content: newContent,
+                            isVisible: true
+                        })
 
-                    // If auto-add is enabled, add it immediately
-                    if (globalState.isAutoAdd) {
-                        if (newContent.type === 'image' && newContent.imageDataUrl && onAddImage) {
-                            onAddImage(newContent.imageDataUrl)
-                        } else if (newContent.text) {
-                            onAdd(newContent.text)
+                        if (globalState.isAutoAdd) {
+                            if (newContent.type === 'image' && newContent.imageDataUrl && onAddImage) {
+                                onAddImage(newContent.imageDataUrl)
+                            } else if (newContent.text) {
+                                onAdd(newContent.text)
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Poll for changes
-        const interval = setInterval(checkClipboard, 500)
+            const interval = setInterval(checkClipboard, 500)
 
-        const handleFocus = () => checkClipboard()
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                checkClipboard()
+            const handleFocus = () => checkClipboard()
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === 'visible') {
+                    checkClipboard()
+                }
             }
-        }
 
-        window.addEventListener("focus", handleFocus)
-        document.addEventListener("visibilitychange", handleVisibilityChange)
+            window.addEventListener("focus", handleFocus)
+            document.addEventListener("visibilitychange", handleVisibilityChange)
 
-        return () => {
-            clearInterval(interval)
-            window.removeEventListener("focus", handleFocus)
-            document.removeEventListener("visibilitychange", handleVisibilityChange)
-        }
-    }, [onAdd, onAddImage, isFeatureEnabled, readClipboardContent, updateState])
+            return () => {
+                clearInterval(interval)
+                window.removeEventListener("focus", handleFocus)
+                document.removeEventListener("visibilitychange", handleVisibilityChange)
+            }
+        }, [onAdd, onAddImage, isFeatureEnabled, readClipboardContent, updateState]),
+        () => null,
+        () => null
+    )
 
-    // Auto-dismiss the pill after 8 seconds
-    useEffect(() => {
-        if (!isVisible) return
+    // Auto-dismiss the pill after 8 seconds - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            if (!isVisible) return () => {}
 
-        const timeout = setTimeout(() => {
-            updateState({ isVisible: false })
-        }, 8000)
+            const timeout = setTimeout(() => {
+                updateState({ isVisible: false })
+            }, 8000)
 
-        return () => clearTimeout(timeout)
-    }, [isVisible, updateState])
+            return () => clearTimeout(timeout)
+        }, [isVisible, updateState]),
+        () => null,
+        () => null
+    )
 
     // Hide if feature is disabled or not visible
     if (!isFeatureEnabled('clipboard') || !isVisible || !content) return null

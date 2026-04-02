@@ -1,5 +1,5 @@
 import { PromptInputActions } from "@/components/prompt-kit/prompt-input"
-import { useEffect, useRef } from "react"
+import { useRef, useSyncExternalStore, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { actionButtonRegistry } from "./registry/action-button-registry"
 import { registerDefaultActions } from "./actions/register-default-actions"
@@ -13,45 +13,32 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
   const { className } = props
   const contextRef = useRef(props)
 
-  // Update ref when props change (especially canSubmit, isLoading)
-  // The function components will read from this ref to get latest values
-  useEffect(() => {
-    contextRef.current = props
-  }, [props])
-
-  // Also update immediately on each render to ensure latest values
+  // Update ref immediately on each render to ensure latest values
   contextRef.current = props
 
-  // Register default actions on mount with a function that reads from ref
-  // This allows buttons to always read the latest context values
-  useEffect(() => {
-    // Clear any existing registrations
-    const existingButtons = actionButtonRegistry.getAll()
-    existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
+  // Register default actions - using syncExternalStore for lifecycle
+  useSyncExternalStore(
+    useCallback((callback) => {
+      // Clear any existing registrations
+      const existingButtons = actionButtonRegistry.getAll()
+      existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
 
-    // Register default actions with a function that reads from contextRef
-    // This makes the buttons reactive to context changes
-    registerDefaultActions(() => contextRef.current)
+      // Register default actions with a function that reads from contextRef
+      registerDefaultActions(() => contextRef.current)
 
-    // Cleanup on unmount
-    return () => {
-      const buttons = actionButtonRegistry.getAll()
-      buttons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
-    }
-  }, []) // Only register once on mount
-
-  // Re-register when key props change (for conditional buttons)
-  // Note: Submit and Grounding buttons use function components, so they read latest values automatically
-  useEffect(() => {
-    const existingButtons = actionButtonRegistry.getAll()
-    existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
-    registerDefaultActions(() => contextRef.current)
-  }, [
-    // Re-register when these key props change (affects conditional buttons visibility)
-    props.isGoogleModelSelected,
-    props.showLocalControlInPrompt,
-    // Note: groundingEnabled is NOT here because it reads reactively from context function
-  ])
+      // Cleanup on unmount
+      return () => {
+        const buttons = actionButtonRegistry.getAll()
+        buttons.forEach((btn) => actionButtonRegistry.unregister(btn.id))
+      }
+    }, [
+      // Re-register when these key props change (affects conditional buttons visibility)
+      props.isGoogleModelSelected,
+      props.showLocalControlInPrompt,
+    ]),
+    () => null,
+    () => null
+  )
 
   // Get all registered buttons and render them
   const leftSideButtons = actionButtonRegistry

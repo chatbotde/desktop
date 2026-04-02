@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -24,41 +24,49 @@ function getUserId() {
 }
 
 export function useChatHistory() {
-    const [history, setHistory] = useState<ChatHistoryItem[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
 
     // Using a ref to keep track of history for sync functions to avoid dependency cycles
     const historyRef = useRef<ChatHistoryItem[]>([])
 
-    // Update ref whenever state changes
-    useEffect(() => {
-        historyRef.current = history
-    }, [history])
+    // Load from local storage using useSyncExternalStore
+    const storedHistory = useSyncExternalStore(
+        () => () => {}, // no-op subscribe since localStorage doesn't have events for our key
+        () => {
+            if (typeof window === 'undefined') return '[]'
+            return localStorage.getItem(CHAT_HISTORY_KEY) || '[]'
+        },
+        () => '[]'
+    )
 
-    // Load from local storage immediately on mount
-    useEffect(() => {
-        const localData = localStorage.getItem(CHAT_HISTORY_KEY)
-        if (localData) {
-            try {
-                const parsed = JSON.parse(localData)
-                setHistory(parsed)
-                historyRef.current = parsed
-            } catch (e) {
-                console.error('Failed to parse local history', e)
+    // Initialize state from localStorage (once)
+    const [history, setHistory] = useState<ChatHistoryItem[]>(() => {
+        try {
+            const parsed = JSON.parse(storedHistory)
+            historyRef.current = parsed
+            return parsed
+        } catch {
+            return []
+        }
+    })
+
+    // Update ref whenever state changes - direct assignment instead of useEffect
+    historyRef.current = history
+
+    // Keep all hook instances in sync when history is cleared - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const onCleared = () => {
+                setHistory([])
+                historyRef.current = []
             }
-        }
-    }, [])
-
-    // Keep all hook instances in sync when history is cleared from settings (or elsewhere)
-    useEffect(() => {
-        const onCleared = () => {
-            setHistory([])
-            historyRef.current = []
-        }
-        window.addEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
-        return () => window.removeEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
-    }, [])
+            window.addEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
+            return () => window.removeEventListener(BUDDY_CHAT_HISTORY_CLEARED_EVENT, onCleared)
+        }, []),
+        () => null,
+        () => null
+    )
 
     // Save to local storage whenever history changes
     const saveToLocal = (items: ChatHistoryItem[]) => {
@@ -329,53 +337,56 @@ export function useChatHistory() {
         }
     }, [])
 
-    // Listen for online status to sync
-    useEffect(() => {
-        const handleOnline = () => {
-            console.log('App is online, syncing history...')
-            syncPendingChanges()
+    // Listen for online status to sync - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const handleOnline = () => {
+                console.log('App is online, syncing history...')
+                syncPendingChanges()
+                fetchHistory()
+            }
+            window.addEventListener('online', handleOnline)
+            return () => window.removeEventListener('online', handleOnline)
+        }, [syncPendingChanges, fetchHistory]),
+        () => null,
+        () => null
+    )
+
+    // Load initial history and subscribe to Supabase changes
+    // Using syncExternalStore for lifecycle management
+    useSyncExternalStore(
+        useCallback((callback) => {
+            // Initial fetch
             fetchHistory()
-        }
-        window.addEventListener('online', handleOnline)
+            syncPendingChanges()
 
-        // Also try to sync periodically if there are pending items? 
-        // Or just on mount/updates. 
+            const userId = getUserId()
+            if (!supabase) return () => {}
 
-        return () => window.removeEventListener('online', handleOnline)
-    }, [syncPendingChanges, fetchHistory])
+            const channel = supabase
+                .channel('chat_history_changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'chat_history',
+                        filter: `userId=eq.${userId}`
+                    },
+                    (payload) => {
+                        console.log('Realtime update received:', payload)
+                        fetchHistory()
+                    }
+                )
+                .subscribe()
 
-    // Load initial history and subscribe to changes
-    useEffect(() => {
-        fetchHistory()
-        syncPendingChanges()
-
-        const userId = getUserId()
-
-        if (!supabase) return
-
-        const channel = supabase
-            .channel('chat_history_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'chat_history',
-                    filter: `userId=eq.${userId}`
-                },
-                (payload) => {
-                    // Logic to handle realtime updates without overwriting local pending work
-                    // For simplicity, just refetching logic handles merge
-                    console.log('Realtime update received:', payload)
-                    fetchHistory()
-                }
-            )
-            .subscribe()
-
-        return () => {
-            supabase?.removeChannel(channel)
-        }
-    }, [fetchHistory, syncPendingChanges])
+            return () => {
+                supabase?.removeChannel(channel)
+            }
+        }, [fetchHistory, syncPendingChanges]),
+        () => null,
+        () => null
+    )
 
     return {
         history,

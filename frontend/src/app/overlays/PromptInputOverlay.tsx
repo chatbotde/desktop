@@ -1,5 +1,5 @@
 import { motion, useAnimation } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
 import { PromptInputWithActions } from '@/components'
 import { GLOBAL_THEME } from '@/global/theme'
 import { useAppState } from '../context/AppContext'
@@ -10,17 +10,27 @@ export function PromptInputOverlay() {
     const constraintsRef = useRef(null)
     const dragControls = useAnimation()
 
-    useEffect(() => {
-        if (!uiState.isInputVisible) {
-            setHasMovedDown(false)
-        }
-    }, [uiState.isInputVisible])
+    // Reset hasMovedDown when input becomes invisible - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            if (!uiState.isInputVisible) {
+                setHasMovedDown(false)
+            }
+            return () => {}
+        }, [uiState.isInputVisible]),
+        () => null,
+        () => null
+    )
 
-    useEffect(() => {
-        // Reset manual drag position whenever the base position shifts
-        // to prevent combined offsets from pushing the input off-screen.
-        dragControls.start({ x: 0, y: 0, transition: { type: "spring", damping: 30, stiffness: 300 } })
-    }, [hasMovedDown, dragControls])
+    // Reset drag position when base position shifts - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((_callback) => {
+            dragControls.start({ x: 0, y: 0, transition: { type: "spring", damping: 30, stiffness: 300 } })
+            return () => {}
+        }, [hasMovedDown, dragControls]),
+        () => null,
+        () => null
+    )
 
     const onSendWrapper = async (msg: string, attachments?: any[]) => {
         setHasMovedDown(true)

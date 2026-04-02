@@ -1,4 +1,4 @@
-import { forwardRef, useState, useEffect } from "react"
+import { forwardRef, useState, useSyncExternalStore, useCallback } from "react"
 import { Copy, Check } from "lucide-react"
 import { AddButton, type AddButtonProps } from "./add-button"
 
@@ -9,12 +9,18 @@ export const CopyButton = forwardRef<HTMLButtonElement, Omit<AddButtonProps, 'to
     (props, ref) => {
         const [copied, setCopied] = useState(false)
 
-        useEffect(() => {
-            if (copied) {
-                const timeout = setTimeout(() => setCopied(false), 2000)
-                return () => clearTimeout(timeout)
-            }
-        }, [copied])
+        // Auto-reset copied state after 2 seconds - using syncExternalStore
+        useSyncExternalStore(
+            useCallback(() => {
+                if (copied) {
+                    const timeout = setTimeout(() => setCopied(false), 2000)
+                    return () => clearTimeout(timeout)
+                }
+                return () => {}
+            }, [copied]),
+            () => null,
+            () => null
+        )
 
         const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
             setCopied(true)

@@ -64,12 +64,13 @@ export class SubscriptionService {
     const token = await getAuthToken();
     
     if (!token) {
+      const isDev = import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true';
       return {
         plan: 'free',
         isActive: false,
         trialDaysUsed: 0,
         trialDaysTotal: TRIAL_DAYS,
-        canMakeRequest: false,
+        canMakeRequest: isDev,
         isVip: false,
         validatedAt: now,
       };
@@ -130,18 +131,24 @@ export class SubscriptionService {
   }
 
   private getDefaultFreeStatus(): SubscriptionStatus {
+    const isDev = import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true';
     return {
       plan: 'free',
       isActive: false,
       trialDaysUsed: 0,
       trialDaysTotal: TRIAL_DAYS,
-      canMakeRequest: false,
+      canMakeRequest: isDev,
       isVip: false,
       validatedAt: Date.now(),
     };
   }
 
   private canMakeRequest(plan: SubscriptionPlan, trialDaysUsed: number, isVip?: boolean, isActive?: boolean): boolean {
+    // Development mode: bypass subscription checks
+    if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
+      return true;
+    }
+
     if (isVip) {
       return true;
     }
@@ -187,6 +194,11 @@ export class SubscriptionService {
   }
 
   async validateSubscriptionWithServer(): Promise<{ allowed: boolean; reason?: string }> {
+    // Development mode: bypass server validation
+    if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
+      return { allowed: true };
+    }
+
     const token = await getAuthToken();
     
     if (!token) {

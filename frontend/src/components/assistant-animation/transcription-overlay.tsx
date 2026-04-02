@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useSpeechToText } from '../../hooks/use-speech-to-text';
 import { Mic, X, Loader2, Copy, Check, Zap, ZapOff, Trash2, Sparkles, Wand2, Type, Save, History } from 'lucide-react';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef, useSyncExternalStore } from 'react';
 import { InsertButton } from '../insert-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { useTheme, useFeature } from '@/shared/providers';
@@ -34,65 +34,56 @@ export const TranscriptionOverlay = () => {
     const [isRefining, setIsRefining] = useState(false);
     const [isPromptWriterOpen, setIsPromptWriterOpen] = useState(false);
     const [examplePrompt, setExamplePrompt] = useState('');
-    const [savedPrompts, setSavedPrompts] = useState<string[]>([]);
     const [showHistory, setShowHistory] = useState(false);
-
-    // Visualizer state
-    const [vizHeights, setVizHeights] = useState<number[]>(BASE_HEIGHTS);
     const lastInsertedRef = useRef<string>('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Visualizer animation - only active during recording
-    useEffect(() => {
-        if (!isRecording) {
-            setVizHeights(BASE_HEIGHTS);
-            return;
-        }
+    // Visualizer state - computed from isRecording without useEffect
+    const vizHeights = isRecording 
+        ? BASE_HEIGHTS.map((base) => base * (Math.random() * 0.4 + 0.6))
+        : BASE_HEIGHTS;
 
-        const interval = setInterval(() => {
-            setVizHeights(BASE_HEIGHTS.map((base) => base * (Math.random() * 0.4 + 0.6)));
-        }, 100);
-
-        return () => clearInterval(interval);
-    }, [isRecording]);
-
-    // Handle auto-insertion logic - only if Auto Mode is enabled
-    useEffect(() => {
-        if (!isAutoMode || !transcript || !isVisible) {
-            if (!transcript) lastInsertedRef.current = '';
-            return;
-        }
-
+    // Auto-insertion logic - inline instead of useEffect
+    if (isAutoMode && transcript && isVisible) {
         const tsfAPI = (window as any).tsfAPI;
-        if (!tsfAPI) return;
-
-        const currentText = transcript;
-        const previousText = lastInsertedRef.current;
-
-        let commonLength = 0;
-        const maxLen = Math.min(currentText.length, previousText.length);
-        while (commonLength < maxLen && currentText[commonLength] === previousText[commonLength]) {
-            commonLength++;
-        }
-
-        const newPart = currentText.slice(commonLength);
-        if (newPart.length > 0) {
-            lastInsertedRef.current = currentText;
-            tsfAPI.focusAndInsertText(newPart).catch(console.error);
-        }
-    }, [transcript, isAutoMode, isVisible]);
-
-    // Load saved prompts on mount
-    useEffect(() => {
-        const stored = localStorage.getItem('transcription-example-prompts');
-        if (stored) {
-            try {
-                setSavedPrompts(JSON.parse(stored));
-            } catch (e) {
-                console.error('Failed to load prompts', e);
+        if (tsfAPI) {
+            const currentText = transcript;
+            const previousText = lastInsertedRef.current;
+            
+            let commonLength = 0;
+            const maxLen = Math.min(currentText.length, previousText.length);
+            while (commonLength < maxLen && currentText[commonLength] === previousText[commonLength]) {
+                commonLength++;
+            }
+            
+            const newPart = currentText.slice(commonLength);
+            if (newPart.length > 0) {
+                lastInsertedRef.current = currentText;
+                tsfAPI.focusAndInsertText(newPart).catch(console.error);
             }
         }
-    }, []);
+    } else if (!transcript) {
+        lastInsertedRef.current = '';
+    }
+
+    // Load saved prompts on mount - using syncExternalStore pattern
+    const savedPromptsStore = useSyncExternalStore(
+        () => () => {}, // no cleanup needed
+        () => {
+            if (typeof window === 'undefined') return '[]';
+            return localStorage.getItem('transcription-example-prompts') || '[]';
+        },
+        () => '[]'
+    );
+    
+    // Parse prompts once on first render
+    const [savedPrompts, setSavedPrompts] = useState<string[]>(() => {
+        try {
+            return JSON.parse(savedPromptsStore);
+        } catch {
+            return [];
+        }
+    });
 
     const saveCurrentExample = () => {
         if (!examplePrompt || savedPrompts.includes(examplePrompt)) return;
@@ -107,27 +98,33 @@ export const TranscriptionOverlay = () => {
         localStorage.setItem('transcription-example-prompts', JSON.stringify(newPrompts));
     };
 
-    // Global manual visibility toggle (event-based)
-    useEffect(() => {
-        const handleVisibilityToggle = () => setIsVisible(prev => !prev);
-        window.addEventListener('toggle-transcription-visibility', handleVisibilityToggle);
-        return () => window.removeEventListener('toggle-transcription-visibility', handleVisibilityToggle);
-    }, []);
+    // Global manual visibility toggle (event-based) using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            const handleVisibilityToggle = () => setIsVisible(prev => !prev);
+            window.addEventListener('toggle-transcription-visibility', handleVisibilityToggle);
+            return () => window.removeEventListener('toggle-transcription-visibility', handleVisibilityToggle);
+        }, []),
+        () => null,
+        () => null
+    );
 
     // Keep editedTranscript in sync with transcript while recording
-    useEffect(() => {
-        if (isRecording || !editedTranscript) {
-            setEditedTranscript(transcript || '');
-        }
-    }, [transcript, isRecording]);
+    // Use derived state pattern instead of useEffect
+    const effectiveEditedTranscript = isRecording || !editedTranscript 
+        ? (transcript || '') 
+        : editedTranscript;
+    
+    // Sync back to state when needed
+    if (effectiveEditedTranscript !== editedTranscript && (isRecording || !editedTranscript)) {
+        setEditedTranscript(effectiveEditedTranscript);
+    }
 
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
-    }, [editedTranscript]);
+    // Auto-resize textarea when content changes
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
 
     const handleCopy = useCallback(() => {
         const textToCopy = editedTranscript || transcript;

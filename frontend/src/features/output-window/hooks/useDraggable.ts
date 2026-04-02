@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore, useCallback } from 'react'
 import type { Position } from '../types'
 
 interface UseDraggableResult {
@@ -13,11 +13,13 @@ export function useDraggable(
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
-  useEffect(() => {
-    let animationFrameId: number;
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isDragging) return () => {}
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
+      let animationFrameId: number
+
+      const handleMouseMove = (e: MouseEvent) => {
         animationFrameId = requestAnimationFrame(() => {
           setPosition({
             x: e.clientX - dragOffset.x,
@@ -25,18 +27,17 @@ export function useDraggable(
           })
         })
       }
-    }
 
-    const handleMouseUp = () => {
-      setIsDragging(false)
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
+      const handleMouseUp = () => {
+        setIsDragging(false)
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId)
+        }
       }
-    }
 
-    if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
@@ -44,8 +45,10 @@ export function useDraggable(
           cancelAnimationFrame(animationFrameId)
         }
       }
-    }
-  }, [isDragging, dragOffset, setPosition])
+    }, [isDragging, dragOffset, setPosition]),
+    () => null,
+    () => null
+  )
 
   const handleDragMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()

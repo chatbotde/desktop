@@ -1,7 +1,7 @@
 import { VideoGeneration } from "./video-generation/video-generation"
 import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/lib/utils"
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useSyncExternalStore } from "react"
 import { ResizeHandle } from "@/features/output-window/components/ResizeHandle"
 import type { ResizeDirection } from "@/features/output-window/hooks/useResizable"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
@@ -83,18 +83,8 @@ export function VideoGenerationWindow({
     // Use fallback if no videos provided (for testing)
     const displayVideos = (videos && videos.length > 0) ? videos : [FALLBACK_VIDEO]
 
-    // Reset position and size when window becomes visible
-    useEffect(() => {
-        if (isVisible) {
-            setCardSize(DEFAULT_LOADING_SIZE)
-            setCurrentVideoIndex(0)
-            videoDimensionsCache.current.clear()
-        }
-    }, [isVisible])
-
     // Load and cache video dimensions
     const loadVideoDimensions = useCallback((videoUrl: string): Promise<CardDimensions> => {
-        // Check cache first
         const cached = videoDimensionsCache.current.get(videoUrl)
         if (cached) {
             return Promise.resolve(cached)
@@ -108,24 +98,42 @@ export function VideoGenerationWindow({
                 resolve(dimensions)
             }
             video.onerror = () => {
-                // Fallback to default size on error
                 resolve(DEFAULT_LOADING_SIZE)
             }
             video.src = videoUrl
         })
     }, [])
 
-    // Update card size when videos change or current index changes
-    useEffect(() => {
-        if (!isLoading) {
-            const currentVideo = displayVideos[currentVideoIndex]
-            if (currentVideo) {
-                loadVideoDimensions(currentVideo).then(setCardSize)
+    // Reset position and size when window becomes visible - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (isVisible) {
+                setCardSize(DEFAULT_LOADING_SIZE)
+                setCurrentVideoIndex(0)
+                videoDimensionsCache.current.clear()
             }
-        } else if (isLoading) {
-            setCardSize(DEFAULT_LOADING_SIZE)
-        }
-    }, [displayVideos, currentVideoIndex, isLoading, loadVideoDimensions])
+            return () => {}
+        }, [isVisible]),
+        () => null,
+        () => null
+    )
+
+    // Update card size when videos change or current index changes - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (!isLoading) {
+                const currentVideo = displayVideos[currentVideoIndex]
+                if (currentVideo) {
+                    loadVideoDimensions(currentVideo).then(setCardSize)
+                }
+            } else if (isLoading) {
+                setCardSize(DEFAULT_LOADING_SIZE)
+            }
+            return () => {}
+        }, [displayVideos, currentVideoIndex, isLoading, loadVideoDimensions]),
+        () => null,
+        () => null
+    )
 
     // Handle video index change from carousel
     const handleVideoIndexChange = useCallback((index: number) => {
@@ -179,17 +187,22 @@ export function VideoGenerationWindow({
         setIsResizing(false)
     }, [])
 
-    useEffect(() => {
-        if (isResizing) {
-            window.addEventListener("mousemove", handleGlobalMouseMove)
-            window.addEventListener("mouseup", handleGlobalMouseUp)
-        }
-        return () => {
-            window.removeEventListener("mousemove", handleGlobalMouseMove)
-            window.removeEventListener("mouseup", handleGlobalMouseUp)
-        }
-    }, [isResizing, handleGlobalMouseMove, handleGlobalMouseUp])
-
+    // Global mouse event listeners for resizing - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (isResizing) {
+                window.addEventListener("mousemove", handleGlobalMouseMove)
+                window.addEventListener("mouseup", handleGlobalMouseUp)
+                return () => {
+                    window.removeEventListener("mousemove", handleGlobalMouseMove)
+                    window.removeEventListener("mouseup", handleGlobalMouseUp)
+                }
+            }
+            return () => {}
+        }, [isResizing, handleGlobalMouseMove, handleGlobalMouseUp]),
+        () => null,
+        () => null
+    )
 
     const themeClasses = {
         containerBg: isDarkTheme ? GLOBAL_THEME.colors.dark.background : GLOBAL_THEME.colors.light.background,

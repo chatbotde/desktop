@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useState, useSyncExternalStore } from "react"
 import {
   Popover,
   PopoverContent,
@@ -44,50 +44,68 @@ export function ModelSelectorPopover({
   const [visibleModels, setVisibleModels] = useState<AIModel[]>([])
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // Load visible models
-  const loadModels = () => {
+  // Load visible models function
+  const loadModels = useCallback(() => {
     const allModels = getAvailableModels()
     const visibleIds = getVisibleModels()
 
-    // Filter to only show visible models AND those that are "working"
     const models = (visibleIds === null
-      ? allModels // null means show all
+      ? allModels
       : allModels.filter((m) => visibleIds.includes(m.id) || m.id.startsWith('custom-'))
     ).filter(isModelWorking)
 
     setVisibleModels(models)
     setSelectedModelState(getSelectedModel())
-  }
-
-  // Initial load
-  useEffect(() => {
-    loadModels()
   }, [])
 
-  // Reload when popover opens or config changes
-  useEffect(() => {
-    if (isOpen) {
+  // Initial load and when popover opens - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
       loadModels()
-    }
-  }, [isOpen, refreshTrigger])
+      return () => {}
+    }, [loadModels]),
+    () => null,
+    () => null
+  )
 
-  // Listen for visibility changes from settings
-  useEffect(() => {
-    const handler = () => loadModels()
-    window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
-    window.addEventListener('local-model-config-changed', () => setRefreshTrigger(t => t + 1))
-    return () => {
-      window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
-      window.removeEventListener('local-model-config-changed', () => setRefreshTrigger(t => t + 1))
-    }
-  }, [])
+  // Reload when popover opens or config changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (isOpen) {
+        loadModels()
+      }
+      return () => {}
+    }, [isOpen, refreshTrigger, loadModels]),
+    () => null,
+    () => null
+  )
 
-  // Listen for custom provider changes
-  useEffect(() => {
-    const handler = () => loadModels()
-    window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
-    return () => window.removeEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
-  }, [])
+  // Listen for visibility changes from settings - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const handler = () => loadModels()
+      const localModelHandler = () => setRefreshTrigger(t => t + 1)
+      window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
+      window.addEventListener('local-model-config-changed', localModelHandler)
+      return () => {
+        window.removeEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
+        window.removeEventListener('local-model-config-changed', localModelHandler)
+      }
+    }, [loadModels]),
+    () => null,
+    () => null
+  )
+
+  // Listen for custom provider changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const handler = () => loadModels()
+      window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
+      return () => window.removeEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
+    }, [loadModels]),
+    () => null,
+    () => null
+  )
 
   const handleModelChange = (modelId: string) => {
     // Clear local model selection if a cloud model is selected

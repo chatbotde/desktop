@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState, useSyncExternalStore, useRef, useCallback } from "react"
 import { Copy, Check, Download, ChevronDown, ChevronUp, Replace } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
@@ -58,107 +58,109 @@ export function TextSelectionOutput({
   streamingSpeed = 80, // characters per second
   isDarkTheme = true,
 }: TextSelectionOutputProps) {
-  const [copied, setCopied] = React.useState(false)
-  const [displayedContent, setDisplayedContent] = React.useState("")
-  const [isAnimating, setIsAnimating] = React.useState(false)
-  const [showContent, setShowContent] = React.useState(false)
-  const [isCollapsed, setIsCollapsed] = React.useState(false)
-  const contentRef = React.useRef<HTMLDivElement>(null)
-  const containerRef = React.useRef<HTMLDivElement>(null)
-  const animationRef = React.useRef<number | null>(null)
-  const lastContentRef = React.useRef<string>("")
+  const [copied, setCopied] = useState(false)
+  const [displayedContent, setDisplayedContent] = useState("")
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [showContent, setShowContent] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const animationRef = useRef<number | null>(null)
+  const lastContentRef = useRef<string>("")
 
-  // Smooth entrance animation
-  React.useEffect(() => {
-    const timer = setTimeout(() => setShowContent(true), 50)
-    return () => clearTimeout(timer)
-  }, [])
+  // Smooth entrance animation - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const timer = setTimeout(() => setShowContent(true), 50)
+      return () => clearTimeout(timer)
+    }, []),
+    () => null,
+    () => null
+  )
 
-  // Intercept link clicks to open in system browser
-  React.useEffect(() => {
-    const container = contentRef.current
-    if (!container) return
+  // Intercept link clicks to open in system browser - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const container = contentRef.current
+      if (!container) return () => {}
 
-    const handleLinkClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      const anchor = target.closest('a')
-      if (!anchor) return
+      const handleLinkClick = (event: MouseEvent) => {
+        const target = event.target as HTMLElement
+        const anchor = target.closest('a')
+        if (!anchor) return
 
-      const href = anchor.getAttribute('href')
-      if (!href) return
+        const href = anchor.getAttribute('href')
+        if (!href) return
 
-      // Only handle http/https/mailto links
-      if (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('mailto:')) {
-        return
-      }
+        if (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('mailto:')) {
+          return
+        }
 
-      event.preventDefault()
-      event.stopPropagation()
+        event.preventDefault()
+        event.stopPropagation()
 
-      // Use Electron's shell.openExternal if available
-      if (window.electronAPI?.shell?.openExternal) {
-        window.electronAPI.shell.openExternal(href).catch((error: Error) => {
-          console.error('[TextSelectionOutput] Failed to open external link:', error)
+        if (window.electronAPI?.shell?.openExternal) {
+          window.electronAPI.shell.openExternal(href).catch((error: Error) => {
+            console.error('[TextSelectionOutput] Failed to open external link:', error)
+            window.open(href, '_blank', 'noopener,noreferrer')
+          })
+        } else {
           window.open(href, '_blank', 'noopener,noreferrer')
-        })
-      } else {
-        window.open(href, '_blank', 'noopener,noreferrer')
+        }
       }
-    }
 
-    container.addEventListener('click', handleLinkClick, true)
-    return () => container.removeEventListener('click', handleLinkClick, true)
-  }, [])
+      container.addEventListener('click', handleLinkClick, true)
+      return () => container.removeEventListener('click', handleLinkClick, true)
+    }, []),
+    () => null,
+    () => null
+  )
 
-  // Typewriter streaming effect
-  React.useEffect(() => {
-    // If content is the same, don't re-animate
-    if (content === lastContentRef.current && displayedContent === content) {
-      return
-    }
-
-    // If new content is an extension of old content, continue from where we were
-    const isExtension = content.startsWith(lastContentRef.current)
-    const startIndex = isExtension ? displayedContent.length : 0
-
-    if (!isExtension) {
-      setDisplayedContent("")
-    }
-
-    lastContentRef.current = content
-    setIsAnimating(true)
-
-    const charInterval = 1000 / streamingSpeed
-    let currentIndex = startIndex
-
-    const animate = () => {
-      if (currentIndex < content.length) {
-        // Add characters in small batches for smoother rendering
-        const batchSize = Math.max(1, Math.floor(streamingSpeed / 30))
-        const nextIndex = Math.min(currentIndex + batchSize, content.length)
-        setDisplayedContent(content.slice(0, nextIndex))
-        currentIndex = nextIndex
-
-        // Auto-scroll removed to allow users to read from the top without forced scroll
-
-
-        animationRef.current = window.setTimeout(animate, charInterval * batchSize)
-      } else {
-        setIsAnimating(false)
+  // Typewriter streaming effect - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (content === lastContentRef.current && displayedContent === content) {
+        return () => {}
       }
-    }
 
-    // Start animation
-    animationRef.current = window.setTimeout(animate, 100)
+      const isExtension = content.startsWith(lastContentRef.current)
+      const startIndex = isExtension ? displayedContent.length : 0
 
-    return () => {
-      if (animationRef.current) {
-        clearTimeout(animationRef.current)
+      if (!isExtension) {
+        setDisplayedContent("")
       }
-    }
-  }, [content, streamingSpeed])
 
-  const handleCopy = React.useCallback(async () => {
+      lastContentRef.current = content
+      setIsAnimating(true)
+
+      const charInterval = 1000 / streamingSpeed
+      let currentIndex = startIndex
+
+      const animate = () => {
+        if (currentIndex < content.length) {
+          const batchSize = Math.max(1, Math.floor(streamingSpeed / 30))
+          const nextIndex = Math.min(currentIndex + batchSize, content.length)
+          setDisplayedContent(content.slice(0, nextIndex))
+          currentIndex = nextIndex
+          animationRef.current = window.setTimeout(animate, charInterval * batchSize)
+        } else {
+          setIsAnimating(false)
+        }
+      }
+
+      animationRef.current = window.setTimeout(animate, 100)
+
+      return () => {
+        if (animationRef.current) {
+          clearTimeout(animationRef.current)
+        }
+      }
+    }, [content, streamingSpeed]),
+    () => null,
+    () => null
+  )
+
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(content) // Copy full content
       setCopied(true)
@@ -170,7 +172,7 @@ export function TextSelectionOutput({
   }, [content, onCopy])
 
   // Skip animation button handler
-  const handleSkipAnimation = React.useCallback(() => {
+  const handleSkipAnimation = useCallback(() => {
     if (animationRef.current) {
       clearTimeout(animationRef.current)
     }

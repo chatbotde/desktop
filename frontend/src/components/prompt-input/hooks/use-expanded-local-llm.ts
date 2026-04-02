@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { unifiedLocalLLMService, type LocalLLMModel } from "@/lib/ai/local-llm"
 import { getShowLocalModelControl, subscribeShowLocalModelControl } from "@/lib/settings/prompt-controls"
 import { getSelectedModel } from "@/lib/ai/model-config"
@@ -15,11 +15,14 @@ export function useExpandedLocalLLM() {
   )
   const [groundingEnabled, setGroundingEnabledState] = useState<boolean>(() => getGroundingEnabled())
   const [selectedCloudModel, setSelectedCloudModel] = useState(() => getSelectedModel())
+  const [initialized, setInitialized] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (initialized) return () => {}
+
+      let cancelled = false
       ; (async () => {
-        // Use unifiedLocalLLMService to initialize and update configuration
         const result = await unifiedLocalLLMService.initialize()
         if (cancelled) return
 
@@ -29,35 +32,49 @@ export function useExpandedLocalLLM() {
         } else {
           setOllamaModels([])
         }
+        setInitialized(true)
       })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
-  useEffect(() => {
-    return subscribeShowLocalModelControl((value) => setShowLocalControlInPrompt(value))
-  }, [])
+      return () => { cancelled = true }
+    }, [initialized]),
+    () => null,
+    () => null
+  )
 
-  useEffect(() => {
-    return subscribeGroundingEnabled((value) => setGroundingEnabledState(value))
-  }, [])
+  useSyncExternalStore(
+    useCallback((callback) => {
+      return subscribeShowLocalModelControl((value) => setShowLocalControlInPrompt(value))
+    }, []),
+    () => null,
+    () => null
+  )
 
-  // Listen for model changes
-  useEffect(() => {
-    const handleModelChange = () => {
-      setSelectedCloudModel(getSelectedModel())
-    }
-    // Check on mount and listen for changes
-    handleModelChange()
-    window.addEventListener("model-selected", handleModelChange)
-    // Also listen to storage changes (for cross-tab sync)
-    window.addEventListener("storage", handleModelChange)
-    return () => {
-      window.removeEventListener("model-selected", handleModelChange)
-      window.removeEventListener("storage", handleModelChange)
-    }
-  }, [])
+  // Subscribe to grounding enabled - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      return subscribeGroundingEnabled((value) => setGroundingEnabledState(value))
+    }, []),
+    () => null,
+    () => null
+  )
+
+  // Listen for model changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const handleModelChange = () => {
+        setSelectedCloudModel(getSelectedModel())
+      }
+      handleModelChange()
+      window.addEventListener("model-selected", handleModelChange)
+      window.addEventListener("storage", handleModelChange)
+      return () => {
+        window.removeEventListener("model-selected", handleModelChange)
+        window.removeEventListener("storage", handleModelChange)
+      }
+    }, []),
+    () => null,
+    () => null
+  )
 
   const isGoogleModelSelected = selectedCloudModel?.provider === "google"
   const handleToggleGrounding = () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { useFeature } from "@/contexts/FeatureContext"
 import { VideoRecorderPill, VideoPreview } from "@/features/capture/components"
 import type { VideoData } from "@/hooks/useVideoRecording"
@@ -11,16 +11,20 @@ export function FeatureEffect() {
     const [recordedVideo, setRecordedVideo] = useState<VideoData | null>(null)
     const enabled = isFeatureEnabled(featureId)
 
-    useEffect(() => {
-        if (!enabled) {
-            setIsVisible(false)
-            return
-        }
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (!enabled) {
+                setIsVisible(false)
+                return () => {}
+            }
 
-        const handler = () => setIsVisible(true)
-        window.addEventListener('trigger-video-recording', handler)
-        return () => window.removeEventListener('trigger-video-recording', handler)
-    }, [enabled])
+            const handler = () => setIsVisible(true)
+            window.addEventListener('trigger-video-recording', handler)
+            return () => window.removeEventListener('trigger-video-recording', handler)
+        }, [enabled]),
+        () => null,
+        () => null
+    )
 
     const handleRecordingComplete = useCallback((video: VideoData) => {
         console.log('[VideoRecording] Recording complete:', video.name, video.duration, 'ms')

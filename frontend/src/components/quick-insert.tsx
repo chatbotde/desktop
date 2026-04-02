@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useSyncExternalStore, useMemo, useRef, useState, useCallback } from "react"
 import { AlertCircle, Check, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -69,131 +69,129 @@ export function QuickInsert({
   const normalizedText = useMemo(() => (text ?? "").trim(), [text])
   const insertKey = useMemo(() => normalizedText, [normalizedText])
 
-  useEffect(() => {
-    if (!enabled) {
-      setStatus("not-ready")
-      setMessage("")
-      return
-    }
-
-    if (!normalizedText) {
-      setStatus("idle")
-      setMessage("")
-      return
-    }
-
-    // Avoid inserting the same content multiple times due to re-renders
-    if (insertKey && lastInsertedKeyRef.current === insertKey) {
-      return
-    }
-
-    let cancelled = false
-
-    const run = async () => {
-      try {
-        setStatus("checking")
+  // Main insertion logic - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!enabled) {
+        setStatus("not-ready")
         setMessage("")
-
-        if (!window.tsfAPI) {
-          setStatus("error")
-          setMessage("Quick insert is unavailable (TSF bridge not ready).")
-          onError?.(new Error("TSF API is not available."))
-          onInserted?.(false)
-          return
-        }
-
-        await window.tsfAPI.initialize()
-
-        // Prefer the last *external* focus if available; otherwise fallback to the tracked last focused window.
-        const target =
-          (await window.tsfAPI.getLastExternalFocus?.()) ??
-          (await window.tsfAPI.getLastFocusedWindow?.())
-
-        if (!target || !target.processName) {
-          setStatus("no-target")
-          setMessage("Click into a text field in the app you want to type into, then try again.")
-          onInserted?.(false)
-          return
-        }
-
-        if (!target.isEditable) {
-          setStatus("not-editable")
-          setMessage(
-            `You're focused on "${target.processName}", but the cursor isn't in a text box. Click into a text field (caret visible) and try again.`
-          )
-          onInserted?.(false)
-          return
-        }
-
-        setStatus("inserting")
-
-        let ok = false
-        try {
-          if (window.electronAPI?.globalShortcut?.simulatePaste) {
-            console.log("Using clipboard+paste for quick insert...")
-
-            // 1. Copy text to clipboard
-            await window.electronAPI.clipboard.writeText(normalizedText)
-
-            // 2. Ensure focus is on the target window
-            const focusRestored = await window.tsfAPI.focusLastWindow()
-            if (!focusRestored) {
-              console.warn("Could not restore focus to target window")
-            }
-
-            // 3. Simulate Ctrl+V
-            await window.electronAPI.globalShortcut.simulatePaste()
-
-            // Assume success if no error thrown
-            ok = true
-          } else {
-            console.warn("Clipboard paste not available, falling back to TSF insert")
-            // Fallback to legacy TSF insert if simulatePaste is missing
-            ok = await window.tsfAPI.focusAndInsertText(normalizedText)
-          }
-        } catch (err) {
-          console.error("Quick insert failed:", err)
-          ok = false
-        }
-
-        if (cancelled) return
-
-        if (ok) {
-          lastInsertedKeyRef.current = insertKey
-          setStatus("success")
-          setMessage("Inserted.")
-          onInserted?.(true)
-        } else {
-          setStatus("error")
-          setMessage("Could not insert. Make sure the target app has a text cursor, then try again.")
-          onInserted?.(false)
-        }
-      } catch (e) {
-        if (cancelled) return
-        const err = e instanceof Error ? e : new Error("Unknown quick insert error")
-        setStatus("error")
-        setMessage(err.message || "Quick insert failed.")
-        onError?.(err)
-        onInserted?.(false)
+        return () => {}
       }
-    }
 
-    run()
+      if (!normalizedText) {
+        setStatus("idle")
+        setMessage("")
+        return () => {}
+      }
 
-    return () => {
-      cancelled = true
-    }
-  }, [enabled, insertKey, normalizedText, onError, onInserted])
+      if (insertKey && lastInsertedKeyRef.current === insertKey) {
+        return () => {}
+      }
 
-  // Auto-clear the success indicator (prevents the UI from looking "stuck")
-  useEffect(() => {
-    if (status !== "success") return
-    const t = window.setTimeout(() => {
-      setStatus("idle")
-      setMessage("")
-    }, 2000)
-    return () => window.clearTimeout(t)
-  }, [status])
+      let cancelled = false
+
+      const run = async () => {
+        try {
+          setStatus("checking")
+          setMessage("")
+
+          if (!window.tsfAPI) {
+            setStatus("error")
+            setMessage("Quick insert is unavailable (TSF bridge not ready).")
+            onError?.(new Error("TSF API is not available."))
+            onInserted?.(false)
+            return
+          }
+
+          await window.tsfAPI.initialize()
+
+          const target =
+            (await window.tsfAPI.getLastExternalFocus?.()) ??
+            (await window.tsfAPI.getLastFocusedWindow?.())
+
+          if (!target || !target.processName) {
+            setStatus("no-target")
+            setMessage("Click into a text field in the app you want to type into, then try again.")
+            onInserted?.(false)
+            return
+          }
+
+          if (!target.isEditable) {
+            setStatus("not-editable")
+            setMessage(
+              `You're focused on "${target.processName}", but the cursor isn't in a text box. Click into a text field (caret visible) and try again.`
+            )
+            onInserted?.(false)
+            return
+          }
+
+          setStatus("inserting")
+
+          let ok = false
+          try {
+            if (window.electronAPI?.globalShortcut?.simulatePaste) {
+              console.log("Using clipboard+paste for quick insert...")
+              await window.electronAPI.clipboard.writeText(normalizedText)
+              const focusRestored = await window.tsfAPI.focusLastWindow()
+              if (!focusRestored) {
+                console.warn("Could not restore focus to target window")
+              }
+              await window.electronAPI.globalShortcut.simulatePaste()
+              ok = true
+            } else {
+              console.warn("Clipboard paste not available, falling back to TSF insert")
+              ok = await window.tsfAPI.focusAndInsertText(normalizedText)
+            }
+          } catch (err) {
+            console.error("Quick insert failed:", err)
+            ok = false
+          }
+
+          if (cancelled) return
+
+          if (ok) {
+            lastInsertedKeyRef.current = insertKey
+            setStatus("success")
+            setMessage("Inserted.")
+            onInserted?.(true)
+          } else {
+            setStatus("error")
+            setMessage("Could not insert. Make sure the target app has a text cursor, then try again.")
+            onInserted?.(false)
+          }
+        } catch (e) {
+          if (cancelled) return
+          const err = e instanceof Error ? e : new Error("Unknown quick insert error")
+          setStatus("error")
+          setMessage(err.message || "Quick insert failed.")
+          onError?.(err)
+          onInserted?.(false)
+        }
+      }
+
+      run()
+
+      return () => {
+        cancelled = true
+      }
+    }, [enabled, insertKey, normalizedText, onError, onInserted]),
+    () => null,
+    () => null
+  )
+
+  // Auto-clear the success indicator - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (status !== "success") return () => {}
+      const t = window.setTimeout(() => {
+        setStatus("idle")
+        setMessage("")
+      }, 2000)
+      return () => window.clearTimeout(t)
+    }, [status]),
+    () => null,
+    () => null
+  )
 
   if (!showStatus) return null
 

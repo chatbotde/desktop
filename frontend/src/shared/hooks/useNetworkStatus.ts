@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useSyncExternalStore, useCallback } from 'react'
 
 /**
  * Hook to monitor network connection status
@@ -46,41 +46,39 @@ export function useNetworkStatus() {
     }
   }, [])
 
-  useEffect(() => {
-    // Listen to browser online/offline events - immediate response
-    const handleOnline = () => {
-      setIsOnline(true)
-      // Verify with actual connection check in background
-      checkConnection()
-    }
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const handleOnline = () => {
+        setIsOnline(true)
+        checkConnection()
+      }
 
-    const handleOffline = () => {
-      // Immediate offline detection - no delay
-      setIsOnline(false)
-    }
+      const handleOffline = () => {
+        setIsOnline(false)
+      }
 
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
+      window.addEventListener('online', handleOnline)
+      window.addEventListener('offline', handleOffline)
 
-    // Immediate initial check - prioritize navigator.onLine for speed
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      setIsOnline(false)
-    } else {
-      // Only do fetch check if navigator says we're online
-      checkConnection()
-    }
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setIsOnline(false)
+      } else {
+        checkConnection()
+      }
 
-    // Faster periodic check (every 5 seconds for quicker detection)
-    const checkInterval = setInterval(() => {
-      checkConnection()
-    }, 5000)
+      const checkInterval = setInterval(() => {
+        checkConnection()
+      }, 5000)
 
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-      clearInterval(checkInterval)
-    }
-  }, [checkConnection])
+      return () => {
+        window.removeEventListener('online', handleOnline)
+        window.removeEventListener('offline', handleOffline)
+        clearInterval(checkInterval)
+      }
+    }, [checkConnection]),
+    () => null,
+    () => null
+  )
 
   return { isOnline, checkConnection }
 }

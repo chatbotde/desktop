@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState, useSyncExternalStore, useCallback } from "react"
 import { Cpu, RefreshCw, X, Plus, Minus } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -24,7 +24,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
 
   const textMuted = useMemo(() => (isDarkTheme ? "text-zinc-400" : "text-zinc-600"), [isDarkTheme])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const status = await window.electronAPI?.ollama?.isInstalled?.()
       setInstallStatus(status ?? null)
@@ -45,11 +45,19 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
       setIsRunning(false)
       setAvailableModels([])
     }
-  }
-
-  useEffect(() => {
-    refresh()
   }, [])
+
+  // Initial load using syncExternalStore pattern
+  const [, setHasLoaded] = useState(false)
+  useSyncExternalStore(
+    useCallback(() => {
+      refresh()
+      setHasLoaded(true)
+      return () => {}
+    }, [refresh]),
+    () => null,
+    () => null
+  )
 
   return (
     <div className="space-y-5">

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react';
 
 // Common Whisper hallucinations to filter out to prevent background noise from adding junk text
 const CLEANUP_REGEX = /\[BLANK_AUDIO\]|\(music\)|\(silence\)|Thank you for watching|Subtitled by|^[\s.,!?;]+$/gi;
@@ -191,12 +191,16 @@ export const useSpeechToText = (): UseSpeechToTextReturn => {
         }
     }, [transcribeCurrentBuffer, stopVolumeMonitor]);
 
-    // Ensure cleanup on unmount
-    useEffect(() => {
-        return () => {
-            stopVolumeMonitor();
-        };
-    }, [stopVolumeMonitor]);
+    // Ensure cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                stopVolumeMonitor();
+            };
+        }, [stopVolumeMonitor]),
+        () => null,
+        () => null
+    );
 
     return {
         isRecording,

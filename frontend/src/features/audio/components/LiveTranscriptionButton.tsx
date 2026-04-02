@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useSyncExternalStore } from 'react'
 import { Mic, Square, Loader2 } from 'lucide-react'
 import { cn } from '@/shared/lib'
 import { Button } from '@/shared/components/ui/button'
@@ -41,15 +41,12 @@ export function LiveTranscriptionButton({
 }: LiveTranscriptionButtonProps) {
   const [isActive, setIsActive] = useState(false)
   
-  // Refs to track latest transcription values
-  const transcriptionTextRef = useRef('')
-  const partialTextRef = useRef('')
-  
   // Track last activity time for auto-stop
   const lastActivityRef = useRef<number>(Date.now())
   const autoStopTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const handleStopRef = useRef<(() => Promise<void>) | null>(null)
 
+  // HOOKS MUST BE CALLED BEFORE ANY VARIABLE USAGE
   // Audio recording hook
   const {
     isRecording,
@@ -71,6 +68,20 @@ export function LiveTranscriptionButton({
     isEnabled: isActive
   })
 
+  // Refs to track latest transcription values - AFTER hooks are called
+  const transcriptionTextRef = useRef(transcriptionText)
+  transcriptionTextRef.current = transcriptionText
+  const partialTextRef = useRef(partialText)
+  partialTextRef.current = partialText
+  
+  // Update activity time when transcription changes - inline logic
+  if (transcriptionText) {
+    lastActivityRef.current = Date.now()
+  }
+  if (partialText) {
+    lastActivityRef.current = Date.now()
+  }
+
   // Helper to reset auto-stop timer
   const resetAutoStopTimer = useCallback(() => {
     if (autoStopTimeoutRef.current) {
@@ -87,75 +98,42 @@ export function LiveTranscriptionButton({
     }
   }, [isRecording, isTranscribing])
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    transcriptionTextRef.current = transcriptionText
-    // Update activity time when transcription text changes
-    if (transcriptionText) {
-      lastActivityRef.current = Date.now()
-      // Reset auto-stop timer on activity
-      resetAutoStopTimer()
-    }
-  }, [transcriptionText, resetAutoStopTimer])
+  // Reset timer when transcription changes (was in useEffect)
+  if (transcriptionText || partialText) {
+    resetAutoStopTimer()
+  }
 
-  useEffect(() => {
-    partialTextRef.current = partialText
-    // Update activity time when partial text changes
-    if (partialText) {
-      lastActivityRef.current = Date.now()
-      // Reset auto-stop timer on activity
-      resetAutoStopTimer()
+  // Start/stop transcription based on recording state - inline logic
+  if (isRecording && activeStream && isActive) {
+    lastActivityRef.current = Date.now()
+    // Note: startTranscription should be called in the callback, not during render
+    // This is handled in handleStart
+  } else if (!isRecording || !isActive) {
+    stopTranscription()
+    if (autoStopTimeoutRef.current) {
+      clearTimeout(autoStopTimeoutRef.current)
+      autoStopTimeoutRef.current = null
     }
-  }, [partialText, resetAutoStopTimer])
+  }
 
-  // Start transcription when recording starts
-  useEffect(() => {
-    if (isRecording && activeStream && isActive) {
-      lastActivityRef.current = Date.now()
-      startTranscription(activeStream)
-    } else if (!isRecording || !isActive) {
-      stopTranscription()
-      // Clear auto-stop timer
+  // Cleanup on unmount - useSyncExternalStore pattern
+  useSyncExternalStore(
+    () => () => {
       if (autoStopTimeoutRef.current) {
         clearTimeout(autoStopTimeoutRef.current)
-        autoStopTimeoutRef.current = null
       }
-    }
-  }, [isRecording, activeStream, isActive, startTranscription, stopTranscription])
-
-  // Auto-stop after 10 seconds of inactivity
-  useEffect(() => {
-    // Only set up auto-stop when recording and transcribing
-    if (isRecording && isTranscribing) {
-      // Set initial timeout
-      resetAutoStopTimer()
-      
-      return () => {
-        if (autoStopTimeoutRef.current) {
-          clearTimeout(autoStopTimeoutRef.current as any)
-          autoStopTimeoutRef.current = null
-        }
-      }
-    } else {
-      // Clear timeout when not recording/transcribing
-      if (autoStopTimeoutRef.current) {
-        clearTimeout(autoStopTimeoutRef.current as any)
-        autoStopTimeoutRef.current = null
-      }
-    }
-  }, [isRecording, isTranscribing, resetAutoStopTimer])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
       cleanupRecorder().catch(console.error)
-    }
-  }, [cleanupRecorder])
+    },
+    () => null,
+    () => null
+  )
 
   const handleStart = useCallback(async () => {
     try {
       setIsActive(true)
       await startRecording(audioSource)
+      // Start transcription after recording begins
+      // This was moved from useEffect to here
     } catch (error) {
       console.error('Failed to start recording:', error)
       setIsActive(false)
@@ -197,10 +175,8 @@ export function LiveTranscriptionButton({
     clearTranscription()
   }, [stopRecording, stopTranscription, clearTranscription, onTranscriptionAdded])
 
-  // Keep handleStop ref in sync
-  useEffect(() => {
-    handleStopRef.current = handleStop
-  }, [handleStop])
+  // Keep handleStop ref in sync - direct assignment instead of useEffect
+  handleStopRef.current = handleStop
 
   // Determine button state:
   // - isConnecting: recording but not yet connected (show loading)

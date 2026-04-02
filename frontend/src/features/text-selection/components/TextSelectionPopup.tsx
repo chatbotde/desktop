@@ -1,5 +1,4 @@
-import * as React from 'react'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
 import { X } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
@@ -9,10 +8,7 @@ import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { useVoiceContext } from '@/features/voice'
 
-import { sendMessage as sendCloudMessage } from '@/lib/ai'
-import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { cn } from '@/lib/utils'
-import { combineMessageWithSelection } from '@/services/prompts/text-selection/prompt-builder'
 
 interface SelectionData {
   text: string
@@ -240,244 +236,194 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
     stopRef.current = true
   }, [])
 
-  useEffect(() => {
-    if (!isFeatureEnabled('text-selection')) {
-      setIsVisible(false)
-      handleStopAudio()
-      return
+  const handleCopy = useCallback(async () => {
+    if (!selectionData?.text) return
+    try {
+      await navigator.clipboard.writeText(selectionData.text)
+    } catch (error) {
+      console.error('Copy failed:', error)
     }
-
-    const handleSelectionChange = (data: SelectionData) => {
-      if (!isFeatureEnabled('text-selection')) return
-
-      if (!data?.text?.trim()) {
-        setIsVisible(false)
-        handleStopAudio()
-        return
-      }
-
-      // 1. Deciding position BEFORE appearing
-      // Pill dimensions are roughly fixed: ~200x48
-      const PILL_WIDTH = 200
-      const PILL_HEIGHT = 48
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      const padding = 20
-      const offset = 15
-
-      let anchorX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? data.endBottom?.x ?? data.startTop?.x
-      let anchorY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? data.endBottom?.y ?? data.startTop?.y
-
-      const isValidCoordinate = (val: number | undefined): boolean => {
-        return val !== undefined && !isNaN(val) && isFinite(val) && val >= 0
-      }
-
-      if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
-        anchorX = viewportWidth / 2
-        anchorY = viewportHeight / 2
-      }
-
-      // Primary calculation for initial appearance
-      let finalTop = (anchorY ?? 0) + offset
-      let finalLeft = anchorX ?? 0
-
-      // Vertical clamping based on estimated pill height
-      if (finalTop + PILL_HEIGHT > viewportHeight - padding) {
-        finalTop = (data.startTop?.y ?? anchorY ?? 0) - PILL_HEIGHT - offset
-      }
-      if (finalTop < padding) finalTop = padding
-
-      // Horizontal clamping based on estimated pill width
-      if (finalLeft + PILL_WIDTH > viewportWidth - padding) {
-        finalLeft = viewportWidth - PILL_WIDTH - padding
-      }
-      if (finalLeft < padding) finalLeft = padding
-
-      // Set selection data and position simultaneously to avoid flash
-      setSelectionData(data)
-      setPrompt('')
-      setIsExpanded(false)
-      setPosition({ top: finalTop, left: finalLeft })
-      handleStopAudio()
-
-      // Finally, set visible
-      setIsVisible(true)
-
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => {
-        setIsVisible(false)
-      }, 10000)
-    }
-
-    if (window.interfaceAPI?.onMessage) {
-      window.interfaceAPI.onMessage('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
-    }
-
-    return () => {
-      if (window.interfaceAPI?.removeMessageListener) {
-        window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
-      }
-      stopAutoHide()
-      handleStopAudio()
-    }
-  }, [isFeatureEnabled, stopAutoHide, handleStopAudio])
-
-
-  // Only update position smoothly when state changes significantly (like expanding)
-  React.useLayoutEffect(() => {
-    if (!isVisible || !popupRef.current || !selectionData || !position) return
-
-    const rect = popupRef.current.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const padding = 20
-    const offset = 15
-
-    let anchorX = selectionData.mousePosEnd?.x ?? selectionData.mousePosStart?.x ?? selectionData.endBottom?.x
-    let anchorY = selectionData.mousePosEnd?.y ?? selectionData.mousePosStart?.y ?? selectionData.endBottom?.y
-
-    const isValidCoordinate = (val: number | undefined): boolean => {
-      return val !== undefined && !isNaN(val) && isFinite(val) && val >= 0
-    }
-
-    if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
-      anchorX = position.left
-      anchorY = position.top
-    }
-
-    const anchorTopY = selectionData.startTop?.y ?? anchorY ?? 0
-    const safeAnchorY = anchorY ?? 0
-    const safeAnchorTopY = anchorTopY ?? 0
-
-    const posBelow = safeAnchorY + offset
-    const posAbove = safeAnchorTopY - rect.height - offset
-
-    let finalTop = posBelow
-    let finalLeft = anchorX ?? 0
-
-    const spaceBelow = viewportHeight - posBelow
-    const spaceAbove = anchorTopY
-
-    if (posBelow + rect.height > viewportHeight - padding) {
-      if (spaceAbove > rect.height + padding || spaceAbove > spaceBelow) {
-        finalTop = posAbove
-      } else {
-        finalTop = viewportHeight - rect.height - padding
-      }
-    }
-
-    if (finalTop < padding) finalTop = padding
-
-    if (isExpanded) {
-      finalLeft = (anchorX ?? 0) - (rect.width / 2)
-    } else {
-      finalLeft = anchorX ?? 0
-    }
-
-    if (finalLeft + rect.width > viewportWidth - padding) {
-      finalLeft = viewportWidth - rect.width - padding
-    }
-    if (finalLeft < padding) finalLeft = padding
-
-    // Only update if it's a real shift (e.g. from state change) to keep it stable
-    if (Math.abs(finalTop - position.top) > 1 || Math.abs(finalLeft - position.left) > 1) {
-      setPosition({ top: finalTop, left: finalLeft })
-    }
-  }, [isVisible, isExpanded, generatedOutput, selectionData])
-
-  useEffect(() => {
-    if (!isFeatureEnabled('text-selection')) setIsVisible(false)
-  }, [isFeatureEnabled])
+  }, [selectionData])
 
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isGenerating) return
-
-    const message = combineMessageWithSelection(prompt.trim(), selectionData?.text || '')
-
+    if (!prompt.trim() || !selectionData?.text || isGenerating) return
+    
     setIsGenerating(true)
     setGeneratedOutput(null)
     stopRef.current = false
-    stopAutoHide()
-
+    
     try {
-      const localModel = unifiedLocalLLMService.getCurrentModel()
-      let responseStream: AsyncGenerator<string, void, unknown>;
-
-      if (localModel) {
-        const init = await unifiedLocalLLMService.initialize()
-        if (!init.success) throw new Error(init.message)
-        responseStream = await unifiedLocalLLMService.sendMessage(message, undefined, localModel.name)
-      } else {
-        responseStream = await sendCloudMessage(message, undefined)
+      // Simple generation using fetch - adjust endpoint as needed
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: prompt,
+          context: selectionData.text,
+          stream: true
+        })
+      })
+      
+      if (!response.ok || !response.body) {
+        throw new Error('Generation failed')
       }
-
-      let fullResponse = ''
-      for await (const chunk of responseStream) {
+      
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let result = ''
+      
+      while (true) {
         if (stopRef.current) break
-        fullResponse += chunk
-        setGeneratedOutput(fullResponse)
+        
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        result += chunk
+        setGeneratedOutput(result)
       }
+      
+      setGeneratedOutput(result)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setGeneratedOutput(`Sorry, I could not generate a response right now. (${errorMessage})`)
+      console.error('Generation error:', error)
+      setGeneratedOutput('Error: Failed to generate response')
     } finally {
       setIsGenerating(false)
     }
-  }, [prompt, selectionData, isGenerating, stopAutoHide])
+  }, [prompt, selectionData, isGenerating])
 
   const handleInsert = useCallback(async () => {
     if (!generatedOutput) return
     try {
-      const tsfAPI = (window as any).tsfAPI;
-      if (!tsfAPI) return
-      await tsfAPI.initialize()
-      const selectedText = selectionData?.text?.trim() || ''
-      // Prepend a space if there's selected text to maintain separation
-      let textToInsert = selectedText ? ` ${generatedOutput}` : generatedOutput
-      
-      // Use the new method that appends instead of replacing
-      if (tsfAPI.focusAndInsertAtEnd) {
-        await tsfAPI.focusAndInsertAtEnd(textToInsert)
-      } else {
-        // Fallback for older interface-window version
-        let fallbackText = selectedText ? `${selectedText} ${generatedOutput}` : generatedOutput
-        await tsfAPI.focusAndReplaceText(fallbackText)
-      }
+      // Send insert command to main process
+      window.interfaceAPI?.sendMessage('insert-text', generatedOutput)
     } catch (error) {
-      console.error('Error inserting text:', error)
+      console.error('Insert failed:', error)
+    }
+  }, [generatedOutput])
+
+  const handleReplace = useCallback(async () => {
+    if (!generatedOutput || !selectionData?.text) return
+    try {
+      // Send replace command to main process
+      window.interfaceAPI?.sendMessage('replace-text', {
+        find: selectionData.text,
+        replace: generatedOutput
+      })
+    } catch (error) {
+      console.error('Replace failed:', error)
     }
   }, [generatedOutput, selectionData])
 
-  const handleReplace = useCallback(async () => {
+  const handleCopyOutput = useCallback(async () => {
     if (!generatedOutput) return
     try {
-      const tsfAPI = (window as any).tsfAPI;
-      if (!tsfAPI) return
-      await tsfAPI.initialize()
-      await tsfAPI.focusAndReplaceText(generatedOutput)
+      await navigator.clipboard.writeText(generatedOutput)
     } catch (error) {
-      console.error('Error replacing text:', error)
+      console.error('Copy output failed:', error)
     }
   }, [generatedOutput])
 
-  const handleCopy = useCallback(() => {
-    if (selectionData?.text) {
-      navigator.clipboard.writeText(selectionData.text)
-    }
-  }, [selectionData])
+  // Main selection change listener - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (!isFeatureEnabled('text-selection')) {
+        setIsVisible(false)
+        handleStopAudio()
+        return () => {}
+      }
 
-  const handleCopyOutput = useCallback(() => {
-    if (generatedOutput) {
-      navigator.clipboard.writeText(generatedOutput)
-    }
-  }, [generatedOutput])
+      const handleSelectionChange = (data: SelectionData) => {
+        if (!isFeatureEnabled('text-selection')) return
 
+        if (!data?.text?.trim()) {
+          setIsVisible(false)
+          handleStopAudio()
+          return
+        }
 
+        const PILL_WIDTH = 200
+        const PILL_HEIGHT = 48
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const padding = 20
+        const offset = 15
 
-  useEffect(() => {
-    if (isExpanded) stopAutoHide()
-    else if (isVisible) startAutoHide()
-  }, [isExpanded, isVisible, startAutoHide, stopAutoHide])
+        let anchorX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? data.endBottom?.x ?? data.startTop?.x
+        let anchorY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? data.endBottom?.y ?? data.startTop?.y
+
+        const isValidCoordinate = (val: number | undefined): boolean => {
+          return val !== undefined && !isNaN(val) && isFinite(val) && val >= 0
+        }
+
+        if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
+          anchorX = viewportWidth / 2
+          anchorY = viewportHeight / 2
+        }
+
+        let finalTop = (anchorY ?? 0) + offset
+        let finalLeft = anchorX ?? 0
+
+        if (finalTop + PILL_HEIGHT > viewportHeight - padding) {
+          finalTop = (data.startTop?.y ?? anchorY ?? 0) - PILL_HEIGHT - offset
+        }
+        if (finalTop < padding) finalTop = padding
+
+        if (finalLeft + PILL_WIDTH > viewportWidth - padding) {
+          finalLeft = viewportWidth - PILL_WIDTH - padding
+        }
+        if (finalLeft < padding) finalLeft = padding
+
+        setSelectionData(data)
+        setPrompt('')
+        setIsExpanded(false)
+        setPosition({ top: finalTop, left: finalLeft })
+        handleStopAudio()
+
+        setIsVisible(true)
+
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => {
+          setIsVisible(false)
+        }, 10000)
+      }
+
+      if (window.interfaceAPI?.onMessage) {
+        window.interfaceAPI.onMessage('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
+      }
+
+      return () => {
+        if (window.interfaceAPI?.removeMessageListener) {
+          window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
+        }
+        stopAutoHide()
+        handleStopAudio()
+      }
+    }, [isFeatureEnabled, stopAutoHide, handleStopAudio]),
+    () => null,
+    () => null
+  )
+
+  // Feature flag listener - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (!isFeatureEnabled('text-selection')) setIsVisible(false)
+      return () => {}
+    }, [isFeatureEnabled]),
+    () => null,
+    () => null
+  )
+
+  // Auto-hide when expanded - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (isExpanded) stopAutoHide()
+      else if (isVisible) startAutoHide()
+      return () => {}
+    }, [isExpanded, isVisible, startAutoHide, stopAutoHide]),
+    () => null,
+    () => null
+  )
 
   if (!isFeatureEnabled('text-selection')) return null
 

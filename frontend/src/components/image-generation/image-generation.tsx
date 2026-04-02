@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { Copy, Download, Check, X } from "lucide-react"
 import {
   Carousel,
@@ -28,29 +28,33 @@ export function ImageGeneration({
   onImageIndexChange,
   onClose,
 }: ImageGenerationProps) {
-  const [copiedIndex, setCopiedIndex] = React.useState<number | null>(null)
-  const [api, setApi] = React.useState<CarouselApi>()
-  const [currentIndex, setCurrentIndex] = React.useState(0)
-  const [failedImages, setFailedImages] = React.useState<Set<number>>(new Set())
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [api, setApi] = useState<CarouselApi>()
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set())
 
-  // Listen to carousel changes
-  React.useEffect(() => {
-    if (!api) return
+  // Listen to carousel changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!api) return () => {}
 
-    const onSelect = () => {
-      const index = api.selectedScrollSnap()
-      setCurrentIndex(index)
-      onImageIndexChange?.(index)
-    }
+      const onSelect = () => {
+        const index = api.selectedScrollSnap()
+        setCurrentIndex(index)
+        onImageIndexChange?.(index)
+      }
 
-    api.on("select", onSelect)
-    // Call once to set initial index
-    onSelect()
+      api.on("select", onSelect)
+      // Call once to set initial index
+      onSelect()
 
-    return () => {
-      api.off("select", onSelect)
-    }
-  }, [api, onImageIndexChange])
+      return () => {
+        api.off("select", onSelect)
+      }
+    }, [api, onImageIndexChange]),
+    () => null,
+    () => null
+  )
 
   const handleCopy = async (imageUrl: string, index: number) => {
     console.log('[ImageGeneration] handleCopy attempting to copy:', imageUrl);

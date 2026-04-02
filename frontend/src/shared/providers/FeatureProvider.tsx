@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, useContext, useState, useSyncExternalStore, useCallback, type ReactNode } from 'react'
 import type { FeatureId } from '@/features/feature-flags'
 import { getDefaultEnabledFeatureIds } from '@/features/feature-flags'
 
@@ -27,10 +26,15 @@ export function FeatureProvider({ children }: { children: ReactNode }) {
     return new Set(getDefaultEnabledFeatureIds())
   })
 
-  // Update localStorage when features change
-  useEffect(() => {
-    localStorage.setItem('enabled-features', JSON.stringify(Array.from(enabledFeatures)))
-  }, [enabledFeatures])
+  // Update localStorage when features change - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      localStorage.setItem('enabled-features', JSON.stringify(Array.from(enabledFeatures)))
+      return () => {}
+    }, [enabledFeatures]),
+    () => null,
+    () => null
+  )
 
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
     return enabledFeatures.has(featureId)

@@ -4,7 +4,7 @@
  * The main process only provides source IDs via desktopCapturer
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useSyncExternalStore } from 'react';
 
 // Types
 export type RecordingState = 'idle' | 'recording' | 'paused';
@@ -147,16 +147,20 @@ export function useVideoRecording(): UseVideoRecordingResult {
         }, 100);
     }, []);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            clearDurationInterval();
-            cleanupStream();
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-                mediaRecorderRef.current.stop();
-            }
-        };
-    }, [clearDurationInterval, cleanupStream]);
+    // Cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                clearDurationInterval();
+                cleanupStream();
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    mediaRecorderRef.current.stop();
+                }
+            };
+        }, [clearDurationInterval, cleanupStream]),
+        () => null,
+        () => null
+    )
 
     /**
      * Get available video sources from main process

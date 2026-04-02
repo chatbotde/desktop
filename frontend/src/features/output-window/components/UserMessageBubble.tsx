@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useSyncExternalStore, useCallback } from 'react'
 import { Copy, Check, Send, Play } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import type { ChatMessage } from '../types'
@@ -24,20 +24,25 @@ export function UserMessageBubble({
   const [shouldShowMore, setShouldShowMore] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (contentRef.current && !isExpanded) {
-        const { scrollHeight, clientHeight } = contentRef.current
-        if (scrollHeight > clientHeight) {
-          setShouldShowMore(true)
+  // Check overflow and listen for resize - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const checkOverflow = () => {
+        if (contentRef.current && !isExpanded) {
+          const { scrollHeight, clientHeight } = contentRef.current
+          if (scrollHeight > clientHeight) {
+            setShouldShowMore(true)
+          }
         }
       }
-    }
 
-    checkOverflow()
-    window.addEventListener('resize', checkOverflow)
-    return () => window.removeEventListener('resize', checkOverflow)
-  }, [message.content, isExpanded])
+      checkOverflow()
+      window.addEventListener('resize', checkOverflow)
+      return () => window.removeEventListener('resize', checkOverflow)
+    }, [message.content, isExpanded]),
+    () => null,
+    () => null
+  )
 
   const handleCopy = async () => {
     try {

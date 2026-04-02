@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useSyncExternalStore, useCallback } from 'react'
 import { getThemeClasses } from '@/features/prompt'
 
 interface AudioPlayerProps {
@@ -31,45 +31,54 @@ export function AudioPlayer({
   const audioRef = useRef<HTMLAudioElement>(null)
   const themeClasses = getThemeClasses(isDarkTheme)
 
-  // Update duration when audio loads
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+  // Audio event listeners - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const audio = audioRef.current
+      if (!audio) return () => {}
 
-    const handleLoadedMetadata = () => {
-      onDurationChange(audio.duration)
-    }
+      const handleLoadedMetadata = () => {
+        onDurationChange(audio.duration)
+      }
 
-    const handleTimeUpdate = () => {
-      onTimeUpdate(audio.currentTime)
-    }
+      const handleTimeUpdate = () => {
+        onTimeUpdate(audio.currentTime)
+      }
 
-    const handleEnded = () => {
-      onEnded()
-    }
+      const handleEnded = () => {
+        onEnded()
+      }
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('ended', handleEnded)
+      audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+      audio.addEventListener('timeupdate', handleTimeUpdate)
+      audio.addEventListener('ended', handleEnded)
 
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('ended', handleEnded)
-    }
-  }, [audioUrl, onTimeUpdate, onDurationChange, onEnded])
+      return () => {
+        audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        audio.removeEventListener('timeupdate', handleTimeUpdate)
+        audio.removeEventListener('ended', handleEnded)
+      }
+    }, [audioUrl, onTimeUpdate, onDurationChange, onEnded]),
+    () => null,
+    () => null
+  )
 
-  // Sync play/pause state with audio element
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+  // Sync play/pause state - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const audio = audioRef.current
+      if (!audio) return () => {}
 
-    if (isPlaying) {
-      audio.play().catch(console.error)
-    } else {
-      audio.pause()
-    }
-  }, [isPlaying])
+      if (isPlaying) {
+        audio.play().catch(console.error)
+      } else {
+        audio.pause()
+      }
+      return () => {}
+    }, [isPlaying]),
+    () => null,
+    () => null
+  )
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current

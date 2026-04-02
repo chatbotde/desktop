@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore, useState, useCallback } from "react"
 import { Search, Sparkles } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
@@ -16,20 +16,25 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
   const [visibleModelIds, setVisibleModelIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Load models and visibility state
-  useEffect(() => {
-    const models = getAvailableModels()
-    setAllModels(models)
+  // Load models and visibility state - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const models = getAvailableModels()
+      setAllModels(models)
 
-    const savedVisible = getVisibleModels()
-    if (savedVisible === null) {
-      // No settings yet - all models are visible by default
-      const allIds = models.map(m => m.id)
-      setVisibleModelIds(allIds)
-    } else {
-      setVisibleModelIds(savedVisible)
-    }
-  }, [])
+      const savedVisible = getVisibleModels()
+      if (savedVisible === null) {
+        // No settings yet - all models are visible by default
+        const allIds = models.map(m => m.id)
+        setVisibleModelIds(allIds)
+      } else {
+        setVisibleModelIds(savedVisible)
+      }
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handleToggle = (modelId: string, isOn: boolean) => {
     let newVisible: string[]

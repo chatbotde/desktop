@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useSyncExternalStore, useState, useCallback } from "react";
 import SnapEffectContainer from "@/shared/components/common/SnapEffectContainer";
 import SleepingCat from "./sleeping";
 import SitCat from "./sit";
@@ -123,18 +123,22 @@ const CatBuddy: React.FC<CatBuddyProps> = ({
 }) => {
     const [stepIndex, setStepIndex] = useState(0);
 
-    // Only run the auto-cycle when no posture is pinned from outside.
-    useEffect(() => {
-        if (pinnedPosture !== undefined) return;
+    // Only run the auto-cycle when no posture is pinned from outside - using syncExternalStore
+    useSyncExternalStore(
+        useCallback(() => {
+            if (pinnedPosture !== undefined) return () => {};
 
-        const currentDuration = CAT_POSTURE_SEQUENCE[stepIndex].duration;
+            const currentDuration = CAT_POSTURE_SEQUENCE[stepIndex].duration;
 
-        const timer = setTimeout(() => {
-            setStepIndex((prev) => (prev + 1) % CAT_POSTURE_SEQUENCE.length);
-        }, currentDuration);
+            const timer = setTimeout(() => {
+                setStepIndex((prev) => (prev + 1) % CAT_POSTURE_SEQUENCE.length);
+            }, currentDuration);
 
-        return () => clearTimeout(timer);
-    }, [stepIndex, pinnedPosture]);
+            return () => clearTimeout(timer);
+        }, [stepIndex, pinnedPosture]),
+        () => null,
+        () => null
+    )
 
     const activePosture =
         pinnedPosture !== undefined

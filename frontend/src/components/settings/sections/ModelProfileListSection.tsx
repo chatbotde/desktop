@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Search, Sparkles } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -12,19 +12,13 @@ import {
 } from "@/lib/settings/model-visibility"
 
 export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?: boolean }) {
-  const [allModels, setAllModels] = useState<AIModel[]>([])
-  const [visibleModelIds, setVisibleModelIds] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-
-  // Load models and visibility state
-  useEffect(() => {
-    const models = getAvailableModels()
-    setAllModels(models)
-
-    // getVisibleModels now returns default visible models if no custom settings
+  // Load models and visibility state using lazy initialization
+  const [allModels] = useState<AIModel[]>(() => getAvailableModels())
+  const [visibleModelIds, setVisibleModelIds] = useState<string[]>(() => {
     const savedVisible = getVisibleModels()
-    setVisibleModelIds(savedVisible ?? [])
-  }, [])
+    return savedVisible ?? []
+  })
+  const [searchQuery, setSearchQuery] = useState("")
 
   const handleToggle = (modelId: string, isOn: boolean) => {
     let newVisible: string[]

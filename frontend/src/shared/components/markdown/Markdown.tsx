@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useSyncExternalStore, useMemo, useCallback } from 'react'
 import { Button } from '@/shared/components/ui/button'
 import { Copy, Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/shared/lib'
@@ -71,34 +71,40 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
   const [html, setHtml] = useState('')
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  useEffect(() => {
-    const highlight = async () => {
-      try {
-        // Normalize and validate language
-        const lang = normalizeLanguage(language || 'plaintext')
+  // Highlight code when dependencies change - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const highlight = async () => {
+        try {
+          // Normalize and validate language
+          const lang = normalizeLanguage(language || 'plaintext')
 
-        // Get highlighter instance
-        const highlighter = await getHighlighter()
+          // Get highlighter instance
+          const highlighter = await getHighlighter()
 
-        // Generate highlighted HTML using Shiki with theme
-        // Use one-dark-pro for dark (colorful editor-like) and github-light for light
-        const theme = isDark ? 'one-dark-pro' : 'github-light'
-        const highlighted = highlighter.codeToHtml(code, {
-          lang,
-          theme
-        })
-        setHtml(highlighted)
-      } catch (error) {
-        console.error('Error highlighting code:', error)
-        // Fallback to plain code display
-        setHtml(`<pre><code>${code}</code></pre>`)
+          // Generate highlighted HTML using Shiki with theme
+          // Use one-dark-pro for dark (colorful editor-like) and github-light for light
+          const theme = isDark ? 'one-dark-pro' : 'github-light'
+          const highlighted = highlighter.codeToHtml(code, {
+            lang,
+            theme
+          })
+          setHtml(highlighted)
+        } catch (error) {
+          console.error('Error highlighting code:', error)
+          // Fallback to plain code display
+          setHtml(`<pre><code>${code}</code></pre>`)
+        }
       }
-    }
 
-    if (code) {
-      highlight()
-    }
-  }, [code, language, isDark])
+      if (code) {
+        highlight()
+      }
+      return () => {}
+    }, [code, language, isDark]),
+    () => null,
+    () => null
+  )
 
   const handleCopy = async () => {
     try {

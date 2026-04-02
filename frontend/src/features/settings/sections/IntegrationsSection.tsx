@@ -5,7 +5,7 @@
  * with OAuth support for multi-user apps.
  */
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import {
     Plug,
     ExternalLink,
@@ -441,65 +441,77 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
     const [isConnecting, setIsConnecting] = useState(false)
     const [oauthError, setOauthError] = useState<string | null>(null)
 
-    // Load saved config and connection on mount
-    useEffect(() => {
-        try {
-            const savedConfig = localStorage.getItem(NOTION_OAUTH_CONFIG_KEY)
-            if (savedConfig) {
-                setNotionConfig(JSON.parse(savedConfig))
+    // Load saved config and connection - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            try {
+                const savedConfig = localStorage.getItem(NOTION_OAUTH_CONFIG_KEY)
+                if (savedConfig) {
+                    setNotionConfig(JSON.parse(savedConfig))
+                }
+
+                const savedConnection = localStorage.getItem(NOTION_CONNECTION_KEY)
+                if (savedConnection) {
+                    setNotionConnection(JSON.parse(savedConnection))
+                }
+            } catch (e) {
+                console.error('Failed to load Notion config:', e)
+            }
+            return () => {}
+        }, []),
+        () => null,
+        () => null
+    )
+
+    // Listen for OAuth callback - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const handleOAuthCallback = async (event: MessageEvent) => {
+                if (event.data?.type === 'notion-oauth-callback') {
+                    const { code, error } = event.data
+
+                    if (error) {
+                        setOauthError(error)
+                        setIsConnecting(false)
+                        return
+                    }
+
+                    if (code && notionConfig) {
+                        await exchangeCodeForToken(code)
+                    }
+                }
             }
 
-            const savedConnection = localStorage.getItem(NOTION_CONNECTION_KEY)
-            if (savedConnection) {
-                setNotionConnection(JSON.parse(savedConnection))
-            }
-        } catch (e) {
-            console.error('Failed to load Notion config:', e)
-        }
-    }, [])
+            window.addEventListener('message', handleOAuthCallback)
+            return () => window.removeEventListener('message', handleOAuthCallback)
+        }, [notionConfig]),
+        () => null,
+        () => null
+    )
 
-    // Listen for OAuth callback
-    useEffect(() => {
-        const handleOAuthCallback = async (event: MessageEvent) => {
-            if (event.data?.type === 'notion-oauth-callback') {
-                const { code, error } = event.data
+    // Check URL for OAuth callback - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const params = new URLSearchParams(window.location.search)
+            const code = params.get('code')
+            const error = params.get('error')
+            const state = params.get('state')
 
+            if (state?.startsWith('notion-oauth-') && notionConfig) {
                 if (error) {
                     setOauthError(error)
-                    setIsConnecting(false)
-                    return
-                }
-
-                if (code && notionConfig) {
-                    await exchangeCodeForToken(code)
-                }
-            }
-        }
-
-        window.addEventListener('message', handleOAuthCallback)
-        return () => window.removeEventListener('message', handleOAuthCallback)
-    }, [notionConfig])
-
-    // Check URL for OAuth callback (for redirect flow)
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-        const error = params.get('error')
-        const state = params.get('state')
-
-        if (state?.startsWith('notion-oauth-') && notionConfig) {
-            if (error) {
-                setOauthError(error)
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname)
-            } else if (code) {
-                exchangeCodeForToken(code).then(() => {
-                    // Clean URL
                     window.history.replaceState({}, document.title, window.location.pathname)
-                })
+                } else if (code) {
+                    exchangeCodeForToken(code).then(() => {
+                        window.history.replaceState({}, document.title, window.location.pathname)
+                    })
+                }
             }
-        }
-    }, [notionConfig])
+            return () => {}
+        }, [notionConfig]),
+        () => null,
+        () => null
+    )
 
     const saveNotionConfig = useCallback((config: NotionOAuthAppConfig) => {
         setNotionConfig(config)

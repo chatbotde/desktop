@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import { createContext, useContext, useState, useSyncExternalStore, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 
 // Define available themes - easily extensible
@@ -48,17 +48,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return 'dark'
   })
 
-  // Update document class and localStorage when theme changes
-  useEffect(() => {
-    if (typeof document === 'undefined') return
+  // Update document class and localStorage when theme changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (typeof document === 'undefined') return () => {}
 
-    const root = document.documentElement
-    // Remove all theme classes
-    AVAILABLE_THEMES.forEach(t => root.classList.remove(t))
-    // Add current theme class
-    root.classList.add(theme)
-    localStorage.setItem('app-theme', theme)
-  }, [theme])
+      const root = document.documentElement
+      // Remove all theme classes
+      AVAILABLE_THEMES.forEach(t => root.classList.remove(t))
+      // Add current theme class
+      root.classList.add(theme)
+      localStorage.setItem('app-theme', theme)
+      return () => {}
+    }, [theme]),
+    () => null,
+    () => null
+  )
 
   const toggleTheme = () => {
     setThemeState(prev => prev === 'dark' ? 'light' : 'dark')

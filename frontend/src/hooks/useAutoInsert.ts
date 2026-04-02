@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useSyncExternalStore, useRef, useCallback } from 'react'
 import { useFeature } from '@/contexts/FeatureContext'
 import type { ChatMessage } from '@/features/output-window'
 
@@ -44,82 +44,82 @@ export function useAutoInsert({ messages }: UseAutoInsertOptions) {
   const insertedMessageIdsRef = useRef<Set<string>>(new Set())
   const lastMessageCountRef = useRef<number>(0)
 
-  useEffect(() => {
-    if (!isEnabled) {
-      // Reset tracking when disabled
-      insertedMessageIdsRef.current.clear()
-      lastMessageCountRef.current = 0
-      return
-    }
-
-    // Check if there are new assistant messages
-    const currentMessageCount = messages.length
-    const hasNewMessages = currentMessageCount > lastMessageCountRef.current
-
-    if (!hasNewMessages) {
-      return
-    }
-
-    // Find new assistant messages that haven't been inserted yet
-    const newAssistantMessages = messages
-      .filter(msg => 
-        msg.role === 'assistant' && 
-        !insertedMessageIdsRef.current.has(msg.id) &&
-        msg.content.trim().length > 0
-      )
-
-    if (newAssistantMessages.length === 0) {
-      lastMessageCountRef.current = currentMessageCount
-      return
-    }
-
-    // Process each new assistant message
-    newAssistantMessages.forEach(async (message) => {
-      // Mark as inserted immediately to prevent duplicate inserts
-      insertedMessageIdsRef.current.add(message.id)
-
-      // Get plain text from message content
-      const plainText = getPlainText(message.content)
-      
-      if (!plainText || plainText.trim().length === 0) {
-        return
+  // Auto-insert logic - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (!isEnabled) {
+        // Reset tracking when disabled
+        insertedMessageIdsRef.current.clear()
+        lastMessageCountRef.current = 0
+        return () => {}
       }
 
-      // Small delay to ensure message is complete
-      setTimeout(async () => {
-        if (!window.tsfAPI) {
-          console.log('[useAutoInsert] TSF API is not available')
+      const currentMessageCount = messages.length
+      const hasNewMessages = currentMessageCount > lastMessageCountRef.current
+
+      if (!hasNewMessages) {
+        return () => {}
+      }
+
+      const newAssistantMessages = messages
+        .filter(msg => 
+          msg.role === 'assistant' && 
+          !insertedMessageIdsRef.current.has(msg.id) &&
+          msg.content.trim().length > 0
+        )
+
+      if (newAssistantMessages.length === 0) {
+        lastMessageCountRef.current = currentMessageCount
+        return () => {}
+      }
+
+      newAssistantMessages.forEach(async (message) => {
+        insertedMessageIdsRef.current.add(message.id)
+
+        const plainText = getPlainText(message.content)
+        
+        if (!plainText || plainText.trim().length === 0) {
           return
         }
 
-        try {
-          // Initialize TSF if needed
-          await window.tsfAPI.initialize()
-
-          // Insert text into the last focused application
-          const success = await window.tsfAPI.focusAndInsertText(plainText)
-
-          if (success) {
-            console.log('[useAutoInsert] Successfully auto-inserted message:', message.id)
-          } else {
-            console.warn('[useAutoInsert] Failed to auto-insert message:', message.id)
+        setTimeout(async () => {
+          if (!window.tsfAPI) {
+            console.log('[useAutoInsert] TSF API is not available')
+            return
           }
-        } catch (error) {
-          console.error('[useAutoInsert] Error auto-inserting message:', error)
-        }
-      }, 300) // Small delay to ensure message is complete
-    })
 
-    // Update the last message count
-    lastMessageCountRef.current = currentMessageCount
-  }, [messages, isEnabled])
+          try {
+            await window.tsfAPI.initialize()
+            const success = await window.tsfAPI.focusAndInsertText(plainText)
+            if (success) {
+              console.log('[useAutoInsert] Successfully auto-inserted message:', message.id)
+            } else {
+              console.warn('[useAutoInsert] Failed to auto-insert message:', message.id)
+            }
+          } catch (error) {
+            console.error('[useAutoInsert] Error auto-inserting message:', error)
+          }
+        }, 300)
+      })
 
-  // Clean up inserted IDs when messages are cleared (when array becomes empty)
-  useEffect(() => {
-    if (messages.length === 0) {
-      insertedMessageIdsRef.current.clear()
-      lastMessageCountRef.current = 0
-    }
-  }, [messages.length])
+      lastMessageCountRef.current = currentMessageCount
+      return () => {}
+    }, [messages, isEnabled]),
+    () => null,
+    () => null
+  )
+
+  // Clean up when messages cleared - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (messages.length === 0) {
+        insertedMessageIdsRef.current.clear()
+        lastMessageCountRef.current = 0
+      }
+      return () => {}
+    }, [messages.length]),
+    () => null,
+    () => null
+  )
 }
 

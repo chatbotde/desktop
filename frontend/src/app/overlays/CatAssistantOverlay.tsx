@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useSyncExternalStore } from 'react'
 import { GLOBAL_THEME } from '@/global/theme'
 import CatBuddy from '@/components/lottie/cat'
 import type { CatPosture } from '@/components/lottie/cat'
@@ -57,6 +57,42 @@ export function CatAssistantOverlay() {
 
     // ── Animation state ──────────────────────────────────────────────────────
     const [talkFrame, setTalkFrame] = useState(0)
+    const talkFrameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // ── Talk-frame cycle (driven by isSpeaking) ──────────────────────────────
+    // Use ref to track if we're already animating
+    const isAnimatingRef = useRef(false)
+    
+    if (isSpeaking && !isAnimatingRef.current) {
+        isAnimatingRef.current = true
+        let frame = 0
+        setTalkFrame(frame)
+
+        const scheduleNext = () => {
+            frame = (frame + 1) % TALK_FRAMES.length
+            setTalkFrame(frame)
+            talkFrameTimerRef.current = setTimeout(scheduleNext, TALK_FRAMES[frame].ms)
+        }
+
+        talkFrameTimerRef.current = setTimeout(scheduleNext, TALK_FRAMES[0].ms)
+    } else if (!isSpeaking && isAnimatingRef.current) {
+        isAnimatingRef.current = false
+        if (talkFrameTimerRef.current) {
+            clearTimeout(talkFrameTimerRef.current)
+            talkFrameTimerRef.current = null
+        }
+    }
+
+    // Cleanup timer on unmount
+    useSyncExternalStore(
+        () => () => {
+            if (talkFrameTimerRef.current) {
+                clearTimeout(talkFrameTimerRef.current)
+            }
+        },
+        () => null,
+        () => null
+    )
 
     // ── Drag state ───────────────────────────────────────────────────────────
     const [isDragging, setIsDragging] = useState(false)
@@ -67,63 +103,25 @@ export function CatAssistantOverlay() {
     // ── Refs ─────────────────────────────────────────────────────────────────
     const xRef = useRef(initialX)
     const yRef = useRef(0)
-    const talkFrameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const isDraggingRef = useRef(false)
 
     // ── Visibility (toggle via event, same pattern as AssistantSphere) ────────
     const [isVisible, setIsVisible] = useState(false)
 
-    useEffect(() => {
-        const handleToggle = () => setIsVisible(prev => !prev)
-        window.addEventListener('toggle-cat-assistant-visibility', handleToggle)
-        return () => window.removeEventListener('toggle-cat-assistant-visibility', handleToggle)
-    }, [])
+    useSyncExternalStore(
+        useCallback(() => {
+            const handleToggle = () => setIsVisible(prev => !prev)
+            window.addEventListener('toggle-cat-assistant-visibility', handleToggle)
+            return () => window.removeEventListener('toggle-cat-assistant-visibility', handleToggle)
+        }, []),
+        () => null,
+        () => null
+    )
 
-    // Auto-disconnect when hidden
-    useEffect(() => {
-        if (!isVisible && connected) {
-            disconnect()
-        }
-    }, [isVisible, connected, disconnect])
-
-    // ── Talk-frame cycle (driven by isSpeaking) ──────────────────────────────
-    useEffect(() => {
-        if (isSpeaking) {
-            // Start cycling talk frames
-            let frame = 0
-            setTalkFrame(frame)
-
-            const scheduleNext = () => {
-                frame = (frame + 1) % TALK_FRAMES.length
-                setTalkFrame(frame)
-                talkFrameTimerRef.current = setTimeout(scheduleNext, TALK_FRAMES[frame].ms)
-            }
-
-            talkFrameTimerRef.current = setTimeout(scheduleNext, TALK_FRAMES[0].ms)
-
-            return () => {
-                if (talkFrameTimerRef.current) {
-                    clearTimeout(talkFrameTimerRef.current)
-                    talkFrameTimerRef.current = null
-                }
-            }
-        } else {
-            // Stop talk cycle
-            if (talkFrameTimerRef.current) {
-                clearTimeout(talkFrameTimerRef.current)
-                talkFrameTimerRef.current = null
-            }
-        }
-    }, [isSpeaking])
-
-    // ── Bootstrap position on mount ──────────────────────────────────────────
-    useEffect(() => {
-        const startX = window.innerWidth - REST_X_FROM_RIGHT
-        xRef.current = startX
-        yRef.current = 0
-        setX(startX)
-        setY(0)
-    }, [])
+    // Auto-disconnect when hidden - inline check instead of useEffect
+    if (!isVisible && connected) {
+        disconnect()
+    }
 
     // ── Drag handlers ────────────────────────────────────────────────────────
     const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {

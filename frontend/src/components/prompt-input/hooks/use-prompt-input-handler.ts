@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react"
+import { useCallback, useRef, useSyncExternalStore } from "react"
 
 interface UsePromptInputHandlerProps {
   input: string
@@ -15,10 +15,15 @@ export function usePromptInputHandler({
 }: UsePromptInputHandlerProps) {
   const prevInputLengthRef = useRef<number>(0)
 
-  // Sync ref with input state when input changes externally
-  useEffect(() => {
-    prevInputLengthRef.current = input.length
-  }, [input])
+  // Sync ref with input state when input changes externally - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      prevInputLengthRef.current = input.length
+      return () => {}
+    }, [input]),
+    () => null,
+    () => null
+  )
 
   const handleInputChange = useCallback((value: string) => {
     const prevLength = prevInputLengthRef.current

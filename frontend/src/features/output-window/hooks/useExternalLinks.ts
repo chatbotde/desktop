@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 
 /**
  * Hook to intercept link clicks and open them in the system's default browser
@@ -41,16 +41,20 @@ export function useExternalLinks<T extends HTMLElement = HTMLDivElement>() {
         }
     }, [])
 
-    useEffect(() => {
-        const container = containerRef.current
-        if (!container) return
+    useSyncExternalStore(
+        useCallback((callback) => {
+            const container = containerRef.current
+            if (!container) return () => {}
 
-        container.addEventListener('click', handleClick, true)
+            container.addEventListener('click', handleClick, true)
 
-        return () => {
-            container.removeEventListener('click', handleClick, true)
-        }
-    }, [handleClick])
+            return () => {
+                container.removeEventListener('click', handleClick, true)
+            }
+        }, [handleClick]),
+        () => null,
+        () => null
+    )
 
     return containerRef
 }

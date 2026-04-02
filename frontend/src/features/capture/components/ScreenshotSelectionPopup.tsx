@@ -6,7 +6,7 @@
  * or ask AI about the screenshot in place.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
 
 import { X } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
@@ -134,49 +134,65 @@ export function ScreenshotSelectionPopup({
     if (generatedOutput) navigator.clipboard.writeText(generatedOutput)
   }, [generatedOutput])
 
-  useEffect(() => {
-    const handler = (e: CustomEvent<{ file: File; position: { x: number; y: number } }>) => {
-      const { file: f, position: pos } = e.detail || {}
-      if (!f || !pos) return
-      const PILL_HEIGHT = 40
-      const PILL_WIDTH = 190
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      const padding = 20
-      const offset = 15
-      let top = pos.y + offset
-      let left = pos.x
-      if (top + PILL_HEIGHT > viewportHeight - padding) top = pos.y - PILL_HEIGHT - offset
-      if (top < padding) top = padding
-      if (left + PILL_WIDTH > viewportWidth - padding) left = viewportWidth - PILL_WIDTH - padding
-      if (left < padding) left = padding
-      setFile(f)
-      setPosition({ top, left })
-      setIsExpanded(false)
-      setPrompt('')
-      setGeneratedOutput(null)
-      setIsVisible(true)
-      stopAutoHide()
-      timerRef.current = setTimeout(() => setIsVisible(false), 6000)
-    }
-    window.addEventListener('screenshot-selection-captured', handler as EventListener)
-    return () => {
-      window.removeEventListener('screenshot-selection-captured', handler as EventListener)
-      stopAutoHide()
-    }
-  }, [stopAutoHide])
+  // Listen for screenshot selection captured event - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const handler = (e: CustomEvent<{ file: File; position: { x: number; y: number } }>) => {
+        const { file: f, position: pos } = e.detail || {}
+        if (!f || !pos) return
+        const PILL_HEIGHT = 40
+        const PILL_WIDTH = 190
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const padding = 20
+        const offset = 15
+        let top = pos.y + offset
+        let left = pos.x
+        if (top + PILL_HEIGHT > viewportHeight - padding) top = pos.y - PILL_HEIGHT - offset
+        if (top < padding) top = padding
+        if (left + PILL_WIDTH > viewportWidth - padding) left = viewportWidth - PILL_WIDTH - padding
+        if (left < padding) left = padding
+        setFile(f)
+        setPosition({ top, left })
+        setIsExpanded(false)
+        setPrompt('')
+        setGeneratedOutput(null)
+        setIsVisible(true)
+        stopAutoHide()
+        timerRef.current = setTimeout(() => setIsVisible(false), 6000)
+      }
+      window.addEventListener('screenshot-selection-captured', handler as EventListener)
+      return () => {
+        window.removeEventListener('screenshot-selection-captured', handler as EventListener)
+        stopAutoHide()
+      }
+    }, [stopAutoHide]),
+    () => null,
+    () => null
+  )
 
-  useEffect(() => {
-    if (isExpanded) stopAutoHide()
-    else if (isVisible) startAutoHide()
-  }, [isExpanded, isVisible, startAutoHide, stopAutoHide])
+  // Auto-hide effect when expanded changes - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      if (isExpanded) stopAutoHide()
+      else if (isVisible) startAutoHide()
+      return () => {}
+    }, [isExpanded, isVisible, startAutoHide, stopAutoHide]),
+    () => null,
+    () => null
+  )
 
+  // Cleanup for image preview URL - using syncExternalStore
   const imagePreviewUrl = file ? URL.createObjectURL(file) : null
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
-    }
-  }, [imagePreviewUrl])
+  useSyncExternalStore(
+    useCallback((callback) => {
+      return () => {
+        if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
+      }
+    }, [imagePreviewUrl]),
+    () => null,
+    () => null
+  )
 
   if (!isVisible || !position) return null
 

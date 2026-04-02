@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useSyncExternalStore, useCallback } from 'react'
 import { cn } from "@/shared/lib"
 import { getThemeClasses } from "@/features/prompt"
 import { useDraggable } from '@/features/output-window'
@@ -68,69 +68,75 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         isEnabled: showTranscription
     })
 
+    // Refs for state access in callbacks
     const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Sync transcription start/stop with recording state
-    useEffect(() => {
-        // Toggle track enablement based on paused state to handle "soft pause" for transcription
-        if (activeStream) {
-            activeStream.getAudioTracks().forEach(track => {
-                track.enabled = !isPaused
-            })
-        }
-
-        const shouldTranscribe = isRecording && showTranscription && activeStream
-
-        if (!shouldTranscribe) {
-            if (isTranscribing) stopTranscription()
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
-                creditSaveTimeoutRef.current = null
+    // Sync transcription start/stop - use syncExternalStore for lifecycle
+    useSyncExternalStore(
+        useCallback((callback) => {
+            // Toggle track enablement based on paused state
+            if (activeStream) {
+                activeStream.getAudioTracks().forEach(track => {
+                    track.enabled = !isPaused
+                })
             }
-            return
-        }
 
-        if (isPaused) {
-            // IF PAUSED:
-            // If we are currently connected, set a timer to disconnect after 10s to save credits.
-            // If we are already disconnected (because timeout fired previously), do nothing (stay disconnected).
-            if (isTranscribing && !creditSaveTimeoutRef.current) {
-                creditSaveTimeoutRef.current = setTimeout(() => {
-                    stopTranscription()
+            const shouldTranscribe = isRecording && showTranscription && activeStream
+
+            if (!shouldTranscribe) {
+                if (isTranscribing) stopTranscription()
+                if (creditSaveTimeoutRef.current) {
+                    clearTimeout(creditSaveTimeoutRef.current)
                     creditSaveTimeoutRef.current = null
-                }, 10000)
-            }
-        } else {
-            // IF RESUMED/RUNNING:
-            // 1. Clear any pending disconnect timer (fast resume)
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
-                creditSaveTimeoutRef.current = null
+                }
+                return () => {}
             }
 
-            // 2. If we were disconnected (due to long pause), reconnect immediately.
-            // If we are already transcribing, this does nothing.
-            if (!isTranscribing) {
-                startTranscription(activeStream!)
+            if (isPaused) {
+                if (isTranscribing && !creditSaveTimeoutRef.current) {
+                    creditSaveTimeoutRef.current = setTimeout(() => {
+                        stopTranscription()
+                        creditSaveTimeoutRef.current = null
+                    }, 10000)
+                }
+            } else {
+                if (creditSaveTimeoutRef.current) {
+                    clearTimeout(creditSaveTimeoutRef.current)
+                    creditSaveTimeoutRef.current = null
+                }
+                if (!isTranscribing) {
+                    startTranscription(activeStream!)
+                }
             }
-        }
-    }, [isRecording, showTranscription, activeStream, isTranscribing, startTranscription, stopTranscription, isPaused])
+            return () => {}
+        }, [isRecording, showTranscription, activeStream, isTranscribing, startTranscription, stopTranscription, isPaused]),
+        () => null,
+        () => null
+    )
 
     // Cleanup timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (creditSaveTimeoutRef.current) {
-                clearTimeout(creditSaveTimeoutRef.current)
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                if (creditSaveTimeoutRef.current) {
+                    clearTimeout(creditSaveTimeoutRef.current)
+                }
             }
-        }
-    }, [])
+        }, []),
+        () => null,
+        () => null
+    )
 
     // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            cleanupRecorder().catch(console.error)
-        }
-    }, [cleanupRecorder])
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                cleanupRecorder().catch(console.error)
+            }
+        }, [cleanupRecorder]),
+        () => null,
+        () => null
+    )
 
     const handleSourceClick = useCallback(async (selectedSource: AudioSourceType) => {
         if (isRecording) return
@@ -157,16 +163,21 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         setPartialText('')
     }, [setTranscriptionText, setPartialText])
 
-    // Auto-scroll transcription
-    useEffect(() => {
-        if (transcriptionContainerRef.current && (transcriptionText || partialText)) {
-            const container = transcriptionContainerRef.current
-            const scrollElement = container.querySelector('[style*="overflow-y"]') as HTMLElement
-            if (scrollElement) {
-                scrollElement.scrollTop = scrollElement.scrollHeight
+    // Auto-scroll transcription - use syncExternalStore for lifecycle
+    useSyncExternalStore(
+        useCallback((callback) => {
+            if (transcriptionContainerRef.current && (transcriptionText || partialText)) {
+                const container = transcriptionContainerRef.current
+                const scrollElement = container.querySelector('[style*="overflow-y"]') as HTMLElement
+                if (scrollElement) {
+                    scrollElement.scrollTop = scrollElement.scrollHeight
+                }
             }
-        }
-    }, [transcriptionText, partialText])
+            return () => {}
+        }, [transcriptionText, partialText]),
+        () => null,
+        () => null
+    )
 
     return (
         <div

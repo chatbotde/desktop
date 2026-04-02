@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSyncExternalStore, useCallback } from "react"
 import { ArrowUp, Square } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
@@ -56,14 +57,25 @@ export function TextSelectionInput({
     textarea.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`
   }, [maxHeight, minHeight])
 
-  React.useEffect(() => {
-    adjustHeight()
-  }, [value, adjustHeight])
+  // Auto-resize textarea - using syncExternalStore
+  React.useSyncExternalStore(
+    useCallback((callback) => {
+      adjustHeight()
+      return () => {}
+    }, [value, adjustHeight]),
+    () => null,
+    () => null
+  )
 
-  // Auto-focus on mount
-  React.useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
+  // Auto-focus on mount - using syncExternalStore
+  React.useSyncExternalStore(
+    useCallback((callback) => {
+      textareaRef.current?.focus()
+      return () => {}
+    }, []),
+    () => null,
+    () => null
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

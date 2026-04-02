@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore, useCallback } from "react"
 import { PromptInput } from "@/components/prompt-kit/prompt-input"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
@@ -60,10 +60,15 @@ export function PromptInputExpanded({
 
   const [isAnimatingIn, setIsAnimatingIn] = useState(true)
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsAnimatingIn(false), 50)
-    return () => clearTimeout(timer)
-  }, [])
+  // Animation timing on mount - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      const timer = setTimeout(() => setIsAnimatingIn(false), 50)
+      return () => clearTimeout(timer)
+    }, []),
+    () => null,
+    () => null
+  )
 
   const clipboardSetter = setClipboardItems ?? (() => { })
   const expandedSetter = setIsExpanded ?? (() => { })

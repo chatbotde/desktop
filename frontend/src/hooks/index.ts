@@ -5,7 +5,6 @@ export { useMessageManager } from './useMessageManager'
 export { useUIState } from './useUIState'
 export { useTextSelectionActions } from './useTextSelectionActions'
 export { useGlobalWindowAPI } from './useGlobalWindowAPI'
-export { useUpgradePopup } from './useUpgradePopup'
 
 // Gemini Live Audio hooks
 export { useGeminiLiveAudio } from './useGeminiLiveAudio'

@@ -179,13 +179,17 @@ function CalendarDayButton({
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)
-  React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus()
+  // Use callback ref pattern for focus management instead of useEffect
+  const setRef = React.useCallback((node: HTMLButtonElement | null) => {
+    ref.current = node
+    if (node && modifiers.focused) {
+      node.focus()
+    }
   }, [modifiers.focused])
 
   return (
     <Button
-      ref={ref}
+      ref={setRef}
       variant="ghost"
       size="icon"
       data-day={day.date.toLocaleDateString()}

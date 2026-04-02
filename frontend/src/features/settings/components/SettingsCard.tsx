@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useSyncExternalStore, useMemo, useState, useCallback } from "react"
 import { X } from "lucide-react"
 
 import { Card } from "@/shared/components/ui/card"
@@ -83,14 +83,24 @@ export function SettingsCard({
     () => loadFromStorage(STORAGE_KEY_GENERAL, DEFAULT_GENERAL)
   )
 
-  // Auto-save to localStorage whenever values change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PERSONALIZATION, JSON.stringify(personalization))
-  }, [personalization])
+  // Auto-save to localStorage whenever values change - using syncExternalStore
+  useSyncExternalStore(
+    useCallback((callback) => {
+      localStorage.setItem(STORAGE_KEY_PERSONALIZATION, JSON.stringify(personalization))
+      return () => {}
+    }, [personalization]),
+    () => null,
+    () => null
+  )
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_GENERAL, JSON.stringify(generalSettings))
-  }, [generalSettings])
+  useSyncExternalStore(
+    useCallback((callback) => {
+      localStorage.setItem(STORAGE_KEY_GENERAL, JSON.stringify(generalSettings))
+      return () => {}
+    }, [generalSettings]),
+    () => null,
+    () => null
+  )
 
   const activeLabel = SETTINGS_MENU_ITEMS.find((i) => i.id === activeSection)?.label ?? "Settings"
 

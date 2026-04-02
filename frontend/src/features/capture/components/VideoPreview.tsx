@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
 import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 import { useDraggable, useResizable } from '@/features/output-window'
@@ -39,7 +39,6 @@ export function VideoPreview({
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [videoUrl, setVideoUrl] = useState<string>('')
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -52,44 +51,41 @@ export function VideoPreview({
 
   const themeClasses = getThemeClasses(isDarkTheme)
 
-  // Create object URL for the video
-  useEffect(() => {
-    const url = video.data
-    setVideoUrl(url)
+  // Use video data directly
+  const videoUrl = video.data
 
-    return () => {
-      // Don't revoke if it's a blob URL, let the browser handle it
-    }
-  }, [video])
+  // Set up video event listeners - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      const videoElement = videoRef.current
+      if (!videoElement) return () => {}
 
-  // Set up video event listeners
-  useEffect(() => {
-    const videoElement = videoRef.current
-    if (!videoElement) return
+      const handleLoadedMetadata = () => {
+        setDuration(videoElement.duration * 1000)
+      }
 
-    const handleLoadedMetadata = () => {
-      setDuration(videoElement.duration * 1000) // Convert to ms
-    }
+      const handleTimeUpdate = () => {
+        setCurrentTime(videoElement.currentTime * 1000)
+      }
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(videoElement.currentTime * 1000) // Convert to ms
-    }
+      const handleEnded = () => {
+        setIsPlaying(false)
+        setCurrentTime(0)
+      }
 
-    const handleEnded = () => {
-      setIsPlaying(false)
-      setCurrentTime(0)
-    }
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.addEventListener('timeupdate', handleTimeUpdate)
+      videoElement.addEventListener('ended', handleEnded)
 
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
-    videoElement.addEventListener('timeupdate', handleTimeUpdate)
-    videoElement.addEventListener('ended', handleEnded)
-
-    return () => {
-      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      videoElement.removeEventListener('timeupdate', handleTimeUpdate)
-      videoElement.removeEventListener('ended', handleEnded)
-    }
-  }, [videoUrl])
+      return () => {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.removeEventListener('timeupdate', handleTimeUpdate)
+        videoElement.removeEventListener('ended', handleEnded)
+      }
+    }, [videoUrl]),
+    () => null,
+    () => null
+  )
 
   const handlePlayPause = () => {
     const videoElement = videoRef.current

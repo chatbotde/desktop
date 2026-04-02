@@ -7,10 +7,12 @@ export const BUDDY_GENERAL_SETTINGS_STORAGE_KEY = "buddy_general_settings"
 
 export interface BuddyGeneralSettings {
   language: string
+  showRightTransparent: boolean
 }
 
 export const DEFAULT_BUDDY_GENERAL_SETTINGS: BuddyGeneralSettings = {
   language: "english",
+  showRightTransparent: true,
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -35,7 +37,11 @@ export function readBuddyGeneralSettings(): BuddyGeneralSettings {
       typeof parsed.language === "string" && parsed.language.trim()
         ? parsed.language.trim().toLowerCase()
         : DEFAULT_BUDDY_GENERAL_SETTINGS.language
-    return { language: lang }
+    const showRightTransparent =
+      typeof parsed.showRightTransparent === "boolean"
+        ? parsed.showRightTransparent
+        : DEFAULT_BUDDY_GENERAL_SETTINGS.showRightTransparent
+    return { language: lang, showRightTransparent }
   } catch {
     return DEFAULT_BUDDY_GENERAL_SETTINGS
   }

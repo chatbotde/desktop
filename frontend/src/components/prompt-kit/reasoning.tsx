@@ -5,9 +5,10 @@ import { ChevronDownIcon } from "lucide-react"
 import React, {
   createContext,
   useContext,
-  useEffect,
+  useSyncExternalStore,
   useRef,
   useState,
+  useCallback,
 } from "react"
 import { Markdown } from "./markdown"
 
@@ -57,17 +58,23 @@ function Reasoning({
     onOpenChange?.(newOpen)
   }
 
-  useEffect(() => {
-    if (isStreaming && !wasAutoOpened) {
-      if (!isControlled) setInternalOpen(true)
-      setWasAutoOpened(true)
-    }
+  // Auto open/close based on streaming state - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (isStreaming && !wasAutoOpened) {
+        if (!isControlled) setInternalOpen(true)
+        setWasAutoOpened(true)
+      }
 
-    if (!isStreaming && wasAutoOpened) {
-      if (!isControlled) setInternalOpen(false)
-      setWasAutoOpened(false)
-    }
-  }, [isStreaming, wasAutoOpened, isControlled])
+      if (!isStreaming && wasAutoOpened) {
+        if (!isControlled) setInternalOpen(false)
+        setWasAutoOpened(false)
+      }
+      return () => {}
+    }, [isStreaming, wasAutoOpened, isControlled]),
+    () => null,
+    () => null
+  )
 
   return (
     <ReasoningContext.Provider
@@ -130,23 +137,28 @@ function ReasoningContent({
   const innerRef = useRef<HTMLDivElement>(null)
   const { isOpen } = useReasoningContext()
 
-  useEffect(() => {
-    if (!contentRef.current || !innerRef.current) return
+  // ResizeObserver for content height - using syncExternalStore
+  useSyncExternalStore(
+    useCallback(() => {
+      if (!contentRef.current || !innerRef.current) return () => {}
 
-    const observer = new ResizeObserver(() => {
-      if (contentRef.current && innerRef.current && isOpen) {
+      const observer = new ResizeObserver(() => {
+        if (contentRef.current && innerRef.current && isOpen) {
+          contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`
+        }
+      })
+
+      observer.observe(innerRef.current)
+
+      if (isOpen) {
         contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`
       }
-    })
 
-    observer.observe(innerRef.current)
-
-    if (isOpen) {
-      contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`
-    }
-
-    return () => observer.disconnect()
-  }, [isOpen])
+      return () => observer.disconnect()
+    }, [isOpen]),
+    () => null,
+    () => null
+  )
 
   const content = markdown ? (
     <Markdown>{children as string}</Markdown>

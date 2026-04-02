@@ -5,7 +5,7 @@
  * Records audio, sends to Gemini, and plays back the audio response.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useSyncExternalStore } from 'react';
 
 // Gemini Live API WebSocket endpoint
 const GEMINI_LIVE_API_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
@@ -333,12 +333,16 @@ export function useGeminiLiveAudio(options: UseGeminiLiveAudioOptions = {}) {
         updateState({ isConnected: false, isRecording: false, isProcessing: false });
     }, [stopRecording, updateState]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            disconnect();
-        };
-    }, [disconnect]);
+    // Cleanup on unmount - using syncExternalStore
+    useSyncExternalStore(
+        useCallback((callback) => {
+            return () => {
+                disconnect();
+            };
+        }, [disconnect]),
+        () => null,
+        () => null
+    );
 
     return {
         ...state,
