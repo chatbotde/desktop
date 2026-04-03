@@ -42,9 +42,9 @@ export function PromptInputOverlay() {
     return (
         <div ref={constraintsRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: GLOBAL_THEME.zIndex.input }}>
             <motion.div
-                initial={{ y: "-40vh", x: "-50%", opacity: 0, scale: 0.95 }}
+                initial={{ y: "-55vh", x: "-50%", opacity: 0, scale: 0.95 }}
                 animate={{
-                    y: hasMovedDown ? 0 : "-40vh",
+                    y: hasMovedDown ? 0 : "-55vh",
                     x: "-50%",
                     opacity: 1,
                     scale: 1

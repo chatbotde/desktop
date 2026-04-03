@@ -7,6 +7,7 @@ import { CopyButton } from '@/components/copy-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { useVoiceContext } from '@/features/voice'
+import { sendMessage } from '@/lib/ai'
 
 import { cn } from '@/lib/utils'
 
@@ -247,42 +248,24 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim() || !selectionData?.text || isGenerating) return
-    
+
     setIsGenerating(true)
     setGeneratedOutput(null)
     stopRef.current = false
-    
+
     try {
-      // Simple generation using fetch - adjust endpoint as needed
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: prompt,
-          context: selectionData.text,
-          stream: true
-        })
-      })
-      
-      if (!response.ok || !response.body) {
-        throw new Error('Generation failed')
-      }
-      
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
+      // Use the proper AI service to send the message
+      const fullPrompt = `Context: "${selectionData.text}"\n\nUser request: ${prompt}`
+      const stream = await sendMessage(fullPrompt)
+
+      // Stream the response and accumulate text
       let result = ''
-      
-      while (true) {
+      for await (const chunk of stream) {
         if (stopRef.current) break
-        
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
         result += chunk
         setGeneratedOutput(result)
       }
-      
+
       setGeneratedOutput(result)
     } catch (error) {
       console.error('Generation error:', error)
