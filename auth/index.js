@@ -24,9 +24,9 @@
 
 const { app } = require('electron');
 const { AuthWindow } = require('./auth-window');
-const { authService, AuthService } = require('./auth-service');
-const { tokenStore, TokenStore } = require('./token-store');
-const { deepLinkHandler, DeepLinkHandler } = require('./deep-link-handler');
+const { authService } = require('./auth-service');
+const { tokenStore } = require('./token-store');
+const { deepLinkHandler } = require('./deep-link-handler');
 const { registerAuthIpcHandlers, unregisterAuthIpcHandlers } = require('./ipc-handlers');
 const config = require('./config');
 
@@ -125,16 +125,13 @@ module.exports = {
   
   // Core services
   authService,
-  AuthService,
   tokenStore,
-  TokenStore,
   
   // UI
   AuthWindow,
   
   // Deep linking
   deepLinkHandler,
-  DeepLinkHandler,
   
   // IPC
   registerAuthIpcHandlers,

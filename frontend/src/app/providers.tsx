@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ThemeProvider, FeatureProvider, AnimationsProvider } from '@/shared/providers'
 import { FeatureEffects } from '@/features/feature-flags'
 import { VoiceProvider } from '@/features/voice'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 
 interface AppProvidersProps {
@@ -14,7 +15,8 @@ interface AppProvidersProps {
  * Provider order (outermost to innermost):
  * 1. ThemeProvider - Theme must be available to all components
  * 2. FeatureProvider - Feature flags control what's rendered
- * 3. FeatureEffects - Side effects based on feature state
+ * 3. AuthProvider - Auth and subscription state for all components
+ * 4. FeatureEffects - Side effects based on feature state
  * 
  * @example
  * <AppProviders>
@@ -25,12 +27,14 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider>
       <FeatureProvider>
-        <AnimationsProvider>
-          <VoiceProvider>
-            <FeatureEffects />
-            {children}
-          </VoiceProvider>
-        </AnimationsProvider>
+        <AuthProvider>
+          <AnimationsProvider>
+            <VoiceProvider>
+              <FeatureEffects />
+              {children}
+            </VoiceProvider>
+          </AnimationsProvider>
+        </AuthProvider>
       </FeatureProvider>
     </ThemeProvider>
 

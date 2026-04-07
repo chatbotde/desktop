@@ -133,14 +133,6 @@ class AuthWindow {
   }
 
   /**
-   * Update the window with auth state
-   * @param {Object} state - Auth state
-   */
-  updateAuthState(state) {
-    this.send('auth:state-changed', state);
-  }
-
-  /**
    * Destroy the window
    */
   destroy() {

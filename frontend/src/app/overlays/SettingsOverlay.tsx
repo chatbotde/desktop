@@ -2,9 +2,19 @@ import { SettingsCard } from '@/features/settings'
 import { useAppState } from '../context/AppContext'
 import { GLOBAL_THEME } from '@/global/theme'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 
 export function SettingsOverlay() {
     const { uiState, handleClearAllHistory } = useAppState()
+
+    // Listen for custom event to open settings
+    useEffect(() => {
+        const handleOpenSettings = () => {
+            uiState.setShowSettings(true)
+        }
+        window.addEventListener('buddy:open-settings', handleOpenSettings)
+        return () => window.removeEventListener('buddy:open-settings', handleOpenSettings)
+    }, [uiState])
 
     return (
         <AnimatePresence>

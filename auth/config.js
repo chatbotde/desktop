@@ -71,21 +71,21 @@ const config = {
     REFRESH_TOKEN: 'refresh_token',
     SESSION_TOKEN: 'session_token',
     USER_DATA: 'user_data',
+    LAST_VALIDATED: 'last_validated_at',
   },
 
   // ===========================================
   // SESSION CONFIGURATION
   // ===========================================
 
-  /**
-   * How often to check if the session is valid (in milliseconds)
-   */
-  SESSION_CHECK_INTERVAL: 5 * 60 * 1000, // 5 minutes
+  // Session check interval in milliseconds (30 minutes between checks when online)
+  SESSION_CHECK_INTERVAL: 30 * 60 * 1000,
 
-  /**
-   * How long before token expiry to attempt refresh (in milliseconds)
-   */
-  TOKEN_REFRESH_THRESHOLD: 5 * 60 * 1000, // 5 minutes before expiry
+  // Token refresh threshold - how long before expiry to attempt refresh (5 minutes)
+  TOKEN_REFRESH_THRESHOLD: 5 * 60 * 1000,
+
+  // Maximum offline session duration - how long to trust local tokens without server validation (7 days)
+  MAX_OFFLINE_SESSION_DAYS: 7,
 
   /**
    * Maximum number of token refresh retries

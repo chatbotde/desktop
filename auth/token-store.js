@@ -127,8 +127,9 @@ class TokenStore {
       tokens.accessToken && this.setToken(config.TOKEN_KEYS.ACCESS_TOKEN, tokens.accessToken),
       tokens.refreshToken && this.setToken(config.TOKEN_KEYS.REFRESH_TOKEN, tokens.refreshToken),
       tokens.sessionToken && this.setToken(config.TOKEN_KEYS.SESSION_TOKEN, tokens.sessionToken),
+      this.setLastValidatedAt(Date.now()), // Add this line to track offline session
     ]);
-    
+
     return results.every(r => r !== false);
   }
 
@@ -235,26 +236,48 @@ class TokenStore {
   isTokenExpired(token, threshold = 0) {
     const payload = this.parseJwt(token);
     if (!payload || !payload.exp) {
-      return true;
+      // Token is not a JWT or has no expiry claim.
+      // Treat as NOT expired — it may be an opaque session token
+      // whose validity is managed server-side (e.g. Supabase session).
+      return false;
     }
-    
+
     const expiryTime = payload.exp * 1000; // Convert to milliseconds
     const now = Date.now();
-    
+
     return now >= (expiryTime - threshold);
   }
 
   /**
-   * Get token expiry time
-   * @param {string} token - JWT token
-   * @returns {Date|null} Expiry date or null
+   * Get last successful validation timestamp
+   * @returns {Promise<number|null>} Timestamp or null
    */
-  getTokenExpiry(token) {
-    const payload = this.parseJwt(token);
-    if (!payload || !payload.exp) {
-      return null;
-    }
-    return new Date(payload.exp * 1000);
+  async getLastValidatedAt() {
+    const value = await this.getToken(config.TOKEN_KEYS.LAST_VALIDATED);
+    return value ? parseInt(value, 10) : null;
+  }
+
+  /**
+   * Set last successful validation timestamp
+   * @param {number} timestamp
+   * @returns {Promise<boolean>}
+   */
+  async setLastValidatedAt(timestamp) {
+    return this.setToken(config.TOKEN_KEYS.LAST_VALIDATED, timestamp.toString());
+  }
+
+  /**
+   * Check if offline session is still valid (within MAX_OFFLINE_SESSION_DAYS)
+   * @returns {Promise<boolean>}
+   */
+  async isOfflineSessionValid() {
+    const lastValidated = await this.getLastValidatedAt();
+    if (!lastValidated) return false;
+
+    const maxOfflineTime = config.MAX_OFFLINE_SESSION_DAYS * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    return (now - lastValidated) < maxOfflineTime;
   }
 }
 

@@ -1,6 +1,11 @@
-import { useState, useSyncExternalStore, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
+import { Badge } from "@/shared/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "@/shared/components/ui/avatar"
+import { Crown, Gift, CheckCircle2, AlertCircle, Loader2, User, LogOut, Trash2, CreditCard } from "lucide-react"
+import { subscriptionService, type SubscriptionStatus } from "@/lib/subscription"
 
 interface User {
   id: string
@@ -9,126 +14,220 @@ interface User {
   image?: string
 }
 
-// Auth state store for useSyncExternalStore
-interface AuthState {
-  user: User | null
-  loading: boolean
+const CACHE_KEY = 'cached_subscription'
+const USER_CACHE_KEY = 'cached_user'
+const CACHE_DURATION = 5 * 60 * 1000
+
+function getCachedUser(): User | null {
+  try {
+    const cached = localStorage.getItem(USER_CACHE_KEY)
+    if (!cached) return null
+    
+    const { data, expiresAt } = JSON.parse(cached)
+    if (Date.now() > expiresAt) {
+      localStorage.removeItem(USER_CACHE_KEY)
+      return null
+    }
+    return data
+  } catch {
+    return null
+  }
 }
 
-let currentAuthState: AuthState = { user: null, loading: true }
-const listeners = new Set<() => void>()
+function setCachedUser(user: User): void {
+  try {
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify({
+      data: user,
+      expiresAt: Date.now() + CACHE_DURATION
+    }))
+  } catch {}
+}
 
-function notifyListeners() {
-  listeners.forEach(cb => cb())
+function clearCachedUser(): void {
+  localStorage.removeItem(USER_CACHE_KEY)
+}
+
+function getCachedSubscription(): SubscriptionStatus | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (!cached) return null
+    
+    const { data, expiresAt } = JSON.parse(cached)
+    if (Date.now() > expiresAt) {
+      localStorage.removeItem(CACHE_KEY)
+      return null
+    }
+    return data
+  } catch {
+    return null
+  }
+}
+
+function setCachedSubscription(status: SubscriptionStatus): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      data: status,
+      expiresAt: Date.now() + CACHE_DURATION
+    }))
+  } catch {}
+}
+
+function clearCachedSubscription(): void {
+  localStorage.removeItem(CACHE_KEY)
 }
 
 export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isClearingTokens, setIsClearingTokens] = useState(false)
+  
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false)
+  
+  const [vipCode, setVipCode] = useState('')
+  const [isRedeeming, setIsRedeeming] = useState(false)
+  const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [showVipInput, setShowVipInput] = useState(false)
 
-  // Subscribe to auth state changes
-  const authState = useSyncExternalStore(
-    useCallback(() => {
-      if (!window.authAPI) {
-        currentAuthState = { user: null, loading: false }
-        notifyListeners()
-        return () => {}
-      }
+  useEffect(() => {
+    const cachedUser = getCachedUser()
+    if (cachedUser) {
+      setUser(cachedUser)
+      setIsLoadingUser(false)
+    }
 
-      // Subscribe to auth state updates
-      window.authAPI.subscribe()
-
-      // Initial fetch
-      window.authAPI.getUser?.().then((userData: User | null) => {
-        currentAuthState = { user: userData, loading: false }
-        notifyListeners()
-      }).catch(() => {
-        currentAuthState = { user: null, loading: false }
-        notifyListeners()
-      })
-
-      const unsubscribeStateChange = window.authAPI.onStateChange((state: { user?: User }) => {
-        currentAuthState = { user: state.user || null, loading: false }
-        notifyListeners()
-      })
-
-      const unsubscribeAuthSuccess = window.authAPI.onAuthSuccess((user: User) => {
-        currentAuthState = { user, loading: false }
-        notifyListeners()
-      })
-
-      const unsubscribeLogout = window.authAPI.onLogout(() => {
-        currentAuthState = { user: null, loading: false }
-        notifyListeners()
-      })
-
-      const unsubscribeRestored = window.authAPI.onSessionRestored((user: User) => {
-        currentAuthState = { user, loading: false }
-        notifyListeners()
-      })
-
-      return () => {
-        if (window.authAPI) {
-          window.authAPI.unsubscribe()
-        }
-        unsubscribeStateChange()
-        unsubscribeAuthSuccess()
-        unsubscribeLogout()
-        unsubscribeRestored()
-      }
-    }, []),
-    () => currentAuthState,
-    () => ({ user: null, loading: false })
-  )
-
-  const { user, loading } = authState
-
-  const handleSignOut = async () => {
     if (!window.authAPI) {
-      console.error("AuthAPI is not available")
+      setIsLoadingUser(false)
       return
     }
 
+    window.authAPI.getUser?.().then((userData: User | null) => {
+      setUser(userData)
+      if (userData) {
+        setCachedUser(userData)
+      }
+      setIsLoadingUser(false)
+    }).catch(() => {
+      if (!cachedUser) {
+        setUser(null)
+      }
+      setIsLoadingUser(false)
+    })
+
+    const unsubState = window.authAPI.onStateChange?.((state: { user?: User }) => {
+      setUser(state.user || null)
+      if (state.user) {
+        setCachedUser(state.user)
+      } else {
+        clearCachedUser()
+      }
+    })
+    const unsubSuccess = window.authAPI.onAuthSuccess?.((userData: User) => {
+      setUser(userData)
+      setCachedUser(userData)
+    })
+    const unsubLogout = window.authAPI.onLogout?.(() => {
+      setUser(null)
+      clearCachedUser()
+      clearCachedSubscription()
+    })
+
+    return () => {
+      unsubState?.()
+      unsubSuccess?.()
+      unsubLogout?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setSubscriptionStatus(null)
+      return
+    }
+
+    const cached = getCachedSubscription()
+    if (cached) {
+      setSubscriptionStatus(cached)
+    }
+
+    setIsLoadingSubscription(true)
+    subscriptionService.getSubscriptionStatus()
+      .then((status) => {
+        setSubscriptionStatus(status)
+        setCachedSubscription(status)
+      })
+      .catch(console.error)
+      .finally(() => setIsLoadingSubscription(false))
+  }, [user])
+
+  const handleSignOut = async () => {
+    if (!window.authAPI) return
     setIsSigningOut(true)
     try {
       window.authAPI.logout()
-      // The logout event listener will update the user state
-    } catch (error) {
-      console.error("Failed to sign out:", error)
     } finally {
       setIsSigningOut(false)
     }
   }
 
   const handleClearTokens = async () => {
-    if (!window.authAPI) {
-      console.error("AuthAPI is not available")
-      return
-    }
-
+    if (!window.authAPI) return
     setIsClearingTokens(true)
     try {
-      const result = await window.authAPI.clearTokens()
-      if (result.success) {
-        currentAuthState = { user: null, loading: false }
-        notifyListeners()
-        console.log("Tokens cleared successfully")
-      } else {
-        console.error("Failed to clear tokens:", result.error)
-      }
-    } catch (error) {
-      console.error("Failed to clear tokens:", error)
+      await window.authAPI.clearTokens()
+      clearCachedSubscription()
     } finally {
       setIsClearingTokens(false)
     }
   }
 
-  if (loading) {
+  const handleRedeemCode = async () => {
+    if (!vipCode.trim()) return
+
+    setIsRedeeming(true)
+    setRedeemMessage(null)
+
+    try {
+      const result = await subscriptionService.redeemVipCode(vipCode)
+      setRedeemMessage({
+        type: result.success ? 'success' : 'error',
+        message: result.message,
+      })
+
+      if (result.success) {
+        const status = await subscriptionService.getSubscriptionStatus(true)
+        setSubscriptionStatus(status)
+        setCachedSubscription(status)
+        setVipCode('')
+        setTimeout(() => {
+          setShowVipInput(false)
+          setRedeemMessage(null)
+        }, 2000)
+      }
+    } catch {
+      setRedeemMessage({
+        type: 'error',
+        message: 'Failed to redeem code. Please try again.',
+      })
+    } finally {
+      setIsRedeeming(false)
+    }
+  }
+
+  const getInitials = (name?: string) => {
+    if (!name) return '?'
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const trialProgress = subscriptionStatus 
+    ? Math.min((subscriptionStatus.trialDaysUsed / subscriptionStatus.trialDaysTotal) * 100, 100)
+    : 0
+
+  if (isLoadingUser) {
     return (
-      <div className="space-y-6">
-        <div className={cn("text-sm", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-          Loading account information...
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className={cn("h-6 w-6 animate-spin", isDarkTheme ? "text-zinc-400" : "text-zinc-500")} />
       </div>
     )
   }
@@ -136,18 +235,14 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
   if (!user) {
     return (
       <div className="space-y-6">
-        <div className={cn("text-sm", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-          You are not signed in.
+        <div className={cn("text-center py-8", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+          <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-sm">You are not signed in</p>
         </div>
         {window.authAPI && (
           <Button
-            variant="default"
             onClick={() => window.authAPI?.login()}
-            className={cn(
-              isDarkTheme
-                ? "bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
-                : "bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-            )}
+            className={cn("w-full py-6 text-sm font-medium", isDarkTheme ? "bg-zinc-100 text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800")}
           >
             Sign In
           </Button>
@@ -159,83 +254,179 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
   return (
     <div className="space-y-6">
       <div className={cn("space-y-4", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
-        <div>
-          <h3 className={cn("text-sm font-medium mb-2", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
-            Account Information
-          </h3>
-        </div>
-
-        <div className={cn(
-          "p-4 rounded-lg border",
-          isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
-        )}>
-          <div className="space-y-3">
-            {user.name && (
-              <div>
-                <div className={cn("text-xs font-medium mb-1", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-                  Name
-                </div>
-                <div className={cn("text-sm", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
-                  {user.name}
-                </div>
-              </div>
-            )}
-            
-            {user.email && (
-              <div>
-                <div className={cn("text-xs font-medium mb-1", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-                  Email
-                </div>
-                <div className={cn("text-sm", isDarkTheme ? "text-zinc-100" : "text-zinc-900")}>
+        <div className={cn("p-4 rounded-xl border", isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50")}>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={user.image} />
+              <AvatarFallback className={isDarkTheme ? "bg-zinc-800 text-zinc-300" : "bg-zinc-200 text-zinc-700"}>
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              {user.name && (
+                <p className="font-semibold text-base truncate">{user.name}</p>
+              )}
+              {user.email && (
+                <p className={cn("text-sm truncate", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
                   {user.email}
-                </div>
-              </div>
-            )}
-
-            {!user.name && !user.email && (
-              <div className={cn("text-sm", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
-                User ID: {user.id}
-              </div>
-            )}
+                </p>
+              )}
+              {!user.name && !user.email && (
+                <p className={cn("text-sm", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+                  ID: {user.id.slice(0, 8)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="pt-2 flex gap-2">
+        <div className={cn("p-4 rounded-xl border", isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50")}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span className="font-medium text-sm">Subscription</span>
+            </div>
+            {isLoadingSubscription && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+          </div>
+          
+          {subscriptionStatus ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge 
+                  className={cn(
+                    "text-xs px-2.5 py-1",
+                    subscriptionStatus.isVip && "bg-amber-500/20 text-amber-500 hover:bg-amber-500/30",
+                    subscriptionStatus.isActive && !subscriptionStatus.isVip && "bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30",
+                    !subscriptionStatus.isActive && !subscriptionStatus.isVip && (subscriptionStatus.trialDaysUsed >= subscriptionStatus.trialDaysTotal 
+                      ? "bg-red-500/20 text-red-500" 
+                      : "bg-zinc-500/20 text-zinc-500")
+                  )}
+                >
+                  {subscriptionStatus.isVip ? (
+                    <><Crown className="h-3 w-3 mr-1" /> VIP</>
+                  ) : subscriptionStatus.isActive ? (
+                    subscriptionStatus.plan === 'monthly' ? 'Monthly' : 'Yearly'
+                  ) : (
+                    'Free Trial'
+                  )}
+                </Badge>
+                
+                {subscriptionStatus.isVip && subscriptionStatus.vipExpiresAt && (
+                  <span className={cn("text-xs", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+                    until {new Date(subscriptionStatus.vipExpiresAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              
+              {!subscriptionStatus.isVip && !subscriptionStatus.isActive && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className={isDarkTheme ? "text-zinc-400" : "text-zinc-600"}>Trial Progress</span>
+                    <span className={cn(subscriptionStatus.trialDaysUsed >= subscriptionStatus.trialDaysTotal ? "text-red-500" : "text-amber-500")}>
+                      {subscriptionStatus.trialDaysUsed}/{subscriptionStatus.trialDaysTotal} days
+                    </span>
+                  </div>
+                  <div className={cn("h-2 rounded-full overflow-hidden", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")}>
+                    <div 
+                      className={cn("h-full rounded-full transition-all", trialProgress >= 100 ? "bg-red-500" : "bg-amber-500")}
+                      style={{ width: `${trialProgress}%` }}
+                    />
+                  </div>
+                  {subscriptionStatus.trialDaysUsed >= subscriptionStatus.trialDaysTotal && (
+                    <p className="text-xs text-red-500">Your trial has ended. Upgrade to continue.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : !isLoadingSubscription ? (
+            <p className={cn("text-sm", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+              Unable to load subscription
+            </p>
+          ) : null}
+        </div>
+
+        <div className={cn("p-4 rounded-xl border", isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50")}>
+          <div className="flex items-center gap-2 mb-3">
+            <Gift className="h-4 w-4" />
+            <span className="font-medium text-sm">Redeem Code</span>
+          </div>
+          
+          {!showVipInput ? (
+            <button
+              onClick={() => setShowVipInput(true)}
+              className={cn("text-xs font-medium transition-colors hover:underline", isDarkTheme ? "text-zinc-400 hover:text-zinc-300" : "text-zinc-600 hover:text-zinc-900")}
+            >
+              Have a VIP code?
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={vipCode}
+                  onChange={(e) => setVipCode(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  className={cn("h-9 text-sm font-mono", isDarkTheme ? "bg-zinc-800 border-zinc-700" : "bg-white border-zinc-300")}
+                  disabled={isRedeeming}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRedeemCode()}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleRedeemCode}
+                  disabled={!vipCode.trim() || isRedeeming}
+                  className="h-9 text-sm px-4"
+                >
+                  {isRedeeming ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Apply'
+                  )}
+                </Button>
+              </div>
+              
+              {redeemMessage && (
+                <div className={cn("flex items-center gap-1.5 text-xs font-medium", redeemMessage.type === 'success' ? "text-emerald-500" : "text-red-500")}>
+                  {redeemMessage.type === 'success' ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  )}
+                  {redeemMessage.message}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2">
           <Button
-            variant="destructive"
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className={cn(
-              isDarkTheme
-                ? "bg-red-600/80 text-white hover:bg-red-600"
-                : "bg-red-600 text-white hover:bg-red-700"
-            )}
+            className={cn("flex-1 py-5 text-sm", isDarkTheme ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200")}
           >
-            {isSigningOut ? "Signing out..." : "Sign Out"}
+            {isSigningOut ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <LogOut className="h-4 w-4 mr-2" />
+            )}
+            Sign Out
           </Button>
           
           <Button
             variant="outline"
             onClick={handleClearTokens}
             disabled={isClearingTokens}
-            className={cn(
-              isDarkTheme
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-            )}
+            className={cn("py-5 text-sm", isDarkTheme ? "border-zinc-700 bg-zinc-800 text-zinc-400 hover:bg-zinc-700" : "border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100")}
             title="Clear tokens (for testing)"
           >
-            {isClearingTokens ? "Clearing..." : "Clear Tokens"}
+            {isClearingTokens ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
     </div>
   )
 }
-
-
-
-
-
-
-
