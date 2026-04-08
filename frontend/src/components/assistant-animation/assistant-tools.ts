@@ -68,6 +68,24 @@ export const TOOLS_CONFIG = [{
                 },
                 required: ["info"]
             }
+        },
+        {
+            name: "point_to_element",
+            description: "Points to a specific location on the screen. Use this when the user asks where to click or where a UI element is. IMPORTANT: You must output relative percentage coordinates (from 0.0 to 100.0) based on the screen's dimensions derived from the last screenshot. For example, x_percent: 50, y_percent: 50 points exactly to the center of the screen.",
+            parameters: {
+                type: "object",
+                properties: {
+                    x_percent: {
+                        type: "number",
+                        description: "The x-coordinate as a percentage (0.0 to 100.0) relative to the left edge of the screen."
+                    },
+                    y_percent: {
+                        type: "number",
+                        description: "The y-coordinate as a percentage (0.0 to 100.0) relative to the top edge of the screen."
+                    }
+                },
+                required: ["x_percent", "y_percent"]
+            }
         }
     ]
 }];

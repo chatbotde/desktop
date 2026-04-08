@@ -24,7 +24,7 @@ export function FeaturesSection() {
           Enable or disable features to customize your experience.
         </p>
       </div>
-      
+
       {/* Theme Selection */}
       <div className={getThemeClasses(isDark, {
         dark: "border-zinc-800 bg-zinc-900/50",
@@ -70,8 +70,8 @@ export function FeaturesSection() {
               onClick={toggleTheme}
               className={cn(
                 "h-9 w-9",
-                isDark 
-                  ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700" 
+                isDark
+                  ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                   : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
               )}
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -98,7 +98,7 @@ export function FeaturesSection() {
         </div>
       </div>
 
-      <DynamicFeatureList includeIds={["clipboard", "text-selection", "exclude-from-screenshot", "output-window"]} />
+      <DynamicFeatureList includeIds={["clipboard", "text-selection", "exclude-from-screenshot", "output-window", "pointer-always-visible"]} />
     </div>
   )
 }

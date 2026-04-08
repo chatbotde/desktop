@@ -23,6 +23,8 @@ import { PromptInputOverlay } from './PromptInputOverlay'
 import { SettingsOverlay } from './SettingsOverlay'
 import { CatAssistantOverlay } from './CatAssistantOverlay'
 
+import { PointerOverlay } from './PointerOverlay'
+
 /**
  * Non-animation overlays — manually imported because they are not
  * Lottie animations and don't belong in the animation registry.
@@ -42,6 +44,7 @@ const STATIC_OVERLAYS: ComponentType[] = [
     PromptInputOverlay,
     SettingsOverlay,
     CatAssistantOverlay,
+    PointerOverlay,
 ]
 
 /**

@@ -454,8 +454,33 @@ export const useLiveAssistant = () => {
                                         response: { result: removed ? `I have removed "${info}" from my memory.` : `I couldn't find "${info}" in my memory.` },
                                         id: call.id
                                     });
-                                }
+                                } else if (call.name === 'point_to_element') {
+                                    const { x_percent, y_percent, x, y } = (call as any).args;
+                                    let targetX = 0;
+                                    let targetY = 0;
+                                    
+                                    // Use primary percentage based logic for accuracy regardless of screen density / resolution
+                                    if (x_percent !== undefined && y_percent !== undefined) {
+                                        targetX = (x_percent / 100.0) * window.innerWidth;
+                                        targetY = (y_percent / 100.0) * window.innerHeight;
+                                    } else {
+                                        // Fallback if model behaves poorly
+                                        targetX = x || 0;
+                                        targetY = y || 0;
+                                        // Try converting if the model assumed native pixels
+                                        if (window.devicePixelRatio && window.devicePixelRatio !== 1) {
+                                            targetX = targetX / window.devicePixelRatio;
+                                            targetY = targetY / window.devicePixelRatio;
+                                        }
+                                    }
 
+                                    window.dispatchEvent(new CustomEvent('assistant-point-to', { detail: { x: targetX, y: targetY } }));
+                                    responses.push({
+                                        name: call.name,
+                                        response: { result: `Pointer successfully moved to percentages: (${x_percent}%, ${y_percent}%).` },
+                                        id: call.id
+                                    });
+                                }
 
                             }
 
