@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   // ===========================================
   // LOGIN / SIGNUP / LOGOUT
   // ===========================================
-  
+
   /**
    * Start the login flow
    * Opens web browser for authentication
@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   login: (options = {}) => {
     ipcRenderer.send('auth:login', options);
   },
-  
+
   /**
    * Start the signup flow
    * Opens web browser for registration
@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   signup: (options = {}) => {
     ipcRenderer.send('auth:signup', options);
   },
-  
+
   /**
    * Log out the current user
    */
@@ -41,7 +41,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   // ===========================================
   // SESSION & USER INFO
   // ===========================================
-  
+
   /**
    * Check if user is currently authenticated
    * @returns {Promise<boolean>} Is authenticated
@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   isAuthenticated: () => {
     return ipcRenderer.invoke('auth:is-authenticated');
   },
-  
+
   /**
    * Get the current user data
    * @returns {Promise<Object|null>} User data or null
@@ -57,7 +57,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   getUser: () => {
     return ipcRenderer.invoke('auth:get-user');
   },
-  
+
   /**
    * Get the access token for API calls
    * @returns {Promise<string|null>} Access token or null
@@ -65,7 +65,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   getToken: () => {
     return ipcRenderer.invoke('auth:get-token');
   },
-  
+
   /**
    * Validate the current session with the server
    * @returns {Promise<boolean>} Is valid
@@ -73,7 +73,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   validateSession: () => {
     return ipcRenderer.invoke('auth:validate-session');
   },
-  
+
   /**
    * Manually refresh the authentication tokens
    * @returns {Promise<boolean>} Success
@@ -81,7 +81,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   refreshTokens: () => {
     return ipcRenderer.invoke('auth:refresh-tokens');
   },
-  
+
   /**
    * Submit a manual authentication token
    * Used when deep link doesn't work and user copies token from web
@@ -91,7 +91,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   submitManualToken: (token) => {
     return ipcRenderer.invoke('auth:submit-manual-token', token);
   },
-  
+
   /**
    * Get auth configuration
    * @returns {Promise<Object>} Config object
@@ -112,7 +112,7 @@ contextBridge.exposeInMainWorld('authAPI', {
   // ===========================================
   // EVENT LISTENERS
   // ===========================================
-  
+
   /**
    * Subscribe to auth state changes
    * Receive real-time updates when auth state changes
@@ -120,14 +120,14 @@ contextBridge.exposeInMainWorld('authAPI', {
   subscribe: () => {
     ipcRenderer.send('auth:subscribe');
   },
-  
+
   /**
    * Unsubscribe from auth state changes
    */
   unsubscribe: () => {
     ipcRenderer.send('auth:unsubscribe');
   },
-  
+
   /**
    * Listen for auth success
    * @param {Function} callback - Called with user data on success
@@ -138,7 +138,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:success', handler);
     return () => ipcRenderer.removeListener('auth:success', handler);
   },
-  
+
   /**
    * Listen for auth errors
    * @param {Function} callback - Called with error object
@@ -149,7 +149,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:error', handler);
     return () => ipcRenderer.removeListener('auth:error', handler);
   },
-  
+
   /**
    * Listen for logout events
    * @param {Function} callback - Called when logged out
@@ -160,7 +160,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:logout-complete', handler);
     return () => ipcRenderer.removeListener('auth:logout-complete', handler);
   },
-  
+
   /**
    * Listen for session expiry
    * @param {Function} callback - Called when session expires
@@ -171,7 +171,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:session-expired', handler);
     return () => ipcRenderer.removeListener('auth:session-expired', handler);
   },
-  
+
   /**
    * Listen for auth state changes
    * @param {Function} callback - Called with { isAuthenticated, user }
@@ -182,7 +182,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:state-changed', handler);
     return () => ipcRenderer.removeListener('auth:state-changed', handler);
   },
-  
+
   /**
    * Listen for auth required (need to login)
    * @param {Function} callback - Called when auth is required
@@ -193,7 +193,7 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.on('auth:required', handler);
     return () => ipcRenderer.removeListener('auth:required', handler);
   },
-  
+
   /**
    * Listen for session restored on app start
    * @param {Function} callback - Called with user data
