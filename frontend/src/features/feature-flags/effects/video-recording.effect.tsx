@@ -12,7 +12,7 @@ export function FeatureEffect() {
     const enabled = isFeatureEnabled(featureId)
 
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (!enabled) {
                 setIsVisible(false)
                 return () => {}

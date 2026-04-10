@@ -65,7 +65,7 @@ export function PromptInputTextarea({
 
   // Auto-resize textarea - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
         const scrollHeight = textareaRef.current.scrollHeight

@@ -91,7 +91,7 @@ export function useLiveTranscription({ onTranscriptionUpdate, isEnabled }: UseLi
 
     // Cleanup on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 if (transcriptionServiceRef.current) {
                     transcriptionServiceRef.current.stop().catch(console.error)

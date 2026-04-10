@@ -77,7 +77,7 @@ export const LiveWaveform = ({
   
   // Handle canvas resizing - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const canvas = canvasRef.current
       const container = containerRef.current
       if (!canvas || !container) return () => {}
@@ -105,7 +105,7 @@ export const LiveWaveform = ({
   )
   // Processing animation - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (processing && !active) {
         let time = 0
         transitionProgressRef.current = 0
@@ -198,7 +198,7 @@ export const LiveWaveform = ({
   )
   // Handle microphone setup and teardown - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!active) {
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop())
@@ -271,7 +271,7 @@ export const LiveWaveform = ({
   )
   // Animation loop - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const canvas = canvasRef.current
       if (!canvas) return () => {}
       const ctx = canvas.getContext("2d")

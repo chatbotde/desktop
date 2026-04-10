@@ -83,7 +83,7 @@ export function ImageGenerationWindow({
 
   // Reset position and size when window becomes visible - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (isVisible) {
         setCardSize(DEFAULT_LOADING_SIZE)
         setCurrentImageIndex(0)
@@ -120,7 +120,7 @@ export function ImageGenerationWindow({
 
   // Update card size when images change or current index changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isLoading) {
         const currentImage = displayImages[currentImageIndex]
         if (currentImage) {
@@ -189,7 +189,7 @@ export function ImageGenerationWindow({
 
   // Global mouse event listeners for resizing - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (isResizing) {
         window.addEventListener("mousemove", handleGlobalMouseMove)
         window.addEventListener("mouseup", handleGlobalMouseUp)

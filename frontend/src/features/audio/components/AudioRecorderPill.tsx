@@ -73,7 +73,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Sync transcription start/stop - use syncExternalStore for lifecycle
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             // Toggle track enablement based on paused state
             if (activeStream) {
                 activeStream.getAudioTracks().forEach(track => {
@@ -116,7 +116,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Cleanup timeout on unmount
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 if (creditSaveTimeoutRef.current) {
                     clearTimeout(creditSaveTimeoutRef.current)
@@ -129,7 +129,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Cleanup on unmount
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 cleanupRecorder().catch(console.error)
             }
@@ -165,7 +165,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Auto-scroll transcription - use syncExternalStore for lifecycle
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (transcriptionContainerRef.current && (transcriptionText || partialText)) {
                 const container = transcriptionContainerRef.current
                 const scrollElement = container.querySelector('[style*="overflow-y"]') as HTMLElement

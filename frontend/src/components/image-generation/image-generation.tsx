@@ -35,7 +35,7 @@ export function ImageGeneration({
 
   // Listen to carousel changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!api) return () => {}
 
       const onSelect = () => {

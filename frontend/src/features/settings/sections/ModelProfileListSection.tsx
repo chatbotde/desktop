@@ -18,7 +18,7 @@ export function ModelProfileListSection({ isDarkTheme = false }: { isDarkTheme?:
 
   // Load models and visibility state - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const models = getAvailableModels()
       setAllModels(models)
 

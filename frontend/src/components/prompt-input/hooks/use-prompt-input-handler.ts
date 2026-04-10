@@ -17,7 +17,7 @@ export function usePromptInputHandler({
 
   // Sync ref with input state when input changes externally - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       prevInputLengthRef.current = input.length
       return () => {}
     }, [input]),

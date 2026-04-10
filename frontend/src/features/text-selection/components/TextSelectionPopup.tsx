@@ -8,6 +8,7 @@ import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { useVoiceContext } from '@/features/voice'
 import { sendMessage } from '@/lib/ai'
+import { TEXT_SELECTION_PROMPT } from '@/services/prompts/prompts/text-selection'
 
 import { cn } from '@/lib/utils'
 
@@ -256,7 +257,10 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
     try {
       // Use the proper AI service to send the message
       const fullPrompt = `Context: "${selectionData.text}"\n\nUser request: ${prompt}`
-      const stream = await sendMessage(fullPrompt)
+      const stream = await sendMessage(fullPrompt, undefined, {
+        bypassHistory: true,
+        systemPromptOverride: TEXT_SELECTION_PROMPT.prompt
+      })
 
       // Stream the response and accumulate text
       let result = ''

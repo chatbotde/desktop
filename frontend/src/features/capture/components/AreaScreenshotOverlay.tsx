@@ -19,7 +19,7 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
 
   // Disable clickthrough when overlay is active - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const api = window.interfaceAPI
       const setIgnore = api?.setIgnoreMouseEvents
 
@@ -40,7 +40,7 @@ export function AreaScreenshotOverlay({ onCapture, onCancel }: AreaScreenshotOve
 
   // Mouse event listeners for drawing - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const canvas = canvasRef.current
       const overlay = overlayRef.current
       if (!canvas || !overlay) return () => {}

@@ -28,7 +28,7 @@ export function FeatureProvider({ children }: { children: ReactNode }) {
 
   // Update localStorage when features change - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       localStorage.setItem('enabled-features', JSON.stringify(Array.from(enabledFeatures)))
       return () => {}
     }, [enabledFeatures]),

@@ -2,7 +2,7 @@ import { useSyncExternalStore, useCallback } from 'react'
 
 const ClickThrough = () => {
 	useSyncExternalStore(
-		useCallback((callback) => {
+		useCallback((_callback) => {
 			if (typeof window === 'undefined') return () => {}
 
 			const api = window.interfaceAPI

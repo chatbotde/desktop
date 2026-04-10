@@ -60,7 +60,7 @@ export function LiveTranscriptionPanel({
 
     // Auto-scroll when text changes - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (scrollRef.current) {
                 scrollRef.current.scrollTop = scrollRef.current.scrollHeight
             }
@@ -72,7 +72,7 @@ export function LiveTranscriptionPanel({
 
     // Reset position if window resizes significantly or on first mount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (position.y > window.innerHeight - 100) {
                 setPosition(p => ({ ...p, y: window.innerHeight - 450 }))
             }

@@ -13,7 +13,7 @@ export function FeatureEffect() {
     const isCapturingRef = useRef(false)
 
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (!enabled) {
                 setIsVisible(false)
                 return () => {}

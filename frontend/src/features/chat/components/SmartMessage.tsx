@@ -17,7 +17,7 @@ export function SmartMessage({ content, role, onCopy }: SmartMessageProps) {
 
   // Check if content is long enough to need collapsing - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (role === 'user' && contentRef.current) {
         const lineHeight = 28
         const maxCollapsedLines = 3

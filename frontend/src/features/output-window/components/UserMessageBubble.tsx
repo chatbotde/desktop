@@ -26,7 +26,7 @@ export function UserMessageBubble({
 
   // Check overflow and listen for resize - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const checkOverflow = () => {
         if (contentRef.current && !isExpanded) {
           const { scrollHeight, clientHeight } = contentRef.current

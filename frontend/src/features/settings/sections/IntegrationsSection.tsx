@@ -443,7 +443,7 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
 
     // Load saved config and connection - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             try {
                 const savedConfig = localStorage.getItem(NOTION_OAUTH_CONFIG_KEY)
                 if (savedConfig) {
@@ -465,7 +465,7 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
 
     // Listen for OAuth callback - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const handleOAuthCallback = async (event: MessageEvent) => {
                 if (event.data?.type === 'notion-oauth-callback') {
                     const { code, error } = event.data
@@ -491,7 +491,7 @@ export function IntegrationsSection({ isDarkTheme = false }: { isDarkTheme?: boo
 
     // Check URL for OAuth callback - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const params = new URLSearchParams(window.location.search)
             const code = params.get('code')
             const error = params.get('error')

@@ -18,7 +18,7 @@ export function useExpandedLocalLLM() {
   const [initialized, setInitialized] = useState(false)
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (initialized) return () => {}
 
       let cancelled = false
@@ -42,7 +42,7 @@ export function useExpandedLocalLLM() {
   )
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       return subscribeShowLocalModelControl((value) => setShowLocalControlInPrompt(value))
     }, []),
     () => null,
@@ -51,7 +51,7 @@ export function useExpandedLocalLLM() {
 
   // Subscribe to grounding enabled - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       return subscribeGroundingEnabled((value) => setGroundingEnabledState(value))
     }, []),
     () => null,
@@ -60,7 +60,7 @@ export function useExpandedLocalLLM() {
 
   // Listen for model changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handleModelChange = () => {
         setSelectedCloudModel(getSelectedModel())
       }

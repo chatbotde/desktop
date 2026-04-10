@@ -17,7 +17,7 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
 
   // Fetch user data on mount and listen for auth state changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const fetchUser = async () => {
         if (!window.authAPI) {
           console.warn("AuthAPI is not available")

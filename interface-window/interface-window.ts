@@ -36,6 +36,8 @@ export class InterfaceWindow {
     // Get the icon path from the app root
     const iconPath = path.join(app.getAppPath(), 'icons', 'icon.ico');
 
+    const isDev = !app.isPackaged;
+
     this.window = new BrowserWindow({
       width: width,
       height: height - 1,
@@ -54,7 +56,9 @@ export class InterfaceWindow {
         preload: preloadPath,
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: false  // Disable sandbox to ensure preload script works correctly
+        sandbox: false,  // Disable sandbox to ensure preload script works correctly
+        webSecurity: true,
+        webviewTag: false
       },
       show: false // Don't show until ready-to-show
     });
@@ -84,8 +88,19 @@ export class InterfaceWindow {
       return { action: 'deny' };
     });
 
+    // Prevent navigation to external sites or file drops
+    this.window.webContents.on('will-navigate', (event, navigationUrl) => {
+      const parsedUrl = new URL(navigationUrl);
+      const isLocalHost = parsedUrl.origin === 'http://localhost:5173';
+      const isBuddyApp = parsedUrl.protocol === 'buddy-app:';
+      
+      if (!(isDev && isLocalHost) && !isBuddyApp) {
+        event.preventDefault();
+        console.warn(`InterfaceWindow: Blocked navigation to ${navigationUrl}`);
+      }
+    });
+
     // Load the frontend
-    const isDev = !app.isPackaged;
     const url = isDev ? 'http://localhost:5173' : 'buddy-app://app/index.html';
 
     console.log(`InterfaceWindow: Loading URL ${url}`);

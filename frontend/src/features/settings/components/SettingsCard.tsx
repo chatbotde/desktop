@@ -85,7 +85,7 @@ export function SettingsCard({
 
   // Auto-save to localStorage whenever values change - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       localStorage.setItem(STORAGE_KEY_PERSONALIZATION, JSON.stringify(personalization))
       return () => {}
     }, [personalization]),
@@ -94,7 +94,7 @@ export function SettingsCard({
   )
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       localStorage.setItem(STORAGE_KEY_GENERAL, JSON.stringify(generalSettings))
       return () => {}
     }, [generalSettings]),

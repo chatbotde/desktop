@@ -73,7 +73,7 @@ function CodeBlock({ code, language, className, isDark }: CodeBlockProps) {
 
   // Highlight code when dependencies change - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const highlight = async () => {
         try {
           // Normalize and validate language

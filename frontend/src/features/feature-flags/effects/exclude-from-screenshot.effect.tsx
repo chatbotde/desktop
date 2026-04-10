@@ -8,7 +8,7 @@ export function FeatureEffect() {
   const enabled = isFeatureEnabled(featureId)
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (typeof window !== "undefined" && window.interfaceAPI?.setContentProtection) {
         window.interfaceAPI.setContentProtection(enabled)
       }

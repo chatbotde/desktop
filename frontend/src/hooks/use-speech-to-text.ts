@@ -193,7 +193,7 @@ export const useSpeechToText = (): UseSpeechToTextReturn => {
 
     // Ensure cleanup on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 stopVolumeMonitor();
             };

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useSyncExternalStore, useCallback } from "react"
+import { useCallback } from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
@@ -90,7 +90,7 @@ function Carousel({
   )
 
   React.useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!api || !setApi) return () => {}
       setApi(api)
       return () => {}
@@ -100,7 +100,7 @@ function Carousel({
   )
 
   React.useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!api) return () => {}
       onSelect(api)
       api.on("reInit", onSelect)

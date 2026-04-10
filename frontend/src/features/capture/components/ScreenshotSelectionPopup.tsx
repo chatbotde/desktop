@@ -136,7 +136,7 @@ export function ScreenshotSelectionPopup({
 
   // Listen for screenshot selection captured event - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = (e: CustomEvent<{ file: File; position: { x: number; y: number } }>) => {
         const { file: f, position: pos } = e.detail || {}
         if (!f || !pos) return
@@ -173,7 +173,7 @@ export function ScreenshotSelectionPopup({
 
   // Auto-hide effect when expanded changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (isExpanded) stopAutoHide()
       else if (isVisible) startAutoHide()
       return () => {}
@@ -185,7 +185,7 @@ export function ScreenshotSelectionPopup({
   // Cleanup for image preview URL - using syncExternalStore
   const imagePreviewUrl = file ? URL.createObjectURL(file) : null
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       return () => {
         if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl)
       }

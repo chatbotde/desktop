@@ -106,7 +106,7 @@ export function VideoGenerationWindow({
 
     // Reset position and size when window becomes visible - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (isVisible) {
                 setCardSize(DEFAULT_LOADING_SIZE)
                 setCurrentVideoIndex(0)
@@ -120,7 +120,7 @@ export function VideoGenerationWindow({
 
     // Update card size when videos change or current index changes - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (!isLoading) {
                 const currentVideo = displayVideos[currentVideoIndex]
                 if (currentVideo) {
@@ -189,7 +189,7 @@ export function VideoGenerationWindow({
 
     // Global mouse event listeners for resizing - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (isResizing) {
                 window.addEventListener("mousemove", handleGlobalMouseMove)
                 window.addEventListener("mouseup", handleGlobalMouseUp)

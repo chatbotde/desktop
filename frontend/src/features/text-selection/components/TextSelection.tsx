@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useSyncExternalStore, useCallback } from "react"
+import { useCallback } from "react"
 import { ArrowUp, Square } from "lucide-react"
 import { cn } from "@/shared/lib"
 import { Card } from "@/shared/components/ui/card"
@@ -59,7 +59,7 @@ export function TextSelectionInput({
 
   // Auto-resize textarea - using syncExternalStore
   React.useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       adjustHeight()
       return () => {}
     }, [value, adjustHeight]),
@@ -69,7 +69,7 @@ export function TextSelectionInput({
 
   // Auto-focus on mount - using syncExternalStore
   React.useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       textareaRef.current?.focus()
       return () => {}
     }, []),

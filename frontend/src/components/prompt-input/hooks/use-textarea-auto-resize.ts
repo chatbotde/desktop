@@ -7,7 +7,7 @@ export function useTextareaAutoResize(input: string) {
 
   // Auto-resize textarea when input changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const textarea = textareaRef.current
       if (textarea) {
         textarea.style.height = "auto"

@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { buildAskPrompt, buildExplainPrompt } from '@/lib/prompt'
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { TEXT_SELECTION_PROMPT } from '@/services/prompts/prompts/text-selection'
 
 interface UseTextSelectionActionsProps {
   onSendMessage: (message: string) => Promise<void>
@@ -66,9 +67,14 @@ export const useTextSelectionActions = ({
         if (!init.success) {
           throw new Error(init.message)
         }
-        responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+        // Prepended system prompt for local LLMs
+        const promptWithSystem = `${TEXT_SELECTION_PROMPT.prompt}\n\n${prompt}`
+        responseStream = await unifiedLocalLLMService.sendMessage(promptWithSystem, undefined, localModel.name)
       } else {
-        responseStream = await sendCloudMessage(prompt)
+        responseStream = await sendCloudMessage(prompt, undefined, {
+          bypassHistory: true,
+          systemPromptOverride: TEXT_SELECTION_PROMPT.prompt
+        })
       }
 
       // Stream the response and accumulate text

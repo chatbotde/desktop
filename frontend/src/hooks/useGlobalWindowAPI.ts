@@ -28,7 +28,7 @@ export const useGlobalWindowAPI = ({
   setShowRectangleScreenshot
 }: UseGlobalWindowAPIProps) => {
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       window.addOutputMessage = (message: string, role: 'user' | 'assistant' = 'assistant') => {
         addMessage(message, role)
         if (outputWindowEnabled) setIsOutputVisible(true)

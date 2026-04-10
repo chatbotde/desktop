@@ -96,7 +96,7 @@ export function ModelSelector({
 
   // Initialize models and listen for visibility changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       // Initialize models and selected model
       const allModels = getAvailableModels();
       const visibleModelIds = getVisibleModels();

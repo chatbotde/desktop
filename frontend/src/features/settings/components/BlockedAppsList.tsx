@@ -16,7 +16,7 @@ export function BlockedAppsList({ isDarkTheme = false }: BlockedAppsListProps) {
 
   // Load apps on mount - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       loadApps();
       return () => {}
     }, []),

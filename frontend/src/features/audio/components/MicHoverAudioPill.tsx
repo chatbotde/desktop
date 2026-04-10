@@ -43,7 +43,6 @@ export function MicHoverAudioPill({
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [showTranscription] = useState(false)
     const [isAssistantVisible, setIsAssistantVisible] = useState(false)
-    const transcriptionContainerRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -71,7 +70,7 @@ export function MicHoverAudioPill({
         isRecording,
         isPaused,
         duration,
-        activeStream,
+        activeStream: _activeStream,
         startRecording,
         stopRecording,
         pauseRecording,
@@ -82,8 +81,8 @@ export function MicHoverAudioPill({
     const {
         transcriptionText,
         partialText,
-        isTranscribing,
-        startTranscription,
+        isTranscribing: _isTranscribing,
+        startTranscription: _startTranscription,
         stopTranscription,
         clearTranscription
     } = useLiveTranscription({
@@ -181,7 +180,7 @@ export function MicHoverAudioPill({
 
     // Assistant visibility event listener using useSyncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const handler = () => setIsAssistantVisible(prev => !prev)
             window.addEventListener('toggle-assistant-visibility', handler)
             return () => window.removeEventListener('toggle-assistant-visibility', handler)

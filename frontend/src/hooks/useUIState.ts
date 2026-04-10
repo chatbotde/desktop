@@ -25,7 +25,7 @@ export const useUIState = (outputWindowEnabled: boolean) => {
 
   // If the user disables the Output Window feature, hide the window immediately - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!outputWindowEnabled && isOutputVisible) {
         setIsOutputVisible(false)
       }

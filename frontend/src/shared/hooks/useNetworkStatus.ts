@@ -47,7 +47,7 @@ export function useNetworkStatus() {
   }, [])
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handleOnline = () => {
         setIsOnline(true)
         checkConnection()

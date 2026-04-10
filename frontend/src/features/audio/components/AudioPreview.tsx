@@ -46,7 +46,7 @@ export function AudioPreview({
 
   // Create object URL for the audio blob - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const url = URL.createObjectURL(audioBlob)
       setAudioUrl(url)
 

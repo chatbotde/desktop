@@ -71,7 +71,7 @@ export function QuickInsert({
 
   // Main insertion logic - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!enabled) {
         setStatus("not-ready")
         setMessage("")
@@ -181,7 +181,7 @@ export function QuickInsert({
 
   // Auto-clear the success indicator - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (status !== "success") return () => {}
       const t = window.setTimeout(() => {
         setStatus("idle")

@@ -56,7 +56,7 @@ export function useAutoScreenshot(options: UseAutoScreenshotOptions = {}) {
 
   // Listen for typing events in prompt input - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isEnabled) {
         hasTakenScreenshotRef.current = false
         return () => {}
@@ -84,7 +84,7 @@ export function useAutoScreenshot(options: UseAutoScreenshotOptions = {}) {
 
   // Reset screenshot flag when input is cleared/submitted - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isEnabled) return () => {}
 
       const handleInputCleared = () => {

@@ -215,7 +215,7 @@ export function useEvent<K extends EventKey>(
   deps: React.DependencyList = []
 ): void {
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       return eventBus.on(event, handler)
     }, [event, ...deps]),
     () => null,

@@ -14,7 +14,7 @@ export function useDraggable(
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isDragging) return () => {}
 
       let animationFrameId: number

@@ -70,7 +70,7 @@ export function TextSelectionOutput({
 
   // Smooth entrance animation - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const timer = setTimeout(() => setShowContent(true), 50)
       return () => clearTimeout(timer)
     }, []),
@@ -80,7 +80,7 @@ export function TextSelectionOutput({
 
   // Intercept link clicks to open in system browser - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const container = contentRef.current
       if (!container) return () => {}
 
@@ -118,7 +118,7 @@ export function TextSelectionOutput({
 
   // Typewriter streaming effect - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (content === lastContentRef.current && displayedContent === content) {
         return () => {}
       }

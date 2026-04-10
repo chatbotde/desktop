@@ -33,7 +33,7 @@ export function AudioPlayer({
 
   // Audio event listeners - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const audio = audioRef.current
       if (!audio) return () => {}
 
@@ -65,7 +65,7 @@ export function AudioPlayer({
 
   // Sync play/pause state - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const audio = audioRef.current
       if (!audio) return () => {}
 

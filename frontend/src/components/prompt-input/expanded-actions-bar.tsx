@@ -18,7 +18,7 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
 
   // Register default actions - using syncExternalStore for lifecycle
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       // Clear any existing registrations
       const existingButtons = actionButtonRegistry.getAll()
       existingButtons.forEach((btn) => actionButtonRegistry.unregister(btn.id))

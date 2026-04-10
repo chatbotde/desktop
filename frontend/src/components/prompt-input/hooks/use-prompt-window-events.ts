@@ -19,7 +19,7 @@ export function usePromptWindowEvents({
 }: UsePromptWindowEventsProps) {
   // Allow other parts of the app (e.g. Output window selection) to add text to the prompt.
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = (event: Event) => {
         const custom = event as CustomEvent<{ text?: string }>
         const text = custom.detail?.text?.trim()
@@ -38,7 +38,7 @@ export function usePromptWindowEvents({
 
   // Allow other parts of the app to trigger sending the current prompt
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = () => {
         handleSubmit()
       }
@@ -51,7 +51,7 @@ export function usePromptWindowEvents({
 
   // Allow other parts of the app to add files to the prompt (e.g. auto-screenshot)
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = (event: Event) => {
         const custom = event as CustomEvent<{ files?: File[] }>
         const files = custom.detail?.files
@@ -70,7 +70,7 @@ export function usePromptWindowEvents({
 
   // Allow other parts of the app to add video to the prompt (e.g. video recording)
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = async (event: Event) => {
         const custom = event as CustomEvent<{ video?: VideoData }>
         const video = custom.detail?.video

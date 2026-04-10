@@ -16,7 +16,7 @@ export function SetAreaOverlay({ onCapture, onCancel }: SetAreaOverlayProps) {
 
     // Disable clickthrough when overlay is active - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const api = window.interfaceAPI
             const setIgnore = api?.setIgnoreMouseEvents
 
@@ -37,7 +37,7 @@ export function SetAreaOverlay({ onCapture, onCancel }: SetAreaOverlayProps) {
 
     // Canvas and mouse event setup - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const canvas = canvasRef.current
             const overlay = overlayRef.current
             if (!canvas || !overlay) return () => {}

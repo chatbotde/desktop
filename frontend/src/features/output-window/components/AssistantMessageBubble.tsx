@@ -117,7 +117,7 @@ export const AssistantMessageBubble = memo(function AssistantMessageBubble({
 
   // Intercept link clicks to open in system browser - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const container = contentContainerRef.current
       if (!container) return () => {}
 

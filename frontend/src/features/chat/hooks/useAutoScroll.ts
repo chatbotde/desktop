@@ -18,7 +18,7 @@ export function useAutoScroll({
   messagesContainerRef 
 }: UseAutoScrollProps) {
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       let adjustTimeout: NodeJS.Timeout | null = null
       
       if (messages.length > 0 && messagesContainerRef.current) {

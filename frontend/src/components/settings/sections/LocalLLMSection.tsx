@@ -49,7 +49,7 @@ export function LocalLLMSection({ isDarkTheme = false }: { isDarkTheme?: boolean
 
   // Check Ollama status on mount - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       refresh()
       return () => {}
     }, []),

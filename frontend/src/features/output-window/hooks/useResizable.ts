@@ -26,7 +26,7 @@ export function useResizable(
   const [direction, setDirection] = useState<ResizeDirection>('se')
 
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isResizing) return () => {}
 
       const handleMouseMove = (e: MouseEvent) => {

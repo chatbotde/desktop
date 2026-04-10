@@ -60,7 +60,7 @@ export function ModelSelectorPopover({
 
   // Initial load and when popover opens - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       loadModels()
       return () => {}
     }, [loadModels]),
@@ -70,7 +70,7 @@ export function ModelSelectorPopover({
 
   // Reload when popover opens or config changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (isOpen) {
         loadModels()
       }
@@ -82,7 +82,7 @@ export function ModelSelectorPopover({
 
   // Listen for visibility changes from settings - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = () => loadModels()
       const localModelHandler = () => setRefreshTrigger(t => t + 1)
       window.addEventListener(MODEL_VISIBILITY_CHANGED_EVENT, handler)
@@ -98,7 +98,7 @@ export function ModelSelectorPopover({
 
   // Listen for custom provider changes - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const handler = () => loadModels()
       window.addEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)
       return () => window.removeEventListener(CUSTOM_PROVIDERS_CHANGED_EVENT, handler)

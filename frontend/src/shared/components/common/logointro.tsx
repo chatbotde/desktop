@@ -51,7 +51,7 @@ const LogoIntro: React.FC<LogoIntroProps> = ({
 
     // ── Phase 1 → Phase 1.5: after logo draws, start fading it out ────────
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (phase !== 'logo') return () => {};
             const timer = setTimeout(() => {
                 const newParticles: Particle[] = [];
@@ -94,7 +94,7 @@ const LogoIntro: React.FC<LogoIntroProps> = ({
 
     // ── Phase 1.5 → Phase 2: after logo fades, switch to snap ─────────────
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (phase !== 'fading') return () => {};
             const timer = setTimeout(() => {
                 setPhase('snap');
@@ -107,7 +107,7 @@ const LogoIntro: React.FC<LogoIntroProps> = ({
 
     // ── Phase 2: Animate particles ────────────────────────────────────────
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (phase !== 'snap' || !particlesGenerated.current) return () => {};
 
             let raf: number;
@@ -145,7 +145,7 @@ const LogoIntro: React.FC<LogoIntroProps> = ({
 
     // ── Phase 3: smooth fade-out of entire overlay ────────────────────────
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (phase !== 'fadeout') return () => {};
             const timer = setTimeout(() => {
                 setPhase('done');

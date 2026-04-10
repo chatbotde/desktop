@@ -61,7 +61,7 @@ export function LiveTranscriptionButton({
     transcriptionText,
     partialText,
     isTranscribing,
-    startTranscription,
+    startTranscription: _startTranscription,
     stopTranscription,
     clearTranscription
   } = useLiveTranscription({

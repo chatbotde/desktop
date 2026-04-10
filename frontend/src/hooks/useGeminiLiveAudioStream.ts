@@ -428,7 +428,7 @@ export function useGeminiLiveAudioStream(options: UseGeminiLiveAudioStreamOption
 
     // Cleanup on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 isActiveRef.current = false;
                 cleanup();

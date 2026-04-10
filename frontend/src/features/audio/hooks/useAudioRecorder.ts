@@ -272,7 +272,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
 
     // Cleanup on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 cleanup().catch(console.error)
             }

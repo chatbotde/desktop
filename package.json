@@ -1,7 +1,7 @@
 {
   "name": "sonicthinking",
   "productName": "SonicThinking",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "main.js",
   "homepage": "https://github.com/sonicthinking/buddy",
   "repository": {
@@ -35,17 +35,17 @@
   "keywords": [
     "desktop",
     "companion",
-    "productivity",
-    "electron"
+    "productivity"
   ],
   "author": "sonicthinking",
   "license": "ISC",
-  "description": "A desktop companion app built with Electron",
+  "description": "A desktop companion",
   "build": {
     "appId": "com.sonicthinking.sonicthinking",
     "productName": "SonicThinking",
     "npmRebuild": false,
     "compression": "maximum",
+    "asar": true,
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -68,6 +68,8 @@
       "!app-frontend/**",
       "!build-frontend.js",
       "!**/*.md",
+      "!.env",
+      "!.env.*",
       "!**/.env",
       "!**/.env.*",
       "!**/.env.local",
@@ -81,7 +83,11 @@
       "!**/tsconfig.json",
       "!**/*.ts",
       "!**/*.tsx",
-      "!**/*.map"
+      "!**/*.map",
+      "!**/*.test.js",
+      "!test-*.js",
+      "!debug-*.js",
+      "!simple-selection-test.js"
     ],
     "extraResources": [
       {

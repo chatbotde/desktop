@@ -438,7 +438,7 @@ export function CustomModelsSection({ isDarkTheme = false }: { isDarkTheme?: boo
 
   // Load providers on mount - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       setProviders(getCustomProviders())
       return () => {}
     }, []),

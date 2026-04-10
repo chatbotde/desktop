@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useSyncExternalStore, useCallback, type ReactNode } from 'react'
-import { ALL_ANIMATION_IDS } from '@/shared/registry/animationRegistry'
 
 /**
  * AnimationId is now derived from the registry — no need to touch this
@@ -25,14 +24,14 @@ export function AnimationsProvider({ children }: { children: ReactNode }) {
                 console.error('Failed to parse enabled animations', e)
             }
         }
-        // Default: all registered animations enabled
-        return new Set<string>(ALL_ANIMATION_IDS)
+        // Default: all registered animations are disabled initially
+        return new Set<string>()
     })
 
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             localStorage.setItem('enabled-animations', JSON.stringify(Array.from(enabledAnimations)))
-            return () => {}
+            return () => { }
         }, [enabledAnimations]),
         () => null,
         () => null

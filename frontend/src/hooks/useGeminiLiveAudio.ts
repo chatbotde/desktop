@@ -335,7 +335,7 @@ export function useGeminiLiveAudio(options: UseGeminiLiveAudioOptions = {}) {
 
     // Cleanup on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 disconnect();
             };

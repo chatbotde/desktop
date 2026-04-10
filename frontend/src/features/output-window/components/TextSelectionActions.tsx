@@ -68,7 +68,7 @@ export function TextSelectionActions({
 
   // Smooth entrance animation - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (isVisible) {
         const timer = setTimeout(() => setShowContent(true), 50)
         return () => clearTimeout(timer)
@@ -83,7 +83,7 @@ export function TextSelectionActions({
 
   // Reset state when popup becomes invisible - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isVisible) {
         setIsExpanded(false)
         setPrompt('')
@@ -99,7 +99,7 @@ export function TextSelectionActions({
 
   // Adjust position to keep popup within viewport - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isVisible || !popupRef.current) return () => {}
 
       const popup = popupRef.current
@@ -134,7 +134,7 @@ export function TextSelectionActions({
 
   // Close popup when clicking outside - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isVisible) return () => {}
 
       const handleClickOutside = (event: MouseEvent) => {

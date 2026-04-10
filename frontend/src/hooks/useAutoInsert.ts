@@ -46,7 +46,7 @@ export function useAutoInsert({ messages }: UseAutoInsertOptions) {
 
   // Auto-insert logic - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (!isEnabled) {
         // Reset tracking when disabled
         insertedMessageIdsRef.current.clear()
@@ -111,7 +111,7 @@ export function useAutoInsert({ messages }: UseAutoInsertOptions) {
 
   // Clean up when messages cleared - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (messages.length === 0) {
         insertedMessageIdsRef.current.clear()
         lastMessageCountRef.current = 0

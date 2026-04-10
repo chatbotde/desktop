@@ -109,7 +109,7 @@ export function VideoRecordingButton({
 
   // Reset isActive when recording state returns to idle - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       if (recordingState === 'idle' && !isActive) {
         // Recording was stopped externally or completed
         setIsActive(false)

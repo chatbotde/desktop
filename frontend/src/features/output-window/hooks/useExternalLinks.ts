@@ -42,7 +42,7 @@ export function useExternalLinks<T extends HTMLElement = HTMLDivElement>() {
     }, [])
 
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const container = containerRef.current
             if (!container) return () => {}
 

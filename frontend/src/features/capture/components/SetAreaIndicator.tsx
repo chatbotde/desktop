@@ -12,7 +12,7 @@ export function SetAreaIndicator() {
     
     // Keep ref in sync with state - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             areaRef.current = area
             return () => {}
         }, [area]),
@@ -22,7 +22,7 @@ export function SetAreaIndicator() {
 
     // Subscribe to CaptureAreaStore - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const initialArea = CaptureAreaStore.getArea()
             setArea(initialArea)
 

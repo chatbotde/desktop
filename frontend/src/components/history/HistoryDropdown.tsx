@@ -48,7 +48,7 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
     // Click outside to close - using syncExternalStore
     const ref = useRef<HTMLDivElement>(null)
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             function handleClickOutside(event: MouseEvent) {
                 if (ref.current && !ref.current.contains(event.target as Node)) {
                     onClose()

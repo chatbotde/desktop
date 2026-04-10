@@ -156,7 +156,7 @@ const SnapEffectContainer: React.FC<SnapEffectContainerProps> = ({
 
     // Animation Tick - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             if (!isSnapping || particles.length === 0) return () => {};
 
             let raf: number;

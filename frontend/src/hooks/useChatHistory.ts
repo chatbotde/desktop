@@ -56,7 +56,7 @@ export function useChatHistory() {
 
     // Keep all hook instances in sync when history is cleared - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const onCleared = () => {
                 setHistory([])
                 historyRef.current = []
@@ -339,7 +339,7 @@ export function useChatHistory() {
 
     // Listen for online status to sync - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const handleOnline = () => {
                 console.log('App is online, syncing history...')
                 syncPendingChanges()
@@ -355,7 +355,7 @@ export function useChatHistory() {
     // Load initial history and subscribe to Supabase changes
     // Using syncExternalStore for lifecycle management
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             // Initial fetch
             fetchHistory()
             syncPendingChanges()

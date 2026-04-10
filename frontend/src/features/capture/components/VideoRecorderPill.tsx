@@ -72,7 +72,7 @@ export function VideoRecorderPill({
 
     // Close settings when clicking outside - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const handleClickOutside = (e: MouseEvent) => {
                 if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
                     setShowSettings(false)

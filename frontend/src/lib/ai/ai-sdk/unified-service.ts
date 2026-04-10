@@ -267,7 +267,8 @@ export class AISDKUnifiedService {
 
     async sendMessage(
         message: string,
-        attachments?: MediaAttachment[]
+        attachments?: MediaAttachment[],
+        options?: { bypassHistory?: boolean; systemPromptOverride?: string }
     ): Promise<AsyncGenerator<string, void, unknown>> {
         const selectedModel = getSelectedModel();
 
@@ -318,7 +319,9 @@ export class AISDKUnifiedService {
         this.refreshDerivedSystemContext();
 
         // Add to history
-        this.addToHistory(providerId, userMessage);
+        if (!options?.bypassHistory) {
+            this.addToHistory(providerId, userMessage);
+        }
 
         // Get full history for context
         const history = this.getOrCreateHistory(providerId);
@@ -335,9 +338,9 @@ export class AISDKUnifiedService {
 
             try {
                 const result = await ai.stream(providerId, modelName, message, {
-                    system: history.systemPrompt,
+                    system: options?.systemPromptOverride ? mergeSystemPromptWithResponseLanguage(options.systemPromptOverride) : history.systemPrompt,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    messages: history.messages as any,
+                    messages: options?.bypassHistory ? [userMessage] as any : history.messages as any,
                     temperature: modelTemperature,
                     maxOutputTokens: modelMaxTokens,
                 });
@@ -357,7 +360,9 @@ export class AISDKUnifiedService {
                 }
 
                 // Add assistant response to history
-                self.addToHistory(providerId, { role: 'assistant', content: outputText });
+                if (!options?.bypassHistory) {
+                    self.addToHistory(providerId, { role: 'assistant', content: outputText });
+                }
             } catch (error) {
                 console.error(`[AISDKUnifiedService] ${providerId} error:`, error);
                 throw error;
@@ -382,8 +387,8 @@ export class AISDKUnifiedService {
         return trackedGenerator();
     }
 
-    async sendMessageComplete(message: string, attachments?: MediaAttachment[]): Promise<string> {
-        const stream = await this.sendMessage(message, attachments);
+    async sendMessageComplete(message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }): Promise<string> {
+        const stream = await this.sendMessage(message, attachments, options);
         let response = '';
         for await (const chunk of stream) {
             response += chunk;
@@ -577,8 +582,8 @@ export class AISDKUnifiedService {
 export const aiSDKUnifiedService = new AISDKUnifiedService();
 
 // Convenience exports (matching legacy interface)
-export const sendMessageAISDK = (message: string, attachments?: MediaAttachment[]) =>
-    aiSDKUnifiedService.sendMessage(message, attachments);
+export const sendMessageAISDK = (message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }) =>
+    aiSDKUnifiedService.sendMessage(message, attachments, options);
 
-export const sendMessageCompleteAISDK = (message: string, attachments?: MediaAttachment[]) =>
-    aiSDKUnifiedService.sendMessageComplete(message, attachments);
+export const sendMessageCompleteAISDK = (message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }) =>
+    aiSDKUnifiedService.sendMessageComplete(message, attachments, options);

@@ -15,7 +15,7 @@ export function useVoices() {
 
     // Load voices from localStorage on mount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             const init = async () => {
                 const savedMeta = localStorage.getItem(VOICES_METADATA_KEY)
                 if (savedMeta) {

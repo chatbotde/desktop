@@ -201,6 +201,27 @@ export const TestComponent = () => {
                             ↺ Fit
                         </button>
                     )}
+                    
+                    {/* Explicit clear storage or hide button */}
+                    <button
+                        onClick={() => {
+                            // To actually hide it we dispatch an event or just remove from DOM
+                            // For a sandbox, just hiding the element visually locally works for this session
+                            const el = document.querySelector('[data-sandbox]') as HTMLElement;
+                            if (el) el.style.display = 'none';
+                        }}
+                        style={{
+                            fontSize: 9, padding: '2px 7px', borderRadius: 5,
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'rgba(255,50,50,0.2)',
+                            color: 'rgba(255,200,200,0.8)',
+                            cursor: 'pointer', textTransform: 'uppercase', fontWeight: 700,
+                            letterSpacing: '0.04em',
+                        }}
+                        title="Hide this overlay"
+                    >
+                        ✕ Close
+                    </button>
                 </div>
             </div>
 

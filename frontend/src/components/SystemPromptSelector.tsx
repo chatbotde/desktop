@@ -12,7 +12,7 @@ export function SystemPromptSelector() {
 
   // Get current system prompt on mount - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const current = unifiedAIService.getCurrentSystemPrompt();
       setSelectedPrompt(current);
       return () => {}

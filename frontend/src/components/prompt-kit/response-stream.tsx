@@ -248,7 +248,7 @@ function useTextStream({
 
   // Start streaming - use syncExternalStore for lifecycle
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       startStreaming()
       return () => {
         if (animationRef.current) {

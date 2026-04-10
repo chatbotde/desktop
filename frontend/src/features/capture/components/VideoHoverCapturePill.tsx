@@ -136,7 +136,7 @@ export function VideoHoverCapturePill({
 
     // Cleanup timeout on unmount - using syncExternalStore
     useSyncExternalStore(
-        useCallback((callback) => {
+        useCallback((_callback) => {
             return () => {
                 if (hoverTimeoutRef.current) {
                     clearTimeout(hoverTimeoutRef.current)

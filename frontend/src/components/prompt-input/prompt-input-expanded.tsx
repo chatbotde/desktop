@@ -62,7 +62,7 @@ export function PromptInputExpanded({
 
   // Animation timing on mount - using syncExternalStore
   useSyncExternalStore(
-    useCallback((callback) => {
+    useCallback((_callback) => {
       const timer = setTimeout(() => setIsAnimatingIn(false), 50)
       return () => clearTimeout(timer)
     }, []),
