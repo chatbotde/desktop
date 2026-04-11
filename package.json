@@ -96,20 +96,6 @@
         "filter": [
           "**/*"
         ]
-      },
-      {
-        "from": "binaries",
-        "to": "binaries",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "models",
-        "to": "models",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "asarUnpack": [
@@ -235,7 +221,8 @@
     "electron": "^37.7.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.7.2",
-    "wait-on": "^8.0.4"
+    "wait-on": "^8.0.4",
+    "tesseract.js": "^5.1.1"
   },
   "dependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.59.0",
@@ -254,7 +241,6 @@
     "openai": "^6.22.0",
     "replicate": "^1.4.0",
     "selection-hook": "^1.0.12",
-    "tesseract.js": "^5.1.1",
     "tslib": "^2.8.1",
     "uuid": "^13.0.0",
     "ws": "^8.18.3"
