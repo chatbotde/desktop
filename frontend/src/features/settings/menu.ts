@@ -8,7 +8,7 @@ import {
   Key,
   // Plug,
   CircleHelp,
-  // Sparkles,
+  Sparkles,
   // Mic2,
   type LucideIcon,
 } from "lucide-react"
@@ -45,7 +45,7 @@ export const SETTINGS_MENU_ITEMS: SettingsMenuItem[] = [
   // { id: "integrations", label: "Integrations", icon: Plug },
   { id: "blocking", label: "App Blocking", icon: ShieldBan },
   { id: "account", label: "Account", icon: User },
-  // { id: "animations", label: "Animations", icon: Sparkles },
+   { id: "animations", label: "Animations", icon: Sparkles },
   // { id: "voice", label: "Voice Cloning", icon: Mic2 },
   { id: "help", label: "Help", icon: CircleHelp },
 

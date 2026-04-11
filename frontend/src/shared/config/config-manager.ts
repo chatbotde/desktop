@@ -67,7 +67,7 @@ const DEFAULT_CONFIG: AppConfig = {
   features: {},
   ui: {
     theme: 'system',
-    animations: true,
+    animations: false,
     compactMode: false,
   },
   storage: {

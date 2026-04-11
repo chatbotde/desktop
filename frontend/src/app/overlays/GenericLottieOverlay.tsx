@@ -4,6 +4,7 @@ import { Suspense, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { GLOBAL_THEME } from '@/global/theme'
 import { useAnimations } from '@/shared/providers/AnimationsProvider'
+import { useConfig } from '@/shared/config/config-manager'
 import type { AnimationEntry } from '@/shared/registry/animationRegistry'
 
 // ─── Layout → CSS class mapping ──────────────────────────────────────────────
@@ -57,13 +58,14 @@ interface GenericLottieOverlayProps {
  */
 export function GenericLottieOverlay({ entry }: GenericLottieOverlayProps) {
     const { isAnimationEnabled } = useAnimations()
+    const { animations: globalEnabled } = useConfig('ui')
     const [isSmall, setIsSmall] = useState(false)
 
     const handleClick = useCallback(() => {
         if (entry.clickToZoom) setIsSmall(prev => !prev)
     }, [entry.clickToZoom])
 
-    if (!isAnimationEnabled(entry.id)) return null
+    if (!globalEnabled || !isAnimationEnabled(entry.id)) return null
     if (!entry.component) return null
 
     const LottieComponent = entry.component

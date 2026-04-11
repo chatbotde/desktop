@@ -255,6 +255,7 @@ export const ANIMATION_REGISTRY: AnimationEntry[] = [
         aiMetaDescription: 'A golden right hand shown at the bottom-right corner. Trigger when the user mentions hands, gestures, waving, pointing right, or wants a decorative hand element on the right side.',
         aiKeywords: ['hand', 'right', 'gesture', 'wave', 'point', 'golden', 'palm', 'finger'],
     },
+/*
     {
         id: 'test',
         label: 'Test Sandbox',
@@ -267,6 +268,7 @@ export const ANIMATION_REGISTRY: AnimationEntry[] = [
         aiMetaDescription: 'An experimental sandbox used only for development and testing. Do NOT trigger this in production or for end users. Only use when explicitly asked to run a test component.',
         aiKeywords: ['test', 'sandbox', 'dev', 'debug', 'experiment', 'development'],
     },
+*/
 ]
 
 // ─── Derived helpers ──────────────────────────────────────────────────────────

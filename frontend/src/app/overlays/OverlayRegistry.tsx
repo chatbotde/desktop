@@ -5,6 +5,7 @@ import type { ComponentType } from 'react'
 import { ANIMATION_REGISTRY } from '@/shared/registry/animationRegistry'
 import { GenericLottieOverlay } from './GenericLottieOverlay'
 import { useAnimations } from '@/shared/providers/AnimationsProvider'
+import { useConfig } from '@/shared/config/config-manager'
 import LogoIntro from '@/shared/components/common/logointro'
 
 // ── Non-animation overlays (these are NOT in the registry) ────────────────────
@@ -55,7 +56,8 @@ const STATIC_OVERLAYS: ComponentType[] = [
  */
 function CustomOverlayGuard({ id, children }: { id: string; children: React.ReactNode }) {
     const { isAnimationEnabled } = useAnimations()
-    if (!isAnimationEnabled(id)) return null
+    const { animations: globalEnabled } = useConfig('ui')
+    if (!globalEnabled || !isAnimationEnabled(id)) return null
     return <>{children}</>
 }
 

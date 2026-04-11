@@ -24,7 +24,7 @@ import {
   CustomModelsSection,
   BlockingSection,
   FeaturesSection,
-  // AnimationsSection,
+  AnimationsSection,
   // VoiceSection,
   HelpSection
 } from "../sections"
@@ -87,7 +87,7 @@ export function SettingsCard({
   useSyncExternalStore(
     useCallback((_callback) => {
       localStorage.setItem(STORAGE_KEY_PERSONALIZATION, JSON.stringify(personalization))
-      return () => {}
+      return () => { }
     }, [personalization]),
     () => null,
     () => null
@@ -96,7 +96,7 @@ export function SettingsCard({
   useSyncExternalStore(
     useCallback((_callback) => {
       localStorage.setItem(STORAGE_KEY_GENERAL, JSON.stringify(generalSettings))
-      return () => {}
+      return () => { }
     }, [generalSettings]),
     () => null,
     () => null
@@ -196,7 +196,7 @@ export function SettingsCard({
 
             {activeSection === "features" && <FeaturesSection />}
 
-            {/* {activeSection === "animations" && <AnimationsSection />} */}
+            {activeSection === "animations" && <AnimationsSection />}
 
             {/* {activeSection === "voice" && <VoiceSection isDarkTheme={isDark} />} */}
 
