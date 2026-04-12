@@ -10,6 +10,13 @@ const { app } = require('electron');
 // Get the app name for protocol registration
 const APP_NAME = app?.name || 'buddy';
 
+// Detect development mode
+const IS_DEV = process.env.NODE_ENV === 'development' || (app && !app.isPackaged);
+
+// Local and production URLs
+const LOCAL_AUTH_URL = 'http://localhost:3000';
+const PRODUCTION_AUTH_URL = 'https://www.sonicthinking.com';
+
 const config = {
   // ===========================================
   // WEB AUTH SERVER CONFIGURATION
@@ -17,9 +24,15 @@ const config = {
 
   /**
    * Base URL of your web authentication server
-   * Change this when deploying to production
+   * In development mode, defaults to local webbuddy (localhost:3000)
+   * Set AUTH_SERVER_URL env var to override
    */
-  WEB_AUTH_URL: process.env.AUTH_SERVER_URL || 'https://www.sonicthinking.com',
+  WEB_AUTH_URL: process.env.AUTH_SERVER_URL || (IS_DEV ? LOCAL_AUTH_URL : PRODUCTION_AUTH_URL),
+
+  /**
+   * Whether to use local auth server (can be toggled at runtime)
+   */
+  useLocalAuth: IS_DEV,
 
   /**
    * Auth endpoints on your web server
@@ -127,6 +140,7 @@ const config = {
    * @returns {string} Full URL
    */
   getAuthUrl(endpoint, params = {}) {
+    console.log('Config: getAuthUrl called for', endpoint);
     const url = new URL(endpoint, this.WEB_AUTH_URL);
 
     // Add protocol callback URL
@@ -134,12 +148,67 @@ const config = {
     url.searchParams.set('client', 'desktop');
     url.searchParams.set('app_name', APP_NAME);
 
+    // Add device information for device binding support
+    const deviceId = this.getDeviceId();
+    if (deviceId) {
+      console.log('Config: Adding deviceId to auth URL:', deviceId);
+      url.searchParams.set('deviceId', deviceId);
+    } else {
+      console.warn('Config: No deviceId available for auth URL');
+    }
+
     // Add any additional params
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, value);
     });
 
     return url.toString();
+  },
+
+  /**
+   * Get a persistent, unique device ID for this installation
+   * @returns {string|null} Device ID
+   */
+  getDeviceId() {
+    try {
+      let Store;
+      try {
+        Store = require('electron-store');
+      } catch (e) {
+        console.warn('Config: electron-store not found, using crypto fallback');
+      }
+      
+      let deviceId = null;
+
+      if (Store) {
+        if (Store.default) Store = Store.default;
+        try {
+          const store = new Store({ name: 'device-info' });
+          deviceId = store.get('deviceId');
+          
+          if (!deviceId) {
+            const crypto = require('crypto');
+            deviceId = crypto.randomUUID ? crypto.randomUUID() : require('uuid').v4();
+            store.set('deviceId', deviceId);
+            console.log('Config: Generated and saved new deviceId:', deviceId);
+          }
+        } catch (e) {
+          console.error('Config: Error accessing electron-store:', e.message);
+        }
+      }
+      
+      if (!deviceId) {
+        // Ultimate fallback (not persistent across restarts if store failed)
+        const crypto = require('crypto');
+        deviceId = crypto.randomUUID ? crypto.randomUUID() : 'dev-' + Date.now();
+        console.warn('Config: Using non-persistent deviceId fallback:', deviceId);
+      }
+      
+      return deviceId;
+    } catch (error) {
+      console.error('Config: Fatal error in getDeviceId:', error);
+      return null;
+    }
   },
 
   /**
@@ -194,6 +263,63 @@ const config = {
     } catch (error) {
       console.error('Failed to parse deep link:', error, 'URL:', url);
       return null;
+    }
+  },
+
+  // ===========================================
+  // LOCAL/PRODUCTION SERVER SWITCHING
+  // ===========================================
+
+  /**
+   * Switch to local webbuddy server (localhost:3000)
+   */
+  switchToLocal() {
+    this.WEB_AUTH_URL = LOCAL_AUTH_URL;
+    this.useLocalAuth = true;
+    console.log('Config: Switched to LOCAL auth server:', LOCAL_AUTH_URL);
+  },
+
+  /**
+   * Switch to production server (sonicthinking.com)
+   */
+  switchToProduction() {
+    this.WEB_AUTH_URL = PRODUCTION_AUTH_URL;
+    this.useLocalAuth = false;
+    console.log('Config: Switched to PRODUCTION auth server:', PRODUCTION_AUTH_URL);
+  },
+
+  /**
+   * Toggle between local and production auth servers
+   * @returns {Object} Current server info
+   */
+  toggleAuthServer() {
+    if (this.useLocalAuth) {
+      this.switchToProduction();
+    } else {
+      this.switchToLocal();
+    }
+    return {
+      url: this.WEB_AUTH_URL,
+      isLocal: this.useLocalAuth,
+    };
+  },
+
+  /**
+   * Check if local webbuddy server is running
+   * @returns {Promise<boolean>} Is running
+   */
+  async isLocalServerRunning() {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const response = await fetch(LOCAL_AUTH_URL, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      return response.ok || response.status === 308 || response.status === 307;
+    } catch {
+      return false;
     }
   },
 };

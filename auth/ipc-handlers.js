@@ -140,7 +140,37 @@ function registerAuthIpcHandlers() {
       webAuthUrl: config.WEB_AUTH_URL,
       protocol: config.PROTOCOL,
       isAuthenticated: authService.isLoggedIn(),
+      isLocal: config.useLocalAuth,
+      isDev: process.env.NODE_ENV === 'development',
     };
+  });
+
+  /**
+   * Toggle between local and production auth server
+   */
+  ipcMain.handle('auth:toggle-server', async () => {
+    const result = config.toggleAuthServer();
+    console.log('Auth IPC: Server toggled to', result.url);
+    return result;
+  });
+
+  /**
+   * Check if local webbuddy is running
+   */
+  ipcMain.handle('auth:is-local-running', async () => {
+    return config.isLocalServerRunning();
+  });
+
+  /**
+   * Switch to a specific server
+   */
+  ipcMain.handle('auth:switch-server', async (event, useLocal) => {
+    if (useLocal) {
+      config.switchToLocal();
+    } else {
+      config.switchToProduction();
+    }
+    return { url: config.WEB_AUTH_URL, isLocal: config.useLocalAuth };
   });
 
   // ===========================================
@@ -277,6 +307,9 @@ function unregisterAuthIpcHandlers() {
   ipcMain.removeHandler('auth:submit-manual-token');
   ipcMain.removeHandler('auth:get-config');
   ipcMain.removeHandler('auth:clear-tokens');
+  ipcMain.removeHandler('auth:toggle-server');
+  ipcMain.removeHandler('auth:is-local-running');
+  ipcMain.removeHandler('auth:switch-server');
 
   // Note: ipcMain.on handlers cannot be easily removed by channel name
   // They would need to store references to the handlers

@@ -364,6 +364,7 @@ class AuthService extends EventEmitter {
         code,
         redirect_uri: config.getCallbackUrl(),
         client: 'desktop',
+        deviceId: config.getDeviceId(),
       }),
     });
 
@@ -402,8 +403,9 @@ class AuthService extends EventEmitter {
       const response = await fetch(`${config.WEB_AUTH_URL}${config.AUTH_ENDPOINTS.VERIFY_TOKEN}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        'Authorization': `Bearer ${token}`,
+        'x-device-id': config.getDeviceId(),
+      },
       });
 
       return response.ok;
@@ -442,6 +444,7 @@ class AuthService extends EventEmitter {
         },
         body: JSON.stringify({
           refresh_token: refreshToken,
+          deviceId: config.getDeviceId(),
         }),
       });
 
@@ -519,6 +522,7 @@ class AuthService extends EventEmitter {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'x-device-id': config.getDeviceId(),
         },
       });
 
@@ -580,6 +584,7 @@ class AuthService extends EventEmitter {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'x-device-id': config.getDeviceId(),
           },
         }).catch(() => {
           // Ignore server errors during logout
