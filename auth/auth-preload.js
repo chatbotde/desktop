@@ -109,31 +109,6 @@ contextBridge.exposeInMainWorld('authAPI', {
     return ipcRenderer.invoke('auth:clear-tokens');
   },
 
-  /**
-   * Toggle between local and production auth server
-   * @returns {Promise<Object>} { url, isLocal }
-   */
-  toggleServer: () => {
-    return ipcRenderer.invoke('auth:toggle-server');
-  },
-
-  /**
-   * Check if local webbuddy server is running
-   * @returns {Promise<boolean>}
-   */
-  isLocalServerRunning: () => {
-    return ipcRenderer.invoke('auth:is-local-running');
-  },
-
-  /**
-   * Switch to a specific auth server
-   * @param {boolean} useLocal - true for local, false for production
-   * @returns {Promise<Object>} { url, isLocal }
-   */
-  switchServer: (useLocal) => {
-    return ipcRenderer.invoke('auth:switch-server', useLocal);
-  },
-
   // ===========================================
   // EVENT LISTENERS
   // ===========================================

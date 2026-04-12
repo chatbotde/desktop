@@ -44,7 +44,7 @@ async function getAuthToken(): Promise<string | null> {
 function getApiBaseUrl(): string {
   return import.meta.env.VITE_API_URL || 
          import.meta.env.VITE_AUTH_SERVER_URL || 
-         'http://localhost:3000';
+         'https://www.sonicthinking.com';
 }
 
 export class SubscriptionService {

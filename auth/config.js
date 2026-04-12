@@ -10,11 +10,7 @@ const { app } = require('electron');
 // Get the app name for protocol registration
 const APP_NAME = app?.name || 'buddy';
 
-// Detect development mode
-const IS_DEV = process.env.NODE_ENV === 'development' || (app && !app.isPackaged);
-
-// Local and production URLs
-const LOCAL_AUTH_URL = 'http://localhost:3000';
+// Production URL
 const PRODUCTION_AUTH_URL = 'https://www.sonicthinking.com';
 
 const config = {
@@ -24,15 +20,9 @@ const config = {
 
   /**
    * Base URL of your web authentication server
-   * In development mode, defaults to local webbuddy (localhost:3000)
-   * Set AUTH_SERVER_URL env var to override
+   * Always uses the production sonicthinking.com website
    */
-  WEB_AUTH_URL: process.env.AUTH_SERVER_URL || (IS_DEV ? LOCAL_AUTH_URL : PRODUCTION_AUTH_URL),
-
-  /**
-   * Whether to use local auth server (can be toggled at runtime)
-   */
-  useLocalAuth: IS_DEV,
+  WEB_AUTH_URL: process.env.AUTH_SERVER_URL || PRODUCTION_AUTH_URL,
 
   /**
    * Auth endpoints on your web server
@@ -266,62 +256,7 @@ const config = {
     }
   },
 
-  // ===========================================
-  // LOCAL/PRODUCTION SERVER SWITCHING
-  // ===========================================
 
-  /**
-   * Switch to local webbuddy server (localhost:3000)
-   */
-  switchToLocal() {
-    this.WEB_AUTH_URL = LOCAL_AUTH_URL;
-    this.useLocalAuth = true;
-    console.log('Config: Switched to LOCAL auth server:', LOCAL_AUTH_URL);
-  },
-
-  /**
-   * Switch to production server (sonicthinking.com)
-   */
-  switchToProduction() {
-    this.WEB_AUTH_URL = PRODUCTION_AUTH_URL;
-    this.useLocalAuth = false;
-    console.log('Config: Switched to PRODUCTION auth server:', PRODUCTION_AUTH_URL);
-  },
-
-  /**
-   * Toggle between local and production auth servers
-   * @returns {Object} Current server info
-   */
-  toggleAuthServer() {
-    if (this.useLocalAuth) {
-      this.switchToProduction();
-    } else {
-      this.switchToLocal();
-    }
-    return {
-      url: this.WEB_AUTH_URL,
-      isLocal: this.useLocalAuth,
-    };
-  },
-
-  /**
-   * Check if local webbuddy server is running
-   * @returns {Promise<boolean>} Is running
-   */
-  async isLocalServerRunning() {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
-      const response = await fetch(LOCAL_AUTH_URL, {
-        method: 'HEAD',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      return response.ok || response.status === 308 || response.status === 307;
-    } catch {
-      return false;
-    }
-  },
 };
 
 module.exports = config;

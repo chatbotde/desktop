@@ -341,54 +341,7 @@
       color: #fff;
     }
 
-    /* Server indicator (dev mode only) */
-    .server-indicator {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      cursor: pointer;
-      -webkit-app-region: no-drag;
-      transition: all 0.2s ease;
-      z-index: 20;
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(8px);
-    }
 
-    .server-indicator:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.25);
-      color: #fff;
-    }
-
-    .server-indicator.visible {
-      display: inline-flex;
-    }
-
-    .server-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .server-dot.local {
-      background: #22c55e;
-      box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
-    }
-
-    .server-dot.production {
-      background: #3b82f6;
-      box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
-    }
   </style>
 </head>
 
@@ -449,11 +402,7 @@
     </div>
   </div>
 
-  <!-- Server Indicator (dev mode only) -->
-  <div class="server-indicator" id="serverIndicator" title="Click to toggle auth server">
-    <span class="server-dot" id="serverDot"></span>
-    <span id="serverLabel">Loading...</span>
-  </div>
+
 
   <script>
     const views = {
@@ -559,32 +508,7 @@
         }
       });
 
-      // Server indicator (dev mode)
-      function updateServerIndicator(isLocal) {
-        const indicator = $('serverIndicator');
-        const dot = $('serverDot');
-        const label = $('serverLabel');
-        if (isLocal) {
-          dot.className = 'server-dot local';
-          label.textContent = 'localhost:3000';
-        } else {
-          dot.className = 'server-dot production';
-          label.textContent = 'sonicthinking.com';
-        }
-      }
 
-      window.authAPI.getConfig().then(cfg => {
-        if (cfg.isDev) {
-          $('serverIndicator').classList.add('visible');
-          updateServerIndicator(cfg.isLocal);
-        }
-      });
-
-      $('serverIndicator').onclick = async () => {
-        if (!window.authAPI?.toggleServer) return;
-        const result = await window.authAPI.toggleServer();
-        updateServerIndicator(result.isLocal);
-      };
     }
   </script>
 </body>
