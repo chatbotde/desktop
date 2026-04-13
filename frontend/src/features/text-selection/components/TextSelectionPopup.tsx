@@ -282,25 +282,22 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
   const handleInsert = useCallback(async () => {
     if (!generatedOutput) return
     try {
-      // Send insert command to main process
-      window.interfaceAPI?.sendMessage('insert-text', generatedOutput)
+      // Use TSF API to focus last window and insert text
+      await window.tsfAPI?.focusAndInsertText(generatedOutput)
     } catch (error) {
       console.error('Insert failed:', error)
     }
   }, [generatedOutput])
 
   const handleReplace = useCallback(async () => {
-    if (!generatedOutput || !selectionData?.text) return
+    if (!generatedOutput) return
     try {
-      // Send replace command to main process
-      window.interfaceAPI?.sendMessage('replace-text', {
-        find: selectionData.text,
-        replace: generatedOutput
-      })
+      // Use TSF API to focus last window and replace selected text
+      await window.tsfAPI?.focusAndReplaceText(generatedOutput)
     } catch (error) {
       console.error('Replace failed:', error)
     }
-  }, [generatedOutput, selectionData])
+  }, [generatedOutput])
 
   const handleCopyOutput = useCallback(async () => {
     if (!generatedOutput) return
