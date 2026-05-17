@@ -1,17 +1,18 @@
 import { ImageGeneration } from "./image-generation/image-generation"
 import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/lib/utils"
-import { useState, useRef, useCallback, useSyncExternalStore } from "react"
+import { useState, useRef, useCallback, useSyncExternalStore, useEffect } from "react"
 import { ResizeHandle } from "@/features/output-window/components/ResizeHandle"
 import type { ResizeDirection } from "@/features/output-window/hooks/useResizable"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
-import { GripVertical } from "lucide-react"
+import { AlertCircle, GripVertical, X } from "lucide-react"
 import { GLOBAL_THEME } from '@/global/theme'
 
 interface ImageGenerationWindowProps {
   images: string[]
   isVisible: boolean
   isLoading?: boolean
+  error?: string | null
   onClose: () => void
   isDarkTheme?: boolean
 }
@@ -22,14 +23,12 @@ interface CardDimensions {
 }
 
 // Default compact size for loading state
-const DEFAULT_LOADING_SIZE: CardDimensions = { width: 200, height: 150 }
+const DEFAULT_LOADING_SIZE: CardDimensions = { width: 260, height: 170 }
 // Maximum constraints
 const MAX_WIDTH = 300
 const MAX_HEIGHT = 400
 // Padding around image inside card
 const CARD_PADDING = 0
-// Fallback image for testing/failure
-const FALLBACK_IMAGE = '/1.png'
 
 /**
  * Calculate constrained dimensions while preserving aspect ratio
@@ -60,11 +59,13 @@ export function ImageGenerationWindow({
   images,
   isVisible,
   isLoading = false,
+  error = null,
   onClose,
   isDarkTheme = true,
 }: ImageGenerationWindowProps) {
   const [cardSize, setCardSize] = useState<CardDimensions>(DEFAULT_LOADING_SIZE)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const imageDimensionsCache = useRef<Map<string, CardDimensions>>(new Map())
   const dragControls = useDragControls()
 
@@ -78,8 +79,30 @@ export function ImageGenerationWindow({
     direction: 'e' as ResizeDirection
   })
 
-  // Use fallback image if no images provided (for testing)
-  const displayImages = (images && images.length > 0) ? images : [FALLBACK_IMAGE]
+  const displayImages = images ?? []
+
+  useEffect(() => {
+    if (!isVisible || !isLoading || displayImages.length > 0) {
+      setElapsedSeconds(0)
+      return
+    }
+
+    const startedAt = Date.now()
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000))
+    }, 1000)
+
+    return () => window.clearInterval(interval)
+  }, [isVisible, isLoading, displayImages.length])
+
+  const loadingMessage =
+    elapsedSeconds >= 90
+      ? "Waiting for final image..."
+      : elapsedSeconds >= 45
+        ? "Gemini can take 1-2 minutes..."
+        : elapsedSeconds >= 20
+          ? "Still generating..."
+          : "Designing..."
 
   // Reset position and size when window becomes visible - using syncExternalStore
   useSyncExternalStore(
@@ -129,7 +152,7 @@ export function ImageGenerationWindow({
       } else if (isLoading) {
         setCardSize(DEFAULT_LOADING_SIZE)
       }
-      return () => { }
+      return () => {}
     }, [displayImages, currentImageIndex, isLoading, loadImageDimensions]),
     () => null,
     () => null
@@ -198,7 +221,7 @@ export function ImageGenerationWindow({
           window.removeEventListener("mouseup", handleGlobalMouseUp)
         }
       }
-      return () => {}
+      return () => { }
     }, [isResizing, handleGlobalMouseMove, handleGlobalMouseUp]),
     () => null,
     () => null
@@ -232,10 +255,31 @@ export function ImageGenerationWindow({
           style={{ x: "-50%", y: "-50%" }}
           data-no-clickthrough
         >
-          {isLoading && (!images || images.length === 0) ? (
+          {error ? (
+            <div className={cn(
+              "relative flex w-[320px] flex-col gap-3 rounded-2xl border p-5 shadow-2xl",
+              themeClasses.containerBg,
+              themeClasses.border
+            )}>
+              <button
+                onClick={onClose}
+                className={cn("absolute right-3 top-3 rounded-md p-1 transition-colors", themeClasses.dragHandle)}
+                aria-label="Close"
+              >
+                <X className="size-4" />
+              </button>
+              <div className="flex items-center gap-2 pr-8 text-red-500">
+                <AlertCircle className="size-4" />
+                <span className="text-xs font-semibold uppercase tracking-widest">Image failed</span>
+              </div>
+              <p className={cn("max-h-36 overflow-auto whitespace-pre-wrap break-words text-xs leading-5", themeClasses.textMuted)}>
+                {error}
+              </p>
+            </div>
+          ) : isLoading && displayImages.length === 0 ? (
             // Initial load - show premium loading state
             <div className={cn(
-              "flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border shadow-2xl",
+              "flex flex-col items-center justify-center gap-4 p-7 rounded-2xl border shadow-2xl min-w-[260px]",
               themeClasses.containerBg,
               themeClasses.border
             )}>
@@ -243,11 +287,16 @@ export function ImageGenerationWindow({
                 <div className="size-12 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin" />
                 <div className="absolute inset-0 size-12 rounded-full bg-blue-500/10 animate-pulse" />
               </div>
-              <span className="text-xs font-medium text-blue-500 animate-pulse uppercase tracking-widest">
-                Designing...
-              </span>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="text-xs font-medium text-blue-500 animate-pulse uppercase tracking-widest">
+                  {loadingMessage}
+                </span>
+                <span className={cn("text-[11px]", themeClasses.textMuted)}>
+                  {elapsedSeconds}s elapsed
+                </span>
+              </div>
             </div>
-          ) : (
+          ) : displayImages.length > 0 ? (
             // Show full card with image when loaded
             <Card
               className={cn(
@@ -303,7 +352,7 @@ export function ImageGenerationWindow({
                 />
               </div>
             </Card>
-          )}
+          ) : null}
         </motion.div>
       )}
     </AnimatePresence>

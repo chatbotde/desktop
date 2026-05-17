@@ -121,6 +121,13 @@ declare global {
       sendMessage: (channel: string, data: any) => void;
       onMessage: (channel: string, func: (...args: any[]) => void) => void;
       removeMessageListener: (channel: string, func: (...args: any[]) => void) => void;
+      // Automation methods (robotjs)
+      clickAt?: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+      doubleClickAt?: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+      rightClickAt?: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+      scrollAt?: (x: number, y: number, amount: number) => Promise<{ success: boolean; error?: string }>;
+      keyTap?: (key: string, modifiers?: string[]) => Promise<{ success: boolean; error?: string }>;
+      typeString?: (text: string) => Promise<{ success: boolean; error?: string }>;
     };
 
     /**

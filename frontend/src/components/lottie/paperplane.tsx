@@ -1,7 +1,7 @@
 import React from 'react';
 import { LottiePlayer } from './LottiePlayer';
 import { PaperPlaneSvg } from './assets/PaperPlaneSvg';
-import { Floater } from './motion/Floater';
+import { PathFlyer } from './motion/PathFlyer';
 
 /**
  * PaperPlane component refactored.
@@ -9,14 +9,10 @@ import { Floater } from './motion/Floater';
 export const PaperPlane: React.FC = () => {
     return (
         <LottiePlayer
-            asset={<PaperPlaneSvg className="w-full h-full" />}
-            motion={Floater}
+            asset={<PaperPlaneSvg className="w-32 h-32 md:w-48 md:h-48 drop-shadow-xl" iconMode={true} />}
+            motion={PathFlyer}
             containerStyle={{
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
+                position: 'relative',
                 zIndex: 50
             }}
             className="paperplane-clickable-part"

@@ -38,6 +38,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         setGeneratedImages: uiState.setGeneratedImages,
         setIsImageWindowVisible: uiState.setIsImageWindowVisible,
         setIsGeneratingImages: uiState.setIsGeneratingImages,
+        setImageGenerationError: uiState.setImageGenerationError,
     })
 
     // Chat History
@@ -150,12 +151,17 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     const handleSendMessage = async (message: string, attachments?: MediaAttachment[]) => {
         // Check if it's an image generation model - don't open output window for images
         const selectedModel = getSelectedModel()
-        const isImageModel = selectedModel?.category === 'image-generation' || selectedModel?.provider === 'replicate'
+        const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
+        const isImageModel =
+            selectedModel?.category === 'image-generation' ||
+            selectedModel?.provider === 'replicate' ||
+            selectedModelKey.includes('gemini-2.5-flash-image')
 
         // Show image window immediately for image models (before generation starts)
         if (isImageModel) {
             uiState.setIsImageWindowVisible(true)
             uiState.setIsGeneratingImages(true)
+            uiState.setImageGenerationError(null)
         }
 
         // Only open output window for non-image models

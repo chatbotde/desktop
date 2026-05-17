@@ -9,6 +9,7 @@ interface UseMessageManagerProps {
   setGeneratedImages?: (images: string[]) => void
   setIsImageWindowVisible?: (visible: boolean) => void
   setIsGeneratingImages?: (loading: boolean) => void
+  setImageGenerationError?: (error: string | null) => void
 }
 
 export const useMessageManager = (
@@ -26,7 +27,11 @@ export const useMessageManager = (
 
     // Check if selected model is an image generation model BEFORE adding messages
     const selectedModel = getSelectedModel()
-    const isImageModel = selectedModel?.category === 'image-generation' || selectedModel?.provider === 'replicate'
+    const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
+    const isImageModel =
+      selectedModel?.category === 'image-generation' ||
+      selectedModel?.provider === 'replicate' ||
+      selectedModelKey.includes('gemini-2.5-flash-image')
 
     // Only add user message to output if NOT an image model
     // Image generation is handled separately and doesn't use the output window
@@ -64,12 +69,17 @@ export const useMessageManager = (
         if (callbacks?.setIsGeneratingImages) {
           callbacks.setIsGeneratingImages(true)
         }
+        if (callbacks?.setImageGenerationError) {
+          callbacks.setImageGenerationError(null)
+        }
 
         try {
           // Handle image generation - don't add to output messages
-          const modelName = selectedModel?.name
+          const modelName = selectedModel?.provider === 'google'
+            ? selectedModel.id
+            : selectedModel?.name
           const generatedImages = await unifiedAIService.generateImages(message, modelName)
-          
+
           // Check if aborted before adding response
           if (abortController.signal.aborted) {
             if (callbacks?.setIsGeneratingImages) {
@@ -82,7 +92,10 @@ export const useMessageManager = (
           if (callbacks?.setGeneratedImages) {
             callbacks.setGeneratedImages(generatedImages)
           }
-          
+          if (callbacks?.setImageGenerationError) {
+            callbacks.setImageGenerationError(null)
+          }
+
           // Hide loading state
           if (callbacks?.setIsGeneratingImages) {
             callbacks.setIsGeneratingImages(false)
@@ -95,15 +108,18 @@ export const useMessageManager = (
           if (callbacks?.setIsGeneratingImages) {
             callbacks.setIsGeneratingImages(false)
           }
+          if (callbacks?.setImageGenerationError) {
+            callbacks.setImageGenerationError(error instanceof Error ? error.message : String(error))
+          }
           // Re-throw to be handled by outer catch
           throw error
         }
       } else {
         // If a local model is selected, use Ollama (local LLM). Otherwise use cloud router.
         const localModel = unifiedLocalLLMService.getCurrentModel()
-        
+
         let responseStream: AsyncGenerator<string, void, unknown>;
-        
+
         if (localModel) {
           const init = await unifiedLocalLLMService.initialize()
           if (!init.success) {
@@ -141,12 +157,12 @@ export const useMessageManager = (
             if (abortController.signal.aborted) {
               break
             }
-            
+
             fullResponse += chunk
-            
+
             // Update the assistant message with accumulated content
-            setOutputMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId 
+            setOutputMessages(prev => prev.map(msg =>
+              msg.id === assistantMessageId
                 ? { ...msg, content: fullResponse }
                 : msg
             ))
@@ -178,7 +194,10 @@ export const useMessageManager = (
         if (callbacks?.setIsGeneratingImages) {
           callbacks.setIsGeneratingImages(false)
         }
-        return
+        if (callbacks?.setImageGenerationError) {
+          callbacks.setImageGenerationError(errorMessage)
+        }
+        throw err
       }
 
       // For regular messages, add error to output window

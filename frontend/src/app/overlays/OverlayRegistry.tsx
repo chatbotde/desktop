@@ -25,6 +25,9 @@ import { SettingsOverlay } from './SettingsOverlay'
 import { CatAssistantOverlay } from './CatAssistantOverlay'
 
 import { PointerOverlay } from './PointerOverlay'
+import { PointerInputOverlay } from './PointerInputOverlay'
+import { YoutubePlayerOverlay } from './YoutubePlayerOverlay'
+import { ThreeSceneOverlay } from './ThreeSceneOverlay'
 
 /**
  * Non-animation overlays — manually imported because they are not
@@ -46,6 +49,9 @@ const STATIC_OVERLAYS: ComponentType[] = [
     SettingsOverlay,
     CatAssistantOverlay,
     PointerOverlay,
+    PointerInputOverlay,
+    YoutubePlayerOverlay,
+    ThreeSceneOverlay,
 ]
 
 /**
@@ -84,6 +90,7 @@ export function OverlayRegistry() {
             ))}
 
             {/* Animation overlays — auto-generated from registry */}
+
             {ANIMATION_REGISTRY.map(entry => {
                 if (entry.custom && entry.customOverlay) {
                     const CustomOverlay = entry.customOverlay

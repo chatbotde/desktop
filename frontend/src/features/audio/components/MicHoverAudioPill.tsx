@@ -38,7 +38,6 @@ export function MicHoverAudioPill({
     onTranscriptionUpdate
 }: MicHoverAudioPillProps) {
     // UI State
-    const [, setIsHovered] = useState(false)
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [showTranscription] = useState(false)
@@ -101,42 +100,39 @@ export function MicHoverAudioPill({
     // Keep the pill open while recording
     const shouldShowPill = isPillActive || isRecording
 
-    // Handle mouse enter with a small delay to prevent accidental triggers
-    const handleMouseEnter = useCallback(() => {
+    // Clear timeout helper
+    const clearHoverTimeout = useCallback(() => {
         if (hoverTimeoutRef.current) {
             clearTimeout(hoverTimeoutRef.current)
+            hoverTimeoutRef.current = null
         }
+    }, [])
+
+    // Handle mouse enter with a small delay to prevent accidental triggers
+    const handleMouseEnter = useCallback(() => {
+        clearHoverTimeout()
         hoverTimeoutRef.current = setTimeout(() => {
-            setIsHovered(true)
             setIsPillActive(true)
         }, 150)
-    }, [])
+    }, [clearHoverTimeout])
 
     // Handle mouse leave - only hide if not recording
     const handleMouseLeave = useCallback(() => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current)
-        }
-        setIsHovered(false)
-
+        clearHoverTimeout()
         if (!isRecording) {
             hoverTimeoutRef.current = setTimeout(() => {
                 setIsPillActive(false)
             }, 300)
         }
-    }, [isRecording])
+    }, [isRecording, clearHoverTimeout])
 
     // Handle pill mouse enter - keep it visible
     const handlePillMouseEnter = useCallback(() => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current)
-        }
-        setIsHovered(true)
-    }, [])
+        clearHoverTimeout()
+    }, [clearHoverTimeout])
 
     // Handle pill mouse leave
     const handlePillMouseLeave = useCallback(() => {
-        setIsHovered(false)
         if (!isRecording) {
             hoverTimeoutRef.current = setTimeout(() => {
                 setIsPillActive(false)
@@ -245,7 +241,7 @@ export function MicHoverAudioPill({
             {/* Audio Pill - appears on hover, positioned above the button */}
             {shouldShowPill && (
                 <div
-                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50"
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200"
                     onMouseEnter={handlePillMouseEnter}
                     onMouseLeave={handlePillMouseLeave}
                     data-no-clickthrough

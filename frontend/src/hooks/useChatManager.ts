@@ -91,6 +91,32 @@ export function useChatManager() {
     try {
       // Create a new AbortController for this request
       abortControllerRef.current = new AbortController();
+
+      // Check subscription limits before sending request
+      const { checkCanMakeRequest } = await import('@/lib/subscription');
+      const { allowed, reason } = await checkCanMakeRequest();
+      
+      if (!allowed) {
+        setIsTyping(false);
+        abortControllerRef.current = null;
+        
+        // Add subscription lockout message
+        const errorMessage: ChatMessage = {
+          id: `error_${Date.now()}_${++messageCounterRef.current}`,
+          role: 'assistant',
+          content: reason || 'Subscription expired or trial limit reached. Please upgrade to continue.',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+        
+        // Process next message if any
+        isProcessingRef.current = false;
+        if (messageQueueRef.current.length > 0) {
+          processMessageQueue();
+        }
+        return;
+      }
       
       // Check if a local LLM model is selected
       // First ensure local LLM service is initialized
@@ -171,6 +197,11 @@ export function useChatManager() {
               : msg
           ));
         }
+        
+        // Record successful AI request for usage tracking
+        const { recordRequest } = await import('@/lib/subscription');
+        await recordRequest();
+        
       } catch (streamError) {
         if (abortControllerRef.current?.signal.aborted) {
           console.log('Stream interrupted by abort');

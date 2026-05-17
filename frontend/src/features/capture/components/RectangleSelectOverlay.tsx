@@ -63,13 +63,39 @@ export function RectangleSelectOverlay({ onCapture, onCancel }: RectangleSelectO
           ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
           ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
           
-          // Clear the selection area
-          ctx.clearRect(x, y, width, height)
+          const radius = Math.min(12, width / 2, height / 2)
           
-          // Draw selection border
-          ctx.strokeStyle = '#3b82f6'
+          // Clear the selection area with rounded corners
+          ctx.globalCompositeOperation = 'destination-out'
+          ctx.fillStyle = 'black'
+          ctx.beginPath()
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, width, height, radius)
+          } else {
+            ctx.rect(x, y, width, height)
+          }
+          ctx.fill()
+          
+          // Reset composite operation to draw the border
+          ctx.globalCompositeOperation = 'source-over'
+          
+          // Draw selection border with lighting blue glow
+          ctx.strokeStyle = '#60a5fa' // Lighter blue
           ctx.lineWidth = 2
-          ctx.strokeRect(x, y, width, height)
+          ctx.shadowColor = '#3b82f6' // Blue glow
+          ctx.shadowBlur = 15
+          
+          ctx.beginPath()
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, width, height, radius)
+          } else {
+            ctx.rect(x, y, width, height)
+          }
+          ctx.stroke()
+          
+          // Reset shadow properties
+          ctx.shadowColor = 'transparent'
+          ctx.shadowBlur = 0
         }
       }
 
@@ -154,10 +180,10 @@ export function RectangleSelectOverlay({ onCapture, onCancel }: RectangleSelectO
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[999999] bg-transparent cursor-default"
+      className="fixed inset-0 z-[999999] bg-transparent cursor-crosshair"
       data-no-clickthrough
     >
-      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999998]" />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999998] transition-opacity duration-300" />
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000001] bg-black/75 backdrop-blur-md rounded-full px-5 py-2.5 text-white/90 text-sm shadow-xl border border-white/10">
         <span className="font-semibold">Drag to select rectangle</span>
         <span className="opacity-80"> • Release to capture • </span>

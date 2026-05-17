@@ -46,6 +46,51 @@
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
+/* ============================================
+   Palette presets (multi-theme) via data-theme
+   ============================================ */
+
+/* Default preset is "zinc" (matches current :root values). */
+
+/* Ocean */
+:root[data-theme="ocean"] {
+  --primary: 199 89% 48%;
+  --ring: 199 89% 48%;
+  --sidebar-primary: 199 89% 38%;
+}
+
+.dark[data-theme="ocean"] {
+  --primary: 199 89% 58%;
+  --ring: 199 89% 58%;
+  --sidebar-primary: 199 89% 52%;
+}
+
+/* Rose */
+:root[data-theme="rose"] {
+  --primary: 346.8 77.2% 49.8%;
+  --ring: 346.8 77.2% 49.8%;
+  --sidebar-primary: 346.8 77.2% 40%;
+}
+
+.dark[data-theme="rose"] {
+  --primary: 346.8 77.2% 59.8%;
+  --ring: 346.8 77.2% 59.8%;
+  --sidebar-primary: 346.8 77.2% 55%;
+}
+
+/* Emerald */
+:root[data-theme="emerald"] {
+  --primary: 142.1 76.2% 36.3%;
+  --ring: 142.1 76.2% 36.3%;
+  --sidebar-primary: 142.1 76.2% 30%;
+}
+
+.dark[data-theme="emerald"] {
+  --primary: 142.1 76.2% 46.3%;
+  --ring: 142.1 76.2% 46.3%;
+  --sidebar-primary: 142.1 76.2% 42%;
+}
+
 .dark {
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;

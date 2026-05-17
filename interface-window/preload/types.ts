@@ -11,6 +11,12 @@ export interface InterfaceAPI {
     minimize: () => void;
     maximize: () => void;
     close: () => void;
+    clickAt: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+    doubleClickAt: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+    rightClickAt: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
+    scrollAt: (x: number, y: number, amount: number) => Promise<{ success: boolean; error?: string }>;
+    keyTap: (key: string, modifiers?: string[]) => Promise<{ success: boolean; error?: string }>;
+    typeString: (text: string) => Promise<{ success: boolean; error?: string }>;
     setIgnoreMouseEvents: (ignore: boolean, options?: IgnoreMouseEventsOptions) => void;
     setContentProtection: (enabled: boolean) => void;
     sendMessage: (channel: string, data: any) => void;

@@ -18,6 +18,7 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
   const [isImageWindowVisible, setIsImageWindowVisible] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
+  const [imageGenerationError, setImageGenerationError] = useState<string | null>(null)
   const [generatedVideos, setGeneratedVideos] = useState<string[]>([])
   const [isVideoWindowVisible, setIsVideoWindowVisible] = useState(true)
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false)
@@ -73,6 +74,8 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setIsImageWindowVisible,
     isGeneratingImages,
     setIsGeneratingImages,
+    imageGenerationError,
+    setImageGenerationError,
     generatedVideos,
     setGeneratedVideos,
     isVideoWindowVisible,

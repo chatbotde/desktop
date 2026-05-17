@@ -38,6 +38,10 @@ Returns the full theme context:
 - `setTheme(theme)`: Set a specific theme
 - `availableThemes`: Array of available themes
 - `themeConfig`: Configuration object for all themes
+- `colorTheme`: Current palette preset (e.g. 'zinc' | 'ocean' | 'rose' | 'emerald')
+- `setColorTheme(theme)`: Set palette preset
+- `availableColorThemes`: Array of available palette presets
+- `colorThemeConfig`: Configuration object for palette presets
 
 ### `useIsDark()`
 Simple hook that returns `true` if dark theme is active.
@@ -85,6 +89,24 @@ export const THEME_CONFIG: Record<Theme, ThemeConfig> = {
 ```
 
 3. Add CSS classes in your global styles or Tailwind config for the new theme.
+
+## Adding New Color Themes (Palette Presets)
+
+Palette presets are the scalable way to add many themes without mixing them with dark/light mode.
+
+1. Update `ColorTheme` in `ThemeProvider.tsx`:
+```tsx
+export type ColorTheme = 'zinc' | 'ocean' | 'my-brand'
+export const AVAILABLE_COLOR_THEMES: ColorTheme[] = ['zinc', 'ocean', 'my-brand']
+```
+
+2. Add to `COLOR_THEME_CONFIG`.
+
+3. Add CSS variable overrides in `src/index.css`:
+```css
+:root[data-theme="my-brand"] { --primary: ...; --ring: ...; }
+.dark[data-theme="my-brand"] { --primary: ...; --ring: ...; }
+```
 
 ## Migration Guide
 

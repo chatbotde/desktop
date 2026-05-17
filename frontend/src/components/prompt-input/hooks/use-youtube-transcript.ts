@@ -44,7 +44,7 @@ export function useYoutubeTranscript({
 
       if (result?.success && result.transcript) {
         const languageLabel = result.language?.name || result.language?.code
-        const formattedTranscript = `${result.transcript}`
+        const formattedTranscript = `[YouTube] ${url}\n\n${result.transcript}`
 
         setClipboardItems((prev) => [...prev, formattedTranscript])
         setIsExpanded(true)

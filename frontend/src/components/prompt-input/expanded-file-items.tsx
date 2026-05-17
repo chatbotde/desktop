@@ -4,6 +4,8 @@ import { getFileIcon } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { FileRemoveButton } from "./components/file-remove-button"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
+import { YoutubeVideoPlayer, extractVideoId } from "./youtube-video-player"
+import { useFeature } from "@/shared/providers/FeatureProvider"
 
 interface ExpandedFileItemsProps {
   files: File[]
@@ -34,6 +36,9 @@ export function ExpandedFileItems({
   hoverClass,
   onLocalModelClear,
 }: ExpandedFileItemsProps) {
+  const { isFeatureEnabled } = useFeature()
+  const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
+
   if (!selectedLocalModelName && files.length === 0 && (!clipboardItems || clipboardItems.length === 0)) {
     return null
   }
@@ -70,26 +75,45 @@ export function ExpandedFileItems({
         </div>
       )}
 
-      {clipboardItems?.map((item, index) => (
-        <div
-          key={`clipboard-${index}`}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1 text-sm border max-w-[200px]",
-            themeClasses.fileItem
-          )}
-          onClick={e => e.stopPropagation()}
-          title={item}
-        >
-          <FileText className={`size-4 ${themeClasses.icon} shrink-0`} aria-hidden="true" />
-          <FileRemoveButton
-            onClick={() => onRemoveClipboardItem?.(index)}
-            ariaLabel="Remove clipboard item"
-            themeClasses={themeClasses}
-            hoverClass={hoverClass}
-            size="sm"
-          />
-        </div>
-      ))}
+      {clipboardItems?.map((item, index) => {
+        if (isYoutubePlayerEnabled && item.startsWith('[YouTube] ')) {
+          const urlMatch = item.match(/\[YouTube\]\s+([^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : '';
+          
+          if (url && extractVideoId(url)) {
+            return (
+              <div key={`clipboard-${index}`} className="relative shrink-0">
+                <YoutubeVideoPlayer 
+                  url={url} 
+                  className="max-w-[200px]" 
+                  onRemove={() => onRemoveClipboardItem?.(index)}
+                />
+              </div>
+            );
+          }
+        }
+        
+        return (
+          <div
+            key={`clipboard-${index}`}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-2 py-1 text-sm border max-w-[200px]",
+              themeClasses.fileItem
+            )}
+            onClick={e => e.stopPropagation()}
+            title={item.startsWith('[YouTube] ') ? item.substring(10, 50) + '...' : item}
+          >
+            <FileText className={`size-4 ${themeClasses.icon} shrink-0`} aria-hidden="true" />
+            <FileRemoveButton
+              onClick={() => onRemoveClipboardItem?.(index)}
+              ariaLabel="Remove clipboard item"
+              themeClasses={themeClasses}
+              hoverClass={hoverClass}
+              size="sm"
+            />
+          </div>
+        );
+      })}
 
       {files.map((file, index) => {
         const isAuto = isAutoScreenshot(file)

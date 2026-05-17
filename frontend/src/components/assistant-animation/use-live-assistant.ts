@@ -46,7 +46,9 @@ export const useLiveAssistant = () => {
 
     const ensureAudioContext = useCallback(() => {
         if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                sampleRate: 16000, // Force 16kHz to match model preference and reduce data
+            });
         }
         if (audioContextRef.current.state === 'suspended') {
             audioContextRef.current.resume();
@@ -78,7 +80,8 @@ export const useLiveAssistant = () => {
 
         const currentTime = audioContextRef.current.currentTime;
         if (scheduledTimeRef.current < currentTime) {
-            scheduledTimeRef.current = currentTime + 0.05; 
+            // Reduced lookahead from 0.05 to 0.015 (15ms) for snappier playback
+            scheduledTimeRef.current = currentTime + 0.015;
         }
 
         while (audioQueueRef.current.length > 0) {
@@ -91,12 +94,12 @@ export const useLiveAssistant = () => {
             const source = audioContextRef.current.createBufferSource();
             source.buffer = buffer;
             source.connect(audioContextRef.current.destination);
-            
+
             sourceNodesRef.current.push(source);
 
             source.start(scheduledTimeRef.current);
             scheduledTimeRef.current += buffer.duration;
-            
+
             setIsSpeaking(true);
             isPlayingRef.current = true;
 
@@ -255,7 +258,7 @@ export const useLiveAssistant = () => {
                             console.log('Model interrupted by user, clearing queue');
                             audioQueueRef.current = [];
                             sourceNodesRef.current.forEach(source => {
-                                try { source.stop(); } catch(e) {}
+                                try { source.stop(); } catch (e) { }
                             });
                             sourceNodesRef.current = [];
                             scheduledTimeRef.current = audioContextRef.current?.currentTime || 0;
@@ -458,7 +461,7 @@ export const useLiveAssistant = () => {
                                     const { x_percent, y_percent, x, y } = (call as any).args;
                                     let targetX = 0;
                                     let targetY = 0;
-                                    
+
                                     // Use primary percentage based logic for accuracy regardless of screen density / resolution
                                     if (x_percent !== undefined && y_percent !== undefined) {
                                         targetX = (x_percent / 100.0) * window.innerWidth;
@@ -477,7 +480,7 @@ export const useLiveAssistant = () => {
                                     window.dispatchEvent(new CustomEvent('assistant-point-to', { detail: { x: targetX, y: targetY } }));
                                     responses.push({
                                         name: call.name,
-                                        response: { result: `Pointer successfully moved to percentages: (${x_percent}%, ${y_percent}%).` },
+                                        response: { result: `Pointer successfully moved to (${x_percent}%, ${y_percent}%).` },
                                         id: call.id
                                     });
                                 }
@@ -519,7 +522,8 @@ export const useLiveAssistant = () => {
             if (!audioContextRef.current) return;
 
             const source = audioContextRef.current.createMediaStreamSource(stream);
-            const processor = audioContextRef.current.createScriptProcessor(2048, 1, 1);
+            // Reduced buffer size from 2048 to 1024 to halve input latency
+            const processor = audioContextRef.current.createScriptProcessor(1024, 1, 1);
 
             processor.onaudioprocess = (e) => {
                 const inputData = e.inputBuffer.getChannelData(0);
@@ -540,15 +544,19 @@ export const useLiveAssistant = () => {
                     pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
                 }
 
-                // Base64 encode
-                const base64Audio = btoa(
-                    String.fromCharCode(...new Uint8Array(pcmData.buffer))
-                );
+                // Faster Base64 encode using chunked processing
+                const uint8Array = new Uint8Array(pcmData.buffer);
+                let binary = '';
+                const len = uint8Array.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(uint8Array[i]);
+                }
+                const base64Audio = btoa(binary);
 
                 session.sendRealtimeInput({
                     audio: {
                         data: base64Audio,
-                        mimeType: 'audio/pcm;rate=' + e.inputBuffer.sampleRate
+                        mimeType: 'audio/pcm;rate=16000'
                     }
                 });
             };
@@ -591,7 +599,7 @@ export const useLiveAssistant = () => {
         }
 
         sourceNodesRef.current.forEach(source => {
-            try { source.stop(); } catch(e) {}
+            try { source.stop(); } catch (e) { }
         });
         sourceNodesRef.current = [];
         audioQueueRef.current = [];
@@ -617,6 +625,53 @@ export const useLiveAssistant = () => {
         return config.enabled && config.apiKey.trim().length > 0;
     })();
 
+    /**
+     * Send a text message to the live session along with a fresh screenshot.
+     * Used by the PointerInputOverlay to ask the model "where is X?" and
+     * get a point_to_element response.
+     */
+    const sendTextWithScreenshot = useCallback(async (text: string) => {
+        if (!sessionRef.current) {
+            console.warn('[LiveAssistant] Cannot send text — no active session');
+            return;
+        }
+
+        try {
+            // 1. Capture screenshot
+            // @ts-ignore
+            if (window.CaptureAPI) {
+                // @ts-ignore
+                const result = await window.CaptureAPI.quickScreenshot();
+                if (result.success && result.screenshot) {
+                    const imageData = result.screenshot.data;
+                    const base64Data = imageData.includes('base64,') ? imageData.split('base64,')[1] : imageData;
+                    const mimeType = result.screenshot.type || 'image/png';
+
+                    // Send screenshot as realtime media context
+                    // @ts-ignore
+                    sessionRef.current?.sendRealtimeInput({
+                        media: { mimeType, data: base64Data }
+                    });
+                    console.log('[LiveAssistant] Screenshot sent for pointer-input');
+                }
+            }
+
+            // 2. Send the user's text instruction
+            // @ts-ignore
+            sessionRef.current?.sendClientContent({
+                turns: [{
+                    role: 'user',
+                    parts: [{ text: `Look at my screen and ${text}. Use the point_to_element tool to point to what I described.` }]
+                }],
+                turnComplete: true
+            });
+
+            console.log('[LiveAssistant] Pointer text sent:', text);
+        } catch (err) {
+            console.error('[LiveAssistant] Error sending pointer text:', err);
+        }
+    }, []);
+
     return {
         connect,
         disconnect,
@@ -628,6 +683,7 @@ export const useLiveAssistant = () => {
         isSystemAudioActive,
         imageGeneration,
         videoGeneration,
+        sendTextWithScreenshot,
         closeImageGeneration: () => setImageGeneration(prev => ({ ...prev, isVisible: false })),
         closeVideoGeneration: () => setVideoGeneration(prev => ({ ...prev, isVisible: false }))
     };

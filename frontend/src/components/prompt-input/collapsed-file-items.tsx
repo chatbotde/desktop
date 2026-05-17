@@ -1,8 +1,9 @@
-import { FileText } from "lucide-react"
+import { FileText, PlaySquare } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import type { FileItemsBaseProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
+import { useFeature } from "@/shared/providers/FeatureProvider"
 
 interface CollapsedFileItemsProps extends FileItemsBaseProps {}
 
@@ -13,6 +14,9 @@ export function CollapsedFileItems({
   onRemoveClipboardItem,
   themeClasses,
 }: CollapsedFileItemsProps) {
+  const { isFeatureEnabled } = useFeature()
+  const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
+
   if (files.length === 0 && (!clipboardItems || clipboardItems.length === 0)) {
     return null
   }
@@ -33,9 +37,13 @@ export function CollapsedFileItems({
             e.stopPropagation()
             onRemoveClipboardItem?.(index)
           }}
-          title={item}
+          title={isYoutubePlayerEnabled && item.startsWith('[YouTube] ') ? 'YouTube Video' : item}
         >
-          <FileText className={`size-4 ${themeClasses.icon}`} />
+          {isYoutubePlayerEnabled && item.startsWith('[YouTube] ') ? (
+            <PlaySquare className={`size-4 ${themeClasses.icon}`} />
+          ) : (
+            <FileText className={`size-4 ${themeClasses.icon}`} />
+          )}
         </div>
       ))}
       {files.map((file, index) => (

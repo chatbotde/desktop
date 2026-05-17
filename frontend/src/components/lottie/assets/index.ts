@@ -1,9 +1,9 @@
-export * from './BasketballSvg';
-export * from './PaperPlaneSvg';
-export * from './RollsRoyceSvg';
-export * from './SkateboardSvg';
-export * from './FighterPlaneSvg';
-export * from './SunSvg';
-export * from './LeftHandSvg';
-export * from './RightHandSvg';
-export * from './StartSvg';
+export { BasketballSvg } from './BasketballSvg';
+export { PaperPlaneSvg } from './PaperPlaneSvg';
+export { RollsRoyceSvg } from './RollsRoyceSvg';
+export { SkateboardSvg } from './SkateboardSvg';
+export { FighterPlaneSvg } from './FighterPlaneSvg';
+export { SunSvg } from './SunSvg';
+export { LeftHandSvg } from './LeftHandSvg';
+export { RightHandSvg } from './RightHandSvg';
+export { StartSvg } from './StartSvg';

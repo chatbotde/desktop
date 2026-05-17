@@ -113,7 +113,11 @@ export function ImageGeneration({
         <CarouselContent className="h-full">
           {images.map((originalUrl, index) => {
             const isFailed = failedImages.has(index)
-            const imageUrl = isFailed ? '/1.png' : originalUrl
+            const imageUrl = originalUrl
+
+            if (isFailed) {
+              return null
+            }
 
             return (
               <CarouselItem key={index} className="h-full">

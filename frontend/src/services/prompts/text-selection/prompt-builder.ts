@@ -102,14 +102,17 @@ export function buildTextSelectionAddPrompt(
  * Instructions for the AI to provide direct, minimal output without conversational fillers.
  */
 export const DIRECT_OUTPUT_INSTRUCTIONS = `
+### DIRECT OUTPUT MODE
 IMPORTANT: Provide DIRECT OUTPUT ONLY.
-- NO conversational fillers (e.g., "Here is the summary:", "Sure, I can help").
+
+RULES:
+- Provide the SINGLE best version/response.
+- NEVER provide multiple options, alternatives, or choices (e.g., no "Option 1", "Option 2").
+- NO conversational filler (e.g., "Sure," "Here is," "I hope this helps").
 - NO introductory or concluding remarks.
-- NO additional questions or suggestions at the end.
+- NO meta-talk or explanations of your reasoning.
 - Provide ONLY the requested content itself.
-- If the user asks for a post/email/summary, provide ONLY that text.
-- Provide the SINGLE best version, not multiple options.
-- Ensure the output is ready to be used/sent immediately.
+- If the user asks for a rewrite, provide ONLY the rewritten text, ready to be used immediately.
 `.trim()
 
 /**

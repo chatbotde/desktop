@@ -5,7 +5,17 @@ import { useTheme, useIsDark } from "@/shared/providers"
 import { getThemeClasses } from "@/shared/utils/theme"
 
 export function FeaturesSection() {
-  const { theme, toggleTheme, setTheme, availableThemes, themeConfig } = useTheme()
+  const {
+    theme,
+    toggleTheme,
+    setTheme,
+    availableThemes,
+    themeConfig,
+    colorTheme,
+    setColorTheme,
+    availableColorThemes,
+    colorThemeConfig,
+  } = useTheme()
   const isDark = useIsDark()
 
   return (
@@ -96,6 +106,43 @@ export function FeaturesSection() {
               )}
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Palette Selection */}
+      <div className={getThemeClasses(isDark, {
+        dark: "border-zinc-800 bg-zinc-900/50",
+        light: "border-zinc-200 bg-zinc-50"
+      }, "flex items-center justify-between p-4 rounded-lg border")}>
+        <div className="flex flex-col gap-1">
+          <div className={getThemeClasses(isDark, {
+            dark: "text-zinc-100",
+            light: "text-zinc-900"
+          }, "text-sm font-medium")}>
+            Color theme
+          </div>
+          <div className={getThemeClasses(isDark, {
+            dark: "text-zinc-400",
+            light: "text-zinc-600"
+          }, "text-xs")}>
+            {colorThemeConfig[colorTheme]?.description || "Choose a palette preset"}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={colorTheme}
+            onChange={(e) => setColorTheme(e.target.value as typeof colorTheme)}
+            className={getThemeClasses(isDark, {
+              dark: "bg-zinc-800 border-zinc-700 text-zinc-100",
+              light: "bg-white border-zinc-300 text-zinc-900"
+            }, "px-3 py-1.5 rounded-md border text-sm")}
+          >
+            {availableColorThemes.map((t) => (
+              <option key={t} value={t}>
+                {colorThemeConfig[t]?.displayName ?? t}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

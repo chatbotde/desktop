@@ -13,6 +13,24 @@ export function createInterfaceAPI(): InterfaceAPI {
         maximize: () => ipcRenderer.send('interface-window:maximize'),
         close: () => ipcRenderer.send('interface-window:close'),
 
+        // Native OS-level mouse click via robotjs
+        clickAt: (x: number, y: number) => ipcRenderer.invoke('interface-window:click-at', x, y),
+
+        // Double-click (for selecting text in fields)
+        doubleClickAt: (x: number, y: number) => ipcRenderer.invoke('interface-window:double-click-at', x, y),
+
+        // Right-click (for context menus)
+        rightClickAt: (x: number, y: number) => ipcRenderer.invoke('interface-window:right-click-at', x, y),
+
+        // Scroll at position (amount: positive = down, negative = up)
+        scrollAt: (x: number, y: number, amount: number) => ipcRenderer.invoke('interface-window:scroll-at', x, y, amount),
+
+        // Press a key with optional modifiers (e.g. 'tab', 'enter', ['control','a'])
+        keyTap: (key: string, modifiers?: string[]) => ipcRenderer.invoke('interface-window:key-tap', key, modifiers),
+
+        // Type a string via simulated keyboard input
+        typeString: (text: string) => ipcRenderer.invoke('interface-window:type-string', text),
+
         setIgnoreMouseEvents: (ignore: boolean, options?: IgnoreMouseEventsOptions) => {
             if (typeof ignore !== 'boolean') {
                 return;

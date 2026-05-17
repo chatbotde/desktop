@@ -14,6 +14,7 @@
 export * as ai from './ai'
 export * as audio from './audio'
 export * as prompt from './prompt'
+export * as jsonUi from './json-ui'
 
 // Direct exports for simple modules
 export { supabase } from './supabase'

@@ -1,165 +1,33 @@
-import { useState, useEffect } from "react"
+/**
+ * AccountSection — reads auth + subscription state directly from the
+ * AuthContext store (which is already backed by useSyncExternalStore).
+ * Zero local useEffect, zero local caching — the store handles it all.
+ */
+import { useState } from "react"
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Badge } from "@/shared/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/shared/components/ui/avatar"
 import { Crown, Gift, CheckCircle2, AlertCircle, Loader2, User, LogOut, Trash2, CreditCard } from "lucide-react"
-import { subscriptionService, type SubscriptionStatus } from "@/lib/subscription"
-
-interface User {
-  id: string
-  email?: string
-  name?: string
-  image?: string
-}
-
-const CACHE_KEY = 'cached_subscription'
-const USER_CACHE_KEY = 'cached_user'
-const CACHE_DURATION = 5 * 60 * 1000
-
-function getCachedUser(): User | null {
-  try {
-    const cached = localStorage.getItem(USER_CACHE_KEY)
-    if (!cached) return null
-    
-    const { data, expiresAt } = JSON.parse(cached)
-    if (Date.now() > expiresAt) {
-      localStorage.removeItem(USER_CACHE_KEY)
-      return null
-    }
-    return data
-  } catch {
-    return null
-  }
-}
-
-function setCachedUser(user: User): void {
-  try {
-    localStorage.setItem(USER_CACHE_KEY, JSON.stringify({
-      data: user,
-      expiresAt: Date.now() + CACHE_DURATION
-    }))
-  } catch {}
-}
-
-function clearCachedUser(): void {
-  localStorage.removeItem(USER_CACHE_KEY)
-}
-
-function getCachedSubscription(): SubscriptionStatus | null {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY)
-    if (!cached) return null
-    
-    const { data, expiresAt } = JSON.parse(cached)
-    if (Date.now() > expiresAt) {
-      localStorage.removeItem(CACHE_KEY)
-      return null
-    }
-    return data
-  } catch {
-    return null
-  }
-}
-
-function setCachedSubscription(status: SubscriptionStatus): void {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      data: status,
-      expiresAt: Date.now() + CACHE_DURATION
-    }))
-  } catch {}
-}
-
-function clearCachedSubscription(): void {
-  localStorage.removeItem(CACHE_KEY)
-}
+import { useAuth } from "@/contexts/AuthContext"
 
 export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  // ✅ All auth/subscription state comes from the central store — no local useEffect needed
+  const {
+    user,
+    isLoading: isLoadingUser,
+    subscriptionStatus,
+    isCheckingSubscription: isLoadingSubscription,
+    redeemVipCode,
+  } = useAuth()
+
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isClearingTokens, setIsClearingTokens] = useState(false)
-  
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
-  const [isLoadingSubscription, setIsLoadingSubscription] = useState(false)
-  
   const [vipCode, setVipCode] = useState('')
   const [isRedeeming, setIsRedeeming] = useState(false)
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [showVipInput, setShowVipInput] = useState(false)
-
-  useEffect(() => {
-    const cachedUser = getCachedUser()
-    if (cachedUser) {
-      setUser(cachedUser)
-      setIsLoadingUser(false)
-    }
-
-    if (!window.authAPI) {
-      setIsLoadingUser(false)
-      return
-    }
-
-    window.authAPI.getUser?.().then((userData: User | null) => {
-      setUser(userData)
-      if (userData) {
-        setCachedUser(userData)
-      }
-      setIsLoadingUser(false)
-    }).catch(() => {
-      if (!cachedUser) {
-        setUser(null)
-      }
-      setIsLoadingUser(false)
-    })
-
-    const unsubState = window.authAPI.onStateChange?.((state: { user?: User }) => {
-      setUser(state.user || null)
-      if (state.user) {
-        setCachedUser(state.user)
-      } else {
-        clearCachedUser()
-      }
-    })
-    const unsubSuccess = window.authAPI.onAuthSuccess?.((userData: User) => {
-      setUser(userData)
-      setCachedUser(userData)
-    })
-    const unsubLogout = window.authAPI.onLogout?.(() => {
-      setUser(null)
-      clearCachedUser()
-      clearCachedSubscription()
-    })
-
-    return () => {
-      unsubState?.()
-      unsubSuccess?.()
-      unsubLogout?.()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!user) {
-      setSubscriptionStatus(null)
-      return
-    }
-
-    const cached = getCachedSubscription()
-    if (cached) {
-      setSubscriptionStatus(cached)
-    }
-
-    setIsLoadingSubscription(true)
-    subscriptionService.getSubscriptionStatus()
-      .then((status) => {
-        setSubscriptionStatus(status)
-        setCachedSubscription(status)
-      })
-      .catch(console.error)
-      .finally(() => setIsLoadingSubscription(false))
-  }, [user])
 
   const handleSignOut = async () => {
     if (!window.authAPI) return
@@ -176,7 +44,6 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
     setIsClearingTokens(true)
     try {
       await window.authAPI.clearTokens()
-      clearCachedSubscription()
     } finally {
       setIsClearingTokens(false)
     }
@@ -184,32 +51,18 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
 
   const handleRedeemCode = async () => {
     if (!vipCode.trim()) return
-
     setIsRedeeming(true)
     setRedeemMessage(null)
-
     try {
-      const result = await subscriptionService.redeemVipCode(vipCode)
-      setRedeemMessage({
-        type: result.success ? 'success' : 'error',
-        message: result.message,
-      })
-
+      // Uses auth store's redeemVipCode — it refreshes subscription state automatically
+      const result = await redeemVipCode(vipCode)
+      setRedeemMessage({ type: result.success ? 'success' : 'error', message: result.message })
       if (result.success) {
-        const status = await subscriptionService.getSubscriptionStatus(true)
-        setSubscriptionStatus(status)
-        setCachedSubscription(status)
         setVipCode('')
-        setTimeout(() => {
-          setShowVipInput(false)
-          setRedeemMessage(null)
-        }, 2000)
+        setTimeout(() => { setShowVipInput(false); setRedeemMessage(null) }, 2000)
       }
     } catch {
-      setRedeemMessage({
-        type: 'error',
-        message: 'Failed to redeem code. Please try again.',
-      })
+      setRedeemMessage({ type: 'error', message: 'Failed to redeem code. Please try again.' })
     } finally {
       setIsRedeeming(false)
     }
@@ -305,7 +158,7 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
                   {subscriptionStatus.isVip ? (
                     <><Crown className="h-3 w-3 mr-1" /> VIP</>
                   ) : subscriptionStatus.isActive ? (
-                    subscriptionStatus.plan === 'monthly' ? 'Monthly' : 'Yearly'
+                    subscriptionStatus.plan === 'monthly' ? 'PRO Level' : 'PRO Level (Yearly)'
                   ) : (
                     'Free Trial'
                   )}

@@ -49,6 +49,9 @@ const ClickThrough = () => {
 			let currentState: boolean | null = null
 
 			const updateState = (shouldIgnore: boolean) => {
+				if (shouldIgnore && document.documentElement.hasAttribute('data-lock-clickthrough')) {
+					shouldIgnore = false
+				}
 				if (currentState === shouldIgnore) return
 				currentState = shouldIgnore
 				setIgnore(shouldIgnore, shouldIgnore ? { forward: true } : undefined)

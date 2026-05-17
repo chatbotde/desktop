@@ -54,15 +54,14 @@ export function usePasteHandler({
         addTranscriptFromUrl(url).then((success) => {
           toast.dismiss('youtube-transcript')
           
-          // If transcript fetch failed, still add the URL as text
           if (!success) {
-            setClipboardItems((prev) => [...prev, url])
+            setClipboardItems((prev) => [...prev, `[YouTube] ${url}`])
             setIsExpanded(true)
           }
         }).catch((error) => {
           toast.dismiss('youtube-transcript')
           console.error('[usePasteHandler] Error fetching transcript:', error)
-          setClipboardItems((prev) => [...prev, url])
+          setClipboardItems((prev) => [...prev, `[YouTube] ${url}`])
           setIsExpanded(true)
         })
       }

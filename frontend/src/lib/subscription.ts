@@ -268,9 +268,9 @@ export class SubscriptionService {
       case 'free':
         return 'Free Trial (10 days)';
       case 'monthly':
-        return 'Monthly Plan';
+        return 'PRO Level';
       case 'yearly':
-        return 'Yearly Plan';
+        return 'PRO Level (Yearly)';
       default:
         return 'Unknown';
     }

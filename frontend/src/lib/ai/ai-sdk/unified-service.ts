@@ -22,6 +22,10 @@ import {
     generateVideos as replicateGenerateVideos
 } from '../../image/replicate';
 import {
+    generateGoogleImages,
+    isGeminiImageModel,
+} from '../../image/google-image';
+import {
     validateMessage,
     validateAttachments,
     getCapabilitySummary,
@@ -397,20 +401,33 @@ export class AISDKUnifiedService {
     }
 
     // ============================================================================
-    // Image Generation (Replicate)
+    // Image Generation
     // ============================================================================
 
     /**
-     * Generate images using Replicate API
+     * Generate images using the selected image provider.
      * @param prompt - The text prompt describing the image to generate
-     * @param modelName - Optional model name (defaults to flux-kontext-pro)
+     * @param modelName - Optional model name
      * @returns Array of generated image URLs
      */
     async generateImages(prompt: string, modelName?: string): Promise<string[]> {
         try {
             console.log(`[AISDKUnifiedService] Generating images with prompt: "${prompt.slice(0, 50)}..."`);
 
-            // Use the Replicate image generation function
+            const selectedModel = getSelectedModel();
+            const provider = selectedModel?.provider;
+            const requestedModel = modelName || selectedModel?.name || selectedModel?.id;
+
+            if (provider === 'google' || isGeminiImageModel(requestedModel)) {
+                const result = await generateGoogleImages({
+                    prompt,
+                    model: isGeminiImageModel(requestedModel) ? requestedModel : undefined,
+                });
+
+                console.log(`[AISDKUnifiedService] Generated ${result.images.length} images using ${result.model}`);
+                return result.images;
+            }
+
             const result = await replicateGenerateImages({
                 prompt,
                 model: modelName as `${string}/${string}` | `${string}/${string}:${string}` | undefined,

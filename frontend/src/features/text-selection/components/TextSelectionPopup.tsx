@@ -24,79 +24,192 @@ interface SelectionData {
   [key: string]: unknown
 }
 
+/** Each selection instance has its own isolated state */
+interface SelectionInstance {
+  id: string
+  selectionData: SelectionData
+  position: { top: number; left: number }
+  isExpanded: boolean
+  prompt: string
+  isGenerating: boolean
+  generatedOutput: string | null
+  isPlaying: boolean
+}
+
 interface TextSelectionPopupProps {
   onSendMessage?: (message: string) => Promise<void>
   /** Whether to use dark theme styling */
   isDarkTheme?: boolean
 }
 
+let nextId = 0
+function generateId(): string {
+  return `sel-${Date.now()}-${nextId++}`
+}
+
 export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [selectionData, setSelectionData] = useState<SelectionData | null>(null)
-  const [prompt, setPrompt] = useState('')
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [instances, setInstances] = useState<SelectionInstance[]>([])
+  const instancesRef = useRef<SelectionInstance[]>([])
+  // Keep ref in sync with state
+  instancesRef.current = instances
+
   const { isFeatureEnabled } = useFeature()
   const { activeVoiceId, getVoicePath, presetVoices } = useVoiceContext()
 
+  const timerRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const stopRefs = useRef<Map<string, boolean>>(new Map())
+  const audioContextRefs = useRef<Map<string, AudioContext>>(new Map())
+  const nextTimeRefs = useRef<Map<string, number>>(new Map())
 
+  // --- Per-instance helpers ---
 
-  const popupRef = useRef<HTMLDivElement>(null)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const stopRef = useRef(false)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const nextTimeRef = useRef<number>(0)
+  const updateInstance = useCallback((id: string, updates: Partial<SelectionInstance>) => {
+    setInstances(prev => prev.map(inst => inst.id === id ? { ...inst, ...updates } : inst))
+  }, [])
 
-  const stopAutoHide = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
+  const removeInstance = useCallback((id: string) => {
+    // Clean up timers
+    const timer = timerRefs.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timerRefs.current.delete(id)
+    }
+    // Clean up audio
+    const audioCtx = audioContextRefs.current.get(id)
+    if (audioCtx) {
+      audioCtx.close().catch(() => {})
+      audioContextRefs.current.delete(id)
+    }
+    stopRefs.current.delete(id)
+    nextTimeRefs.current.delete(id)
+
+    setInstances(prev => prev.filter(inst => inst.id !== id))
+  }, [])
+
+  const stopAutoHide = useCallback((id: string) => {
+    const timer = timerRefs.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timerRefs.current.delete(id)
     }
   }, [])
 
-  const startAutoHide = useCallback(() => {
-    stopAutoHide()
-    // Only auto-hide if not expanded or generating or playing
-    if (!isExpanded && !isGenerating && !isPlaying) {
-      timerRef.current = setTimeout(() => {
-        setIsVisible(false)
-      }, 10000) // 10 seconds
-    }
-  }, [isExpanded, isGenerating, isPlaying, stopAutoHide])
+  const startAutoHide = useCallback((id: string) => {
+    stopAutoHide(id)
+    setInstances(prev => {
+      const inst = prev.find(i => i.id === id)
+      if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying) {
+        const timer = setTimeout(() => {
+          removeInstance(id)
+        }, 10000)
+        timerRefs.current.set(id, timer)
+      }
+      return prev
+    })
+  }, [stopAutoHide, removeInstance])
 
-  const handleStopAudio = useCallback(() => {
-    if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => { })
-      audioContextRef.current = null
+  const handleStopAudio = useCallback((id: string) => {
+    const audioCtx = audioContextRefs.current.get(id)
+    if (audioCtx) {
+      audioCtx.close().catch(() => {})
+      audioContextRefs.current.delete(id)
     }
-    setIsPlaying(false)
+    updateInstance(id, { isPlaying: false })
+  }, [updateInstance])
+
+  const handleClose = useCallback((id: string) => {
+    handleStopAudio(id)
+    removeInstance(id)
+  }, [handleStopAudio, removeInstance])
+
+  const handleCopy = useCallback(async (id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst?.selectionData?.text) return
+    try {
+      await navigator.clipboard.writeText(inst.selectionData.text)
+    } catch (error) {
+      console.error('Copy failed:', error)
+    }
   }, [])
 
-  const handleClose = useCallback(() => {
-    setIsVisible(false)
-    setIsExpanded(false)
-    setPrompt('')
-    setIsGenerating(false)
-    setGeneratedOutput(null)
-    stopAutoHide()
-    handleStopAudio()
-  }, [stopAutoHide, handleStopAudio])
+  const handleGenerate = useCallback(async (id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst || !inst.prompt.trim() || !inst.selectionData?.text || inst.isGenerating) return
 
-  const handleRead = useCallback(async (textOverride?: string) => {
-    if (isPlaying) {
-      handleStopAudio()
+    updateInstance(id, { isGenerating: true, generatedOutput: null })
+    stopRefs.current.set(id, false)
+
+    try {
+      const fullPrompt = `SELECTED TEXT:\n"""\n${inst.selectionData.text}\n"""\n\nUSER REQUEST:\n${inst.prompt}`
+      const stream = await sendMessage(fullPrompt, undefined, {
+        bypassHistory: true,
+        systemPromptOverride: TEXT_SELECTION_PROMPT.prompt
+      })
+
+      let result = ''
+      for await (const chunk of stream) {
+        if (stopRefs.current.get(id)) break
+        result += chunk
+        updateInstance(id, { generatedOutput: result })
+      }
+
+      updateInstance(id, { generatedOutput: result })
+    } catch (error) {
+      console.error('Generation error:', error)
+      updateInstance(id, { generatedOutput: 'Error: Failed to generate response' })
+    } finally {
+      updateInstance(id, { isGenerating: false })
+    }
+  }, [updateInstance])
+
+  const handleStop = useCallback((id: string) => {
+    stopRefs.current.set(id, true)
+  }, [])
+
+  const handleInsert = useCallback(async (id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst?.generatedOutput) return
+    try {
+      await window.tsfAPI?.focusAndInsertText(inst.generatedOutput)
+    } catch (error) {
+      console.error('Insert failed:', error)
+    }
+  }, [])
+
+  const handleReplace = useCallback(async (id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst?.generatedOutput) return
+    try {
+      await window.tsfAPI?.focusAndReplaceText(inst.generatedOutput)
+    } catch (error) {
+      console.error('Replace failed:', error)
+    }
+  }, [])
+
+  const handleCopyOutput = useCallback(async (id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst?.generatedOutput) return
+    try {
+      await navigator.clipboard.writeText(inst.generatedOutput)
+    } catch (error) {
+      console.error('Copy output failed:', error)
+    }
+  }, [])
+
+  const handleRead = useCallback(async (id: string, textOverride?: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst) return
+
+    if (inst.isPlaying) {
+      handleStopAudio(id)
       return
     }
 
-    const textToRead = textOverride || selectionData?.text
+    const textToRead = textOverride || inst.selectionData?.text
     if (!textToRead?.trim()) return
 
-    setIsPlaying(true)
-    // extend auto-hide while playing/loading
-    stopAutoHide()
+    updateInstance(id, { isPlaying: true })
+    stopAutoHide(id)
 
     try {
       const formData = new FormData()
@@ -106,22 +219,16 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
       if (activeVoiceId) {
         const isPreset = presetVoices.some(v => v.id === activeVoiceId)
         if (isPreset) {
-          // Preset voice name
           formData.append('voice_url', activeVoiceId)
         } else {
-          // Cloned voice path
           const voicePath = getVoicePath(activeVoiceId)
           if (voicePath) {
-            // We send the local absolute path as voice_url
-            // the pocket-tts server will read it directly from disk
             formData.append('voice_url', voicePath)
           }
         }
       }
 
-
       const response = await fetch('/api/tts', {
-
         method: 'POST',
         body: formData,
       })
@@ -133,26 +240,25 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
       const reader = response.body.getReader()
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-      audioContextRef.current = new AudioContextClass({ latencyHint: 'interactive' })
-      const ctx = audioContextRef.current
+      const audioCtx = new AudioContextClass({ latencyHint: 'interactive' })
+      audioContextRefs.current.set(id, audioCtx)
 
-      // Add a GainNode to increase volume
-      const gainNode = ctx.createGain()
-      gainNode.gain.value = 20.0 // Boost volume (8.0x multiplier)
-      gainNode.connect(ctx.destination)
+      const gainNode = audioCtx.createGain()
+      gainNode.gain.value = 20.0
+      gainNode.connect(audioCtx.destination)
 
-      if (ctx.state === 'suspended') {
-        await ctx.resume()
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume()
       }
 
-      nextTimeRef.current = ctx.currentTime + 0.1
+      nextTimeRefs.current.set(id, audioCtx.currentTime + 0.1)
 
       let headerRead = false
       let leftoverBytes: Uint8Array | null = null
       let sampleRate = 24000
 
       while (true) {
-        if (!audioContextRef.current) break
+        if (!audioContextRefs.current.has(id)) break
 
         const { done, value } = await reader.read()
         if (done) break
@@ -177,7 +283,6 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
 
           const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength)
           sampleRate = view.getUint32(24, true)
-          // console.log("Streaming TTS: Detected sample rate:", sampleRate)
 
           headerRead = true
           dataOffset = 44
@@ -199,22 +304,23 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           float32Data[i] = int16Data[i] / 32768.0
         }
 
-        const audioBuffer = ctx.createBuffer(1, float32Data.length, sampleRate)
+        const audioBuffer = audioCtx.createBuffer(1, float32Data.length, sampleRate)
         audioBuffer.getChannelData(0).set(float32Data)
 
-        const source = ctx.createBufferSource()
+        const source = audioCtx.createBufferSource()
         source.buffer = audioBuffer
         source.connect(gainNode)
 
-        let startTime = nextTimeRef.current
-        if (startTime < ctx.currentTime) startTime = ctx.currentTime
+        const nextTime = nextTimeRefs.current.get(id) ?? audioCtx.currentTime
+        let startTime = nextTime
+        if (startTime < audioCtx.currentTime) startTime = audioCtx.currentTime
         source.start(startTime)
 
-        nextTimeRef.current = startTime + audioBuffer.duration
+        nextTimeRefs.current.set(id, startTime + audioBuffer.duration)
       }
 
-      if (audioContextRef.current) {
-        const remaining = nextTimeRef.current - ctx.currentTime
+      if (audioContextRefs.current.has(id)) {
+        const remaining = (nextTimeRefs.current.get(id) ?? 0) - audioCtx.currentTime
         if (remaining > 0) {
           await new Promise(r => setTimeout(r, remaining * 1000))
         }
@@ -223,108 +329,31 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
     } catch (error) {
       console.error('TTS Streaming Error:', error)
     } finally {
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => { })
-        audioContextRef.current = null
+      const audioCtx = audioContextRefs.current.get(id)
+      if (audioCtx) {
+        audioCtx.close().catch(() => {})
+        audioContextRefs.current.delete(id)
       }
-      setIsPlaying(false)
-      startAutoHide()
+      updateInstance(id, { isPlaying: false })
+      startAutoHide(id)
     }
-  }, [selectionData, isPlaying, handleStopAudio, stopAutoHide, startAutoHide, activeVoiceId, getVoicePath, presetVoices])
-
-
-
-  const handleStop = useCallback(() => {
-    stopRef.current = true
-  }, [])
-
-  const handleCopy = useCallback(async () => {
-    if (!selectionData?.text) return
-    try {
-      await navigator.clipboard.writeText(selectionData.text)
-    } catch (error) {
-      console.error('Copy failed:', error)
-    }
-  }, [selectionData])
-
-  const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || !selectionData?.text || isGenerating) return
-
-    setIsGenerating(true)
-    setGeneratedOutput(null)
-    stopRef.current = false
-
-    try {
-      // Use the proper AI service to send the message
-      const fullPrompt = `Context: "${selectionData.text}"\n\nUser request: ${prompt}`
-      const stream = await sendMessage(fullPrompt, undefined, {
-        bypassHistory: true,
-        systemPromptOverride: TEXT_SELECTION_PROMPT.prompt
-      })
-
-      // Stream the response and accumulate text
-      let result = ''
-      for await (const chunk of stream) {
-        if (stopRef.current) break
-        result += chunk
-        setGeneratedOutput(result)
-      }
-
-      setGeneratedOutput(result)
-    } catch (error) {
-      console.error('Generation error:', error)
-      setGeneratedOutput('Error: Failed to generate response')
-    } finally {
-      setIsGenerating(false)
-    }
-  }, [prompt, selectionData, isGenerating])
-
-  const handleInsert = useCallback(async () => {
-    if (!generatedOutput) return
-    try {
-      // Use TSF API to focus last window and insert text
-      await window.tsfAPI?.focusAndInsertText(generatedOutput)
-    } catch (error) {
-      console.error('Insert failed:', error)
-    }
-  }, [generatedOutput])
-
-  const handleReplace = useCallback(async () => {
-    if (!generatedOutput) return
-    try {
-      // Use TSF API to focus last window and replace selected text
-      await window.tsfAPI?.focusAndReplaceText(generatedOutput)
-    } catch (error) {
-      console.error('Replace failed:', error)
-    }
-  }, [generatedOutput])
-
-  const handleCopyOutput = useCallback(async () => {
-    if (!generatedOutput) return
-    try {
-      await navigator.clipboard.writeText(generatedOutput)
-    } catch (error) {
-      console.error('Copy output failed:', error)
-    }
-  }, [generatedOutput])
+  }, [handleStopAudio, stopAutoHide, startAutoHide, updateInstance, activeVoiceId, getVoicePath, presetVoices])
 
   // Main selection change listener - using syncExternalStore
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingDataRef = useRef<SelectionData | null>(null)
+
   useSyncExternalStore(
     useCallback(() => {
       if (!isFeatureEnabled('text-selection')) {
-        setIsVisible(false)
-        handleStopAudio()
+        setInstances([])
         return () => {}
       }
 
-      const handleSelectionChange = (data: SelectionData) => {
-        if (!isFeatureEnabled('text-selection')) return
-
-        if (!data?.text?.trim()) {
-          setIsVisible(false)
-          handleStopAudio()
-          return
-        }
+      const commitSelection = () => {
+        const data = pendingDataRef.current
+        if (!data) return
+        pendingDataRef.current = null
 
         const PILL_WIDTH = 200
         const PILL_HEIGHT = 48
@@ -358,18 +387,65 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
         }
         if (finalLeft < padding) finalLeft = padding
 
-        setSelectionData(data)
-        setPrompt('')
-        setIsExpanded(false)
-        setPosition({ top: finalTop, left: finalLeft })
-        handleStopAudio()
+        const newInstance: SelectionInstance = {
+          id: generateId(),
+          selectionData: data,
+          position: { top: finalTop, left: finalLeft },
+          isExpanded: false,
+          prompt: '',
+          isGenerating: false,
+          generatedOutput: null,
+          isPlaying: false,
+        }
 
-        setIsVisible(true)
+        setInstances(prev => {
+          // Cap at 5 selections to avoid clutter
+          const updated = [...prev, newInstance]
+          if (updated.length > 5) {
+            // Remove the oldest non-expanded, non-generating instance
+            const removeIdx = updated.findIndex(i => !i.isExpanded && !i.isGenerating)
+            if (removeIdx !== -1) {
+              const removed = updated[removeIdx]
+              // Clean up the removed instance
+              const timer = timerRefs.current.get(removed.id)
+              if (timer) {
+                clearTimeout(timer)
+                timerRefs.current.delete(removed.id)
+              }
+              updated.splice(removeIdx, 1)
+            }
+          }
+          return updated
+        })
 
-        if (timerRef.current) clearTimeout(timerRef.current)
-        timerRef.current = setTimeout(() => {
-          setIsVisible(false)
+        // Start auto-hide timer for the new instance
+        const timer = setTimeout(() => {
+          // Only auto-dismiss if not expanded/generating
+          setInstances(prev => {
+            const inst = prev.find(i => i.id === newInstance.id)
+            if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying) {
+              return prev.filter(i => i.id !== newInstance.id)
+            }
+            return prev
+          })
         }, 10000)
+        timerRefs.current.set(newInstance.id, timer)
+      }
+
+      const handleSelectionChange = (data: SelectionData) => {
+        if (!isFeatureEnabled('text-selection')) return
+
+        if (!data?.text?.trim()) {
+          return // Don't dismiss existing selections on empty text
+        }
+
+        // Debounce: the backend fires multiple events per selection.
+        // Buffer the latest data and commit after 300ms of silence.
+        pendingDataRef.current = data
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current)
+        }
+        debounceRef.current = setTimeout(commitSelection, 300)
       }
 
       if (window.interfaceAPI?.onMessage) {
@@ -380,10 +456,19 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
         if (window.interfaceAPI?.removeMessageListener) {
           window.interfaceAPI.removeMessageListener('text-selection-changed', handleSelectionChange as (...args: unknown[]) => void)
         }
-        stopAutoHide()
-        handleStopAudio()
+        // Clean up debounce timer
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current)
+          debounceRef.current = null
+        }
+        // Clean up all timers
+        timerRefs.current.forEach(timer => clearTimeout(timer))
+        timerRefs.current.clear()
+        // Clean up all audio contexts
+        audioContextRefs.current.forEach(ctx => ctx.close().catch(() => {}))
+        audioContextRefs.current.clear()
       }
-    }, [isFeatureEnabled, stopAutoHide, handleStopAudio]),
+    }, [isFeatureEnabled]),
     () => null,
     () => null
   )
@@ -391,20 +476,9 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
   // Feature flag listener - using syncExternalStore
   useSyncExternalStore(
     useCallback(() => {
-      if (!isFeatureEnabled('text-selection')) setIsVisible(false)
+      if (!isFeatureEnabled('text-selection')) setInstances([])
       return () => {}
     }, [isFeatureEnabled]),
-    () => null,
-    () => null
-  )
-
-  // Auto-hide when expanded - using syncExternalStore
-  useSyncExternalStore(
-    useCallback(() => {
-      if (isExpanded) stopAutoHide()
-      else if (isVisible) startAutoHide()
-      return () => {}
-    }, [isExpanded, isVisible, startAutoHide, stopAutoHide]),
     () => null,
     () => null
   )
@@ -413,11 +487,11 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
 
   return (
     <AnimatePresence>
-      {isVisible && position && (
+      {instances.map((inst) => (
         <motion.div
-          ref={popupRef}
-          onMouseEnter={stopAutoHide}
-          onMouseLeave={startAutoHide}
+          key={inst.id}
+          onMouseEnter={() => stopAutoHide(inst.id)}
+          onMouseLeave={() => startAutoHide(inst.id)}
           drag
           dragMomentum={false}
           layout
@@ -440,8 +514,8 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           }}
           style={{
             position: 'absolute',
-            top: position.top,
-            left: position.left,
+            top: inst.position.top,
+            left: inst.position.left,
             zIndex: 9999,
             pointerEvents: 'auto',
             touchAction: 'none'
@@ -449,19 +523,19 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           className="cursor-grab active:cursor-grabbing"
           data-no-clickthrough
         >
-          <LayoutGroup>
+          <LayoutGroup id={inst.id}>
             <motion.div
               layout
               className={cn(
                 "relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
-                isExpanded ? "rounded-xl" : "rounded-full",
+                inst.isExpanded ? "rounded-xl" : "rounded-full",
                 isDarkTheme
                   ? "bg-zinc-950 border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.15)]"
                   : "bg-white border border-blue-200/50 shadow-[0_0_20px_rgba(37,99,235,0.1)]"
               )}
             >
               <AnimatePresence mode="popLayout" initial={false}>
-                {!isExpanded ? (
+                {!inst.isExpanded ? (
                   <motion.div
                     key="pill"
                     layout
@@ -470,20 +544,8 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                     exit={{ opacity: 0, scale: 0.8 }}
                     className="flex items-center gap-1.5 p-1.5 whitespace-nowrap"
                   >
-                    {/* 
-                    <ReadButton
-                      onClick={() => handleRead()}
-                      isDarkTheme={isDarkTheme}
-                      isLoading={isPlaying}
-                      size="md"
-                    />
-                    <div className={cn(
-                      "w-px h-5 mx-0.5",
-                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} />
-                    */}
                     <CopyButton
-                      onClick={handleCopy}
+                      onClick={() => handleCopy(inst.id)}
                       isDarkTheme={isDarkTheme}
                       size="md"
                     />
@@ -493,7 +555,10 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                     )} />
                     <ExpandButton
                       isExpanded={false}
-                      onClick={() => setIsExpanded(true)}
+                      onClick={() => {
+                        updateInstance(inst.id, { isExpanded: true })
+                        stopAutoHide(inst.id)
+                      }}
                       isDarkTheme={isDarkTheme}
                       tooltip="Expand to ask AI"
                       size="md"
@@ -503,7 +568,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                       isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
                     )} />
                     <button
-                      onClick={handleClose}
+                      onClick={() => handleClose(inst.id)}
                       className={cn(
                         "p-1.5 px-2 rounded-full transition-all hover:scale-110 active:scale-95",
                         isDarkTheme
@@ -529,7 +594,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                     {/* Header/Close area */}
                     <div className="absolute top-2 right-2 z-10">
                       <button
-                        onClick={handleClose}
+                        onClick={() => handleClose(inst.id)}
                         className={cn(
                           "p-1.5 rounded-full transition-all hover:scale-110 active:scale-95",
                           isDarkTheme
@@ -542,17 +607,17 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                     </div>
 
                     <TextSelectionInput
-                      value={prompt}
-                      onChange={setPrompt}
-                      onGenerate={handleGenerate}
-                      onStop={handleStop}
-                      onClose={handleClose}
+                      value={inst.prompt}
+                      onChange={(val) => updateInstance(inst.id, { prompt: val })}
+                      onGenerate={() => handleGenerate(inst.id)}
+                      onStop={() => handleStop(inst.id)}
+                      onClose={() => handleClose(inst.id)}
                       placeholder="Ask AI about this selection..."
-                      isGenerating={isGenerating}
+                      isGenerating={inst.isGenerating}
                       isDarkTheme={isDarkTheme}
                       className="bg-black border-none shadow-none"
                     />
-                    {(generatedOutput || isGenerating) && (
+                    {(inst.generatedOutput || inst.isGenerating) && (
                       <motion.div
                         layout
                         initial={{ opacity: 0 }}
@@ -560,20 +625,17 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
                         className="border-t border-white/5"
                       >
                         <TextSelectionOutput
-                          content={generatedOutput || ""}
-                          isStreaming={isGenerating}
-                          onInsert={handleInsert}
-                          onReplace={handleReplace}
-                          onCopy={handleCopyOutput}
+                          content={inst.generatedOutput || ""}
+                          isStreaming={inst.isGenerating}
+                          onInsert={() => handleInsert(inst.id)}
+                          onReplace={() => handleReplace(inst.id)}
+                          onCopy={() => handleCopyOutput(inst.id)}
                           onRead={() => {
-                            if (generatedOutput) {
-                              // We need to pass the content specifically for the output
-                              // But handleRead uses selectionData.text by default.
-                              // Let's refactor handleRead or create handleReadOutput
-                              handleRead(generatedOutput)
+                            if (inst.generatedOutput) {
+                              handleRead(inst.id, inst.generatedOutput)
                             }
                           }}
-                          isReading={isPlaying}
+                          isReading={inst.isPlaying}
                           isDarkTheme={isDarkTheme}
                           className="bg-transparent border-none shadow-none mt-0 mb-0"
                         />
@@ -585,7 +647,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
             </motion.div>
           </LayoutGroup>
         </motion.div>
-      )}
+      ))}
     </AnimatePresence>
   )
 }

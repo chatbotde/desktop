@@ -9,10 +9,12 @@ export function ImageGenerationOverlay() {
             images={uiState.generatedImages}
             isVisible={uiState.isImageWindowVisible}
             isLoading={uiState.isGeneratingImages}
+            error={uiState.imageGenerationError}
             onClose={() => {
                 uiState.setIsImageWindowVisible(false)
                 uiState.setIsGeneratingImages(false)
                 uiState.setGeneratedImages([])
+                uiState.setImageGenerationError(null)
             }}
             isDarkTheme={uiState.isDarkTheme}
         />

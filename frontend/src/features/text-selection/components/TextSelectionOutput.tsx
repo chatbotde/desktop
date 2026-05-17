@@ -247,23 +247,22 @@ export function TextSelectionOutput({
         </button>
       </div>
 
-      {/* Content area with smooth height transition */}
+      {/* Content area with resizable height */}
       {!isCollapsed && (
         <div
           ref={contentRef}
           className={cn(
-            "px-4 py-3 overflow-y-auto min-h-[60px]", // Added min-height to avoid "0 height" feel
-            "transition-all duration-200 ease-out",
+            "px-4 py-3 overflow-y-auto h-[150px] min-h-[100px] max-h-[70vh]",
+            "resize-y",
             "scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent"
           )}
-          style={{ maxHeight: '200px' }} // User requested 200px max height
         >
           {!displayedContent && isStreaming ? (
             <LoadingSkeleton isDarkTheme={isDarkTheme} />
           ) : (
-            <div className="relative">
+            <div className="relative select-text">
               <Markdown className={cn(
-                "text-sm",
+                "text-sm select-text",
                 isDarkTheme ? "text-zinc-200" : "text-zinc-900",
                 "prose prose-sm max-w-none",
                 isDarkTheme

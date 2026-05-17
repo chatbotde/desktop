@@ -11,12 +11,14 @@ import { setupTsfIpc, initializeTsf } from './tsf';
 import { initializeBlockManager, stopBlockManager, getLockManager, getBlockManager } from './block-manager/init-block-manager';
 import { CaptureApiHandlers } from './capture/handlers/capture-api-handlers';
 import { registerFileSystemHandlers } from './file-system';
+import { MouseService } from './mouse-service';
 
 export class InterfaceWindow {
   private window: BrowserWindow | null = null;
   private clickThroughManager: ClickThroughManager | null = null;
   private blockManagerInitialized: boolean = false;
   private globalShortcutRegistry: any;
+  private mouseService: MouseService = new MouseService();
 
   constructor(globalShortcutRegistry: any = null) {
     this.globalShortcutRegistry = globalShortcutRegistry;
@@ -93,7 +95,7 @@ export class InterfaceWindow {
       const parsedUrl = new URL(navigationUrl);
       const isLocalHost = parsedUrl.origin === 'http://localhost:5173';
       const isBuddyApp = parsedUrl.protocol === 'buddy-app:';
-      
+
       if (!(isDev && isLocalHost) && !isBuddyApp) {
         event.preventDefault();
         console.warn(`InterfaceWindow: Blocked navigation to ${navigationUrl}`);
@@ -182,6 +184,42 @@ export class InterfaceWindow {
     ipcMain.on('interface-window:close', () => {
       if (this.isLocked()) return;
       if (this.window) this.window.close();
+    });
+
+    ipcMain.handle('interface-window:click-at', async (_event, x: number, y: number) => {
+      console.log(`[InterfaceWindow] click-at IPC received: (${x}, ${y})`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.clickAt(x, y);
+    });
+
+    ipcMain.handle('interface-window:double-click-at', async (_event, x: number, y: number) => {
+      console.log(`[InterfaceWindow] double-click-at IPC received: (${x}, ${y})`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.doubleClickAt(x, y);
+    });
+
+    ipcMain.handle('interface-window:right-click-at', async (_event, x: number, y: number) => {
+      console.log(`[InterfaceWindow] right-click-at IPC received: (${x}, ${y})`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.rightClickAt(x, y);
+    });
+
+    ipcMain.handle('interface-window:scroll-at', async (_event, x: number, y: number, amount: number) => {
+      console.log(`[InterfaceWindow] scroll-at IPC received: (${x}, ${y}), amount: ${amount}`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.scrollAt(x, y, amount);
+    });
+
+    ipcMain.handle('interface-window:key-tap', async (_event, key: string, modifiers?: string[]) => {
+      console.log(`[InterfaceWindow] key-tap IPC received: ${key}, modifiers: ${modifiers}`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.keyTap(key, modifiers);
+    });
+
+    ipcMain.handle('interface-window:type-string', async (_event, text: string) => {
+      console.log(`[InterfaceWindow] type-string IPC received: "${text.slice(0, 30)}..."`);
+      if (this.isLocked()) return { success: false, error: 'Application is locked' };
+      return this.mouseService.typeString(text);
     });
   }
 
