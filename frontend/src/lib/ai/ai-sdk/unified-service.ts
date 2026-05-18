@@ -36,12 +36,14 @@ import {
     type CapabilityValidationResult,
     type CapabilitySummary,
 } from '../capabilities';
-import {
-    ai,
-    isProviderConfigured,
-    type ProviderId,
-} from './index';
+import { ai } from './service';
+import { getProvider, isProviderConfigured, type ProviderId } from './providers';
 import { getResponseLanguageSystemSuffix, mergeSystemPromptWithResponseLanguage } from '@/lib/settings/general-settings';
+import {
+    prepareComposioChatTools,
+    buildComposioAISDKTools,
+} from '@/lib/composio/composio-chat-tools';
+import type { SendMessageOptions } from '@/features/chat/types/send-message-options';
 
 // ============================================================================
 // Types
@@ -272,7 +274,7 @@ export class AISDKUnifiedService {
     async sendMessage(
         message: string,
         attachments?: MediaAttachment[],
-        options?: { bypassHistory?: boolean; systemPromptOverride?: string }
+        options?: SendMessageOptions
     ): Promise<AsyncGenerator<string, void, unknown>> {
         const selectedModel = getSelectedModel();
 
@@ -333,6 +335,7 @@ export class AISDKUnifiedService {
         // Capture model settings before generator (to avoid closure issues)
         const modelTemperature = selectedModel.temperature;
         const modelMaxTokens = selectedModel.maxTokens;
+        const composioToolkitSlugs = options?.composioToolkitSlugs;
 
         // Create tracked generator
         const self = this;
@@ -341,12 +344,49 @@ export class AISDKUnifiedService {
             let usage: { inputTokens?: number; outputTokens?: number } | undefined;
 
             try {
+                let composioTools: Record<string, import('ai').Tool> | undefined;
+                let composioSystemSuffix = '';
+
+                if (composioToolkitSlugs?.length) {
+                    const providerConfig = getProvider(providerId);
+                    if (providerConfig?.supportsTools === false) {
+                        throw new Error(
+                            `${selectedModel?.displayName ?? 'This model'} does not support tool calling. Choose a model with tool support to use integrations.`
+                        );
+                    }
+
+                    const prepared = await prepareComposioChatTools(composioToolkitSlugs);
+                    if (!prepared?.tools.length) {
+                        throw new Error(
+                            'No Composio tools are available for the tagged integrations. Connect them in Settings → Integrations.'
+                        );
+                    }
+
+                    composioTools = buildComposioAISDKTools(prepared.sessionId, prepared.tools);
+                    composioSystemSuffix = [
+                        '',
+                        '## Connected integrations (Composio)',
+                        `You have executable tools for: ${prepared.toolkitSlugs.join(', ')}.`,
+                        'When the user asks to read, send, or update data in those apps, call the matching tools instead of only describing steps.',
+                        'If a tool fails because an account is not connected, tell them to open Settings → Integrations and connect the app.',
+                    ].join('\n');
+                }
+
+                const baseSystem = options?.systemPromptOverride
+                    ? mergeSystemPromptWithResponseLanguage(options.systemPromptOverride)
+                    : history.systemPrompt;
+                const systemWithComposio = baseSystem
+                    ? `${baseSystem}${composioSystemSuffix}`
+                    : composioSystemSuffix.trim() || undefined;
+
                 const result = await ai.stream(providerId, modelName, message, {
-                    system: options?.systemPromptOverride ? mergeSystemPromptWithResponseLanguage(options.systemPromptOverride) : history.systemPrompt,
+                    system: systemWithComposio,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     messages: options?.bypassHistory ? [userMessage] as any : history.messages as any,
                     temperature: modelTemperature,
                     maxOutputTokens: modelMaxTokens,
+                    tools: composioTools,
+                    maxSteps: composioTools ? 10 : undefined,
                 });
 
                 for await (const chunk of result.textStream) {
@@ -391,7 +431,7 @@ export class AISDKUnifiedService {
         return trackedGenerator();
     }
 
-    async sendMessageComplete(message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }): Promise<string> {
+    async sendMessageComplete(message: string, attachments?: MediaAttachment[], options?: SendMessageOptions): Promise<string> {
         const stream = await this.sendMessage(message, attachments, options);
         let response = '';
         for await (const chunk of stream) {
@@ -599,8 +639,8 @@ export class AISDKUnifiedService {
 export const aiSDKUnifiedService = new AISDKUnifiedService();
 
 // Convenience exports (matching legacy interface)
-export const sendMessageAISDK = (message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }) =>
+export const sendMessageAISDK = (message: string, attachments?: MediaAttachment[], options?: SendMessageOptions) =>
     aiSDKUnifiedService.sendMessage(message, attachments, options);
 
-export const sendMessageCompleteAISDK = (message: string, attachments?: MediaAttachment[], options?: { bypassHistory?: boolean; systemPromptOverride?: string }) =>
+export const sendMessageCompleteAISDK = (message: string, attachments?: MediaAttachment[], options?: SendMessageOptions) =>
     aiSDKUnifiedService.sendMessageComplete(message, attachments, options);

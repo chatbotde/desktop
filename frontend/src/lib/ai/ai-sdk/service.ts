@@ -27,9 +27,11 @@ import {
     streamText as aiStreamText,
     generateText as aiGenerateText,
     generateObject as aiGenerateObject,
+    stepCountIs,
     type ModelMessage,
     type LanguageModel,
     type Tool,
+    type StopCondition,
 } from 'ai';
 import { z } from 'zod';
 import {
@@ -77,8 +79,10 @@ export interface StreamOptions {
     tools?: Record<string, Tool>;
     /** Tool choice mode */
     toolChoice?: 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string };
-    /** Maximum number of tool call steps */
+    /** Maximum number of tool call steps (maps to stopWhen: stepCountIs(n)) */
     maxSteps?: number;
+    /** Custom stop conditions for multi-step tool loops */
+    stopWhen?: StopCondition<Record<string, Tool>> | Array<StopCondition<Record<string, Tool>>>;
     /** Abort signal for cancellation */
     abortSignal?: AbortSignal;
     /** Callback for each chunk */
@@ -123,6 +127,9 @@ class AISDKService {
             { role: 'user', content: prompt }
         ];
 
+        const stopWhen = options.stopWhen
+            ?? (options.maxSteps != null ? stepCountIs(options.maxSteps) : undefined);
+
         return aiStreamText({
             model,
             system: options.system,
@@ -135,6 +142,7 @@ class AISDKService {
             stopSequences: options.stop,
             tools: options.tools,
             toolChoice: options.toolChoice,
+            stopWhen,
             abortSignal: options.abortSignal,
             headers: options.headers,
         });
@@ -155,6 +163,9 @@ class AISDKService {
             { role: 'user', content: prompt }
         ];
 
+        const stopWhen = options.stopWhen
+            ?? (options.maxSteps != null ? stepCountIs(options.maxSteps) : undefined);
+
         return aiGenerateText({
             model,
             system: options.system,
@@ -167,6 +178,7 @@ class AISDKService {
             stopSequences: options.stop,
             tools: options.tools,
             toolChoice: options.toolChoice,
+            stopWhen,
             abortSignal: options.abortSignal,
             headers: options.headers,
         });

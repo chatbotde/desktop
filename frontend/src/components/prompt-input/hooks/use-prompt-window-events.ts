@@ -1,9 +1,11 @@
 import { useSyncExternalStore, useCallback } from "react"
 import { toast } from "sonner"
 import type { VideoData } from '@/hooks/useVideoRecording'
+import type { PromptReference } from "../types/prompt-reference"
 
 interface UsePromptWindowEventsProps {
   setClipboardItems: React.Dispatch<React.SetStateAction<string[]>>
+  onReferenceAdd?: (reference: PromptReference) => void
   setIsExpanded: (expanded: boolean) => void
   setIsVisible: (visible: boolean) => void
   handleFilesAdded: (files: File[]) => void
@@ -12,6 +14,7 @@ interface UsePromptWindowEventsProps {
 
 export function usePromptWindowEvents({
   setClipboardItems,
+  onReferenceAdd,
   setIsExpanded,
   setIsVisible,
   handleFilesAdded,
@@ -64,6 +67,27 @@ export function usePromptWindowEvents({
       window.addEventListener('prompt-add-files', handler as EventListener)
       return () => window.removeEventListener('prompt-add-files', handler as EventListener)
     }, [handleFilesAdded, setIsExpanded, setIsVisible]),
+    () => null,
+    () => null
+  )
+
+  // Allow other parts of the app to add structured references to the prompt
+  useSyncExternalStore(
+    useCallback((_callback) => {
+      if (!onReferenceAdd) return () => {}
+
+      const handler = (event: Event) => {
+        const custom = event as CustomEvent<{ reference?: PromptReference }>
+        const reference = custom.detail?.reference
+        if (!reference) return
+
+        onReferenceAdd(reference)
+        setIsExpanded(true)
+        setIsVisible(true)
+      }
+      window.addEventListener('prompt-add-reference', handler as EventListener)
+      return () => window.removeEventListener('prompt-add-reference', handler as EventListener)
+    }, [onReferenceAdd, setIsExpanded, setIsVisible]),
     () => null,
     () => null
   )

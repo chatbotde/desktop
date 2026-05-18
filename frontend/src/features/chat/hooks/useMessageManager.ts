@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { createChatMessage } from '@/utils/message-utils'
 import type { ChatMessage, MediaAttachment } from '../types'
 import { sendMessage as sendCloudMessage, unifiedAIService } from '@/lib/ai'
+import type { SendMessageOptions } from '../types/send-message-options'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { getSelectedModel } from '@/lib/ai/model-config'
 
@@ -20,7 +21,11 @@ export const useMessageManager = (
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const handleSendMessage = useCallback(async (message: string, attachments?: MediaAttachment[]) => {
+  const handleSendMessage = useCallback(async (
+    message: string,
+    attachments?: MediaAttachment[],
+    options?: SendMessageOptions
+  ) => {
     // Create abort controller for this request
     const abortController = new AbortController()
     abortControllerRef.current = abortController
@@ -135,7 +140,7 @@ export const useMessageManager = (
             localModel.name
           )
         } else {
-          responseStream = await sendCloudMessage(message, aiAttachments)
+          responseStream = await sendCloudMessage(message, aiAttachments, options)
         }
 
         // Check if aborted before starting stream

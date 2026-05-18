@@ -22,6 +22,7 @@ const { ApplicationIpcHandlers } = require('./application-ipc-handlers');
 const { ApplicationMonitoring } = require('./application-monitoring');
 const { ApplicationLifecycle } = require('./application-lifecycle');
 const { ApplicationUpdater } = require('./application-updater');
+const { ComposioClient } = require('../composio/composio-client');
 
 class Application {
   /**
@@ -80,6 +81,9 @@ class Application {
       this.ipcRegistry,
       (selectionData) => this.onTextSelection(selectionData)
     );
+
+    // Composio Integration
+    this.composioClient = new ComposioClient(this.ipcRegistry, this.authHandler);
 
     // Auto-startup manager
     this.autoStartupManager = null;
@@ -146,6 +150,9 @@ class Application {
 
       // Register IPC handlers
       this.ipcHandlers.register();
+
+      // Setup Composio Integration
+      this.composioClient.setup();
 
       // Initialize YouTube transcript system
       const { initializeTranscript } = require('../youtube-transcript');

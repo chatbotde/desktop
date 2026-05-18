@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
+import type { PromptReference } from "./types/prompt-reference"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
 import { DropZone } from "@/components/drop-zone"
@@ -9,6 +10,7 @@ import { usePromptFileHandlers } from "./hooks/use-prompt-file-handlers"
 import { usePromptDropHandlers } from "./hooks/use-prompt-drop-handlers"
 import { usePromptWindowEvents } from "./hooks/use-prompt-window-events"
 import { usePromptSubmit } from "./hooks/use-prompt-submit"
+import { usePromptReferences } from "./hooks/use-prompt-references"
 import { useValidationErrorTimeout } from "./hooks/use-validation-error-timeout"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import type { MediaAttachment } from '@/features/chat'
@@ -18,7 +20,11 @@ interface PromptInputWithActionsProps {
   isVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   isDarkTheme?: boolean;
-  onSendMessage?: (message: string, attachments?: MediaAttachment[]) => void | Promise<void>;
+  onSendMessage?: (
+    message: string,
+    attachments?: MediaAttachment[],
+    options?: import('@/features/chat/types/send-message-options').SendMessageOptions
+  ) => void | Promise<void>;
   onStop?: () => void;
   onAudioClick?: () => void;
   onMoreClick?: () => void;
@@ -87,13 +93,39 @@ export function PromptInputWithActions({
     setInput,
     setIsExpanded,
   })
+  const {
+    references,
+    handleReferenceAdd,
+    handleRemoveReference,
+    clearReferences,
+  } = usePromptReferences()
+
+  const handleReferenceAddWithExpand = useCallback(
+    (reference: PromptReference) => {
+      handleReferenceAdd(reference)
+      setIsExpanded(true)
+    },
+    [handleReferenceAdd]
+  )
+
+  const referenceHandlers = useMemo(
+    () => ({
+      references,
+      onReferenceAdd: handleReferenceAddWithExpand,
+      onRemoveReference: handleRemoveReference,
+    }),
+    [references, handleReferenceAddWithExpand, handleRemoveReference]
+  )
+
   const { handleSubmit } = usePromptSubmit({
     input,
     files,
     clipboardItems,
+    references,
     setInput,
     setFiles,
     setClipboardItems,
+    clearReferences,
     setValidationError,
     setIsLoading,
     setIsExpanded,
@@ -115,6 +147,7 @@ export function PromptInputWithActions({
   // Window event handlers
   usePromptWindowEvents({
     setClipboardItems,
+    onReferenceAdd: handleReferenceAddWithExpand,
     setIsExpanded,
     setIsVisible,
     handleFilesAdded,
@@ -163,6 +196,7 @@ export function PromptInputWithActions({
             isLoading={isLoading}
             files={files}
             clipboardItems={clipboardItems}
+            {...referenceHandlers}
             onSubmit={handleSubmit}
             onStop={onStop}
             onExpand={() => setIsExpanded(true)}
@@ -187,6 +221,7 @@ export function PromptInputWithActions({
             isLoading={isLoading}
             files={files}
             clipboardItems={clipboardItems}
+            {...referenceHandlers}
             onSubmit={handleSubmit}
             onStop={onStop}
             onCollapse={() => setIsExpanded(false)}

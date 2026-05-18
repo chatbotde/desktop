@@ -28,9 +28,9 @@ export function PromptInputOverlay() {
     dragControls.start({ x: 0, y: 0, transition: { type: 'spring', damping: 30, stiffness: 300 } })
   }, [hasMovedDown, dragControls])
 
-  const onSendWrapper = useCallback(async (msg: string, attachments?: unknown[]) => {
+  const onSendWrapper = useCallback(async (msg: string, attachments?: unknown[], options?: unknown) => {
     setHasMovedDown(true)
-    await handleSendMessage(msg, attachments as never)
+    await handleSendMessage(msg, attachments as never, options as never)
   }, [handleSendMessage])
 
   if (!uiState.isInputVisible) return null

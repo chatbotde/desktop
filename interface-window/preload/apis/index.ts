@@ -11,3 +11,4 @@ export { createAuthAPI } from './auth';
 export { createFileAPI } from './file';
 export { createYouTubeTranscriptAPI } from './youtube';
 export { createWhisperAPI } from './whisper';
+export { createComposioAPI } from './composio';

@@ -2,12 +2,17 @@
  * Shared types and interfaces for prompt input components
  */
 
+import type { PromptReference } from "./prompt-reference"
+
 export interface BasePromptInputProps {
   input: string
   setInput: (value: string) => void
   isLoading: boolean
   files: File[]
   clipboardItems?: string[]
+  references?: PromptReference[]
+  onRemoveReference?: (id: string) => void
+  onReferenceAdd?: (reference: PromptReference) => void
   onSubmit: () => void
   onStop?: () => void
   onHide: () => void

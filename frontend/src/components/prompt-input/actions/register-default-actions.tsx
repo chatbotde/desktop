@@ -11,6 +11,7 @@ import { MicHoverAudioPill } from "@/features/audio"
 import { VideoHoverCapturePill } from "@/features/capture/components"
 import { ExpandedGroundingButton } from "../expanded-grounding-button"
 import { ExpandedSubmitButton } from "../expanded-submit-button"
+import { ReferenceButton } from "./reference-button"
 import { actionButtonRegistry } from "../registry/action-button-registry"
 import type { ExpandedActionsBarContext } from "../types/expanded-actions-context"
 import { getAvailableModels, isModelWorking } from "@/lib/ai/model-config"
@@ -88,6 +89,27 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
         />
       </PromptInputAction>
     ),
+  })
+
+  // Add in reference (Left side, order: 3)
+  actionButtonRegistry.register({
+    id: "add-reference",
+    order: 3,
+    condition: () => !!getContext().onReferenceAdd,
+    component: () => {
+      const ctx = getContext()
+      if (!ctx.onReferenceAdd) return null
+      return (
+        <ReferenceButton
+          key="add-reference"
+          isDarkTheme={ctx.isDarkTheme}
+          themeClasses={ctx.themeClasses}
+          hoverClass={ctx.hoverClass}
+          selectedReferences={ctx.references ?? []}
+          onReferenceAdd={ctx.onReferenceAdd}
+        />
+      )
+    },
   })
 
   // Grounding Button (Left side, order: 2, conditional)

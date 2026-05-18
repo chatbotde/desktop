@@ -1,4 +1,5 @@
 import type { LocalLLMModel } from "@/lib/ai/local-llm"
+import type { PromptReference } from "./prompt-reference"
 
 export interface ExpandedActionsBarContext {
   onFilesAdded?: (files: File[]) => void
@@ -33,5 +34,8 @@ export interface ExpandedActionsBarContext {
   ollamaModels: LocalLLMModel[]
   selectedLocalModelName: string | null
   onModelSelect: (modelName: string) => void
+  // Task references
+  references?: PromptReference[]
+  onReferenceAdd?: (reference: PromptReference) => void
 }
 

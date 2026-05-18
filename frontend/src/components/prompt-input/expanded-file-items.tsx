@@ -6,10 +6,14 @@ import { FileRemoveButton } from "./components/file-remove-button"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { YoutubeVideoPlayer, extractVideoId } from "./youtube-video-player"
 import { useFeature } from "@/shared/providers/FeatureProvider"
+import { ReferenceChips } from "./components/reference-chips"
+import type { PromptReference } from "./types/prompt-reference"
 
 interface ExpandedFileItemsProps {
   files: File[]
   clipboardItems?: string[]
+  references?: PromptReference[]
+  onRemoveReference?: (id: string) => void
   selectedLocalModelName: string | null
   onRemoveFile: (index: number) => void
   onRemoveClipboardItem?: (index: number) => void
@@ -27,9 +31,11 @@ interface ExpandedFileItemsProps {
 export function ExpandedFileItems({
   files,
   clipboardItems,
+  references,
   selectedLocalModelName,
   onRemoveFile,
   onRemoveClipboardItem,
+  onRemoveReference,
   isAutoScreenshot,
   isDarkTheme,
   themeClasses,
@@ -39,7 +45,8 @@ export function ExpandedFileItems({
   const { isFeatureEnabled } = useFeature()
   const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
 
-  if (!selectedLocalModelName && files.length === 0 && (!clipboardItems || clipboardItems.length === 0)) {
+  const hasReferences = references && references.length > 0
+  if (!selectedLocalModelName && files.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
     return null
   }
 
@@ -48,6 +55,16 @@ export function ExpandedFileItems({
       className="flex flex-wrap gap-2 pb-1 overflow-y-auto"
       style={{ maxHeight: `${PROMPT_INPUT_CONSTANTS.FILE_ITEMS.EXPANDED_MAX_HEIGHT}px` }}
     >
+      {hasReferences && onRemoveReference && (
+        <ReferenceChips
+          references={references}
+          onRemoveReference={onRemoveReference}
+          themeClasses={themeClasses}
+          hoverClass={hoverClass}
+          variant="expanded"
+        />
+      )}
+
       {selectedLocalModelName && (
         <div
           key={`selected-local-${selectedLocalModelName}`}

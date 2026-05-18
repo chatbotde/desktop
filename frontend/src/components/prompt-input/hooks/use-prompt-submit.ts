@@ -6,29 +6,41 @@ import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { CaptureAreaStore } from '@/features/capture/capture-area-store'
 import { useFeature } from "@/contexts/FeatureContext"
 import type { MediaAttachment } from '@/features/chat'
+import type { PromptReference } from "../types/prompt-reference"
+import { formatReferencesForMessage } from "../utils/format-prompt-references"
+import { getIntegrationSlugsFromReferences } from "@/lib/composio/composio-chat-tools"
+import type { SendMessageOptions } from "@/features/chat/types/send-message-options"
 
 interface UsePromptSubmitProps {
   input: string
   files: File[]
   clipboardItems: string[]
+  references: PromptReference[]
   setInput: (value: string) => void
   setFiles: React.Dispatch<React.SetStateAction<File[]>>
   setClipboardItems: React.Dispatch<React.SetStateAction<string[]>>
+  clearReferences: () => void
   setValidationError: (error: string | null) => void
   setIsLoading: (loading: boolean) => void
   setIsExpanded: (expanded: boolean) => void
   prevInputLengthRef: React.MutableRefObject<number>
   convertFilesToAttachments: (files: File[]) => Promise<MediaAttachment[]>
-  onSendMessage?: (message: string, attachments?: MediaAttachment[]) => void | Promise<void>
+  onSendMessage?: (
+    message: string,
+    attachments?: MediaAttachment[],
+    options?: SendMessageOptions
+  ) => void | Promise<void>
 }
 
 export function usePromptSubmit({
   input,
   files,
   clipboardItems,
+  references,
   setInput,
   setFiles,
   setClipboardItems,
+  clearReferences,
   setValidationError,
   setIsLoading,
   setIsExpanded,
@@ -59,10 +71,21 @@ export function usePromptSubmit({
       }
     }
 
-    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0 || autoCapturedFile)) return
+    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0 || references.length > 0 || autoCapturedFile)) return
+
+    const integrationReferences = references.filter((ref) => ref.kind === "integration")
+    const disconnectedIntegrations = integrationReferences.filter((ref) => !ref.meta?.connected)
+    if (disconnectedIntegrations.length > 0) {
+      const names = disconnectedIntegrations.map((ref) => ref.label).join(", ")
+      setValidationError(`Connect ${names} in Settings → Integrations first`)
+      return
+    }
+
+    const composioToolkitSlugs = getIntegrationSlugsFromReferences(references)
 
     // Prepare message and files
-    const messageParts = [...clipboardItems, input].filter(Boolean)
+    const referenceBlock = formatReferencesForMessage(references)
+    const messageParts = [referenceBlock, ...clipboardItems, input].filter(Boolean)
     const messageToSend = messageParts.join("\n\n")
     const filesToSend = [...files]
 
@@ -111,6 +134,7 @@ export function usePromptSubmit({
     prevInputLengthRef.current = 0
     setFiles([])
     setClipboardItems([])
+    clearReferences()
 
     // Emit input cleared event to reset auto-screenshot
     window.dispatchEvent(new CustomEvent('prompt-input-cleared'))
@@ -120,7 +144,9 @@ export function usePromptSubmit({
     try {
       if ((messageToSend.trim() || clipboardItemsToSend.length > 0 || attachments) && onSendMessage) {
         const message = messageToSend || (attachments ? "See attached images" : "")
-        await onSendMessage(message, attachments)
+        await onSendMessage(message, attachments, {
+          composioToolkitSlugs: composioToolkitSlugs.length > 0 ? composioToolkitSlugs : undefined,
+        })
       }
     } catch (error) {
       console.error('Error sending message:', error)
@@ -138,9 +164,11 @@ export function usePromptSubmit({
     input,
     files,
     clipboardItems,
+    references,
     setInput,
     setFiles,
     setClipboardItems,
+    clearReferences,
     setValidationError,
     setIsLoading,
     setIsExpanded,

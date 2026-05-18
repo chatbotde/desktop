@@ -22,6 +22,7 @@ import {
   LocalLLMSection,
   ModelProfileListSection,
   CustomModelsSection,
+  IntegrationsSection,
   BlockingSection,
   FeaturesSection,
   AnimationsSection,
@@ -191,6 +192,8 @@ export function SettingsCard({
             {activeSection === "model-profiles" && <ModelProfileListSection isDarkTheme={isDark} />}
 
             {activeSection === "custom-models" && <CustomModelsSection isDarkTheme={isDark} />}
+
+            {activeSection === "integrations" && <IntegrationsSection isDarkTheme={isDark} />}
 
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 

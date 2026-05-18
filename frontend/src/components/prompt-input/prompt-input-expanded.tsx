@@ -21,6 +21,9 @@ export function PromptInputExpanded({
   isLoading,
   files,
   clipboardItems,
+  references = [],
+  onReferenceAdd,
+  onRemoveReference,
   onSubmit,
   onStop,
   onCollapse,
@@ -55,7 +58,7 @@ export function PromptInputExpanded({
     return !!(file as any).__isAutoScreenshot
   }
 
-  const canSubmit = useCanSubmit({ input, files, clipboardItems })
+  const canSubmit = useCanSubmit({ input, files, clipboardItems, references })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
 
   const [isAnimatingIn, setIsAnimatingIn] = useState(true)
@@ -123,9 +126,11 @@ export function PromptInputExpanded({
         <ExpandedFileItems
           files={files}
           clipboardItems={clipboardItems}
+          references={references}
           selectedLocalModelName={selectedLocalModelName}
           onRemoveFile={onRemoveFile}
           onRemoveClipboardItem={onRemoveClipboardItem}
+          onRemoveReference={onRemoveReference}
           isAutoScreenshot={isAutoScreenshot}
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}
@@ -174,6 +179,8 @@ export function PromptInputExpanded({
           ollamaModels={ollamaModels}
           selectedLocalModelName={selectedLocalModelName}
           onModelSelect={setSelectedLocalModelName}
+          references={references}
+          onReferenceAdd={onReferenceAdd}
           className="relative z-10 shrink-0"
         />
       </PromptInput>

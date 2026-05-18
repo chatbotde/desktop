@@ -8,6 +8,7 @@ import { useGlobalWindowAPI } from '@/hooks/useGlobalWindowAPI'
 import { useTextSelectionActions } from '@/hooks/useTextSelectionActions'
 import { useFeature } from '@/contexts/FeatureContext'
 import type { MediaAttachment } from '@/features/output-window'
+import type { SendMessageOptions } from '@/features/chat/types/send-message-options'
 import { getSelectedModel } from '@/lib/ai/model-config'
 import { unifiedAIService } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
@@ -23,7 +24,11 @@ interface AppContextType {
     handleClearMessages: () => void
     /** Clears saved chats, on-screen messages, and cloud/local model conversation memory. */
     handleClearAllHistory: () => Promise<void>
-    handleSendMessage: (message: string, attachments?: MediaAttachment[]) => Promise<void>
+    handleSendMessage: (
+        message: string,
+        attachments?: MediaAttachment[],
+        options?: SendMessageOptions
+    ) => Promise<void>
     outputWindowEnabled: boolean
 }
 
@@ -148,7 +153,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
 
     // Wrapper for handleSendMessage that also manages output window visibility
-    const handleSendMessage = async (message: string, attachments?: MediaAttachment[]) => {
+    const handleSendMessage = async (
+        message: string,
+        attachments?: MediaAttachment[],
+        options?: SendMessageOptions
+    ) => {
         // Check if it's an image generation model - don't open output window for images
         const selectedModel = getSelectedModel()
         const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
@@ -168,7 +177,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         if (outputWindowEnabled && !isImageModel) {
             uiState.setIsOutputVisible(true)
         }
-        await messageManager.handleSendMessage(message, attachments)
+        await messageManager.handleSendMessage(message, attachments, options)
     }
 
     // Text selection actions

@@ -53,6 +53,14 @@ class ApplicationAuthHandler {
   }
 
   /**
+   * Get the current authenticated user
+   * @returns {Object|null}
+   */
+  getCurrentUser() {
+    return authService.getUser();
+  }
+
+  /**
    * Show auth window if user is not authenticated
    */
   showAuthWindowIfNeeded() {

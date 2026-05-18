@@ -1,7 +1,70 @@
 import { useRef, useState, useSyncExternalStore, useCallback } from 'react'
-import { Copy, Check, Send, Play } from 'lucide-react'
+import { Copy, Check, Send, Play, AtSign, FileText } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import type { ChatMessage } from '../types'
+
+interface ParsedMessageContent {
+  displayText: string
+  references: { label: string; kind: 'integration' | 'note'; payload: string; connected?: boolean }[]
+}
+
+function parseMessageContent(content: string): ParsedMessageContent {
+  const result: ParsedMessageContent = {
+    displayText: content,
+    references: []
+  }
+
+  if (!content.startsWith('### Task references\n')) {
+    return result
+  }
+
+  const endIndex = content.indexOf('\n\nUse the references above when completing this task.')
+  if (endIndex === -1) {
+    return result
+  }
+
+  // Extract the reference block and the remaining typed text
+  const referenceBlock = content.substring(0, endIndex)
+  const remainingText = content.substring(endIndex + '\n\nUse the references above when completing this task.'.length).trim()
+
+  result.displayText = remainingText
+
+  // Parse lines inside the reference block
+  const lines = referenceBlock.split('\n').slice(1) // Skip "### Task references"
+  for (const line of lines) {
+    // Check if integration reference:
+    // "- **GitHub** (connected integration, slug: `github`) — Buddy can call this app's Composio tools for this message."
+    const integrationRegex = /^-\s+\*\*(.*?)\*\*\s+\((connected|not connected)\s+integration,\s+slug:\s+`(.*?)`\)/
+    const noteRegex = /^-\s+\*\*Context note:\*\*\s+(.*)$/
+
+    const integrationMatch = line.match(integrationRegex)
+    if (integrationMatch) {
+      const label = integrationMatch[1]
+      const status = integrationMatch[2]
+      const slug = integrationMatch[3]
+      result.references.push({
+        label,
+        kind: 'integration',
+        payload: slug,
+        connected: status === 'connected'
+      })
+      continue
+    }
+
+    const noteMatch = line.match(noteRegex)
+    if (noteMatch) {
+      const payload = noteMatch[1]
+      const preview = payload.length > 40 ? `${payload.slice(0, 40)}…` : payload
+      result.references.push({
+        label: preview || "Note",
+        kind: 'note',
+        payload
+      })
+    }
+  }
+
+  return result
+}
 
 interface UserMessageBubbleProps {
   message: ChatMessage
@@ -16,6 +79,7 @@ export function UserMessageBubble({
 }: UserMessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [isInserting, setIsInserting] = useState(false)
+  const { displayText, references } = parseMessageContent(message.content)
   const [insertSuccess, setInsertSuccess] = useState(false)
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set())
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map())
@@ -39,14 +103,14 @@ export function UserMessageBubble({
       checkOverflow()
       window.addEventListener('resize', checkOverflow)
       return () => window.removeEventListener('resize', checkOverflow)
-    }, [message.content, isExpanded]),
+    }, [displayText, isExpanded]),
     () => null,
     () => null
   )
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content)
+      await navigator.clipboard.writeText(displayText)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -61,7 +125,7 @@ export function UserMessageBubble({
     setInsertSuccess(false)
 
     try {
-      const text = message.content.trim()
+      const text = displayText.trim()
       if (!text) {
         setIsInserting(false)
         return
@@ -181,9 +245,33 @@ export function UserMessageBubble({
               !isExpanded && "line-clamp-[8]"
             )}
           >
-            <p className="max-w-none break-words whitespace-pre-wrap bg-transparent p-0 text-white text-sm leading-relaxed">
-              {message.content}
-            </p>
+            {displayText && (
+              <p className="max-w-none break-words whitespace-pre-wrap bg-transparent p-0 text-white text-sm leading-relaxed">
+                {displayText}
+              </p>
+            )}
+
+            {references.length > 0 && (
+              <div className={cn(
+                "flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-white/10",
+                !displayText && "mt-0 pt-0 border-t-0"
+              )}>
+                {references.map((ref, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] bg-white/15 text-white border border-white/10 max-w-[180px] shrink-0"
+                    title={ref.kind === "note" ? ref.payload : `${ref.label} integration`}
+                  >
+                    {ref.kind === "integration" ? (
+                      <AtSign className="size-2.5 shrink-0 text-blue-200" />
+                    ) : (
+                      <FileText className="size-2.5 shrink-0 text-blue-200" />
+                    )}
+                    <span className="truncate">{ref.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           {shouldShowMore && (
             <button

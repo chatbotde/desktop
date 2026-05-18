@@ -4,20 +4,28 @@ import { getFileIcon } from "./prompt-shared"
 import type { FileItemsBaseProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { useFeature } from "@/shared/providers/FeatureProvider"
+import { ReferenceChips } from "./components/reference-chips"
+import type { PromptReference } from "./types/prompt-reference"
 
-interface CollapsedFileItemsProps extends FileItemsBaseProps {}
+interface CollapsedFileItemsProps extends FileItemsBaseProps {
+  references?: PromptReference[]
+  onRemoveReference?: (id: string) => void
+}
 
 export function CollapsedFileItems({
   files,
   clipboardItems,
+  references,
   onRemoveFile,
   onRemoveClipboardItem,
+  onRemoveReference,
   themeClasses,
 }: CollapsedFileItemsProps) {
   const { isFeatureEnabled } = useFeature()
   const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
 
-  if (files.length === 0 && (!clipboardItems || clipboardItems.length === 0)) {
+  const hasReferences = references && references.length > 0
+  if (files.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
     return null
   }
 
@@ -26,6 +34,15 @@ export function CollapsedFileItems({
       className="flex items-center gap-1 overflow-x-auto scrollbar-hide"
       style={{ maxWidth: `${PROMPT_INPUT_CONSTANTS.FILE_ITEMS.COLLAPSED_MAX_WIDTH}px` }}
     >
+      {hasReferences && onRemoveReference && (
+        <ReferenceChips
+          references={references}
+          onRemoveReference={onRemoveReference}
+          themeClasses={{ ...themeClasses, fileText: themeClasses.fileText ?? "" }}
+          hoverClass=""
+          variant="collapsed"
+        />
+      )}
       {clipboardItems?.map((item, index) => (
         <div
           key={`clipboard-${index}`}

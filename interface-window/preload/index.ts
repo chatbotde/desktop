@@ -14,7 +14,8 @@ import {
     createAuthAPI,
     createFileAPI,
     createYouTubeTranscriptAPI,
-    createWhisperAPI
+    createWhisperAPI,
+    createComposioAPI
 } from './apis';
 
 // Verify contextBridge is available
@@ -112,6 +113,15 @@ try {
     console.log('[Preload] whisperAPI exposed successfully');
 } catch (error) {
     console.error('[Preload] Error exposing whisperAPI:', error);
+}
+
+// Expose composioAPI
+try {
+    const composioAPI = createComposioAPI();
+    contextBridge.exposeInMainWorld('composioAPI', composioAPI);
+    console.log('[Preload] composioAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing composioAPI:', error);
 }
 
 console.log('[Preload] All APIs exposed, preload script complete');

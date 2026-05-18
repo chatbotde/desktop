@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react"
+import { ReferenceButton } from "./actions/reference-button"
 import {
   Popover,
   PopoverContent,
@@ -25,6 +26,9 @@ export function PromptInputCollapsed({
   isLoading,
   files,
   clipboardItems,
+  references = [],
+  onReferenceAdd,
+  onRemoveReference,
   onSubmit,
   onStop,
   onExpand,
@@ -44,7 +48,7 @@ export function PromptInputCollapsed({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
-  const canSubmit = useCanSubmit({ input, files, clipboardItems })
+  const canSubmit = useCanSubmit({ input, files, clipboardItems, references })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
 
   // Create a dummy setter if not provided (for backwards compatibility)
@@ -91,11 +95,23 @@ export function PromptInputCollapsed({
           </PopoverContent>
         </Popover>
 
+        {onReferenceAdd && (
+          <ReferenceButton
+            isDarkTheme={isDarkTheme}
+            themeClasses={themeClasses}
+            hoverClass={hoverClass}
+            selectedReferences={references}
+            onReferenceAdd={onReferenceAdd}
+          />
+        )}
+
         <CollapsedFileItems
           files={files}
           clipboardItems={clipboardItems}
+          references={references}
           onRemoveFile={onRemoveFile}
           onRemoveClipboardItem={onRemoveClipboardItem}
+          onRemoveReference={onRemoveReference}
           themeClasses={themeClasses}
         />
 

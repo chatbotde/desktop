@@ -274,8 +274,51 @@ declare global {
       transcribe: (audioData: ArrayBuffer, format: string) => Promise<{ success: boolean; text?: string; error?: string }>;
     };
 
+    /**
+     * Composio Integrations API
+     */
+    composioAPI?: {
+      getTools: () => Promise<ComposioToolkit[]>;
+      connectTool: (toolkitSlug: string) => Promise<ComposioConnectResult>;
+      prepareChatTools: (options?: { toolkitSlugs?: string[] }) => Promise<ComposioPrepareChatToolsResult>;
+      executeChatTool: (
+        sessionId: string,
+        toolSlug: string,
+        args: Record<string, unknown>
+      ) => Promise<ComposioChatToolExecuteResult>;
+    };
+
   }
 }
 
-export { };
+export interface ComposioToolkit {
+  slug: string;
+  name: string;
+  logo?: string;
+  isConnected: boolean;
+}
+
+export interface ComposioConnectResult {
+  success: boolean;
+  message?: string;
+}
+
+export interface ComposioChatToolDefinition {
+  slug: string;
+  description: string;
+  inputParameters: Record<string, unknown>;
+}
+
+export interface ComposioPrepareChatToolsResult {
+  sessionId: string;
+  toolkitSlugs: string[];
+  tools: ComposioChatToolDefinition[];
+}
+
+export interface ComposioChatToolExecuteResult {
+  data?: unknown;
+  error?: string | Record<string, unknown>;
+  logId?: string;
+}
+
 export { };
