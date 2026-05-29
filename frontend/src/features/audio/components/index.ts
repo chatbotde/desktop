@@ -12,3 +12,5 @@ export { AudioPreview } from './AudioPreview'
 export { LiveTranscriptionButton } from './LiveTranscriptionButton'
 
 export { MicHoverAudioPill } from './MicHoverAudioPill'
+
+export { InsertTranscriptOverlay } from './InsertTranscriptOverlay'

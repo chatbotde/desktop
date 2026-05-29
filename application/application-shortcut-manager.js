@@ -11,12 +11,16 @@ class ApplicationShortcutManager {
    * @param {Function} toggleInterfaceWindow - Callback to toggle interface window
    * @param {Function} showAndConnectAssistant - Callback to show window and connect assistant
    * @param {Function} showPromptInput - Callback to show window and open prompt input
+   * @param {Function} toggleVoiceInsert - Callback to show window and toggle voice insert
+   * @param {Function} showRectangleScreenshot - Callback to show window and open rectangle screenshot overlay
    */
-  constructor(shortcutRegistry, toggleInterfaceWindow, showAndConnectAssistant = null, showPromptInput = null) {
+  constructor(shortcutRegistry, toggleInterfaceWindow, showAndConnectAssistant = null, showPromptInput = null, toggleVoiceInsert = null, showRectangleScreenshot = null) {
     this.shortcutRegistry = shortcutRegistry;
     this.toggleInterfaceWindow = toggleInterfaceWindow;
     this.showAndConnectAssistant = showAndConnectAssistant;
     this.showPromptInput = showPromptInput;
+    this.toggleVoiceInsert = toggleVoiceInsert;
+    this.showRectangleScreenshot = showRectangleScreenshot;
   }
 
   /**
@@ -70,6 +74,36 @@ class ApplicationShortcutManager {
       );
     } else {
       console.log('ApplicationShortcutManager: showPromptInput is null, not registering Ctrl+K');
+    }
+
+    // Ctrl+M / Cmd+M - Toggle voice insert transcript overlay
+    if (this.toggleVoiceInsert) {
+      console.log('ApplicationShortcutManager: Registering Ctrl+M shortcut');
+      this.shortcutRegistry.register(
+        'CommandOrControl+M',
+        () => {
+          console.log('Shortcut: Ctrl+M pressed - Toggling voice insert');
+          this.toggleVoiceInsert();
+        },
+        'Toggle voice insert'
+      );
+    } else {
+      console.log('ApplicationShortcutManager: toggleVoiceInsert is null, not registering Ctrl+M');
+    }
+
+    // Ctrl+Shift+S / Cmd+Shift+S - Rectangle screenshot (drag to select area)
+    if (this.showRectangleScreenshot) {
+      console.log('ApplicationShortcutManager: Registering Ctrl+Shift+S shortcut');
+      this.shortcutRegistry.register(
+        'CommandOrControl+Shift+S',
+        () => {
+          console.log('Shortcut: Ctrl+Shift+S pressed - Starting rectangle screenshot');
+          this.showRectangleScreenshot();
+        },
+        'Rectangle screenshot'
+      );
+    } else {
+      console.log('ApplicationShortcutManager: showRectangleScreenshot is null, not registering Ctrl+Shift+S');
     }
   }
 

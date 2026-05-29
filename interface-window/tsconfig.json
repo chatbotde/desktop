@@ -21,6 +21,7 @@
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "skipLibCheck": true, // Skip type checking of declaration files - significant speedup
+    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     /* Emit */
     "outDir": "./dist",

@@ -14,7 +14,8 @@ export {
   AudioRecorderPill,
   AudioPreview,
   LiveTranscriptionButton,
-  MicHoverAudioPill
+  MicHoverAudioPill,
+  InsertTranscriptOverlay
 } from './components'
 
 export type { LiveWaveformProps } from './components'

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
-import { Mic, CircleEllipsis } from 'lucide-react'
+import { Mic, CircleEllipsis, MessageSquareText } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
 import { getThemeClasses } from "@/features/prompt"
@@ -15,6 +15,7 @@ import { formatDuration } from './audio-utils'
 
 import { useAudioRecorder, type AudioSourceType } from '../hooks/useAudioRecorder'
 import { useLiveTranscription } from '../hooks/useLiveTranscription'
+import { useFeature } from '@/contexts/FeatureContext'
 
 interface MicHoverAudioPillProps {
     isDarkTheme?: boolean
@@ -38,9 +39,12 @@ export function MicHoverAudioPill({
     onTranscriptionUpdate
 }: MicHoverAudioPillProps) {
     // UI State
+    const { isFeatureEnabled, setFeatureEnabled } = useFeature()
+    const isVoiceToPrompt = isFeatureEnabled('voice-to-prompt')
+    const isVoiceInsertEnabled = isFeatureEnabled('voice-insert')
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
-    const [showTranscription] = useState(false)
+    const showTranscription = isVoiceToPrompt
     const [isAssistantVisible, setIsAssistantVisible] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -69,7 +73,6 @@ export function MicHoverAudioPill({
         isRecording,
         isPaused,
         duration,
-        activeStream: _activeStream,
         startRecording,
         stopRecording,
         pauseRecording,
@@ -80,8 +83,6 @@ export function MicHoverAudioPill({
     const {
         transcriptionText,
         partialText,
-        isTranscribing: _isTranscribing,
-        startTranscription: _startTranscription,
         stopTranscription,
         clearTranscription
     } = useLiveTranscription({
@@ -142,7 +143,7 @@ export function MicHoverAudioPill({
 
     // Custom stop handler that auto-adds transcription to prompt
     const handleStopRecording = useCallback(async () => {
-        console.log('[MicHoverAudioPill] Stopping recording, showTranscription:', showTranscription)
+        console.log('[MicHoverAudioPill] Stopping recording, showTranscription:', showTranscription, 'isVoiceToPrompt:', isVoiceToPrompt)
 
         // If transcription is active, handle it specially
         if (showTranscription) {
@@ -157,12 +158,22 @@ export function MicHoverAudioPill({
             console.log('[MicHoverAudioPill] Full transcription text:', fullText)
 
             if (fullText) {
-                // Auto-add transcription to prompt
-                try {
-                    window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: fullText } }))
-                    console.log('[MicHoverAudioPill] Dispatched transcription text to prompt')
-                } catch (error) {
-                    console.error('[MicHoverAudioPill] Failed to dispatch prompt-add-text event:', error)
+                if (isVoiceToPrompt) {
+                    // Send to LLM immediately!
+                    try {
+                        window.dispatchEvent(new CustomEvent('prompt-send-now', { detail: { text: fullText } }))
+                        console.log('[MicHoverAudioPill] Dispatched prompt-send-now with text')
+                    } catch (error) {
+                        console.error('[MicHoverAudioPill] Failed to dispatch prompt-send-now event:', error)
+                    }
+                } else {
+                    // Auto-add transcription to prompt
+                    try {
+                        window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: fullText } }))
+                        console.log('[MicHoverAudioPill] Dispatched transcription text to prompt')
+                    } catch (error) {
+                        console.error('[MicHoverAudioPill] Failed to dispatch prompt-add-text event:', error)
+                    }
                 }
             }
 
@@ -172,11 +183,11 @@ export function MicHoverAudioPill({
 
         // Stop recording (this will trigger handleRecordingComplete)
         stopRecording()
-    }, [stopTranscription, stopRecording, clearTranscription, showTranscription])
+    }, [stopTranscription, stopRecording, clearTranscription, showTranscription, isVoiceToPrompt])
 
     // Assistant visibility event listener using useSyncExternalStore
     useSyncExternalStore(
-        useCallback((_callback) => {
+        useCallback(() => {
             const handler = () => setIsAssistantVisible(prev => !prev)
             window.addEventListener('toggle-assistant-visibility', handler)
             return () => window.removeEventListener('toggle-assistant-visibility', handler)
@@ -213,6 +224,10 @@ export function MicHoverAudioPill({
             alert(`Failed to start recording: ${error instanceof Error ? error.message : String(error)}`)
         }
     }, [isRecording, startRecording])
+
+    if (!isVoiceToPrompt && !isVoiceInsertEnabled) {
+        return null
+    }
 
     return (
         <div
@@ -281,23 +296,25 @@ export function MicHoverAudioPill({
                         />
                         */}
 
-                        {/* Speech to Text UI Button - Commented out for Beta Development
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
-                                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-transcription-visibility'))}
+                                    onClick={() => {
+                                        if (!isVoiceInsertEnabled) {
+                                            setFeatureEnabled('voice-insert', true)
+                                        }
+                                        window.dispatchEvent(new CustomEvent('toggle-transcription-visibility'))
+                                    }}
                                     className={cn(
                                         "h-8 w-8 rounded-full transition-all duration-200",
-                                        isAssistantVisible
-                                            ? "bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_12px_rgba(37,99,235,0.4)]"
-                                            : (isDarkTheme
-                                                ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
-                                                : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900")
+                                        isDarkTheme
+                                            ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                            : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900"
                                     )}
                                     variant="ghost"
                                     size="icon"
                                 >
-                                    <MessageSquare className="h-4 w-4" />
+                                    <MessageSquareText className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent
@@ -309,7 +326,6 @@ export function MicHoverAudioPill({
                                 <p>Speech to Text</p>
                             </TooltipContent>
                         </Tooltip>
-                        */}
 
                         {/* Assistant Toggle Button */}
                         <Tooltip>

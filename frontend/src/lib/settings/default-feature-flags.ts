@@ -49,6 +49,7 @@ export const DEFAULT_DISABLED_FEATURES: string[] = [
     'clipboard',             // Clipboard integration
     'auto-insert',           // Auto-insert AI responses
     'voice-to-prompt',       // Voice to text transcription
+    'voice-insert',          // Voice insert background pill
     'text-selection',        // Text selection helper
     'area-screenshot',       // Circle to ask screenshot
     'video-recording',       // Video recording

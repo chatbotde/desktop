@@ -6,6 +6,7 @@ import { InsertButton } from '../insert-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { useTheme, useFeature } from '@/shared/providers';
 import { sendMessageComplete } from '@/lib/ai';
+import { buildVoiceRewritePromptFromLiveTranscription } from '@/lib/prompt';
 
 const BASE_HEIGHTS = [0.3, 0.5, 0.8, 1, 0.8, 0.5, 0.3];
 
@@ -141,14 +142,7 @@ export const TranscriptionOverlay = () => {
 
         setIsRefining(true);
         try {
-            const prompt = `SYSTEM: You are a professional prompt engineer. Your task is to refine the provided transcription into a single, high-quality, professional prompt or message.
-STRICT RULES: 
-1. Output ONLY the refined text. 
-2. NO conversational filler (e.g., "Sure", "Here is..."). 
-3. NO quotes around the result. 
-4. Maintain the original core intent but fix grammar and clarity.
-
-TRANSCRIPTION: "${textToRefine}"`;
+            const prompt = buildVoiceRewritePromptFromLiveTranscription(textToRefine);
 
             const result = await sendMessageComplete(prompt);
             if (result && typeof result === 'string') {

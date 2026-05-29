@@ -1,4 +1,4 @@
-export type PromptReferenceKind = "integration" | "note"
+export type PromptReferenceKind = "integration" | "note" | "url"
 
 export interface PromptReference {
   id: string
@@ -33,6 +33,16 @@ export function createNoteReference(text: string): PromptReference {
     id: `note:${Date.now()}`,
     kind: "note",
     label: preview || "Note",
+    payload: trimmed,
+  }
+}
+
+export function createUrlReference(url: string): PromptReference {
+  const trimmed = url.trim()
+  return {
+    id: `url:${Date.now()}`,
+    kind: "url",
+    label: trimmed,
     payload: trimmed,
   }
 }

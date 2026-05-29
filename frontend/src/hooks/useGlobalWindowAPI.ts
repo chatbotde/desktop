@@ -1,4 +1,5 @@
 import { useSyncExternalStore, useCallback } from 'react'
+import { triggerRectangleScreenshot } from '@/features/capture/lib/trigger-rectangle-screenshot'
 
 interface UseGlobalWindowAPIProps {
   outputWindowEnabled: boolean
@@ -51,11 +52,17 @@ export const useGlobalWindowAPI = ({
         }
       }
 
+      const handleShowRectangleScreenshotShortcut = () => {
+        console.log('[useGlobalWindowAPI] Received show-rectangle-screenshot message')
+        triggerRectangleScreenshot()
+      }
+
       window.addEventListener('show-area-screenshot', handleShowAreaScreenshot as EventListener)
       window.addEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
 
       if (window.interfaceAPI?.onMessage) {
         window.interfaceAPI.onMessage('show-prompt-input', handleShowPromptInput)
+        window.interfaceAPI.onMessage('show-rectangle-screenshot', handleShowRectangleScreenshotShortcut)
       }
 
       return () => {
@@ -64,6 +71,7 @@ export const useGlobalWindowAPI = ({
         window.removeEventListener('show-rectangle-screenshot', handleShowRectangleScreenshot as EventListener)
         if (window.interfaceAPI?.removeMessageListener) {
           window.interfaceAPI.removeMessageListener('show-prompt-input', handleShowPromptInput)
+          window.interfaceAPI.removeMessageListener('show-rectangle-screenshot', handleShowRectangleScreenshotShortcut)
         }
       }
     }, [outputWindowEnabled, addMessage, setIsInputVisible, setIsOutputVisible, setAreaScreenshotCallback, setShowAreaScreenshot, setRectangleScreenshotCallback, setShowRectangleScreenshot]),

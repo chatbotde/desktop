@@ -10,6 +10,7 @@ import {
 import { getThemeClasses } from "@/features/prompt"
 import { useVideoRecording, type VideoData } from '@/hooks/useVideoRecording'
 import { useFeature } from '@/contexts/FeatureContext'
+import { triggerRectangleScreenshot } from '@/features/capture/lib/trigger-rectangle-screenshot'
 
 // Constants for configuration
 const HOVER_DELAY_MS = 150
@@ -116,7 +117,7 @@ export function VideoHoverCapturePill({
     // Memoize theme classes to prevent re-renders
     const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
 
-    // Feature toggles
+    // Feature toggles for toggleable pill actions
     const { isFeatureEnabled, setFeatureEnabled } = useFeature()
     const autoScreenshotEnabled = isFeatureEnabled('auto-screenshot')
     const setCaptureAreaEnabled = isFeatureEnabled('set-capture-area')
@@ -289,35 +290,7 @@ export function VideoHoverCapturePill({
     const handleRectangleScreenshot = useCallback(() => {
         setIsPillActive(false)
         setIsCapturing(true)
-        const event = new CustomEvent('show-rectangle-screenshot', {
-            detail: {
-                onCapture: async (area: { x: number; y: number; width: number; height: number }) => {
-                    try {
-                        if (!window.CaptureAPI) {
-                            console.error('CaptureAPI is not available')
-                            return
-                        }
-                        const result = await (window.CaptureAPI as any).takeAreaScreenshot(area)
-                        if (result.success && result.screenshot) {
-                            const blob = dataUrlToBlob(result.screenshot.data)
-                            const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
-                            const centerX = area.x + area.width / 2
-                            const centerY = area.y + area.height / 2
-                            window.dispatchEvent(new CustomEvent('screenshot-selection-captured', {
-                                detail: { file, position: { x: centerX, y: centerY } }
-                            }))
-                        } else {
-                            console.error('Rectangle screenshot failed:', result.error)
-                        }
-                    } catch (err) {
-                        console.error('Error taking rectangle screenshot:', err)
-                    } finally {
-                        setIsCapturing(false)
-                    }
-                },
-            },
-        })
-        window.dispatchEvent(event)
+        triggerRectangleScreenshot({ onComplete: () => setIsCapturing(false) })
     }, [])
 
     // Handle set area capture - toggle feature
@@ -352,6 +325,15 @@ export function VideoHoverCapturePill({
         handlers[action]()
     }, [handleVideoClick, handleQuickScreenshot, handleAreaScreenshot, handleRectangleScreenshot, handleToggleAutoScreenshot, handleSetAreaCapture])
 
+    // Toggle pill on click (in addition to hover) for easier access
+    const handleCameraButtonClick = useCallback(() => {
+        if (isRecording) {
+            void handleVideoClick()
+            return
+        }
+        setIsPillActive((prev) => !prev)
+    }, [isRecording, handleVideoClick])
+
     // Memoize button class
     const actionButtonClass = useMemo(() => cn(
         "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 shrink-0",
@@ -369,17 +351,20 @@ export function VideoHoverCapturePill({
         >
             {/* Capture Button - Click to start/stop recording */}
             <Button
+                onClick={handleCameraButtonClick}
                 className={cn(
                     "rounded-full transition-all duration-200",
                     isDarkTheme
                         ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-100"
                         : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900",
                     isRecording && "bg-red-500 hover:bg-red-600 text-white",
+                    isPillActive && !isRecording && (isDarkTheme ? "bg-zinc-700" : "bg-zinc-200"),
                     className
                 )}
                 variant="ghost"
                 size="icon"
                 aria-label={isRecording ? "Stop recording" : "Capture options"}
+                aria-expanded={shouldShowPill}
                 disabled={!!error}
             >
                 {isRecording ? (
@@ -433,7 +418,7 @@ export function VideoHoverCapturePill({
                             onClick={() => handleActionClick('area-screenshot')}
                             disabled={isCapturing}
                             ariaLabel="Draw shape to capture"
-                            title="Draw shape to capture area"
+                            title="Circle to ask — draw shape to capture area"
                             className={actionButtonClass}
                             isDarkTheme={isDarkTheme}
                         >
@@ -445,11 +430,10 @@ export function VideoHoverCapturePill({
                             disabled={isCapturing}
                             ariaLabel="Select to ask"
                             title="Select to ask — drag rectangle, then add to prompt or ask AI"
-                            className={cn(actionButtonClass, "w-auto min-w-0 gap-1.5 px-2.5")}
+                            className={actionButtonClass}
                             isDarkTheme={isDarkTheme}
                         >
                             <Square className="h-4 w-4 shrink-0" />
-
                         </ActionButton>
 
                         <ActionButton

@@ -29,6 +29,10 @@ export function HelpSection({
             description: "Open prompt input",
             keys: ["Ctrl", "K"],
         },
+        {
+            description: "Toggle voice insert",
+            keys: ["Ctrl", "M"],
+        },
     ]
 
     return (

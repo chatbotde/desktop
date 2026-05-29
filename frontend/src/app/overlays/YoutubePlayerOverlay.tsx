@@ -10,13 +10,16 @@
  */
 
 import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
-import { motion, AnimatePresence, useDragControls } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { YoutubeVideoPlayer } from '@/components/prompt-input/youtube-video-player'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { Play, Link, X } from 'lucide-react'
+import { Play, Link, X, Tv } from 'lucide-react'
 import { useFeature } from '@/shared/providers/FeatureProvider'
 import { GLOBAL_THEME } from '@/global/theme'
+import { useDraggable, useResizable } from '@/features/output-window'
+import type { ResizeDirection } from '@/features/output-window'
+import { cn } from '@/lib/utils'
 
 // ── Hover store: tracks whether mouse is inside containerRef ─────────────────
 // Replaces useEffect + mousemove listener.
@@ -64,12 +67,26 @@ function createHoverStore(getContainer: () => HTMLElement | null, enabled: boole
 export function YoutubePlayerOverlay() {
   const { isFeatureEnabled, setFeatureEnabled } = useFeature()
   const isEnabled = isFeatureEnabled('standalone-youtube-player')
-  const dragControls = useDragControls()
 
   const [url, setUrl] = useState('')
   const [inputUrl, setInputUrl] = useState('')
   const [showInput, setShowInput] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Floating window position and size state
+  const [position, setPosition] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1024
+    return { x: w - 590, y: 80 } // elegant starting top-right position
+  })
+  const [size, setSize] = useState({ width: 560, height: 315 })
+
+  // Custom dragging and resizing hooks to prevent iframe mouse event loss
+  const { handleDragMouseDown, isDragging } = useDraggable(setPosition, containerRef)
+  const { handleResizeMouseDown, isResizing } = useResizable(size, setSize, position, setPosition)
+
+  const handleResetSize = () => {
+    setSize({ width: 560, height: 315 })
+  }
 
   // Stable store per mount — recreates if isEnabled changes
   const storeRef = useRef<ReturnType<typeof createHoverStore> | null>(null)
@@ -92,51 +109,104 @@ export function YoutubePlayerOverlay() {
 
   return (
     <motion.div
-      drag
-      dragControls={dragControls}
-      dragListener={false}
-      dragMomentum={false}
-      initial={{ x: 100, y: 100 }}
-      className="fixed z-50 flex flex-col gap-2 pointer-events-auto"
-      style={{ zIndex: GLOBAL_THEME.zIndex.modal }}
+      ref={containerRef}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="fixed z-50 flex flex-col pointer-events-auto"
+      style={{
+        zIndex: GLOBAL_THEME.zIndex.modal,
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        width: `${size.width}px`,
+        height: `${size.height}px`,
+      }}
       data-no-clickthrough
     >
       <div
-        ref={containerRef}
-        className="p-1.5 border border-white/10 rounded-xl shadow-2xl flex flex-col gap-1.5 min-w-[320px] relative overflow-hidden backdrop-blur-md"
+        className="relative w-full h-full flex flex-col bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(rgba(15, 15, 15, 0.7), rgba(15, 15, 15, 0.8)), url('/youtube-bg.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
         }}
       >
+        {/* Resize Handles */}
+        {(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as ResizeDirection[]).map((direction) => (
+          <div
+            key={direction}
+            className={cn(
+              "absolute z-50 bg-transparent",
+              direction === 'n' && "top-0 left-0 right-0 h-1.5 cursor-ns-resize",
+              direction === 's' && "bottom-0 left-0 right-0 h-1.5 cursor-ns-resize",
+              direction === 'e' && "top-0 right-0 bottom-0 w-1.5 cursor-ew-resize",
+              direction === 'w' && "top-0 left-0 bottom-0 w-1.5 cursor-ew-resize",
+              direction === 'ne' && "top-0 right-0 w-3 h-3 cursor-nesw-resize",
+              direction === 'nw' && "top-0 left-0 w-3 h-3 cursor-nwse-resize",
+              direction === 'se' && "bottom-0 right-0 w-3 h-3 cursor-nwse-resize",
+              direction === 'sw' && "bottom-0 left-0 w-3 h-3 cursor-nesw-resize"
+            )}
+            onMouseDown={(e) => handleResizeMouseDown(e, direction)}
+          />
+        ))}
+
+        {/* Safety overlay to capture dragging/resizing events when hovering over iframe */}
+        {(isDragging || isResizing) && (
+          <div className="absolute inset-0 z-40 bg-transparent cursor-grabbing" />
+        )}
+
         <AnimatePresence>
           {isHovered && (
             <motion.div
-              initial={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="flex items-center justify-between cursor-grab active:cursor-grabbing z-10 px-1"
-              onPointerDown={(e) => dragControls.start(e)}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-2 cursor-grab active:cursor-grabbing bg-gradient-to-b from-black/80 via-black/40 to-transparent select-none"
+              onMouseDown={handleDragMouseDown}
               style={{ touchAction: 'none' }}
             >
-              <span className="text-white text-sm font-medium flex items-center gap-2">
-                <Play className="w-4 h-4 text-red-500" />
-                Video Player
+              <span className="text-white/90 text-xs font-semibold flex items-center gap-1.5 ml-1">
+                <Play className="w-3.5 h-3.5 text-red-500" />
+                Player
               </span>
-              <div className="flex items-center gap-0.5">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-400 hover:text-white" onClick={(e) => {
-                  e.stopPropagation()
-                  setShowInput(!showInput)
-                }}>
-                  <Link className="w-4 h-4" />
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowInput(!showInput)
+                  }}
+                  title="Paste Link"
+                >
+                  <Link className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-400 hover:text-red-400" onClick={(e) => {
-                  e.stopPropagation()
-                  setFeatureEnabled('standalone-youtube-player', false)
-                }}>
-                  <X className="w-4 h-4" />
+
+                {/* Default Size Button */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleResetSize()
+                  }}
+                  title="Default Size"
+                >
+                  <Tv className="w-3.5 h-3.5" />
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-white/50 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-colors" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setFeatureEnabled('standalone-youtube-player', false)
+                  }}
+                  title="Close"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </motion.div>
@@ -149,19 +219,21 @@ export function YoutubePlayerOverlay() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden z-10 px-1"
+              transition={{ duration: 0.2 }}
+              className="z-10 px-2 pt-10 pb-2 w-full absolute top-0 left-0 right-0 bg-black/90 backdrop-blur-xl border-b border-white/10"
             >
-              <div className="flex gap-2 pb-2">
+              <div className="flex gap-2">
                 <Input
                   placeholder="Paste YouTube URL..."
                   value={inputUrl}
                   onChange={(e) => setInputUrl(e.target.value)}
-                  className="h-8 bg-black/40 border-white/10 text-white text-xs flex-1 backdrop-blur-sm"
+                  className="h-8 bg-white/5 border-white/10 text-white text-xs flex-1 rounded-lg focus-visible:ring-1 focus-visible:ring-white/20"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') { setUrl(inputUrl); setShowInput(false) }
                   }}
+                  autoFocus
                 />
-                <Button size="sm" className="h-8 bg-red-600/80 hover:bg-red-700 text-white backdrop-blur-sm" onClick={() => {
+                <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium px-3 transition-colors" onClick={() => {
                   setUrl(inputUrl); setShowInput(false)
                 }}>
                   Play
@@ -171,19 +243,20 @@ export function YoutubePlayerOverlay() {
           )}
         </AnimatePresence>
 
-        {url ? (
-          <div className="relative z-10">
-            <YoutubeVideoPlayer url={url} className="w-full max-w-none" onRemove={() => setUrl('')} autoPlay={true} />
-          </div>
-        ) : (
-          <div className="w-full aspect-video bg-black/20 rounded-lg flex items-center justify-center border border-white/10 backdrop-blur-[2px] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-            <div className="relative z-10 flex flex-col items-center gap-2 text-white/70 transition-all duration-300 group-hover:text-white group-hover:scale-105">
-              <Play className="w-10 h-10 opacity-80 drop-shadow-xl" />
-              <span className="text-xs font-light tracking-wider uppercase">Paste a link to start</span>
+        <div className="flex-1 w-full h-full relative z-0 flex flex-col">
+          {url ? (
+            <YoutubeVideoPlayer url={url} className="w-full h-full max-w-none rounded-none border-0 aspect-auto" onRemove={() => setUrl('')} autoPlay={true} />
+          ) : (
+            <div className="flex-1 w-full h-full flex items-center justify-center bg-zinc-950">
+              <div className="flex flex-col items-center gap-3 text-zinc-500 transition-all duration-500 hover:text-zinc-300 hover:scale-105">
+                <div className="p-4 bg-white/5 rounded-full shadow-inner border border-white/5">
+                  <Play className="w-6 h-6 opacity-80 pl-0.5" />
+                </div>
+                <span className="text-[10px] font-medium tracking-widest uppercase opacity-80">Paste Link to Start</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </motion.div>
   )

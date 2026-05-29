@@ -3,7 +3,14 @@ import { ChevronLeft, Plus } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
 import { createUrlReference } from "../types/prompt-reference"
-import type { ReferenceProviderPickerProps } from "./types"
+import type { PromptReference } from "../types/prompt-reference"
+
+interface ReferenceProviderPickerProps {
+  isDarkTheme: boolean
+  onReferenceAdd: (reference: PromptReference) => void
+  onOpenChange?: (open: boolean) => void
+  onBack: () => void
+}
 
 export function UrlProviderPicker({
   isDarkTheme,

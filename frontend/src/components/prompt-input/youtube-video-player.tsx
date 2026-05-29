@@ -58,6 +58,7 @@ export function YoutubeVideoPlayer({ url, className, onRemove, autoPlay = false 
           src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
         />
       )}
       

@@ -92,6 +92,13 @@ export {
   type CapabilitySummary,
 } from './capabilities';
 
+// Voice intent (Cerebras fast path for speech → prompt)
+export {
+  isCerebrasVoiceIntentConfigured,
+  rewriteTranscriptToIntent,
+  streamTranscriptToIntent,
+} from './voice-intent-service';
+
 // Export Local LLM module (separate, independent module)
 // Use this for local LLM operations with Ollama
 export * from './local-llm';

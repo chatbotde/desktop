@@ -1,9 +1,10 @@
 import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
-import { X } from 'lucide-react'
+import { X, Sparkles, Square } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from './TextSelection'
 import { TextSelectionOutput } from './TextSelectionOutput'
 import { CopyButton } from '@/components/copy-button'
+import { AddButton } from '@/components/add-button'
 import { ExpandButton } from '@/components/expand-button'
 import { useFeature } from '@/contexts/FeatureContext'
 import { useVoiceContext } from '@/features/voice'
@@ -34,7 +35,11 @@ interface SelectionInstance {
   isGenerating: boolean
   generatedOutput: string | null
   isPlaying: boolean
+  /** Keeps output panel visible until user explicitly closes it */
+  showOutput: boolean
 }
+
+const DEFAULT_QUICK_PROMPT = 'Explain, summarize, or respond helpfully to this selected text.'
 
 interface TextSelectionPopupProps {
   onSendMessage?: (message: string) => Promise<void>
@@ -98,7 +103,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
     stopAutoHide(id)
     setInstances(prev => {
       const inst = prev.find(i => i.id === id)
-      if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying) {
+      if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying && !inst.showOutput) {
         const timer = setTimeout(() => {
           removeInstance(id)
         }, 10000)
@@ -132,15 +137,21 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
     }
   }, [])
 
-  const handleGenerate = useCallback(async (id: string) => {
-    const inst = instancesRef.current.find(i => i.id === id)
-    if (!inst || !inst.prompt.trim() || !inst.selectionData?.text || inst.isGenerating) return
+  const handleStop = useCallback((id: string) => {
+    stopRefs.current.set(id, true)
+    updateInstance(id, { isGenerating: false })
+  }, [updateInstance])
 
-    updateInstance(id, { isGenerating: true, generatedOutput: null })
+  const runGeneration = useCallback(async (id: string, userPrompt: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst || !userPrompt.trim() || !inst.selectionData?.text || inst.isGenerating) return
+
+    stopAutoHide(id)
+    updateInstance(id, { isGenerating: true, generatedOutput: null, showOutput: true })
     stopRefs.current.set(id, false)
 
     try {
-      const fullPrompt = `SELECTED TEXT:\n"""\n${inst.selectionData.text}\n"""\n\nUSER REQUEST:\n${inst.prompt}`
+      const fullPrompt = `SELECTED TEXT:\n"""\n${inst.selectionData.text}\n"""\n\nUSER REQUEST:\n${userPrompt}`
       const stream = await sendMessage(fullPrompt, undefined, {
         bypassHistory: true,
         systemPromptOverride: TEXT_SELECTION_PROMPT.prompt
@@ -158,13 +169,30 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
       console.error('Generation error:', error)
       updateInstance(id, { generatedOutput: 'Error: Failed to generate response' })
     } finally {
+      stopAutoHide(id)
       updateInstance(id, { isGenerating: false })
     }
-  }, [updateInstance])
+  }, [updateInstance, stopAutoHide])
 
-  const handleStop = useCallback((id: string) => {
-    stopRefs.current.set(id, true)
-  }, [])
+  const handleQuickAsk = useCallback((id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst) return
+    if (inst.isGenerating) {
+      handleStop(id)
+      return
+    }
+    void runGeneration(id, DEFAULT_QUICK_PROMPT)
+  }, [runGeneration, handleStop])
+
+  const handleGenerate = useCallback((id: string) => {
+    const inst = instancesRef.current.find(i => i.id === id)
+    if (!inst) return
+    if (inst.isGenerating) {
+      handleStop(id)
+      return
+    }
+    void runGeneration(id, inst.prompt)
+  }, [runGeneration, handleStop])
 
   const handleInsert = useCallback(async (id: string) => {
     const inst = instancesRef.current.find(i => i.id === id)
@@ -355,7 +383,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
         if (!data) return
         pendingDataRef.current = null
 
-        const PILL_WIDTH = 200
+        const PILL_WIDTH = 280
         const PILL_HEIGHT = 48
         const viewportWidth = window.innerWidth
         const viewportHeight = window.innerHeight
@@ -396,6 +424,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           isGenerating: false,
           generatedOutput: null,
           isPlaying: false,
+          showOutput: false,
         }
 
         setInstances(prev => {
@@ -403,7 +432,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           const updated = [...prev, newInstance]
           if (updated.length > 5) {
             // Remove the oldest non-expanded, non-generating instance
-            const removeIdx = updated.findIndex(i => !i.isExpanded && !i.isGenerating)
+            const removeIdx = updated.findIndex(i => !i.isExpanded && !i.isGenerating && !i.showOutput)
             if (removeIdx !== -1) {
               const removed = updated[removeIdx]
               // Clean up the removed instance
@@ -423,7 +452,7 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
           // Only auto-dismiss if not expanded/generating
           setInstances(prev => {
             const inst = prev.find(i => i.id === newInstance.id)
-            if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying) {
+            if (inst && !inst.isExpanded && !inst.isGenerating && !inst.isPlaying && !inst.showOutput) {
               return prev.filter(i => i.id !== newInstance.id)
             }
             return prev
@@ -488,165 +517,183 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
   return (
     <AnimatePresence>
       {instances.map((inst) => (
-        <motion.div
-          key={inst.id}
-          onMouseEnter={() => stopAutoHide(inst.id)}
-          onMouseLeave={() => startAutoHide(inst.id)}
-          drag
-          dragMomentum={false}
-          layout
-          initial={{ opacity: 0, scale: 0.9, y: 10 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: 0
-          }}
-          exit={{ opacity: 0, scale: 0.95, y: 5 }}
-          transition={{
-            type: "spring",
-            damping: 25,
-            stiffness: 300,
-            layout: {
+        <div key={inst.id}>
+          <motion.div
+            onMouseEnter={() => stopAutoHide(inst.id)}
+            onMouseLeave={() => startAutoHide(inst.id)}
+            drag
+            dragMomentum={false}
+            layout
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              y: 0
+            }}
+            exit={{ opacity: 0, scale: 0.95, y: 5 }}
+            transition={{
               type: "spring",
               damping: 25,
               stiffness: 300,
-            }
-          }}
-          style={{
-            position: 'absolute',
-            top: inst.position.top,
-            left: inst.position.left,
-            zIndex: 9999,
-            pointerEvents: 'auto',
-            touchAction: 'none'
-          }}
-          className="cursor-grab active:cursor-grabbing"
-          data-no-clickthrough
-        >
-          <LayoutGroup id={inst.id}>
-            <motion.div
-              layout
-              className={cn(
-                "relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
-                inst.isExpanded ? "rounded-xl" : "rounded-full",
-                isDarkTheme
-                  ? "bg-zinc-950 border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.15)]"
-                  : "bg-white border border-blue-200/50 shadow-[0_0_20px_rgba(37,99,235,0.1)]"
-              )}
-            >
-              <AnimatePresence mode="popLayout" initial={false}>
-                {!inst.isExpanded ? (
-                  <motion.div
-                    key="pill"
-                    layout
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="flex items-center gap-1.5 p-1.5 whitespace-nowrap"
-                  >
-                    <CopyButton
-                      onClick={() => handleCopy(inst.id)}
-                      isDarkTheme={isDarkTheme}
-                      size="md"
-                    />
-                    <div className={cn(
-                      "w-px h-5 mx-0.5",
-                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} />
-                    <ExpandButton
-                      isExpanded={false}
-                      onClick={() => {
-                        updateInstance(inst.id, { isExpanded: true })
-                        stopAutoHide(inst.id)
-                      }}
-                      isDarkTheme={isDarkTheme}
-                      tooltip="Expand to ask AI"
-                      size="md"
-                    />
-                    <div className={cn(
-                      "w-px h-5 mx-0.5",
-                      isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
-                    )} />
-                    <button
-                      onClick={() => handleClose(inst.id)}
-                      className={cn(
-                        "p-1.5 px-2 rounded-full transition-all hover:scale-110 active:scale-95",
-                        isDarkTheme
-                          ? "hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
-                          : "hover:bg-slate-100/50 text-slate-600 hover:text-red-500"
-                      )}
-                      title="Dismiss"
+              layout: {
+                type: "spring",
+                damping: 25,
+                stiffness: 300,
+              }
+            }}
+            style={{
+              position: 'absolute',
+              top: inst.position.top,
+              left: inst.position.left,
+              zIndex: 9999,
+              pointerEvents: 'auto',
+              touchAction: 'none'
+            }}
+            className="cursor-grab active:cursor-grabbing"
+            data-no-clickthrough
+          >
+            <LayoutGroup id={inst.id}>
+              <motion.div
+                layout
+                className={cn(
+                  "relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]",
+                  inst.isExpanded ? "rounded-xl" : "rounded-full",
+                  isDarkTheme
+                    ? "bg-zinc-950 border border-blue-500/30 shadow-[0_0_20px_rgba(37,99,235,0.15)]"
+                    : "bg-white border border-blue-200/50 shadow-[0_0_20px_rgba(37,99,235,0.1)]"
+                )}
+              >
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {!inst.isExpanded ? (
+                    <motion.div
+                      key="pill"
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="flex items-center gap-1.5 p-1.5 whitespace-nowrap"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="expanded"
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex flex-col w-[400px] relative"
-                  >
-                    <div className="absolute top-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-b from-blue-500/10 via-transparent to-transparent" />
-
-                    {/* Header/Close area */}
-                    <div className="absolute top-2 right-2 z-10">
+                      <CopyButton
+                        onClick={() => handleCopy(inst.id)}
+                        isDarkTheme={isDarkTheme}
+                        size="md"
+                      />
+                      <div className={cn(
+                        "w-px h-5 mx-0.5",
+                        isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
+                      )} />
+                      <AddButton
+                        onClick={() => handleQuickAsk(inst.id)}
+                        isDarkTheme={isDarkTheme}
+                        size="md"
+                        variant="primary"
+                        icon={inst.isGenerating
+                          ? <Square className="size-3.5 fill-current" />
+                          : <Sparkles className="size-3.5" />
+                        }
+                        tooltip={inst.isGenerating ? "Stop" : "Ask AI"}
+                      />
+                      <div className={cn(
+                        "w-px h-5 mx-0.5",
+                        isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
+                      )} />
+                      <ExpandButton
+                        isExpanded={false}
+                        onClick={() => {
+                          updateInstance(inst.id, { isExpanded: true })
+                          stopAutoHide(inst.id)
+                        }}
+                        isDarkTheme={isDarkTheme}
+                        tooltip="Expand to ask AI"
+                        size="md"
+                      />
+                      <div className={cn(
+                        "w-px h-5 mx-0.5",
+                        isDarkTheme ? "bg-zinc-800" : "bg-slate-200/50"
+                      )} />
                       <button
                         onClick={() => handleClose(inst.id)}
                         className={cn(
-                          "p-1.5 rounded-full transition-all hover:scale-110 active:scale-95",
+                          "p-1.5 px-2 rounded-full transition-all hover:scale-110 active:scale-95",
                           isDarkTheme
-                            ? "bg-zinc-800 text-zinc-500 hover:text-red-400"
-                            : "bg-slate-100/50 text-slate-600 hover:text-red-500"
+                            ? "hover:bg-zinc-800 text-zinc-500 hover:text-red-400"
+                            : "hover:bg-slate-100/50 text-slate-600 hover:text-red-500"
                         )}
+                        title="Dismiss"
                       >
                         <X className="w-4 h-4" />
                       </button>
-                    </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="expanded"
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="flex flex-col w-[400px] relative"
+                    >
+                      <div className="absolute top-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-b from-blue-500/10 via-transparent to-transparent" />
 
-                    <TextSelectionInput
-                      value={inst.prompt}
-                      onChange={(val) => updateInstance(inst.id, { prompt: val })}
-                      onGenerate={() => handleGenerate(inst.id)}
-                      onStop={() => handleStop(inst.id)}
-                      onClose={() => handleClose(inst.id)}
-                      placeholder="Ask AI about this selection..."
-                      isGenerating={inst.isGenerating}
-                      isDarkTheme={isDarkTheme}
-                      className="bg-black border-none shadow-none"
-                    />
-                    {(inst.generatedOutput || inst.isGenerating) && (
-                      <motion.div
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="border-t border-white/5"
-                      >
-                        <TextSelectionOutput
-                          content={inst.generatedOutput || ""}
-                          isStreaming={inst.isGenerating}
-                          onInsert={() => handleInsert(inst.id)}
-                          onReplace={() => handleReplace(inst.id)}
-                          onCopy={() => handleCopyOutput(inst.id)}
-                          onRead={() => {
-                            if (inst.generatedOutput) {
-                              handleRead(inst.id, inst.generatedOutput)
-                            }
-                          }}
-                          isReading={inst.isPlaying}
-                          isDarkTheme={isDarkTheme}
-                          className="bg-transparent border-none shadow-none mt-0 mb-0"
-                        />
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          </LayoutGroup>
-        </motion.div>
+                      <div className="absolute top-2 right-2 z-10">
+                        <button
+                          onClick={() => handleClose(inst.id)}
+                          className={cn(
+                            "p-1.5 rounded-full transition-all hover:scale-110 active:scale-95",
+                            isDarkTheme
+                              ? "bg-zinc-800 text-zinc-500 hover:text-red-400"
+                              : "bg-slate-100/50 text-slate-600 hover:text-red-500"
+                          )}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <TextSelectionInput
+                        value={inst.prompt}
+                        onChange={(val) => updateInstance(inst.id, { prompt: val })}
+                        onGenerate={() => handleGenerate(inst.id)}
+                        onStop={() => handleStop(inst.id)}
+                        onClose={() => handleClose(inst.id)}
+                        placeholder="Ask AI about this selection..."
+                        isGenerating={inst.isGenerating}
+                        isDarkTheme={isDarkTheme}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </LayoutGroup>
+          </motion.div>
+
+          {/* Detached output panel — separate floating card */}
+          {(inst.showOutput) && (
+            <TextSelectionOutput
+              key={`${inst.id}-output`}
+              content={inst.generatedOutput || ""}
+              isStreaming={inst.isGenerating}
+              onInsert={() => handleInsert(inst.id)}
+              onReplace={() => handleReplace(inst.id)}
+              onCopy={() => handleCopyOutput(inst.id)}
+              onRead={() => {
+                if (inst.generatedOutput) {
+                  handleRead(inst.id, inst.generatedOutput)
+                }
+              }}
+              isReading={inst.isPlaying}
+              isDarkTheme={isDarkTheme}
+              floating
+              anchorPosition={{ x: inst.position.left, y: inst.position.top }}
+              onClose={() => updateInstance(inst.id, {
+                generatedOutput: null,
+                isGenerating: false,
+                showOutput: false,
+              })}
+              onMouseEnter={() => stopAutoHide(inst.id)}
+              onMouseLeave={() => startAutoHide(inst.id)}
+            />
+          )}
+        </div>
       ))}
     </AnimatePresence>
   )

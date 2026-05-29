@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
-import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { isCerebrasVoiceIntentConfigured, rewriteTranscriptToIntent, sendMessage as sendCloudMessage } from '@/lib/ai'
 import { buildVoiceRewritePromptFromLiveTranscription } from '@/lib/prompt'
 
 export function useAiSuggestion() {
@@ -16,31 +16,34 @@ export function useAiSuggestion() {
         setAiError(null)
 
         try {
-            const prompt = buildVoiceRewritePromptFromLiveTranscription(fullText)
+            let suggestion = ''
 
             const localModel = unifiedLocalLLMService.getCurrentModel()
-            
-            let responseStream: AsyncGenerator<string, void, unknown>;
-            
+
             if (localModel) {
+                const prompt = buildVoiceRewritePromptFromLiveTranscription(fullText)
                 const init = await unifiedLocalLLMService.initialize()
                 if (!init.success) {
                     throw new Error(init.message)
                 }
-                responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+                const responseStream = await unifiedLocalLLMService.sendMessage(prompt, undefined, localModel.name)
+                for await (const chunk of responseStream) {
+                    suggestion += chunk
+                    setAiSuggestion(suggestion.trim())
+                }
+            } else if (isCerebrasVoiceIntentConfigured()) {
+                suggestion = await rewriteTranscriptToIntent(fullText)
+                setAiSuggestion(suggestion)
             } else {
-                responseStream = await sendCloudMessage(prompt)
+                const prompt = buildVoiceRewritePromptFromLiveTranscription(fullText)
+                const responseStream = await sendCloudMessage(prompt)
+                for await (const chunk of responseStream) {
+                    suggestion += chunk
+                    setAiSuggestion(suggestion.trim())
+                }
             }
 
-            // Stream the response and accumulate text
-            let fullResponse = ''
-            for await (const chunk of responseStream) {
-                fullResponse += chunk
-                // Update suggestion in real-time as it streams
-                setAiSuggestion(fullResponse.trim())
-            }
-
-            const suggestion = fullResponse.trim()
+            suggestion = suggestion.trim()
             setAiSuggestion(suggestion)
 
             // Automatically insert and send

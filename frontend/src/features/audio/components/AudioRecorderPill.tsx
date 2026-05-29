@@ -12,6 +12,7 @@ import { formatDuration } from './audio-utils'
 
 import { useAudioRecorder, type AudioSourceType } from '../hooks/useAudioRecorder'
 import { useLiveTranscription } from '../hooks/useLiveTranscription'
+import { useFeature } from '@/contexts/FeatureContext'
 
 interface AudioRecorderPillProps {
     onClose: () => void
@@ -22,8 +23,10 @@ interface AudioRecorderPillProps {
 
 export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComplete, onTranscriptionUpdate }: AudioRecorderPillProps) {
     // UI State
+    const { isFeatureEnabled } = useFeature()
+    const isVoiceToPrompt = isFeatureEnabled('voice-to-prompt')
     const [source, setSource] = useState<AudioSourceType>('mic')
-    const [showTranscription, setShowTranscription] = useState(false)
+    const [showTranscription, setShowTranscription] = useState(isVoiceToPrompt)
     const transcriptionContainerRef = useRef<HTMLDivElement>(null)
 
     // Position State
@@ -70,6 +73,10 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
 
     // Refs for state access in callbacks
     const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const transcriptionTextRef = useRef(transcriptionText)
+    transcriptionTextRef.current = transcriptionText
+    const partialTextRef = useRef(partialText)
+    partialTextRef.current = partialText
 
     // Sync transcription start/stop - use syncExternalStore for lifecycle
     useSyncExternalStore(
@@ -163,6 +170,46 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         setPartialText('')
     }, [setTranscriptionText, setPartialText])
 
+    const handleStopRecording = useCallback(async () => {
+        console.log('[AudioRecorderPill] Stopping recording, showTranscription:', showTranscription, 'isVoiceToPrompt:', isVoiceToPrompt)
+
+        if (showTranscription) {
+            // Stop transcription first
+            await stopTranscription()
+
+            // Wait a brief moment for any final transcription chunks to arrive
+            await new Promise(resolve => setTimeout(resolve, 500))
+
+            // Get the full transcribed text using refs
+            const fullText = `${transcriptionTextRef.current} ${partialTextRef.current}`.trim()
+            console.log('[AudioRecorderPill] Full transcription text:', fullText)
+
+            if (fullText) {
+                if (isVoiceToPrompt) {
+                    try {
+                        window.dispatchEvent(new CustomEvent('prompt-send-now', { detail: { text: fullText } }))
+                        console.log('[AudioRecorderPill] Dispatched prompt-send-now with text')
+                    } catch (error) {
+                        console.error('[AudioRecorderPill] Failed to dispatch prompt-send-now event:', error)
+                    }
+                } else {
+                    try {
+                        window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: fullText } }))
+                        console.log('[AudioRecorderPill] Dispatched prompt-add-text event')
+                    } catch (error) {
+                        console.error('[AudioRecorderPill] Failed to dispatch prompt-add-text event:', error)
+                    }
+                }
+            }
+
+            // Clear transcription for next use
+            handleClearTranscription()
+        }
+
+        // Stop recording
+        stopRecording()
+    }, [stopTranscription, stopRecording, handleClearTranscription, showTranscription, isVoiceToPrompt])
+
     // Auto-scroll transcription - use syncExternalStore for lifecycle
     useSyncExternalStore(
         useCallback((_callback) => {
@@ -213,7 +260,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                         isPaused={isPaused}
                         recordingDuration={duration}
                         onPauseResume={isPaused ? resumeRecording : pauseRecording}
-                        onStop={stopRecording}
+                        onStop={handleStopRecording}
                         formatDuration={formatDuration}
                         isDarkTheme={isDarkTheme}
                     />
@@ -253,7 +300,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                                     if (!transcriptionText && !partialText) {
                                         onClose()
                                     } else {
-                                        stopRecording()
+                                        handleStopRecording()
                                     }
                                 }}
                                 hasTranscription={!!(transcriptionText || partialText)}

@@ -184,11 +184,11 @@ export function RectangleSelectOverlay({ onCapture, onCancel }: RectangleSelectO
       data-no-clickthrough
     >
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[999998] transition-opacity duration-300" />
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000001] bg-black/75 backdrop-blur-md rounded-full px-5 py-2.5 text-white/90 text-sm shadow-xl border border-white/10">
-        <span className="font-semibold">Drag to select rectangle</span>
-        <span className="opacity-80"> • Release to capture • </span>
-        <kbd className="bg-white/10 px-1.5 py-0.5 rounded font-mono text-xs border border-white/10">ESC</kbd>
-        <span className="opacity-80"> to cancel</span>
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[1000001] bg-black/70 backdrop-blur-sm rounded-full px-3 py-1 text-white/85 text-[11px] shadow-lg border border-white/10">
+        <span className="font-medium">Drag to select</span>
+        <span className="opacity-70"> · </span>
+        <kbd className="bg-white/10 px-1 py-px rounded font-mono text-[10px] border border-white/10">ESC</kbd>
+        <span className="opacity-70"> cancel</span>
       </div>
     </div>
   )

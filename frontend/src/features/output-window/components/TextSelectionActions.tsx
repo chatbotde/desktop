@@ -420,17 +420,24 @@ export function TextSelectionActions({
           isGenerating={isGenerating}
           isDarkTheme={isDarkTheme}
         />
-        {(generatedOutput || isGenerating) && (
-          <TextSelectionOutput
-            content={generatedOutput || ""}
-            isStreaming={isGenerating}
-            onInsert={handleInsert}
-            onReplace={handleReplace}
-            onCopy={handleCopy}
-            isDarkTheme={isDarkTheme}
-          />
-        )}
       </div>
+
+      {isExpanded && (generatedOutput || isGenerating) && (
+        <TextSelectionOutput
+          content={generatedOutput || ""}
+          isStreaming={isGenerating}
+          onInsert={handleInsert}
+          onReplace={handleReplace}
+          onCopy={handleCopy}
+          isDarkTheme={isDarkTheme}
+          floating
+          anchorPosition={adjustedPosition}
+          onClose={() => {
+            setGeneratedOutput(null)
+            setIsGenerating(false)
+          }}
+        />
+      )}
     </div>
   )
 }

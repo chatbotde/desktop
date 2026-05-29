@@ -7,6 +7,8 @@ import { ipcRenderer, IpcRendererEvent } from 'electron';
 import { InterfaceAPI, IgnoreMouseEventsOptions } from '../types';
 
 export function createInterfaceAPI(): InterfaceAPI {
+    const messageListeners = new Map<string, Map<(...args: any[]) => void, (event: IpcRendererEvent, ...args: any[]) => void>>();
+
     return {
         // Basic window controls
         minimize: () => ipcRenderer.send('interface-window:minimize'),
@@ -68,18 +70,32 @@ export function createInterfaceAPI(): InterfaceAPI {
 
         // Receive message from main process
         onMessage: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input'];
+            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input', 'toggle-voice-insert', 'show-rectangle-screenshot'];
             if (validChannels.includes(channel)) {
-                // Deliberately strip event as it includes `sender` 
-                ipcRenderer.on(channel, (_event: IpcRendererEvent, ...args: any[]) => func(...args));
+                const channelListeners = messageListeners.get(channel) ?? new Map();
+                if (channelListeners.has(func)) return;
+
+                // Deliberately strip event as it includes `sender`
+                const wrappedListener = (_event: IpcRendererEvent, ...args: any[]) => func(...args);
+                channelListeners.set(func, wrappedListener);
+                messageListeners.set(channel, channelListeners);
+                ipcRenderer.on(channel, wrappedListener);
             }
         },
 
         // Remove message listener
         removeMessageListener: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input'];
+            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input', 'toggle-voice-insert', 'show-rectangle-screenshot'];
             if (validChannels.includes(channel)) {
-                ipcRenderer.removeListener(channel, func);
+                const channelListeners = messageListeners.get(channel);
+                const wrappedListener = channelListeners?.get(func);
+                if (!wrappedListener) return;
+
+                ipcRenderer.removeListener(channel, wrappedListener);
+                channelListeners.delete(func);
+                if (channelListeners.size === 0) {
+                    messageListeners.delete(channel);
+                }
             }
         }
     };

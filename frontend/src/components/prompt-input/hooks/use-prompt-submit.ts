@@ -50,7 +50,7 @@ export function usePromptSubmit({
 }: UsePromptSubmitProps) {
   const { isFeatureEnabled } = useFeature()
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (overrideText?: string) => {
     // Check if we should auto-capture area
     let autoCapturedFile: File | null = null
     const isSetAreaEnabled = isFeatureEnabled('set-capture-area')
@@ -71,7 +71,9 @@ export function usePromptSubmit({
       }
     }
 
-    if (!(input.trim() || files.length > 0 || clipboardItems.length > 0 || references.length > 0 || autoCapturedFile)) return
+    const textToSubmit = overrideText !== undefined ? overrideText : input
+
+    if (!(textToSubmit.trim() || files.length > 0 || clipboardItems.length > 0 || references.length > 0 || autoCapturedFile)) return
 
     const integrationReferences = references.filter((ref) => ref.kind === "integration")
     const disconnectedIntegrations = integrationReferences.filter((ref) => !ref.meta?.connected)
@@ -85,7 +87,7 @@ export function usePromptSubmit({
 
     // Prepare message and files
     const referenceBlock = formatReferencesForMessage(references)
-    const messageParts = [referenceBlock, ...clipboardItems, input].filter(Boolean)
+    const messageParts = [referenceBlock, ...clipboardItems, textToSubmit].filter(Boolean)
     const messageToSend = messageParts.join("\n\n")
     const filesToSend = [...files]
 

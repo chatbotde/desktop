@@ -145,7 +145,7 @@ export function FeaturesSection() {
         </div>
       </div>
 
-      <DynamicFeatureList includeIds={["clipboard", "text-selection", "exclude-from-screenshot", "output-window", "pointer-always-visible", "pointer-click", "youtube-player", "standalone-youtube-player"]} />
+      <DynamicFeatureList />
     </div>
   )
 }

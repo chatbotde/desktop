@@ -127,6 +127,54 @@ class ApplicationWindowManager {
       }, 1000);
     }
   }
+
+  /**
+   * Show interface window and toggle the voice insert transcript overlay.
+   */
+  toggleVoiceInsert() {
+    console.log('Application: Toggle voice insert requested');
+
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot toggle voice insert - application is locked');
+      return;
+    }
+
+    if (this.interfaceWindow) {
+      this.interfaceWindow.show();
+      this.sendToInterfaceWindow('toggle-voice-insert', {});
+    } else {
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
+      this.interfaceWindow.create();
+      this.interfaceWindow.show();
+      setTimeout(() => {
+        this.sendToInterfaceWindow('toggle-voice-insert', {});
+      }, 1000);
+    }
+  }
+
+  /**
+   * Show interface window and open the rectangle screenshot overlay.
+   */
+  showRectangleScreenshot() {
+    console.log('Application: Show rectangle screenshot requested');
+
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot show rectangle screenshot - application is locked');
+      return;
+    }
+
+    if (this.interfaceWindow) {
+      this.interfaceWindow.show();
+      this.sendToInterfaceWindow('show-rectangle-screenshot', {});
+    } else {
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
+      this.interfaceWindow.create();
+      this.interfaceWindow.show();
+      setTimeout(() => {
+        this.sendToInterfaceWindow('show-rectangle-screenshot', {});
+      }, 1000);
+    }
+  }
 }
 
 module.exports = { ApplicationWindowManager };

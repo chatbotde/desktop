@@ -1,13 +1,8 @@
 /**
- * Agent Engine — multi-step computer-use executor with full automation.
+ * Agent Engine — iterative computer-use executor.
  *
- * Supports: click, double-click, right-click, scroll, key presses,
- * typing text, and combinations thereof.
- *
- * Flow: task → AI plans steps → for each step:
- *   screenshot → AI decides action → perform action → next
- *
- * An AbortSignal allows cancellation at any point.
+ * Flow: screenshot → decide next action or task complete → execute → repeat
+ * until the user's goal is fully achieved or limits are hit.
  */
 
 import { aiSDKUnifiedService } from '@/lib/ai/ai-sdk/unified-service'
@@ -24,9 +19,9 @@ export interface ActionResult {
     text_to_insert?: string
     element_description?: string
     confidence?: 'high' | 'medium' | 'low'
-    scroll_amount?: number        // positive = down, negative = up
-    key?: string                  // e.g. 'tab', 'enter', 'escape'
-    key_modifiers?: string[]      // e.g. ['control', 'shift']
+    scroll_amount?: number
+    key?: string
+    key_modifiers?: string[]
 }
 
 export interface AgentStep {
@@ -38,6 +33,66 @@ export interface AgentStep {
 }
 
 export type StepCallback = (steps: AgentStep[], currentIndex: number, status: string) => void
+
+interface AgentLoopDecision {
+    done: boolean
+    instruction?: string | null
+    summary?: string
+    wait_for_load?: boolean
+}
+
+const MAX_AGENT_STEPS = 40
+const MAX_CONSECUTIVE_ERRORS = 3
+
+function throwIfAborted(signal: AbortSignal) {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+}
+
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+
+function parseJsonObject<T>(response: string): T | null {
+    const start = response.indexOf('{')
+    const end = response.lastIndexOf('}')
+    if (start === -1 || end === -1) return null
+    try {
+        return JSON.parse(response.slice(start, end + 1)) as T
+    } catch {
+        return null
+    }
+}
+
+function parseJsonArray(response: string): string[] | null {
+    const start = response.indexOf('[')
+    const end = response.lastIndexOf(']')
+    if (start === -1 || end === -1) return null
+    try {
+        const parsed = JSON.parse(response.slice(start, end + 1))
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String)
+    } catch { /* ignore */ }
+    return null
+}
+
+async function streamResponse(
+    prompt: string,
+    attachments: MediaAttachment[],
+    systemPrompt: string,
+    signal: AbortSignal,
+): Promise<string> {
+    throwIfAborted(signal)
+
+    const stream = await aiSDKUnifiedService.sendMessage(
+        prompt,
+        attachments,
+        { bypassHistory: true, systemPromptOverride: systemPrompt },
+    )
+
+    let response = ''
+    for await (const chunk of stream) {
+        throwIfAborted(signal)
+        response += chunk
+    }
+    return response
+}
 
 // ── Screenshot helper ────────────────────────────────────────────────────
 
@@ -69,94 +124,188 @@ export async function captureScreenshot(): Promise<MediaAttachment | null> {
     }
 }
 
-// ── Plan generation ──────────────────────────────────────────────────────
+// ── Roadmap (optional planning hints for long tasks) ─────────────────────
 
 const PLAN_SYSTEM_PROMPT = [
-    'You are a task planning assistant for a computer-use agent that can automate mouse and keyboard.',
-    'The user describes a task they want done on their computer.',
-    'Decompose it into a numbered list of SHORT, atomic steps.',
-    'Each step should be ONE action: click a button, type text into a field, scroll down, press Tab, select a dropdown option, etc.',
+    'You are a task planning assistant for a computer-use agent.',
+    'Break the user task into a SHORT ordered list of atomic UI actions.',
+    'Each step = ONE action: click, type, scroll, press a key, wait, etc.',
     '',
-    'IMPORTANT for form-filling tasks:',
-    '- Add a "scroll down" step when you expect fields below the visible area.',
-    '- Use "click on [field name] input" then "type [value]" as TWO separate steps.',
-    '- After typing in a field, add "press Tab to move to next field" if needed.',
-    '- For dropdowns: "click the [dropdown]" then "click [option]" as two steps.',
-    '- For checkboxes/radio buttons: just "click [checkbox label]".',
-    '- For submit: "click the Submit/Save button".',
+    'ALWAYS include finishing actions when the task needs them:',
+    '- After typing in search/URL/command fields → "Press Enter to submit"',
+    '- After filling forms → "Click Submit/Save/OK" or "Press Enter to confirm"',
+    '- After opening apps from Start/menu → "Wait for app to load" then continue',
+    '- After dialogs → "Click OK/Yes/Confirm" or "Press Enter"',
+    '- After file pickers → "Click Open" or "Click Save"',
+    '- End with a step that confirms the expected result is visible',
     '',
-    'Reply with ONLY a JSON array of strings, one per step. Example:',
-    '["Click on the Name input field","Type \\"John Doe\\"","Press Tab to move to Email field","Type \\"john@email.com\\"","Scroll down to see more fields","Click the Country dropdown","Click \\"United States\\" option","Click the Submit button"]',
-    'Keep steps SHORT (under 15 words). Be specific about which UI element.',
-    'Do NOT include any explanation, markdown, or code fences — just the JSON array.',
+    'Reply with ONLY a JSON array of strings. No markdown or explanation.',
+    'Example: ["Click Windows Start button","Type \\"notepad\\"","Press Enter to open Notepad","Wait for Notepad to open","Type \\"hello world\\""]',
 ].join('\n')
 
-export async function planSteps(task: string, signal: AbortSignal): Promise<string[]> {
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+async function buildRoadmap(task: string, signal: AbortSignal): Promise<string[]> {
+    try {
+        const response = await streamResponse(
+            `Create an action roadmap for this task: "${task}"`,
+            [],
+            PLAN_SYSTEM_PROMPT,
+            signal,
+        )
+        return parseJsonArray(response) ?? [task]
+    } catch {
+        return [task]
+    }
+}
 
-    const stream = await aiSDKUnifiedService.sendMessage(
-        `Decompose this computer task into atomic UI steps: "${task}"`,
-        [],
-        { bypassHistory: true, systemPromptOverride: PLAN_SYSTEM_PROMPT },
+// ── Iterative decision loop ──────────────────────────────────────────────
+
+const AGENT_LOOP_PROMPT = [
+    'You are a computer-use agent completing ONE specific task on the user\'s screen.',
+    'Each run is a NEW independent task — ignore leftover UI from previous unrelated work.',
+    'You receive: the original task, a screenshot, a suggested roadmap, and actions already taken THIS run.',
+    '',
+    'Decide whether THIS task is FULLY COMPLETE or what SINGLE action to take next.',
+    '',
+    'Mark done=true ONLY when the user would see the expected final result for THIS task on screen.',
+    'Do NOT mark done after partial progress (e.g. typed text but did not submit).',
+    'Do NOT mark done=true if zero actions were taken unless the screen already shows THIS task\'s exact goal achieved.',
+    '',
+    'Common required finishing actions — include these before marking done:',
+    '- Search boxes / command bars: press Enter or click Search/Go after typing',
+    '- Forms: click Submit/Save/Apply/Continue or press Enter where appropriate',
+    '- Dialogs/popups: click OK/Yes/Confirm/Close or press Enter/Escape',
+    '- Login flows: click Sign in/Log in after entering credentials',
+    '- Multi-step wizards: click Next until the final step, then Finish/Done',
+    '- App launches: wait until the app window is open before typing into it',
+    '- Dropdowns: click to open, then click the target option',
+    '',
+    'If the screen is loading or animating, use instruction "Wait for page to load" and set wait_for_load=true.',
+    'If an action failed before, try a different approach (scroll, Tab, click elsewhere).',
+    '',
+    'Reply ONLY with JSON:',
+    '{',
+    '  "done": <boolean>,',
+    '  "instruction": "<one short next step if done=false, else null>",',
+    '  "summary": "<what was achieved if done=true>",',
+    '  "wait_for_load": <boolean, optional>',
+    '}',
+].join('\n')
+
+const VERIFY_COMPLETE_PROMPT = [
+    'You verify whether a specific computer task is ALREADY fully complete on screen.',
+    'This is a NEW task — do NOT assume it is done just because the screen looks busy or shows results from earlier unrelated work.',
+    'Be STRICT: complete=true only if THIS exact task goal is visibly achieved right now.',
+    '',
+    'Reply ONLY with JSON:',
+    '{',
+    '  "complete": <boolean>,',
+    '  "reason": "<short explanation>",',
+    '  "first_action": "<first step if complete=false, else null>"',
+    '}',
+].join('\n')
+
+async function verifyTaskAlreadyComplete(
+    task: string,
+    screenshot: MediaAttachment,
+    signal: AbortSignal,
+): Promise<{ complete: boolean; firstAction?: string }> {
+    const response = await streamResponse(
+        `Task to verify: "${task}"\n\nIs this task already fully complete on the screenshot? If not, what is the first action?`,
+        [screenshot],
+        VERIFY_COMPLETE_PROMPT,
+        signal,
     )
 
-    let response = ''
-    for await (const chunk of stream) {
-        if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
-        response += chunk
+    const parsed = parseJsonObject<{ complete?: boolean; first_action?: string | null }>(response)
+    if (!parsed || typeof parsed.complete !== 'boolean') {
+        return { complete: false, firstAction: 'Begin the task' }
     }
 
-    console.log('[AgentEngine] Plan response:', response)
+    return {
+        complete: parsed.complete,
+        firstAction: parsed.first_action?.trim() || 'Begin the task',
+    }
+}
 
-    const start = response.indexOf('[')
-    const end = response.lastIndexOf(']')
-    if (start === -1 || end === -1) return [task]
+async function decideNextMove(
+    task: string,
+    screenshot: MediaAttachment,
+    roadmap: string[],
+    history: string[],
+    signal: AbortSignal,
+): Promise<AgentLoopDecision | null> {
+    const historyText = history.length
+        ? history.map((h, i) => `${i + 1}. ${h}`).join('\n')
+        : '(none yet)'
 
-    try {
-        const parsed = JSON.parse(response.slice(start, end + 1))
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(String)
-    } catch { /* fallback */ }
+    const roadmapText = roadmap.map((s, i) => `${i + 1}. ${s}`).join('\n')
 
-    return [task]
+    const recent = history.slice(-3).map(h => h.split('→')[0]?.trim())
+    const stuckNote = recent.length >= 2 && recent.every(r => r === recent[0])
+        ? '\nNOTE: The last actions repeated — try a different approach (Enter, Tab, scroll, or another element).'
+        : ''
+
+    const prompt = [
+        `Current task (new session — only judge completion for THIS task): "${task}"`,
+        '',
+        'Suggested roadmap (adapt if the screen differs):',
+        roadmapText,
+        '',
+        'Actions already taken this run:',
+        historyText,
+        stuckNote,
+        '',
+        'Look at the screenshot. Is THIS task complete? If not, what is the ONE next action?',
+    ].join('\n')
+
+    const response = await streamResponse(prompt, [screenshot], AGENT_LOOP_PROMPT, signal)
+    const parsed = parseJsonObject<AgentLoopDecision>(response)
+    if (!parsed || typeof parsed.done !== 'boolean') return null
+
+    if (parsed.done) {
+        return { done: true, summary: parsed.summary || 'Task completed' }
+    }
+
+    const instruction = parsed.instruction?.trim()
+    if (!instruction) return null
+
+    return {
+        done: false,
+        instruction,
+        wait_for_load: parsed.wait_for_load,
+    }
 }
 
 // ── Single-step executor ─────────────────────────────────────────────────
 
 const STEP_SYSTEM_PROMPT = [
-    'You are a screen automation assistant. The user sends a screenshot and an instruction.',
-    'Analyze the screenshot and decide what action to take.',
+    'You are a screen automation assistant. Analyze the screenshot and perform ONE instruction.',
     '',
-    'Reply with ONLY a JSON object in this exact format:',
+    'Reply ONLY with JSON:',
     '{',
     '  "action": "<click|double_click|right_click|scroll|type|key|wait>",',
-    '  "x_percent": <number 0-100>,',
-    '  "y_percent": <number 0-100>,',
-    '  "text_to_insert": "<string to type after clicking, or empty>",',
-    '  "element_description": "<short 3-8 word label>",',
+    '  "x_percent": <0-100>,',
+    '  "y_percent": <0-100>,',
+    '  "text_to_insert": "<text for type action>",',
+    '  "element_description": "<short label>",',
     '  "confidence": "<high|medium|low>",',
-    '  "scroll_amount": <number, positive=down negative=up, only for scroll action>,',
-    '  "key": "<key name, only for key action: tab, enter, escape, backspace, up, down, left, right, space, etc.>",',
-    '  "key_modifiers": ["<modifier>", ...] (optional, e.g. ["control","shift"])',
+    '  "scroll_amount": <number, scroll only>,',
+    '  "key": "<tab|enter|escape|backspace|up|down|left|right|space|...>",',
+    '  "key_modifiers": ["control","shift","alt"]',
     '}',
     '',
-    'ACTION TYPES:',
-    '- "click": Left-click at (x_percent, y_percent). Use for buttons, links, input fields, checkboxes.',
-    '- "double_click": Double-click. Use for selecting text or opening items.',
-    '- "right_click": Right-click for context menus.',
-    '- "scroll": Scroll at position. Set scroll_amount (3 = small scroll down, -3 = scroll up, 10 = big scroll down).',
-    '- "type": Click the field first, then type text_to_insert into it. x/y should point to the input field.',
-    '- "key": Press a keyboard key. Set "key" field (tab, enter, escape, etc.).',
-    '- "wait": Do nothing, just wait (for animations, loading).',
+    'ACTION GUIDE:',
+    '- click: buttons, links, fields, checkboxes, menu items',
+    '- type: click field + type text_to_insert (clear field with ctrl+a first is handled automatically)',
+    '- key: keyboard only — use for Enter, Tab, Escape, shortcuts',
+    '  • "press Enter" / "submit" → action "key", key "enter"',
+    '  • "press Tab" → action "key", key "tab"',
+    '  • Ctrl+S → action "key", key "s", key_modifiers ["control"]',
+    '- scroll: scroll_amount positive=down, negative=up',
+    '- wait: loading screens, animations',
     '',
-    'RULES:',
-    '- x_percent: 0 = left edge, 100 = right edge.',
-    '- y_percent: 0 = top edge, 100 = bottom edge.',
-    '- For "type" action: set x_percent/y_percent to the INPUT FIELD location AND text_to_insert to what to type.',
-    '- For "scroll": set x/y to where to scroll (usually center of scrollable area) and scroll_amount.',
-    '- For "key": x/y can be 50,50 (center), set "key" to the key name.',
-    '- If instruction says "scroll down", use action "scroll" with scroll_amount 5.',
-    '- If instruction says "press Tab", use action "key" with key "tab".',
-    '- Do NOT include any explanation, markdown, or code fences. Just the JSON object.',
+    'For Enter/Tab/Escape instructions, ALWAYS use action "key" — do not click unless Enter key fails.',
+    'No markdown, no explanation — JSON only.',
 ].join('\n')
 
 export async function executeStep(
@@ -164,54 +313,37 @@ export async function executeStep(
     screenshot: MediaAttachment,
     signal: AbortSignal,
 ): Promise<ActionResult | null> {
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
-
-    const stream = await aiSDKUnifiedService.sendMessage(
-        `Analyze the screenshot and execute this instruction: "${instruction}"`,
+    const response = await streamResponse(
+        `Execute this instruction on the screenshot: "${instruction}"`,
         [screenshot],
-        { bypassHistory: true, systemPromptOverride: STEP_SYSTEM_PROMPT },
+        STEP_SYSTEM_PROMPT,
+        signal,
     )
 
-    let response = ''
-    for await (const chunk of stream) {
-        if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
-        response += chunk
-    }
+    const p = parseJsonObject<Record<string, unknown>>(response)
+    if (!p) return null
 
-    console.log('[AgentEngine] Step response:', response)
+    const action: ActionType = (['click', 'double_click', 'right_click', 'scroll', 'type', 'key', 'wait'] as ActionType[])
+        .includes(p.action as ActionType) ? p.action as ActionType : 'click'
 
-    const si = response.indexOf('{')
-    const ei = response.lastIndexOf('}')
-    if (si === -1 || ei === -1) return null
+    const x = parseFloat(String(p.x_percent)) || 50
+    const y = parseFloat(String(p.y_percent)) || 50
+    if (x < 0 || x > 100 || y < 0 || y > 100) return null
 
-    try {
-        const p = JSON.parse(response.slice(si, ei + 1))
-        const action: ActionType = (['click', 'double_click', 'right_click', 'scroll', 'type', 'key', 'wait'] as ActionType[])
-            .includes(p.action) ? p.action : 'click'
-
-        const x = parseFloat(p.x_percent) || 50
-        const y = parseFloat(p.y_percent) || 50
-        if (x < 0 || x > 100 || y < 0 || y > 100) return null
-
-        return {
-            action,
-            x_percent: x,
-            y_percent: y,
-            text_to_insert: p.text_to_insert || '',
-            element_description: p.element_description || '',
-            confidence: p.confidence || 'medium',
-            scroll_amount: p.scroll_amount ? parseInt(p.scroll_amount) : undefined,
-            key: p.key || undefined,
-            key_modifiers: Array.isArray(p.key_modifiers) ? p.key_modifiers : undefined,
-        }
-    } catch {
-        return null
+    return {
+        action,
+        x_percent: x,
+        y_percent: y,
+        text_to_insert: String(p.text_to_insert || ''),
+        element_description: String(p.element_description || ''),
+        confidence: (p.confidence as ActionResult['confidence']) || 'medium',
+        scroll_amount: p.scroll_amount ? parseInt(String(p.scroll_amount)) : undefined,
+        key: p.key ? String(p.key) : undefined,
+        key_modifiers: Array.isArray(p.key_modifiers) ? p.key_modifiers.map(String) : undefined,
     }
 }
 
 // ── Perform action ───────────────────────────────────────────────────────
-
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
 export async function performAction(
     result: ActionResult,
@@ -224,16 +356,14 @@ export async function performAction(
     const px = targetX * dpr
     const py = targetY * dpr
 
-    // Visual pointer animation (for click-based actions)
     if (['click', 'double_click', 'right_click', 'type'].includes(result.action)) {
         window.dispatchEvent(new CustomEvent('assistant-point-to', { detail: { x: targetX, y: targetY } }))
-        await sleep(700)
+        await sleep(550)
     }
 
-    if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+    throwIfAborted(signal)
     if (!clickEnabled && result.action !== 'wait') {
-        // If click isn't enabled, just show the pointer but don't act
-        await sleep(500)
+        await sleep(300)
         return
     }
 
@@ -245,40 +375,28 @@ export async function performAction(
             window.dispatchEvent(new CustomEvent('assistant-click'))
             if (api?.clickAt) await api.clickAt(px, py)
 
-            // If there's text to insert after click, type it
             if (result.text_to_insert) {
-                await sleep(400)
-                if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
-                if (api?.typeString) {
-                    await api.typeString(result.text_to_insert)
-                // @ts-ignore - fallback to tsfAPI
-                } else if (window.tsfAPI?.insertTextFallback) {
-                    // @ts-ignore
-                    await window.tsfAPI.insertTextFallback(result.text_to_insert)
-                }
+                await sleep(350)
+                throwIfAborted(signal)
+                if (api?.typeString) await api.typeString(result.text_to_insert)
+                // @ts-ignore
+                else if (window.tsfAPI?.insertTextFallback) await window.tsfAPI.insertTextFallback(result.text_to_insert)
             }
             break
 
         case 'type':
-            // Click the field first
             window.dispatchEvent(new CustomEvent('assistant-click'))
             if (api?.clickAt) await api.clickAt(px, py)
-            await sleep(400)
-            if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
+            await sleep(350)
+            throwIfAborted(signal)
 
-            // Select all existing text first (Ctrl+A) then type over
             if (api?.keyTap) await api.keyTap('a', ['control'])
-            await sleep(100)
+            await sleep(80)
 
-            // Type the text
             if (result.text_to_insert) {
-                if (api?.typeString) {
-                    await api.typeString(result.text_to_insert)
+                if (api?.typeString) await api.typeString(result.text_to_insert)
                 // @ts-ignore
-                } else if (window.tsfAPI?.insertTextFallback) {
-                    // @ts-ignore
-                    await window.tsfAPI.insertTextFallback(result.text_to_insert)
-                }
+                else if (window.tsfAPI?.insertTextFallback) await window.tsfAPI.insertTextFallback(result.text_to_insert)
             }
             break
 
@@ -292,11 +410,8 @@ export async function performAction(
 
         case 'scroll': {
             const amount = result.scroll_amount || 5
-            if (api?.scrollAt) {
-                await api.scrollAt(px, py, amount)
-            }
-            // Give time for scroll animation to settle
-            await sleep(600)
+            if (api?.scrollAt) await api.scrollAt(px, py, amount)
+            await sleep(500)
             break
         }
 
@@ -307,12 +422,61 @@ export async function performAction(
             break
 
         case 'wait':
-            await sleep(1000)
+            await sleep(1200)
             break
     }
 
-    // Settle time before next step
-    await sleep(400)
+    // Extra settle time after actions that trigger navigation or submission
+    const needsLongSettle =
+        result.action === 'key' && ['enter', 'return'].includes(result.key?.toLowerCase() ?? '') ||
+        result.action === 'wait'
+
+    await sleep(needsLongSettle ? 900 : 300)
+}
+
+async function executeStepWithRetry(
+    instruction: string,
+    signal: AbortSignal,
+    clickEnabled: boolean,
+    waitForLoad = false,
+): Promise<{ ok: boolean; result?: ActionResult | null; error?: string }> {
+    const maxAttempts = 2
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        throwIfAborted(signal)
+
+        const screenshot = await captureScreenshot()
+        if (!screenshot) {
+            if (attempt === maxAttempts - 1) return { ok: false, error: 'Screenshot failed' }
+            await sleep(400)
+            continue
+        }
+
+        throwIfAborted(signal)
+
+        try {
+            const result = await executeStep(instruction, screenshot, signal)
+            if (!result) {
+                if (attempt === maxAttempts - 1) return { ok: false, error: 'Could not determine action' }
+                await sleep(500)
+                continue
+            }
+
+            await performAction(result, clickEnabled, signal)
+
+            if (waitForLoad) await sleep(1500)
+
+            return { ok: true, result }
+        } catch (err: unknown) {
+            if (err instanceof DOMException && err.name === 'AbortError') throw err
+            if (attempt === maxAttempts - 1) {
+                return { ok: false, error: err instanceof Error ? err.message : 'Action failed' }
+            }
+            await sleep(500)
+        }
+    }
+
+    return { ok: false, error: 'Step failed' }
 }
 
 // ── Full agent run ───────────────────────────────────────────────────────
@@ -321,81 +485,116 @@ export async function runAgent(
     task: string,
     clickEnabled: boolean,
     signal: AbortSignal,
-    onUpdate: StepCallback,
+    onUpdate?: StepCallback,
 ): Promise<void> {
-    // Phase 1: Plan
-    onUpdate([], -1, 'Planning steps…')
-    const instructions = await planSteps(task, signal)
+    const notify = (steps: AgentStep[], idx: number, status: string) => {
+        onUpdate?.(steps, idx, status)
+    }
 
-    const steps: AgentStep[] = instructions.map((inst, i) => ({
-        id: i,
-        instruction: inst,
-        status: 'pending' as const,
-    }))
+    throwIfAborted(signal)
 
-    onUpdate(steps, -1, `Planned ${steps.length} step(s)`)
-    await sleep(600)
+    // Brief settle so a new task starts from a stable screen state
+    await sleep(500)
 
-    // Phase 2: Execute each step
-    for (let i = 0; i < steps.length; i++) {
-        if (signal.aborted) {
-            steps[i].status = 'skipped'
-            onUpdate(steps, i, 'Stopped')
-            return
-        }
+    const roadmap = await buildRoadmap(task, signal)
+    const steps: AgentStep[] = []
+    const history: string[] = []
+    let consecutiveErrors = 0
 
-        steps[i].status = 'running'
-        onUpdate(steps, i, `Step ${i + 1}/${steps.length}: Taking screenshot…`)
+    notify(steps, -1, 'running')
 
-        // Take a fresh screenshot before each step
+    for (let i = 0; i < MAX_AGENT_STEPS; i++) {
+        throwIfAborted(signal)
+
         const screenshot = await captureScreenshot()
         if (!screenshot) {
-            steps[i].status = 'error'
-            steps[i].error = 'Screenshot failed'
-            onUpdate(steps, i, 'Screenshot failed')
+            consecutiveErrors++
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            await sleep(600)
             continue
         }
 
-        if (signal.aborted) { steps[i].status = 'skipped'; return }
+        let decision = await decideNextMove(task, screenshot, roadmap, history, signal)
 
-        onUpdate(steps, i, `Step ${i + 1}/${steps.length}: Analyzing screen…`)
-
-        try {
-            const result = await executeStep(steps[i].instruction, screenshot, signal)
-            if (!result) {
-                steps[i].status = 'error'
-                steps[i].error = 'Could not determine action'
-                onUpdate(steps, i, `Step ${i + 1}: Could not determine action`)
-                await sleep(1000)
-                continue
-            }
-
-            steps[i].result = result
-            const actionLabel = result.action === 'scroll' ? 'Scrolling…'
-                : result.action === 'key' ? `Pressing ${result.key}…`
-                : result.action === 'type' ? 'Typing…'
-                : result.action === 'wait' ? 'Waiting…'
-                : `${result.element_description || 'Acting'}…`
-            onUpdate(steps, i, `Step ${i + 1}/${steps.length}: ${actionLabel}`)
-
-            // Perform the action
-            await performAction(result, clickEnabled, signal)
-
-            steps[i].status = 'done'
-            onUpdate(steps, i, `Step ${i + 1}/${steps.length}: Done ✓`)
-        } catch (err: any) {
-            if (err.name === 'AbortError') {
-                steps[i].status = 'skipped'
-                onUpdate(steps, i, 'Stopped')
-                return
-            }
-            steps[i].status = 'error'
-            steps[i].error = err.message
-            onUpdate(steps, i, `Step ${i + 1}: Error`)
+        if (!decision) {
+            consecutiveErrors++
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            await sleep(600)
+            continue
         }
 
-        await sleep(300)
+        if (decision.done) {
+            // Guard: on a fresh run, double-check the model isn't confusing prior UI with completion
+            if (history.length === 0) {
+                const verification = await verifyTaskAlreadyComplete(task, screenshot, signal)
+                if (!verification.complete) {
+                    decision = {
+                        done: false,
+                        instruction: verification.firstAction || 'Begin the task',
+                    }
+                } else {
+                    console.log('[AgentEngine] Task already complete:', decision.summary)
+                    notify(steps, steps.length, 'completed')
+                    return
+                }
+            } else {
+                console.log('[AgentEngine] Task complete:', decision.summary)
+                notify(steps, steps.length, 'completed')
+                return
+            }
+        }
+
+        const instruction = decision.instruction?.trim()
+        if (!instruction) {
+            consecutiveErrors++
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            await sleep(600)
+            continue
+        }
+
+        const step: AgentStep = {
+            id: steps.length,
+            instruction,
+            status: 'running',
+        }
+        steps.push(step)
+        notify(steps, step.id, 'running')
+
+        const outcome = await executeStepWithRetry(
+            instruction,
+            signal,
+            clickEnabled,
+            decision.wait_for_load,
+        )
+
+        if (signal.aborted) {
+            step.status = 'skipped'
+            notify(steps, step.id, 'stopped')
+            return
+        }
+
+        if (outcome.ok) {
+            step.status = 'done'
+            step.result = outcome.result
+            consecutiveErrors = 0
+            history.push(`${instruction} → done`)
+            notify(steps, step.id, 'done')
+        } else {
+            step.status = 'error'
+            step.error = outcome.error
+            consecutiveErrors++
+            history.push(`${instruction} → failed (${outcome.error})`)
+            notify(steps, step.id, 'error')
+
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                console.warn('[AgentEngine] Stopping after consecutive failures')
+                return
+            }
+        }
+
+        await sleep(350)
     }
 
-    onUpdate(steps, steps.length, 'All steps completed ✓')
+    console.warn('[AgentEngine] Reached max steps without completion')
+    notify(steps, steps.length, 'max_steps')
 }

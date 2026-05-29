@@ -77,6 +77,35 @@ export class InterfaceWindow {
       }
     });
 
+    // Global shortcuts do not fire when this window has focus — handle them here instead.
+    this.window.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return;
+      if (this.isLocked()) return;
+
+      const isVoiceInsertShortcut =
+        (input.control || input.meta) &&
+        !input.shift &&
+        !input.alt &&
+        input.key?.toLowerCase() === 'm';
+
+      if (isVoiceInsertShortcut) {
+        event.preventDefault();
+        this.window?.webContents.send('toggle-voice-insert', {});
+        return;
+      }
+
+      const isRectangleScreenshotShortcut =
+        (input.control || input.meta) &&
+        input.shift &&
+        !input.alt &&
+        input.key?.toLowerCase() === 's';
+
+      if (isRectangleScreenshotShortcut) {
+        event.preventDefault();
+        this.window?.webContents.send('show-rectangle-screenshot', {});
+      }
+    });
+
     // Intercept external links (target="_blank" or window.open) and open in system browser
     this.window.webContents.setWindowOpenHandler(({ url }) => {
       // Only allow http, https, and mailto protocols

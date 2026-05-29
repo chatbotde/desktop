@@ -1,4 +1,4 @@
-import { AssistantSphere, TranscriptionOverlay } from '@/components/assistant-animation'
+import { AssistantSphere } from '@/components/assistant-animation'
 import { GLOBAL_THEME } from '@/global/theme'
 
 export function GlobalAssistantOverlay() {
@@ -8,10 +8,6 @@ export function GlobalAssistantOverlay() {
             style={{ zIndex: GLOBAL_THEME.zIndex.assistant }}
         >
             <AssistantSphere />
-            {/* Whisper Transcription Overlay - Controlled via toggle-transcription-visibility event */}
-            <div className="absolute top-[160px] w-full flex justify-center pointer-events-none">
-                <TranscriptionOverlay />
-            </div>
         </div>
     )
 }

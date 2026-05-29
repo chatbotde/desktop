@@ -9,7 +9,7 @@ interface UsePromptWindowEventsProps {
   setIsExpanded: (expanded: boolean) => void
   setIsVisible: (visible: boolean) => void
   handleFilesAdded: (files: File[]) => void
-  handleSubmit: () => void
+  handleSubmit: (overrideText?: string) => void | Promise<void>
 }
 
 export function usePromptWindowEvents({
@@ -42,8 +42,10 @@ export function usePromptWindowEvents({
   // Allow other parts of the app to trigger sending the current prompt
   useSyncExternalStore(
     useCallback((_callback) => {
-      const handler = () => {
-        handleSubmit()
+      const handler = (event: Event) => {
+        const custom = event as CustomEvent<{ text?: string }>
+        const text = custom.detail?.text
+        handleSubmit(text)
       }
       window.addEventListener('prompt-send-now', handler as EventListener)
       return () => window.removeEventListener('prompt-send-now', handler as EventListener)

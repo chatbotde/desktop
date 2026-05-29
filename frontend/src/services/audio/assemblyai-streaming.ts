@@ -149,39 +149,37 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
       }
 
       const sampleRate = config?.sampleRate || 16000
-      
+
       // Build URL with query parameters (v3 API format)
       // Note: In browser/Electron, WebSocket doesn't support custom headers,
-      // so we use token in query string as alternative
+      // so we pass the API key as token in query string
       const params = new URLSearchParams({
         sample_rate: sampleRate.toString(),
         token: this.config.apiKey,
       })
-      
+
       // Add optional parameters
       if (config?.formatText) {
         params.append('format_turns', 'true')
       }
-      
+
       const url = `${this.config.streamingUrl}?${params.toString()}`
-      
+
       console.log('[AssemblyAI Streaming] Connecting to:', url.replace(this.config.apiKey, '***'))
 
       // Create WebSocket connection
-      // Note: Standard WebSocket API doesn't support headers in browser/Electron
-      // Using token in query string instead
       this.websocket = new WebSocket(url)
-      
+
       // Set binary type to arraybuffer for sending raw audio data
       this.websocket.binaryType = 'arraybuffer'
 
       this.websocket.onopen = () => {
         console.log('[AssemblyAI Streaming] WebSocket onopen - connection established')
-        
+
         // For v3 API, configuration is sent via URL params
         // The server will send "Begin" message when ready
         console.log('[AssemblyAI Streaming] Waiting for Begin message...')
-        
+
         // Set a timeout - if Begin doesn't arrive in 5 seconds, emit connected anyway
         this.connectionTimeout = setTimeout(() => {
           console.warn('[AssemblyAI Streaming] Begin timeout - emitting connected anyway')
@@ -199,7 +197,7 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
           // v3 API sends JSON messages with 'type' field (not 'message_type')
           const data = JSON.parse(event.data)
           const msgType = data.type
-          
+
           console.log('[AssemblyAI Streaming] Received message type:', msgType, data)
 
           // Handle different message types (v3 API format)
@@ -211,13 +209,13 @@ export class AssemblyAIStreamingService implements IStreamingTranscriptionServic
               console.log(
                 `[AssemblyAI Streaming] Session began: ID=${sessionId}, ExpiresAt=${expiresAt ? new Date(expiresAt * 1000).toISOString() : 'N/A'}`
               )
-              
+
               // Clear timeout since we got Begin
               if (this.connectionTimeout) {
                 clearTimeout(this.connectionTimeout)
                 this.connectionTimeout = null
               }
-              
+
               // Emit connected event when session begins
               this.emitEvent({
                 type: 'connected',
