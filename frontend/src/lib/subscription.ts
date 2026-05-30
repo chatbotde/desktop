@@ -2,11 +2,14 @@
  * Subscription Service
  * 
  * Handles subscription status checking for free trial vs paid plans.
- * Applies to ALL users regardless of model type (cloud, custom API, local models).
+ * Signed-in users: server-backed trial. Guest users: 7-day device trial with BYOK/local model only.
  * 
- * SECURITY: All validation is done server-side via Supabase.
+ * SECURITY: Authenticated validation is done server-side via Supabase.
  * VIP codes are validated server-side, not stored locally.
  */
+
+import { getGuestTrialStatus, GUEST_TRIAL_DAYS } from './guest-trial';
+import { canUseOwnModelForRequest } from './own-model-access';
 
 export type SubscriptionPlan = 'free' | 'monthly' | 'yearly';
 
@@ -20,12 +23,17 @@ export interface SubscriptionStatus {
   isVip: boolean;
   vipExpiresAt?: string;
   validatedAt?: number;
+  isGuestTrial?: boolean;
+  guestTrialExpired?: boolean;
 }
 
 const TRIAL_DAYS = 10;
 
 async function getAuthToken(): Promise<string | null> {
   try {
+    if (window.authAPI?.getToken) {
+      return await window.authAPI.getToken();
+    }
     if (window.electronAPI?.getAuthToken) {
       return await window.electronAPI.getAuthToken();
     }
@@ -47,6 +55,22 @@ function getApiBaseUrl(): string {
          'https://www.sonicthinking.com';
 }
 
+function buildGuestSubscriptionStatus(validatedAt = Date.now()): SubscriptionStatus {
+  const guest = getGuestTrialStatus();
+
+  return {
+    plan: 'free',
+    isActive: false,
+    trialDaysUsed: guest.trialDaysUsed,
+    trialDaysTotal: guest.trialDaysTotal,
+    canMakeRequest: guest.isActive,
+    isVip: false,
+    isGuestTrial: true,
+    guestTrialExpired: guest.isExpired,
+    validatedAt,
+  };
+}
+
 export class SubscriptionService {
   private cachedStatus: SubscriptionStatus | null = null;
   private cacheTimeout: number = 60000;
@@ -65,15 +89,23 @@ export class SubscriptionService {
     
     if (!token) {
       const isDev = import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true';
-      return {
-        plan: 'free',
-        isActive: false,
-        trialDaysUsed: 0,
-        trialDaysTotal: TRIAL_DAYS,
-        canMakeRequest: isDev,
-        isVip: false,
-        validatedAt: now,
-      };
+      if (isDev) {
+        return {
+          plan: 'free',
+          isActive: false,
+          trialDaysUsed: 0,
+          trialDaysTotal: GUEST_TRIAL_DAYS,
+          canMakeRequest: true,
+          isVip: false,
+          isGuestTrial: true,
+          validatedAt: now,
+        };
+      }
+
+      const status = buildGuestSubscriptionStatus(now);
+      this.cachedStatus = status;
+      this.lastFetchTime = now;
+      return status;
     }
 
     try {
@@ -144,7 +176,6 @@ export class SubscriptionService {
   }
 
   private canMakeRequest(plan: SubscriptionPlan, trialDaysUsed: number, isVip?: boolean, isActive?: boolean): boolean {
-    // Development mode: bypass subscription checks
     if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
       return true;
     }
@@ -161,6 +192,37 @@ export class SubscriptionService {
   }
 
   async checkCanMakeRequest(): Promise<{ allowed: boolean; reason?: string; status?: SubscriptionStatus }> {
+    const token = await getAuthToken();
+
+    if (!token) {
+      if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
+        return { allowed: true, status: buildGuestSubscriptionStatus() };
+      }
+
+      const guestStatus = buildGuestSubscriptionStatus();
+      if (guestStatus.guestTrialExpired) {
+        return {
+          allowed: false,
+          reason: `Your ${GUEST_TRIAL_DAYS}-day guest trial has ended. Sign in to continue using the app.`,
+          status: guestStatus,
+        };
+      }
+
+      const ownModel = await canUseOwnModelForRequest();
+      if (!ownModel.allowed) {
+        return {
+          allowed: false,
+          reason: ownModel.reason,
+          status: guestStatus,
+        };
+      }
+
+      return {
+        allowed: true,
+        status: guestStatus,
+      };
+    }
+
     const serverValidation = await this.validateSubscriptionWithServer();
     if (!serverValidation.allowed) {
       return {
@@ -175,7 +237,7 @@ export class SubscriptionService {
       let upgradeMessage = '';
       
       if (status.plan === 'free') {
-        upgradeMessage = `Your 10-day free trial has ended. Upgrade to continue using the app.`;
+        upgradeMessage = `Your ${TRIAL_DAYS}-day free trial has ended. Upgrade to continue using the app.`;
       } else {
         upgradeMessage = `Your subscription has expired. Please renew to continue.`;
       }
@@ -194,7 +256,6 @@ export class SubscriptionService {
   }
 
   async validateSubscriptionWithServer(): Promise<{ allowed: boolean; reason?: string }> {
-    // Development mode: bypass server validation
     if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
       return { allowed: true };
     }
@@ -202,10 +263,7 @@ export class SubscriptionService {
     const token = await getAuthToken();
     
     if (!token) {
-      return {
-        allowed: false,
-        reason: 'Please log in to use AI features.',
-      };
+      return { allowed: true };
     }
 
     try {
@@ -263,10 +321,14 @@ export class SubscriptionService {
     }
   }
 
-  getPlanDisplayName(plan: SubscriptionPlan): string {
+  getPlanDisplayName(plan: SubscriptionPlan, isGuestTrial?: boolean): string {
+    if (isGuestTrial) {
+      return `Guest Trial (${GUEST_TRIAL_DAYS} days)`;
+    }
+
     switch (plan) {
       case 'free':
-        return 'Free Trial (10 days)';
+        return `Free Trial (${TRIAL_DAYS} days)`;
       case 'monthly':
         return 'PRO Level';
       case 'yearly':

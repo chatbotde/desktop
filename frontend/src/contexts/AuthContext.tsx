@@ -55,10 +55,6 @@ function createAuthStore() {
   }
 
   async function refreshSubscription() {
-    if (!state.user) {
-      setState({ subscriptionStatus: null })
-      return
-    }
     setState({ isCheckingSubscription: true })
     try {
       const status = await subscriptionService.getSubscriptionStatus(true)
@@ -73,9 +69,6 @@ function createAuthStore() {
     refreshTimer = setInterval(refreshSubscription, 5 * 60 * 1000)
   }
 
-  function stopPeriodicRefresh() {
-    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null }
-  }
 
   async function initialize() {
     if (initialized) return
@@ -90,17 +83,14 @@ function createAuthStore() {
       const userData = await window.authAPI.getUser?.()
       setState({ user: userData || null, isLoading: false })
 
-      if (userData) {
-        startPeriodicRefresh()
-        await refreshSubscription()
-      }
+      startPeriodicRefresh()
+      await refreshSubscription()
 
       // Subscribe to Electron auth events — these live in the store, not in components
       window.authAPI.onStateChange((s: { user?: User }) => {
         const user = s.user || null
         setState({ user })
-        if (user) { startPeriodicRefresh(); refreshSubscription() }
-        else { stopPeriodicRefresh(); setState({ subscriptionStatus: null }) }
+        refreshSubscription()
       })
 
       window.authAPI.onAuthSuccess((user: User) => {
@@ -110,8 +100,8 @@ function createAuthStore() {
       })
 
       window.authAPI.onLogout(() => {
-        stopPeriodicRefresh()
-        setState({ user: null, subscriptionStatus: null })
+        setState({ user: null })
+        refreshSubscription()
       })
 
       window.authAPI.onSessionRestored((user: User) => {
@@ -170,11 +160,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const accessExpired = Boolean(
-    authState.user &&
     authState.subscriptionStatus &&
-    !authState.subscriptionStatus.canMakeRequest &&
-    !authState.subscriptionStatus.isVip &&
-    !authState.subscriptionStatus.isActive,
+    (
+      (authState.user &&
+        !authState.subscriptionStatus.canMakeRequest &&
+        !authState.subscriptionStatus.isVip &&
+        !authState.subscriptionStatus.isActive) ||
+      (!authState.user &&
+        authState.subscriptionStatus.isGuestTrial &&
+        authState.subscriptionStatus.guestTrialExpired)
+    ),
   )
 
   return (

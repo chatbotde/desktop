@@ -8,6 +8,7 @@
 const { ipcMain } = require('electron');
 const { authService } = require('./auth-service');
 const { tokenStore } = require('./token-store');
+const { guestModeStore } = require('./guest-mode-store');
 const config = require('./config');
 
 let handlersRegistered = false;
@@ -66,6 +67,16 @@ function registerAuthIpcHandlers() {
       console.error('Auth IPC: Logout error:', error);
       event.reply('auth:error', { message: error.message });
     }
+  });
+
+  /**
+   * Start guest trial without sign-in
+   */
+  ipcMain.on('auth:start-guest-trial', (event) => {
+    console.log('Auth IPC: Guest trial started');
+    guestModeStore.enable();
+    authService.emit('auth:guest-trial-started');
+    broadcastAuthEvent('auth:guest-trial-started');
   });
 
   // ===========================================

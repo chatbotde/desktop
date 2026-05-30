@@ -46,50 +46,26 @@ class Application {
       (user) => this.onAuthSuccess(user),
       () => this.onAuthLogout(),
       () => this.onAuthExpired(),
-      (error) => this.onAuthError(error)
+      (error) => this.onAuthError(error),
+      () => this.onGuestTrialStart()
     );
     this.windowManager = new ApplicationWindowManager(this.shortcutRegistry);
     this.shortcutManager = new ApplicationShortcutManager(
       this.shortcutRegistry,
       () => {
-        if (this.authHandler.isAuthenticated()) {
-          this.windowManager.toggleInterfaceWindow();
-        } else {
-          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
-          this.authHandler.showAuthWindowIfNeeded();
-        }
+        this.windowManager.toggleInterfaceWindow();
       },
       () => {
-        if (this.authHandler.isAuthenticated()) {
-          this.windowManager.showAndConnectAssistant();
-        } else {
-          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
-          this.authHandler.showAuthWindowIfNeeded();
-        }
+        this.windowManager.showAndConnectAssistant();
       },
       () => {
-        if (this.authHandler.isAuthenticated()) {
-          this.windowManager.showPromptInput();
-        } else {
-          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
-          this.authHandler.showAuthWindowIfNeeded();
-        }
+        this.windowManager.showPromptInput();
       },
       () => {
-        if (this.authHandler.isAuthenticated()) {
-          this.windowManager.toggleVoiceInsert();
-        } else {
-          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
-          this.authHandler.showAuthWindowIfNeeded();
-        }
+        this.windowManager.toggleVoiceInsert();
       },
       () => {
-        if (this.authHandler.isAuthenticated()) {
-          this.windowManager.showRectangleScreenshot();
-        } else {
-          console.log('Application: Shortcut pressed but not authenticated, showing auth window');
-          this.authHandler.showAuthWindowIfNeeded();
-        }
+        this.windowManager.showRectangleScreenshot();
       }
     );
     this.ipcHandlers = new ApplicationIpcHandlers(this.ipcRegistry);
@@ -145,17 +121,11 @@ class Application {
       // Initialize auto-updater
       this.updater.initialize();
 
-      // Check authentication and show auth window if needed
-      const isAuth = this.authHandler.isAuthenticated();
+      // Create interface window in background; auth window appears on top for new users
+      this.windowManager.createInterfaceWindow();
 
-      if (!isAuth) {
+      if (!this.authHandler.isAuthenticated() && !this.authHandler.shouldSkipAuthWindow()) {
         this.authHandler.showAuthWindowIfNeeded();
-      } else {
-        // Create Interface Window only if authenticated
-        this.windowManager.createInterfaceWindow();
-
-        // Show the window if authenticated (depending on app design, might want to keep it hidden until shortcut)
-        // For now, just ensure it's created and ready
       }
 
       // Register global shortcuts
@@ -221,14 +191,17 @@ class Application {
     this.windowManager.createInterfaceWindow();
   }
 
+  onGuestTrialStart() {
+    console.log('Application: Guest trial active, app ready');
+    this.windowManager.createInterfaceWindow();
+  }
+
   /**
    * Handle auth logout
    * @private
    */
   onAuthLogout() {
-    console.log('Application: User logged out, destroying interface window');
-    this.windowManager.destroyInterfaceWindow();
-    // Additional logic can be added here if needed
+    console.log('Application: User logged out, continuing in guest mode');
   }
 
   /**

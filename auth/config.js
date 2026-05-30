@@ -104,9 +104,9 @@ const config = {
    */
   AUTH_WINDOW: {
     WIDTH: 320,
-    HEIGHT: 380,
+    HEIGHT: 440,
     MIN_WIDTH: 300,
-    MIN_HEIGHT: 350,
+    MIN_HEIGHT: 400,
     RESIZABLE: false,
   },
 

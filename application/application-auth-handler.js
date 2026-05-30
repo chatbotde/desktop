@@ -6,6 +6,7 @@
  */
 
 const { initializeAuth, authService, AuthWindow } = require('../auth');
+const { guestModeStore } = require('../auth/guest-mode-store');
 
 class ApplicationAuthHandler {
   /**
@@ -13,12 +14,14 @@ class ApplicationAuthHandler {
    * @param {Function} onAuthLogout - Callback when user logs out
    * @param {Function} onAuthExpired - Callback when session expires
    * @param {Function} onAuthError - Callback when auth error occurs
+   * @param {Function} onGuestTrialStart - Callback when guest trial starts
    */
-  constructor(onAuthSuccess, onAuthLogout, onAuthExpired, onAuthError) {
+  constructor(onAuthSuccess, onAuthLogout, onAuthExpired, onAuthError, onGuestTrialStart) {
     this.onAuthSuccess = onAuthSuccess;
     this.onAuthLogout = onAuthLogout;
     this.onAuthExpired = onAuthExpired;
     this.onAuthError = onAuthError;
+    this.onGuestTrialStart = onGuestTrialStart;
     this.authWindow = null;
   }
 
@@ -39,6 +42,7 @@ class ApplicationAuthHandler {
       authService.on('auth:logout', () => this.handleAuthLogout());
       authService.on('auth:expired', () => this.handleAuthExpired());
       authService.on('auth:error', (error) => this.handleAuthError(error));
+      authService.on('auth:guest-trial-started', () => this.handleGuestTrialStart());
     } catch (error) {
       console.error('Application: Auth initialization error:', error);
     }
@@ -58,6 +62,13 @@ class ApplicationAuthHandler {
    */
   getCurrentUser() {
     return authService.getUser();
+  }
+
+  /**
+   * Whether guest trial was chosen and is still active (skip auth window on launch)
+   */
+  shouldSkipAuthWindow() {
+    return guestModeStore.shouldSkipAuthWindow();
   }
 
   /**
@@ -93,12 +104,21 @@ class ApplicationAuthHandler {
    */
   handleAuthLogout() {
     console.log('Application: User logged out');
-    if (!this.authWindow) {
-      this.authWindow = new AuthWindow();
-    }
-    this.authWindow.create();
+    this.showAuthWindowIfNeeded();
     if (this.onAuthLogout) {
       this.onAuthLogout();
+    }
+  }
+
+  /**
+   * Handle guest trial start
+   * @private
+   */
+  handleGuestTrialStart() {
+    console.log('Application: Guest trial started, closing auth window');
+    this.authWindow?.close();
+    if (this.onGuestTrialStart) {
+      this.onGuestTrialStart();
     }
   }
 
@@ -108,10 +128,7 @@ class ApplicationAuthHandler {
    */
   handleAuthExpired() {
     console.log('Application: Session expired');
-    if (!this.authWindow) {
-      this.authWindow = new AuthWindow();
-    }
-    this.authWindow.create();
+    this.showAuthWindowIfNeeded();
     if (this.onAuthExpired) {
       this.onAuthExpired();
     }

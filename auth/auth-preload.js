@@ -38,6 +38,13 @@ contextBridge.exposeInMainWorld('authAPI', {
     ipcRenderer.send('auth:logout');
   },
 
+  /**
+   * Start 7-day guest trial without signing in
+   */
+  startGuestTrial: () => {
+    ipcRenderer.send('auth:start-guest-trial');
+  },
+
   // ===========================================
   // SESSION & USER INFO
   // ===========================================

@@ -126,6 +126,7 @@ module.exports = {
   // Core services
   authService,
   tokenStore,
+  guestModeStore: require('./guest-mode-store').guestModeStore,
   
   // UI
   AuthWindow,

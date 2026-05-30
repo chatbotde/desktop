@@ -86,12 +86,46 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
   }
 
   if (!user) {
+    const guestTrialProgress = subscriptionStatus
+      ? Math.min((subscriptionStatus.trialDaysUsed / subscriptionStatus.trialDaysTotal) * 100, 100)
+      : 0
+
     return (
       <div className="space-y-6">
-        <div className={cn("text-center py-8", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+        <div className={cn("text-center py-6", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
           <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">You are not signed in</p>
+          <p className="text-sm font-medium mb-1">Guest mode</p>
+          <p className="text-xs opacity-80">
+            Use the app for 7 days without signing in. Chat works with your own API keys or a local model.
+          </p>
         </div>
+
+        {subscriptionStatus && (
+          <div className={cn("p-4 rounded-xl border", isDarkTheme ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50")}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-medium text-sm">Guest Trial</span>
+              {isLoadingSubscription && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className={isDarkTheme ? "text-zinc-400" : "text-zinc-600"}>Trial Progress</span>
+                <span className={cn(subscriptionStatus.trialDaysUsed >= subscriptionStatus.trialDaysTotal ? "text-red-500" : "text-amber-500")}>
+                  {subscriptionStatus.trialDaysUsed}/{subscriptionStatus.trialDaysTotal} days
+                </span>
+              </div>
+              <div className={cn("h-2 rounded-full overflow-hidden", isDarkTheme ? "bg-zinc-800" : "bg-zinc-200")}>
+                <div
+                  className={cn("h-full rounded-full transition-all", guestTrialProgress >= 100 ? "bg-red-500" : "bg-amber-500")}
+                  style={{ width: `${guestTrialProgress}%` }}
+                />
+              </div>
+              <p className={cn("text-xs", isDarkTheme ? "text-zinc-500" : "text-zinc-600")}>
+                Add API keys under Custom Models, or pick a local model under Local LLM.
+              </p>
+            </div>
+          </div>
+        )}
+
         {window.authAPI && (
           <Button
             onClick={() => window.authAPI?.login()}

@@ -341,6 +341,25 @@
       color: #fff;
     }
 
+    .guest-hint {
+      margin-top: 14px;
+      line-height: 1.4;
+      max-width: 240px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .btn-try {
+      background: rgba(14, 165, 233, 0.15);
+      color: #7dd3fc;
+      border: 1px solid rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-try:hover:not(:disabled) {
+      background: rgba(14, 165, 233, 0.25);
+      border-color: rgba(14, 165, 233, 0.5);
+      color: #bae6fd;
+    }
 
   </style>
 </head>
@@ -361,6 +380,9 @@
     <div class="auth-view active" id="initialView">
       <button class="btn btn-primary" id="loginBtn">Sign in</button>
       <button class="btn btn-ghost" id="signupBtn">Create account</button>
+      <div class="divider">or</div>
+      <button class="btn btn-try" id="tryBtn">Try for 7 days</button>
+      <p class="footer guest-hint">No sign-in needed. Use your own API key or a local model.</p>
       <!--
       <div class="divider">or paste token</div>
 
@@ -449,6 +471,12 @@
 
     $('signupBtn').onclick = () => {
       if (window.authAPI) { showLoading('Opening browser...'); window.authAPI.signup(); }
+    };
+
+    $('tryBtn').onclick = () => {
+      if (window.authAPI?.startGuestTrial) {
+        window.authAPI.startGuestTrial();
+      }
     };
 
     $('logoutBtn').onclick = () => {
