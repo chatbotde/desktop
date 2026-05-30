@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useLocalStorageStore } from '@/shared/hooks/useLocalStorageStore'
 import {
@@ -50,6 +50,8 @@ export const COLOR_THEME_CONFIG: Record<ColorTheme, ColorThemeConfig> = Object.f
   ])
 ) as Record<ColorTheme, ColorThemeConfig>
 
+export const CUSTOM_CURSOR_STORAGE_KEY = 'app-custom-cursor'
+
 interface ThemeContextType {
   theme: Theme
   isDark: boolean
@@ -63,9 +65,19 @@ interface ThemeContextType {
   setColorTheme: (theme: ColorTheme) => void
   availableColorThemes: ColorTheme[]
   colorThemeConfig: Record<ColorTheme, ColorThemeConfig>
+
+  customCursor: boolean
+  setCustomCursor: (enabled: boolean) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+
+type ResolvedAppearanceMode = 'dark' | 'light'
+
+function getSystemAppearanceMode(): ResolvedAppearanceMode {
+  if (typeof window === 'undefined') return 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
 
 function readStoredPalette(): ColorTheme {
   if (typeof localStorage === 'undefined') return DEFAULT_APPEARANCE_PALETTE
@@ -78,16 +90,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     'app-color-theme',
     readStoredPalette()
   )
+  const [systemTheme, setSystemTheme] = useState<ResolvedAppearanceMode>(getSystemAppearanceMode)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const syncSystemTheme = () => setSystemTheme(media.matches ? 'dark' : 'light')
+    syncSystemTheme()
+    media.addEventListener('change', syncSystemTheme)
+    return () => media.removeEventListener('change', syncSystemTheme)
+  }, [])
+
+  const resolvedTheme: ResolvedAppearanceMode = theme === 'system' ? systemTheme : theme
 
   useEffect(() => {
     if (typeof document === 'undefined') return
     const root = document.documentElement
-    root.classList.toggle('dark', theme === 'dark')
-    root.classList.toggle('light', theme === 'light')
+    root.classList.toggle('dark', resolvedTheme === 'dark')
+    root.classList.toggle('light', resolvedTheme === 'light')
     root.setAttribute('data-theme', colorTheme)
-  }, [theme, colorTheme])
+  }, [resolvedTheme, colorTheme])
 
-  const toggleTheme = () => setThemeRaw(theme === 'dark' ? 'light' : 'dark')
+  const toggleTheme = () => setThemeRaw(resolvedTheme === 'dark' ? 'light' : 'dark')
 
   const setTheme = (newTheme: Theme) => {
     if (isAppearanceMode(newTheme)) setThemeRaw(newTheme)
@@ -101,8 +125,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const contextValue = useMemo<ThemeContextType>(() => ({
     theme,
-    isDark: theme === 'dark',
-    isLight: theme === 'light',
+    isDark: resolvedTheme === 'dark',
+    isLight: resolvedTheme === 'light',
     toggleTheme,
     setTheme,
     availableThemes: AVAILABLE_THEMES,
@@ -112,7 +136,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setColorTheme,
     availableColorThemes: AVAILABLE_COLOR_THEMES,
     colorThemeConfig: COLOR_THEME_CONFIG,
-  }), [theme, colorTheme])
+  }), [theme, resolvedTheme, colorTheme])
 
   return (
     <ThemeContext.Provider value={contextValue}>

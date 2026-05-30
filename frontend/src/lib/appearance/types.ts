@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 
-/** Dark / light mode — controls Tailwind `dark:` class on `<html>`. */
-export type AppearanceModeId = "dark" | "light"
+/** Appearance mode — controls Tailwind `dark:` / `light` class on `<html>`. */
+export type AppearanceModeId = "system" | "dark" | "light"
 
 /** Palette preset — controls CSS variables via `data-theme` on `<html>`. */
 export type AppearancePaletteId = "neutral" | "mono" | "glass" | "charcoal"

@@ -45,7 +45,7 @@ export function AnimationsSection() {
                         dark: "text-zinc-400",
                         light: "text-zinc-600"
                     }, "text-xs mt-1")}>
-                        Master switch for all interactive Lottie overlays.
+                        Master switch for all interactive animations
                     </p>
                 </div>
                 <Switch

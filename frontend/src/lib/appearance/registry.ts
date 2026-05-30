@@ -1,4 +1,4 @@
-import { Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react"
 
 import type {
   AppearanceModeDefinition,
@@ -12,6 +12,12 @@ import type {
  * Add new modes or palettes here, then define CSS in `src/index.css`.
  */
 export const APPEARANCE_MODES: AppearanceModeDefinition[] = [
+  {
+    id: "system",
+    label: "System",
+    description: "Match your device appearance",
+    icon: Monitor,
+  },
   {
     id: "dark",
     label: "Dark",
@@ -75,7 +81,7 @@ export function normalizeAppearancePalette(raw: string | null | undefined): Appe
 }
 
 export function isAppearanceMode(value: string): value is AppearanceModeId {
-  return value === "dark" || value === "light"
+  return value === "system" || value === "dark" || value === "light"
 }
 
 export function isAppearancePalette(value: string): value is AppearancePaletteId {

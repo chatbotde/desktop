@@ -30,7 +30,7 @@ export function HelpSection({
             keys: ["Ctrl", "K"],
         },
         {
-            description: "Toggle voice insert",
+            description: "speech to text insert",
             keys: ["Ctrl", "M"],
         },
     ]
