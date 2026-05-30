@@ -26,6 +26,8 @@ export function AudioSourceSelector({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => onSourceClick('mic')}
                         className={cn(
                             "p-1.5 rounded-full transition-colors",
@@ -53,6 +55,8 @@ export function AudioSourceSelector({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => onSourceClick('system')}
                         className={cn(
                             "p-1.5 rounded-full transition-colors",
@@ -80,6 +84,8 @@ export function AudioSourceSelector({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
                         onClick={() => onSourceClick('both')}
                         className={cn(
                             "p-1.5 rounded-full transition-colors",

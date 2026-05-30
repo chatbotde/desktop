@@ -47,28 +47,32 @@ useGLTF.preload('/walk.glb')
 
 export function ThreeSceneOverlay() {
   const { isFeatureEnabled } = useFeature()
-  if (!isFeatureEnabled('three-scene-overlay')) return null
+  const enabled = isFeatureEnabled('three-scene-overlay')
 
+  // Always render a fixed shell — returning null here collapses the Electron overlay window.
   return (
     <div
       className="fixed inset-0 pointer-events-none"
       style={{ zIndex: GLOBAL_THEME.zIndex.modal - 1 }}
+      aria-hidden={!enabled}
     >
-      <Canvas
-        camera={{ position: [0, 0, 5.5], fov: 28 }}
-        dpr={[1, 1.5]}
-        gl={{ alpha: true, antialias: true }}
-        className="h-full w-full"
-        style={{ pointerEvents: 'none' }}
-      >
-        <ambientLight intensity={1.55} />
-        <directionalLight position={[3, 4, 5]} intensity={2.4} color="#c4f1ff" />
-        <directionalLight position={[-4, 1, -2]} intensity={1.1} color="#ffd1e8" />
-        <Suspense fallback={null}>
-          <WalkCharacter />
-        </Suspense>
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
-      </Canvas>
+      {enabled && (
+        <Canvas
+          camera={{ position: [0, 0, 5.5], fov: 28 }}
+          dpr={[1, 1.5]}
+          gl={{ alpha: true, antialias: true }}
+          className="h-full w-full"
+          style={{ pointerEvents: 'none' }}
+        >
+          <ambientLight intensity={1.55} />
+          <directionalLight position={[3, 4, 5]} intensity={2.4} color="#c4f1ff" />
+          <directionalLight position={[-4, 1, -2]} intensity={1.1} color="#ffd1e8" />
+          <Suspense fallback={null}>
+            <WalkCharacter />
+          </Suspense>
+          <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
+        </Canvas>
+      )}
     </div>
   )
 }

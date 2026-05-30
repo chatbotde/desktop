@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore, useCallback, useRef } from 'react'
 import { cn } from '@/shared/lib'
 import { getThemeClasses } from '@/features/prompt'
 import { useDraggable, useResizable } from '@/features/output-window'
-import { Download, X, Plus, Play } from 'lucide-react'
+import { X, Plus, Play } from 'lucide-react'
 import type { VideoData } from '@/hooks/useVideoRecording'
 import type { ResizeDirection } from '@/features/output-window'
 
@@ -20,13 +20,6 @@ function formatDuration(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-}
-
-// Helper to format file size
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 export function VideoPreview({
@@ -107,20 +100,9 @@ export function VideoPreview({
     setCurrentTime(time)
   }
 
-  const handleDownload = useCallback(() => {
-    const link = document.createElement('a')
-    link.href = video.data
-    link.download = video.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }, [video])
-
   const handleAdd = useCallback(() => {
     onAdd?.(video)
   }, [video, onAdd])
-
-  const fileSize = formatFileSize(video.size)
 
   const handleClose = useCallback(() => {
     if (onDelete) {
@@ -171,29 +153,18 @@ export function VideoPreview({
 
         {/* Header - Draggable */}
         <div
-          className="flex items-center justify-between mb-4 cursor-move select-none"
+          className="flex items-center justify-end mb-2 cursor-move select-none"
           onMouseDown={handleDragMouseDown}
         >
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "flex items-center gap-2 text-sm",
-              isDarkTheme ? "text-zinc-300" : "text-zinc-700"
-            )}>
-              <span className="font-medium">{formatDuration(video.duration)}</span>
-              <span className={cn(
-                "text-xs",
-                isDarkTheme ? "text-zinc-500" : "text-zinc-500"
-              )}>
-                {fileSize}
-              </span>
-            </div>
-          </div>
           <button
+            type="button"
             onClick={handleClose}
+            data-no-clickthrough
             className={cn(
               "p-2 rounded-lg transition-colors",
               isDarkTheme ? "hover:bg-zinc-700 text-zinc-400" : "hover:bg-zinc-100 text-zinc-600"
             )}
+            aria-label="Close"
           >
             <X className="size-4" />
           </button>
@@ -205,6 +176,7 @@ export function VideoPreview({
             ref={videoRef}
             src={videoUrl}
             className="w-full h-full object-contain max-w-full max-h-full"
+            controlsList="nodownload"
             playsInline
           />
 
@@ -244,22 +216,8 @@ export function VideoPreview({
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3 flex-shrink-0">
-          <button
-            onClick={handleDownload}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium",
-              isDarkTheme
-                ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30"
-                : "bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300"
-            )}
-          >
-            <Download className="size-4" />
-            <span>Download</span>
-          </button>
-
-          {onAdd && (
+        {onAdd && (
+          <div className="flex items-center justify-center gap-3 flex-shrink-0">
             <button
               onClick={handleAdd}
               className={cn(
@@ -270,10 +228,10 @@ export function VideoPreview({
               )}
             >
               <Plus className="size-4" />
-              <span>Add</span>
+              <span>Add to prompt</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4,6 +4,7 @@
 
 export { GeneralSection } from './GeneralSection'
 export { FeaturesSection } from './FeaturesSection'
+export { AppearanceSection } from './AppearanceSection'
 export { PersonalizationSection, type PersonalizationValues } from './PersonalizationSection'
 export { AccountSection } from './AccountSection'
 export { BlockingSection } from './BlockingSection'

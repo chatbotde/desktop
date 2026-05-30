@@ -46,6 +46,10 @@ export function usePasteHandler({
       if (pastedText && isYoutubeUrl(pastedText.trim())) {
         const url = pastedText.trim()
         e.preventDefault() // Prevent URL from being typed into input
+
+        window.dispatchEvent(
+          new CustomEvent('open-youtube-player', { detail: { url } })
+        )
         
         // Show loading toast
         toast.loading('Fetching YouTube transcript...', { id: 'youtube-transcript' })

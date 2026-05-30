@@ -145,7 +145,7 @@ export function usePromptSubmit({
 
     try {
       if ((messageToSend.trim() || clipboardItemsToSend.length > 0 || attachments) && onSendMessage) {
-        const message = messageToSend || (attachments ? "See attached images" : "")
+        const message = messageToSend || (attachments ? "See attached media" : "")
         await onSendMessage(message, attachments, {
           composioToolkitSlugs: composioToolkitSlugs.length > 0 ? composioToolkitSlugs : undefined,
         })

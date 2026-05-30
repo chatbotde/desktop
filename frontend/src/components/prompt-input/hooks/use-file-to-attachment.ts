@@ -65,6 +65,26 @@ export function useFileToAttachment() {
             duration: videoInfo.duration
           })
         }
+        else if (file.type.startsWith('audio/')) {
+          const duration = await new Promise<number | undefined>((resolve) => {
+            const audio = document.createElement('audio')
+            audio.preload = 'metadata'
+            audio.onloadedmetadata = () => resolve(audio.duration)
+            audio.onerror = () => resolve(undefined)
+            audio.src = dataUrl
+          })
+
+          attachments.push({
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: dataUrl,
+            source: 'upload',
+            mediaType: 'audio',
+            duration
+          })
+        }
       } catch (error) {
         console.error('Error converting file to attachment:', error)
       }

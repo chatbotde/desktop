@@ -5,5 +5,5 @@
 export { SettingsModal } from '@/features/settings/components/SettingsModal'
 export { SettingsSidebar } from '@/features/settings/components/SettingsSidebar'
 export { SettingsCard } from '@/features/settings/components/SettingsCard'
-export { SETTINGS_MENU_ITEMS } from '@/features/settings/menu'
-export type { SettingsSectionId, SettingsMenuItem } from '@/features/settings/menu'
+export { SETTINGS_MENU_ITEMS, SETTINGS_MENU_GROUPS } from '@/features/settings/menu'
+export type { SettingsSectionId, SettingsMenuItem, SettingsMenuGroup } from '@/features/settings/menu'

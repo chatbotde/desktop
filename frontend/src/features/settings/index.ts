@@ -15,13 +15,14 @@ export {
 } from './components'
 
 // Menu
-export { SETTINGS_MENU_ITEMS } from './menu'
-export type { SettingsSectionId, SettingsMenuItem } from './menu'
+export { SETTINGS_MENU_ITEMS, SETTINGS_MENU_GROUPS } from './menu'
+export type { SettingsSectionId, SettingsMenuItem, SettingsMenuGroup } from './menu'
 
 // Sections
 export {
   GeneralSection,
   FeaturesSection,
+  AppearanceSection,
   PersonalizationSection,
   AccountSection,
   BlockingSection,

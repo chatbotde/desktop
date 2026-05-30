@@ -136,14 +136,17 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
   actionButtonRegistry.register({
     id: "voice-input",
     order: 10,
-    component: (
-      <PromptInputAction tooltip="Voice input" key="voice-input">
-        <MicHoverAudioPill
-          isDarkTheme={isDarkTheme}
-          className="h-8 w-8"
-        />
-      </PromptInputAction>
-    ),
+    component: () => {
+      const ctx = getContext()
+      return (
+        <PromptInputAction tooltip="Voice input" key="voice-input">
+          <MicHoverAudioPill
+            isDarkTheme={isDarkTheme}
+            className="h-8 w-8"
+          />
+        </PromptInputAction>
+      )
+    },
   })
 
   // Video/Capture Button (Right side, order: 10.5)

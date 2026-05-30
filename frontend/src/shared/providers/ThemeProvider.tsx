@@ -1,40 +1,31 @@
 import { createContext, useContext, useEffect, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useLocalStorageStore } from '@/shared/hooks/useLocalStorageStore'
+import {
+  APPEARANCE_MODES,
+  APPEARANCE_PALETTES,
+  DEFAULT_APPEARANCE_MODE,
+  DEFAULT_APPEARANCE_PALETTE,
+  normalizeAppearancePalette,
+  isAppearanceMode,
+  isAppearancePalette,
+  type AppearanceModeId,
+  type AppearancePaletteId,
+} from '@/lib/appearance'
 
-/**
- * Theme Mode controls Tailwind's `dark:` variants (class-based dark mode).
- * Keep this separate from palette presets so you can have many themes without
- * exploding variants like "ocean-dark", "ocean-light", etc.
- */
-export type Theme = 'dark' | 'light'
-export const AVAILABLE_THEMES: Theme[] = ['dark', 'light']
+/** @deprecated Use AppearanceModeId from `@/lib/appearance` */
+export type Theme = AppearanceModeId
 
-/**
- * Palette preset controls CSS variables (shadcn/ui tokens) via `data-theme`.
- * Add new presets by extending this union and defining CSS overrides in `src/index.css`.
- */
-export type ColorTheme = 'zinc' | 'ocean' | 'rose' | 'emerald'
-export const AVAILABLE_COLOR_THEMES: ColorTheme[] = ['zinc', 'ocean', 'rose', 'emerald']
+/** @deprecated Use AppearancePaletteId from `@/lib/appearance` */
+export type ColorTheme = AppearancePaletteId
 
-// Theme configuration - easily add more themes here
+export const AVAILABLE_THEMES: Theme[] = APPEARANCE_MODES.map((m) => m.id)
+export const AVAILABLE_COLOR_THEMES: ColorTheme[] = APPEARANCE_PALETTES.map((p) => p.id)
+
 export interface ThemeConfig {
   name: string
   displayName: string
   description?: string
-}
-
-export const THEME_CONFIG: Record<Theme, ThemeConfig> = {
-  dark: {
-    name: 'dark',
-    displayName: 'Dark',
-    description: 'Dark mode for comfortable viewing in low light'
-  },
-  light: {
-    name: 'light',
-    displayName: 'Light',
-    description: 'Light mode for bright environments'
-  }
 }
 
 export interface ColorThemeConfig {
@@ -43,12 +34,21 @@ export interface ColorThemeConfig {
   description?: string
 }
 
-export const COLOR_THEME_CONFIG: Record<ColorTheme, ColorThemeConfig> = {
-  zinc: { name: 'zinc', displayName: 'Zinc', description: 'Neutral default palette' },
-  ocean: { name: 'ocean', displayName: 'Ocean', description: 'Cool blue palette' },
-  rose: { name: 'rose', displayName: 'Rose', description: 'Warm pink/red palette' },
-  emerald: { name: 'emerald', displayName: 'Emerald', description: 'Green palette' }
-}
+/** Derived from global appearance registry — add modes in `lib/appearance/registry.ts`. */
+export const THEME_CONFIG: Record<Theme, ThemeConfig> = Object.fromEntries(
+  APPEARANCE_MODES.map((m) => [
+    m.id,
+    { name: m.id, displayName: m.label, description: m.description },
+  ])
+) as Record<Theme, ThemeConfig>
+
+/** Derived from global appearance registry — add palettes in `lib/appearance/registry.ts`. */
+export const COLOR_THEME_CONFIG: Record<ColorTheme, ColorThemeConfig> = Object.fromEntries(
+  APPEARANCE_PALETTES.map((p) => [
+    p.id,
+    { name: p.id, displayName: p.label, description: p.description },
+  ])
+) as Record<ColorTheme, ColorThemeConfig>
 
 interface ThemeContextType {
   theme: Theme
@@ -67,14 +67,18 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  // useSyncExternalStore-backed reactive stores — no useState, no useEffect for reads.
-  // Reads localStorage synchronously; all subscribers update in one pass.
-  const [theme, setThemeRaw] = useLocalStorageStore<Theme>('app-theme', 'dark')
-  const [colorTheme, setColorThemeRaw] = useLocalStorageStore<ColorTheme>('app-color-theme', 'zinc')
+function readStoredPalette(): ColorTheme {
+  if (typeof localStorage === 'undefined') return DEFAULT_APPEARANCE_PALETTE
+  return normalizeAppearancePalette(localStorage.getItem('app-color-theme'))
+}
 
-  // ✅ Legitimate useEffect: syncing React state → external DOM system.
-  // This is the ONE correct use: the DOM is a true external system.
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeRaw] = useLocalStorageStore<Theme>('app-theme', DEFAULT_APPEARANCE_MODE)
+  const [colorTheme, setColorThemeRaw] = useLocalStorageStore<ColorTheme>(
+    'app-color-theme',
+    readStoredPalette()
+  )
+
   useEffect(() => {
     if (typeof document === 'undefined') return
     const root = document.documentElement
@@ -86,13 +90,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => setThemeRaw(theme === 'dark' ? 'light' : 'dark')
 
   const setTheme = (newTheme: Theme) => {
-    if (AVAILABLE_THEMES.includes(newTheme)) setThemeRaw(newTheme)
-    else console.warn(`Theme "${newTheme}" is not available. Available themes: ${AVAILABLE_THEMES.join(', ')}`)
+    if (isAppearanceMode(newTheme)) setThemeRaw(newTheme)
+    else console.warn(`Theme "${newTheme}" is not available.`)
   }
 
   const setColorTheme = (newTheme: ColorTheme) => {
-    if (AVAILABLE_COLOR_THEMES.includes(newTheme)) setColorThemeRaw(newTheme)
-    else console.warn(`Color theme "${newTheme}" is not available. Available themes: ${AVAILABLE_COLOR_THEMES.join(', ')}`)
+    if (isAppearancePalette(newTheme)) setColorThemeRaw(newTheme)
+    else console.warn(`Palette "${newTheme}" is not available.`)
   }
 
   const contextValue = useMemo<ThemeContextType>(() => ({
@@ -107,7 +111,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     colorTheme,
     setColorTheme,
     availableColorThemes: AVAILABLE_COLOR_THEMES,
-    colorThemeConfig: COLOR_THEME_CONFIG
+    colorThemeConfig: COLOR_THEME_CONFIG,
   }), [theme, colorTheme])
 
   return (
@@ -125,21 +129,11 @@ export function useTheme() {
   return context
 }
 
-/**
- * Hook to get boolean indicating if dark theme is active
- * Useful for backward compatibility and conditional rendering
- */
 export function useIsDark() {
   const { isDark } = useTheme()
   return isDark
 }
 
-/**
- * Hook to get theme-aware class names
- * @param darkClass - Class to apply when dark theme is active
- * @param lightClass - Class to apply when light theme is active
- * @returns The appropriate class based on current theme
- */
 export function useThemeClass(darkClass: string, lightClass: string): string {
   const { isDark } = useTheme()
   return isDark ? darkClass : lightClass

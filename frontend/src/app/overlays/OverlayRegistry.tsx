@@ -27,6 +27,7 @@ import { CatAssistantOverlay } from './CatAssistantOverlay'
 import { PointerOverlay } from './PointerOverlay'
 import { PointerInputOverlay } from './PointerInputOverlay'
 import { YoutubePlayerOverlay } from './YoutubePlayerOverlay'
+import { RecordedVideoPlayerOverlay } from './RecordedVideoPlayerOverlay'
 import { ThreeSceneOverlay } from './ThreeSceneOverlay'
 
 /**
@@ -51,6 +52,7 @@ const STATIC_OVERLAYS: ComponentType[] = [
     PointerOverlay,
     PointerInputOverlay,
     YoutubePlayerOverlay,
+    RecordedVideoPlayerOverlay,
     ThreeSceneOverlay,
 ]
 

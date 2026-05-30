@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react"
+import { AnimatePresence } from "motion/react"
 import { useFeature } from "@/contexts/FeatureContext"
 import { InsertTranscriptOverlay } from "@/features/audio"
-import { cn } from "@/shared/lib"
 
 export const featureId = "voice-insert"
 
@@ -43,13 +43,14 @@ export function FeatureEffect() {
 
   return (
     <div
-      className={cn(
-        "absolute left-1/2 top-1/2 z-[2001] -translate-x-1/2 translate-y-[160px] pointer-events-none",
-        !enabled && "invisible opacity-0"
-      )}
+      className="pointer-events-none absolute left-1/2 top-1/2 z-[2001] -translate-x-1/2 translate-y-[160px]"
       data-no-clickthrough
     >
-      <InsertTranscriptOverlay onDismiss={handleDismiss} />
+      <AnimatePresence>
+        {enabled && (
+          <InsertTranscriptOverlay key="voice-insert" onDismiss={handleDismiss} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

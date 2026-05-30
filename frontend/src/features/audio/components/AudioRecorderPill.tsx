@@ -9,10 +9,12 @@ import { TranscriptionToggle } from './TranscriptionToggle'
 import { LiveTranscriptionPanel } from './LiveTranscriptionPanel'
 import { AudioRecorderCloseButton } from './AudioRecorderCloseButton'
 import { formatDuration } from './audio-utils'
+import { addAudioBlobToPrompt } from '@/components/prompt-input/prompt-files-bridge'
 
 import { useAudioRecorder, type AudioSourceType } from '../hooks/useAudioRecorder'
 import { useLiveTranscription } from '../hooks/useLiveTranscription'
 import { useFeature } from '@/contexts/FeatureContext'
+import { AudioNotificationPlayer } from './AudioNotificationPlayer'
 
 interface AudioRecorderPillProps {
     onClose: () => void
@@ -27,6 +29,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     const isVoiceToPrompt = isFeatureEnabled('voice-to-prompt')
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [showTranscription, setShowTranscription] = useState(isVoiceToPrompt)
+    const [previewAudio, setPreviewAudio] = useState<{ blob: Blob; duration: number } | null>(null)
     const transcriptionContainerRef = useRef<HTMLDivElement>(null)
 
     // Position State
@@ -36,14 +39,17 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     const { handleDragMouseDown } = useDraggable(setPosition, containerRef)
     const themeClasses = getThemeClasses(isDarkTheme)
 
-    // Hooks
+    const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const durationRef = useRef(0)
+
     const handleRecordingComplete = useCallback((blob: Blob) => {
-        // If live transcription was active, skip the preview
-        if (showTranscription) {
+        if (blob.size > 0) {
+            setPreviewAudio({ blob, duration: durationRef.current })
             return
         }
         onRecordingComplete?.(blob)
-    }, [showTranscription, onRecordingComplete])
+        console.warn('[AudioRecorderPill] Recording was empty — nothing captured')
+    }, [onRecordingComplete])
 
     const {
         isRecording,
@@ -56,6 +62,8 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         resumeRecording,
         cleanup: cleanupRecorder
     } = useAudioRecorder({ onRecordingComplete: handleRecordingComplete })
+
+    durationRef.current = duration
 
     const {
         transcriptionText,
@@ -70,13 +78,6 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
         onTranscriptionUpdate,
         isEnabled: showTranscription
     })
-
-    // Refs for state access in callbacks
-    const creditSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-    const transcriptionTextRef = useRef(transcriptionText)
-    transcriptionTextRef.current = transcriptionText
-    const partialTextRef = useRef(partialText)
-    partialTextRef.current = partialText
 
     // Sync transcription start/stop - use syncExternalStore for lifecycle
     useSyncExternalStore(
@@ -171,44 +172,25 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     }, [setTranscriptionText, setPartialText])
 
     const handleStopRecording = useCallback(async () => {
-        console.log('[AudioRecorderPill] Stopping recording, showTranscription:', showTranscription, 'isVoiceToPrompt:', isVoiceToPrompt)
-
         if (showTranscription) {
-            // Stop transcription first
             await stopTranscription()
-
-            // Wait a brief moment for any final transcription chunks to arrive
-            await new Promise(resolve => setTimeout(resolve, 500))
-
-            // Get the full transcribed text using refs
-            const fullText = `${transcriptionTextRef.current} ${partialTextRef.current}`.trim()
-            console.log('[AudioRecorderPill] Full transcription text:', fullText)
-
-            if (fullText) {
-                if (isVoiceToPrompt) {
-                    try {
-                        window.dispatchEvent(new CustomEvent('prompt-send-now', { detail: { text: fullText } }))
-                        console.log('[AudioRecorderPill] Dispatched prompt-send-now with text')
-                    } catch (error) {
-                        console.error('[AudioRecorderPill] Failed to dispatch prompt-send-now event:', error)
-                    }
-                } else {
-                    try {
-                        window.dispatchEvent(new CustomEvent('prompt-add-text', { detail: { text: fullText } }))
-                        console.log('[AudioRecorderPill] Dispatched prompt-add-text event')
-                    } catch (error) {
-                        console.error('[AudioRecorderPill] Failed to dispatch prompt-add-text event:', error)
-                    }
-                }
-            }
-
-            // Clear transcription for next use
             handleClearTranscription()
         }
-
-        // Stop recording
         stopRecording()
-    }, [stopTranscription, stopRecording, handleClearTranscription, showTranscription, isVoiceToPrompt])
+    }, [stopTranscription, stopRecording, handleClearTranscription, showTranscription])
+
+    const handlePreviewClose = useCallback(() => {
+        setPreviewAudio(null)
+    }, [])
+
+    const handlePreviewUse = useCallback((blob: Blob) => {
+        try {
+            addAudioBlobToPrompt(blob)
+        } catch (error) {
+            console.error('[AudioRecorderPill] Failed to add audio to prompt:', error)
+        }
+        setPreviewAudio(null)
+    }, [])
 
     // Auto-scroll transcription - use syncExternalStore for lifecycle
     useSyncExternalStore(
@@ -227,6 +209,7 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
     )
 
     return (
+        <>
         <div
             ref={containerRef}
             className="fixed z-[50] flex flex-row items-center gap-2"
@@ -311,5 +294,16 @@ export function AudioRecorderPill({ onClose, isDarkTheme = true, onRecordingComp
                 )}
             </div>
         </div>
+
+        {previewAudio && (
+            <AudioNotificationPlayer
+                audioBlob={previewAudio.blob}
+                recordedDuration={previewAudio.duration}
+                onClose={handlePreviewClose}
+                onUse={handlePreviewUse}
+                isDarkTheme={isDarkTheme}
+            />
+        )}
+        </>
     )
 }

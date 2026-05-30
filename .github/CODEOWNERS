@@ -1,0 +1,37 @@
+# CODEOWNERS — assign reviewers by path
+# Replace placeholder handles with your GitHub usernames or team slugs.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for anything not matched below
+*                           @sonicthinking
+
+# Electron shell & infrastructure
+/main.js                    @sonicthinking
+/application/               @sonicthinking
+/auth/                      @sonicthinking
+/interface-window/          @sonicthinking
+/ipc-handler-registry.js    @sonicthinking
+
+# Shared frontend infrastructure (changes affect everyone)
+/frontend/src/shared/       @sonicthinking
+/frontend/src/app/          @sonicthinking
+/frontend/src/services/ai/  @sonicthinking
+/frontend/src/components/ui/ @sonicthinking
+/frontend/src/features/feature-flags/ @sonicthinking
+
+# Feature modules — assign one owner per feature to reduce conflicts
+/frontend/src/features/audio/           @sonicthinking
+/frontend/src/features/capture/         @sonicthinking
+/frontend/src/features/chat/            @sonicthinking
+/frontend/src/features/output-window/   @sonicthinking
+/frontend/src/features/prompt/          @sonicthinking
+/frontend/src/features/settings/        @sonicthinking
+/frontend/src/features/text-selection/  @sonicthinking
+/frontend/src/features/voice/           @sonicthinking
+
+# Shared UI components used across features
+/frontend/src/components/prompt-input/  @sonicthinking
+
+# Agent & architecture docs
+/AGENTS.md                  @sonicthinking
+/frontend/ARCHITECTURE.md   @sonicthinking

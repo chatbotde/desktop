@@ -1,0 +1,41 @@
+---
+description: Import and export conventions for Buddy frontend
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Import / Export Conventions
+
+## Path aliases (use these)
+
+```typescript
+import { X } from '@/features/chat'
+import { Button } from '@/components/ui/button'
+import { streamMessage } from '@/services/ai'
+import { cn } from '@/lib/utils'
+```
+
+## Rules
+
+- Use `import type` for type-only imports
+- Import from module barrel (`index.ts`), not internal paths
+- Relative imports (`./`) only within the same module
+- No `../../../` cross-module paths
+
+## Forbidden
+
+```typescript
+// ❌ Cross-module internal import
+import { helper } from '@/features/chat/utils/helper'
+
+// ❌ Wildcard re-exports that pollute namespace
+export * from './hooks'
+```
+
+## Barrel export template
+
+```typescript
+export { MyComponent } from './components/MyComponent'
+export { useMyHook } from './hooks/useMyHook'
+export type { MyType } from './types'
+```

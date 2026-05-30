@@ -114,6 +114,28 @@ export function useVideoRecording(): UseVideoRecordingResult {
         extension: 'mp4',
         videoBitsPerSecond: 2500000
     });
+    const contentProtectionBeforeRecordingRef = useRef(false);
+
+    const setCaptureContentProtection = useCallback(async (enabled: boolean) => {
+        if (typeof window === 'undefined' || !window.interfaceAPI?.setContentProtection) return
+        window.interfaceAPI.setContentProtection(enabled)
+    }, [])
+
+    const excludeOverlayFromCapture = useCallback(async () => {
+        if (typeof window === 'undefined' || !window.interfaceAPI?.setContentProtection) return
+        try {
+            if (window.interfaceAPI.getContentProtection) {
+                contentProtectionBeforeRecordingRef.current = await window.interfaceAPI.getContentProtection()
+            }
+        } catch {
+            contentProtectionBeforeRecordingRef.current = false
+        }
+        await setCaptureContentProtection(true)
+    }, [setCaptureContentProtection])
+
+    const restoreCaptureContentProtection = useCallback(async () => {
+        await setCaptureContentProtection(contentProtectionBeforeRecordingRef.current)
+    }, [setCaptureContentProtection])
 
     // Computed states
     const isRecording = recordingState === 'recording';
@@ -334,6 +356,7 @@ export function useVideoRecording(): UseVideoRecordingResult {
             mediaRecorderRef.current.start(1000);
             setRecordingState('recording');
             startDurationTracking();
+            await excludeOverlayFromCapture();
 
             console.log(`[useVideoRecording] Started recording at ${fps} FPS, ${videoBitsPerSecond / 1000000} Mbps, Audio: ${finalStream.getAudioTracks().length > 0 ? 'Yes' : 'No'}`);
             return true;
@@ -342,9 +365,10 @@ export function useVideoRecording(): UseVideoRecordingResult {
             setError(err.message || 'Failed to start recording');
             console.error('[useVideoRecording] Start recording error:', err);
             cleanupStream();
+            void restoreCaptureContentProtection();
             return false;
         }
-    }, [isSupported, getVideoSources, startDurationTracking, cleanupStream]);
+    }, [isSupported, getVideoSources, startDurationTracking, cleanupStream, excludeOverlayFromCapture, restoreCaptureContentProtection]);
 
     /**
      * Stop video recording
@@ -392,6 +416,7 @@ export function useVideoRecording(): UseVideoRecordingResult {
                         cleanupStream();
                         setRecordingState('idle');
                         setDuration(0);
+                        await restoreCaptureContentProtection();
 
                         const fileName = `recording-${Date.now()}.${extension}`;
 
@@ -413,6 +438,7 @@ export function useVideoRecording(): UseVideoRecordingResult {
                         console.error('[useVideoRecording] Stop recording error:', error);
                         cleanupStream();
                         setRecordingState('idle');
+                        await restoreCaptureContentProtection();
                         setError(error.message || 'Failed to process recording');
                         resolve(null);
                     }
@@ -424,11 +450,12 @@ export function useVideoRecording(): UseVideoRecordingResult {
                 setError(err.message || 'Failed to stop recording');
                 setRecordingState('idle');
                 cleanupStream();
+                void restoreCaptureContentProtection();
                 console.error('[useVideoRecording] Stop recording error:', err);
                 resolve(null);
             }
         });
-    }, [clearDurationInterval, cleanupStream]);
+    }, [clearDurationInterval, cleanupStream, restoreCaptureContentProtection]);
 
     /**
      * Pause video recording

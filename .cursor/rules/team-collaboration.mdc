@@ -1,0 +1,34 @@
+---
+description: Multi-developer workflow — branches, PR scope, merge conflict prevention
+alwaysApply: true
+---
+
+# Team Collaboration
+
+Read `CONTRIBUTING.md` and `AGENTS.md` for full workflow.
+
+## PR scope
+
+- **One feature module per PR** — e.g. only `frontend/src/features/chat/`
+- Changes to `shared/`, `components/ui/`, or `services/ai/` need team coordination
+- Use feature flags for incomplete work: `frontend/src/features/feature-flags/definitions/`
+
+## Branch naming
+
+```
+feature/{module}-{description}
+bugfix/{module}-{description}
+refactor/{module}-{description}
+```
+
+## Merge conflict prevention
+
+- **Append** new exports to barrel `index.ts` — never re-sort
+- Co-locate related files (component + hook + types in same feature folder)
+- Promote duplicated code to `shared/` instead of copying between features
+
+## File naming
+
+- Components: `PascalCase.tsx`
+- Hooks: `useCamelCase.ts`
+- Feature folders: `kebab-case/`

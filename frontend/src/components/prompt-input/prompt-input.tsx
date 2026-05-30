@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useSyncExternalStore } from "react"
 import type { PromptReference } from "./types/prompt-reference"
 import { PromptInputCollapsed } from "./prompt-input-collapsed"
 import { PromptInputExpanded } from "./prompt-input-expanded"
@@ -13,8 +13,10 @@ import { usePromptSubmit } from "./hooks/use-prompt-submit"
 import { usePromptReferences } from "./hooks/use-prompt-references"
 import { useValidationErrorTimeout } from "./hooks/use-validation-error-timeout"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
+import { registerPromptFilesHandler } from "./prompt-files-bridge"
 import type { MediaAttachment } from '@/features/chat'
 import { cn } from "@/lib/utils"
+import { useFeature } from "@/shared/providers"
 
 interface PromptInputWithActionsProps {
   isVisible?: boolean;
@@ -93,6 +95,9 @@ export function PromptInputWithActions({
     setInput,
     setIsExpanded,
   })
+  const { isFeatureEnabled } = useFeature()
+  const isPromptReferencesEnabled = isFeatureEnabled("prompt-references")
+
   const {
     references,
     handleReferenceAdd,
@@ -109,12 +114,19 @@ export function PromptInputWithActions({
   )
 
   const referenceHandlers = useMemo(
-    () => ({
-      references,
-      onReferenceAdd: handleReferenceAddWithExpand,
-      onRemoveReference: handleRemoveReference,
-    }),
-    [references, handleReferenceAddWithExpand, handleRemoveReference]
+    () =>
+      isPromptReferencesEnabled
+        ? {
+            references,
+            onReferenceAdd: handleReferenceAddWithExpand,
+            onRemoveReference: handleRemoveReference,
+          }
+        : {
+            references: [] as typeof references,
+            onReferenceAdd: undefined,
+            onRemoveReference: handleRemoveReference,
+          },
+    [isPromptReferencesEnabled, references, handleReferenceAddWithExpand, handleRemoveReference]
   )
 
   const { handleSubmit } = usePromptSubmit({
@@ -147,12 +159,21 @@ export function PromptInputWithActions({
   // Window event handlers
   usePromptWindowEvents({
     setClipboardItems,
-    onReferenceAdd: handleReferenceAddWithExpand,
+    onReferenceAdd: referenceHandlers.onReferenceAdd,
     setIsExpanded,
     setIsVisible,
     handleFilesAdded,
     handleSubmit,
   })
+
+  useSyncExternalStore(
+    useCallback((_callback) => {
+      registerPromptFilesHandler(handleFilesAdded)
+      return () => registerPromptFilesHandler(null)
+    }, [handleFilesAdded]),
+    () => null,
+    () => null
+  )
 
   // Auto-dismiss validation error after timeout
   useValidationErrorTimeout(validationError, () => setValidationError(null))

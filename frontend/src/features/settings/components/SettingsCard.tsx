@@ -12,7 +12,7 @@ import {
   BUDDY_GENERAL_SETTINGS_STORAGE_KEY,
   DEFAULT_BUDDY_GENERAL_SETTINGS,
 } from "@/lib/settings/general-settings"
-import { SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
+import { SETTINGS_MENU_GROUPS, SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
 import { SettingsSidebar } from "./SettingsSidebar"
 import {
   PersonalizationSection,
@@ -26,6 +26,7 @@ import {
   BlockingSection,
   FeaturesSection,
   AnimationsSection,
+  AppearanceSection,
   // VoiceSection,
   HelpSection
 } from "../sections"
@@ -117,7 +118,7 @@ export function SettingsCard({
     >
       <div className={cn("flex flex-1 min-h-0", !className && "h-[520px] max-h-[80vh] min-h-[360px]")}>
         <SettingsSidebar
-          items={SETTINGS_MENU_ITEMS}
+          groups={SETTINGS_MENU_GROUPS}
           activeSection={activeSection}
           onSelect={setActiveSection}
           isDarkTheme={isDark}
@@ -198,6 +199,8 @@ export function SettingsCard({
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 
             {activeSection === "features" && <FeaturesSection />}
+
+            {activeSection === "appearance" && <AppearanceSection />}
 
             {activeSection === "animations" && <AnimationsSection />}
 

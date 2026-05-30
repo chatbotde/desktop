@@ -21,6 +21,8 @@ import { useDraggable, useResizable } from '@/features/output-window'
 import type { ResizeDirection } from '@/features/output-window'
 import { cn } from '@/lib/utils'
 
+const YOUTUBE_PLAYER_Z = GLOBAL_THEME.zIndex.modal
+
 // ── Hover store: tracks whether mouse is inside containerRef ─────────────────
 // Replaces useEffect + mousemove listener.
 
@@ -65,13 +67,42 @@ function createHoverStore(getContainer: () => HTMLElement | null, enabled: boole
 }
 
 export function YoutubePlayerOverlay() {
-  const { isFeatureEnabled, setFeatureEnabled } = useFeature()
-  const isEnabled = isFeatureEnabled('standalone-youtube-player')
+  const { isFeatureEnabled } = useFeature()
+  const isFeatureOn = isFeatureEnabled('standalone-youtube-player')
 
+  const [isOpen, setIsOpen] = useState(true)
   const [url, setUrl] = useState('')
   const [inputUrl, setInputUrl] = useState('')
   const [showInput, setShowInput] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Re-open when the feature is toggled back on in Settings
+  const prevFeatureOn = useRef(isFeatureOn)
+  if (prevFeatureOn.current !== isFeatureOn) {
+    prevFeatureOn.current = isFeatureOn
+    if (isFeatureOn) setIsOpen(true)
+  }
+
+  const showPlayer = isFeatureOn && isOpen
+
+  // Allow other parts of the app (e.g. prompt paste) to open the floating player
+  useSyncExternalStore(
+    useCallback((_notify) => {
+      const handler = (event: Event) => {
+        const custom = event as CustomEvent<{ url?: string }>
+        const nextUrl = custom.detail?.url?.trim()
+        if (nextUrl) {
+          setUrl(nextUrl)
+          setInputUrl(nextUrl)
+        }
+        setIsOpen(true)
+      }
+      window.addEventListener('open-youtube-player', handler as EventListener)
+      return () => window.removeEventListener('open-youtube-player', handler as EventListener)
+    }, []),
+    () => null,
+    () => null,
+  )
 
   // Floating window position and size state
   const [position, setPosition] = useState(() => {
@@ -90,39 +121,45 @@ export function YoutubePlayerOverlay() {
 
   // Stable store per mount — recreates if isEnabled changes
   const storeRef = useRef<ReturnType<typeof createHoverStore> | null>(null)
-  const prevEnabled = useRef(isEnabled)
-  if (!storeRef.current || prevEnabled.current !== isEnabled) {
-    prevEnabled.current = isEnabled
-    storeRef.current = createHoverStore(() => containerRef.current, isEnabled)
+  const prevEnabled = useRef(showPlayer)
+  if (!storeRef.current || prevEnabled.current !== showPlayer) {
+    prevEnabled.current = showPlayer
+    storeRef.current = createHoverStore(() => containerRef.current, showPlayer)
   }
 
   const subscribe = useCallback(
     (notify: () => void) => storeRef.current!.subscribe(notify),
-    [isEnabled],
+    [showPlayer],
   )
   const getSnapshot = useCallback(() => storeRef.current!.getSnapshot(), [])
 
   // useSyncExternalStore — replaces the old useEffect + mousemove
   const isHovered = useSyncExternalStore(subscribe, getSnapshot, () => false)
 
-  if (!isEnabled) return null
-
+  // Always render a fixed shell — returning null here collapses the Electron overlay window.
   return (
-    <motion.div
-      ref={containerRef}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="fixed z-50 flex flex-col pointer-events-auto"
-      style={{
-        zIndex: GLOBAL_THEME.zIndex.modal,
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        width: `${size.width}px`,
-        height: `${size.height}px`,
-      }}
-      data-no-clickthrough
+    <div
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: YOUTUBE_PLAYER_Z }}
+      aria-hidden={!showPlayer}
     >
+      {showPlayer && (
+        <motion.div
+          ref={containerRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="pointer-events-auto flex flex-col"
+          style={{
+            position: 'fixed',
+            zIndex: YOUTUBE_PLAYER_Z,
+            left: `${position.x}px`,
+            top: `${position.y}px`,
+            width: `${size.width}px`,
+            height: `${size.height}px`,
+          }}
+          data-no-clickthrough
+        >
       <div
         className="relative w-full h-full flex flex-col bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
         style={{
@@ -202,7 +239,7 @@ export function YoutubePlayerOverlay() {
                   className="h-6 w-6 text-white/50 hover:text-red-400 hover:bg-red-400/10 rounded-full transition-colors" 
                   onClick={(e) => {
                     e.stopPropagation()
-                    setFeatureEnabled('standalone-youtube-player', false)
+                    setIsOpen(false)
                   }}
                   title="Close"
                 >
@@ -258,6 +295,8 @@ export function YoutubePlayerOverlay() {
           )}
         </div>
       </div>
-    </motion.div>
+        </motion.div>
+      )}
+    </div>
   )
 }

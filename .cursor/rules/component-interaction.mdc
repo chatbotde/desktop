@@ -1,0 +1,39 @@
+---
+description: Overlay and click-through event handling — prevent global event pollution
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Component Interaction (Overlays)
+
+Buddy uses many transparent overlays. Bad event handling breaks unrelated UI globally.
+
+## Required patterns
+
+```typescript
+// ✅ Scope to component boundary
+const handleClick = (e: React.MouseEvent) => {
+  if (!ref.current?.contains(e.target as Node)) return
+  e.stopPropagation()
+}
+
+// ✅ Cleanup all listeners
+useEffect(() => {
+  if (!isActive) return
+  const controller = new AbortController()
+  document.addEventListener('click', handler, { signal: controller.signal })
+  return () => controller.abort()
+}, [isActive])
+```
+
+## Forbidden without team review
+
+- Global `document.addEventListener` without visibility/boundary checks
+- `stopPropagation()` / `preventDefault()` without a comment explaining why
+- Pointer-events changes without matching visual boundaries
+
+## PR requirements for overlay changes
+
+- Document which events are intercepted and why
+- Verify clicks outside overlay boundary still work
+- See `frontend/src/app/overlays/` and feature overlay components

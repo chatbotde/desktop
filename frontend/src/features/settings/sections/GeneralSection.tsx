@@ -1,9 +1,15 @@
 import { useState } from "react"
-import { Trash2, PanelRight } from "lucide-react"
+import { Trash2, PanelRight, Languages } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 
 import { Label } from "@/shared/components/ui/label"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip"
 import { Button } from "@/shared/components/ui/button"
 import { Switch } from "@/shared/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
@@ -73,31 +79,71 @@ export function GeneralSection({
       </div>
 
       <div className="space-y-4">
-        {/* Show Right Transparent Bar Toggle */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PanelRight className={cn("h-4 w-4", labelColor)} />
-              <Label htmlFor="showRightTransparent" className={labelColor}>
-                Right-side transparent bar
-              </Label>
+        <TooltipProvider delayDuration={200}>
+          {/* Show Right Transparent Bar Toggle */}
+          <div
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5",
+              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+            )}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                      isDarkTheme ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"
+                    )}
+                    aria-label="Right-side transparent bar"
+                  >
+                    <PanelRight className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[260px]">
+                  <p className="font-medium">Right-side transparent bar</p>
+                  <p className="mt-0.5 font-normal text-zinc-400">
+                    Show the trigger bar on the right edge. Turn off to use keyboard shortcuts only.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Switch
               id="showRightTransparent"
               checked={value.showRightTransparent}
               onCheckedChange={handleShowRightTransparentChange}
+              aria-label="Toggle right-side transparent bar"
             />
           </div>
-          <p className={cn("text-xs", textColor)}>
-            Show the transparent trigger bar on the right edge of the screen. Disable to hide it if you prefer using keyboard shortcuts only.
-          </p>
-        </div>
 
-        {/* Language Selection */}
-        <div className="space-y-2">
-          <Label htmlFor="language" className={labelColor}>
-            Language
-          </Label>
+          {/* Language Selection */}
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-2.5",
+              isDarkTheme ? "border-zinc-700" : "border-zinc-200"
+            )}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                    isDarkTheme ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"
+                  )}
+                  aria-label="Response language"
+                >
+                  <Languages className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[260px]">
+                <p className="font-medium">Response language</p>
+                <p className="mt-0.5 font-normal text-zinc-400">
+                  Preferred language for assistant replies. UI stays in English.
+                </p>
+              </TooltipContent>
+            </Tooltip>
           <Select
             value={value.language}
             onValueChange={handleLanguageChange}
@@ -131,10 +177,8 @@ export function GeneralSection({
               <SelectItem value="hindi">Hindi</SelectItem>
             </SelectContent>
           </Select>
-          <p className={cn("text-xs", textColor)}>
-            Preferred language for assistant replies (chat, local LLM, and live voice when the model follows instructions). UI stays in English.
-          </p>
-        </div>
+          </div>
+        </TooltipProvider>
 
         {onClearAllChatHistory && (
           <>

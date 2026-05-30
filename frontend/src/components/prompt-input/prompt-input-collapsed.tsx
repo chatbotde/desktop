@@ -113,6 +113,7 @@ export function PromptInputCollapsed({
           onRemoveClipboardItem={onRemoveClipboardItem}
           onRemoveReference={onRemoveReference}
           themeClasses={themeClasses}
+          isDarkTheme={isDarkTheme}
         />
 
         <input

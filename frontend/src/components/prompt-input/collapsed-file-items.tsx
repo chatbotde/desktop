@@ -1,4 +1,6 @@
 import { FileText, PlaySquare } from "lucide-react"
+import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import type { FileItemsBaseProps } from "./types/prompt-input-props"
@@ -10,6 +12,7 @@ import type { PromptReference } from "./types/prompt-reference"
 interface CollapsedFileItemsProps extends FileItemsBaseProps {
   references?: PromptReference[]
   onRemoveReference?: (id: string) => void
+  isDarkTheme?: boolean
 }
 
 export function CollapsedFileItems({
@@ -20,6 +23,7 @@ export function CollapsedFileItems({
   onRemoveClipboardItem,
   onRemoveReference,
   themeClasses,
+  isDarkTheme = true,
 }: CollapsedFileItemsProps) {
   const { isFeatureEnabled } = useFeature()
   const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
@@ -63,22 +67,40 @@ export function CollapsedFileItems({
           )}
         </div>
       ))}
-      {files.map((file, index) => (
-        <div
-          key={`${file.name}-${index}`}
-          className={cn(
-            "flex items-center justify-center h-6 w-6 rounded bg-muted shrink-0 cursor-pointer",
-            themeClasses.fileItem
-          )}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRemoveFile?.(index)
-          }}
-          title={file.name}
-        >
-          {getFileIcon(file, themeClasses)}
-        </div>
-      ))}
+      {files.map((file, index) =>
+        isVideoFile(file) ? (
+          <PromptVideoPreview
+            key={`${file.name}-${index}`}
+            file={file}
+            variant="collapsed"
+            onRemove={() => onRemoveFile?.(index)}
+          />
+        ) : isAudioFile(file) ? (
+          <PromptAudioPreview
+            key={`${file.name}-${index}`}
+            file={file}
+            variant="collapsed"
+            isDarkTheme={isDarkTheme}
+            themeClasses={themeClasses}
+            onRemove={() => onRemoveFile?.(index)}
+          />
+        ) : (
+          <div
+            key={`${file.name}-${index}`}
+            className={cn(
+              "flex items-center justify-center h-6 w-6 rounded bg-muted shrink-0 cursor-pointer",
+              themeClasses.fileItem
+            )}
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemoveFile?.(index)
+            }}
+            title={file.name}
+          >
+            {getFileIcon(file, themeClasses)}
+          </div>
+        )
+      )}
     </div>
   )
 }

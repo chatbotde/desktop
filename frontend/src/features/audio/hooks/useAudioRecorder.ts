@@ -216,7 +216,7 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
                 cleanup()
             }
 
-            recorder.start(500)
+            recorder.start(250)
             mediaRecorderRef.current = recorder
 
             recordingStartTimeRef.current = Date.now()
@@ -263,8 +263,16 @@ export function useAudioRecorder({ onRecordingComplete }: UseAudioRecorderProps 
     }, [])
 
     const stopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop()
+        const recorder = mediaRecorderRef.current
+        if (recorder && recorder.state !== 'inactive') {
+            try {
+                if (recorder.state === 'recording') {
+                    recorder.requestData()
+                }
+            } catch (error) {
+                console.warn('[useAudioRecorder] requestData failed:', error)
+            }
+            recorder.stop()
         } else {
             cleanup()
         }

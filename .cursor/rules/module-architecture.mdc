@@ -1,0 +1,32 @@
+---
+description: Buddy frontend module architecture — barrel exports, feature boundaries
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Module Architecture
+
+Read `frontend/ARCHITECTURE.md` for full details.
+
+## Rules
+
+1. **Barrel exports required** — every module has `index.ts` exporting its public API
+2. **No deep imports** — use `@/features/chat`, never `@/features/chat/hooks/useX` from outside the module
+3. **No cross-feature imports** — features talk via `shared/`, `services/`, or context/events
+4. **Import order:** external libs → `@/` modules (alphabetical) → relative (same module only)
+
+## Feature folder template
+
+```
+features/{name}/
+├── components/
+├── hooks/
+├── types/
+└── index.ts    # public API only
+```
+
+## Adding a feature
+
+1. Create folder under `frontend/src/features/{name}/`
+2. Append `export * as {name} from './{name}'` to `frontend/src/features/index.ts`
+3. Wire in `frontend/src/app/` — do not import feature internals from other features

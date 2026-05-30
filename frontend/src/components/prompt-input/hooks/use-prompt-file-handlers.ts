@@ -29,6 +29,7 @@ export function usePromptFileHandlers({
   }, [setFiles, setIsExpanded])
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
+    if (newFiles.length === 0) return
     setFiles((prev) => [...prev, ...newFiles])
     setIsExpanded(true)
   }, [setFiles, setIsExpanded])

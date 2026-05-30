@@ -40,6 +40,8 @@ export function AudioRecorderControls({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
                         onClick={onPauseResume}
                         className={cn(
                             "p-1.5 rounded-full transition-colors",
@@ -66,6 +68,8 @@ export function AudioRecorderControls({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
+                        type="button"
+                        onPointerDown={(event) => event.stopPropagation()}
                         onClick={onStop}
                         className={cn(
                             "p-1.5 rounded-full transition-colors",

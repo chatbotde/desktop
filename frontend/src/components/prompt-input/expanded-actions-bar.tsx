@@ -35,6 +35,7 @@ export function ExpandedActionsBar(props: ExpandedActionsBarProps) {
       // Re-register when these key props change (affects conditional buttons visibility)
       props.isGoogleModelSelected,
       props.showLocalControlInPrompt,
+      props.onReferenceAdd,
     ]),
     () => null,
     () => null

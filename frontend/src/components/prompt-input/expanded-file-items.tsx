@@ -5,6 +5,8 @@ import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { FileRemoveButton } from "./components/file-remove-button"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { YoutubeVideoPlayer, extractVideoId } from "./youtube-video-player"
+import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
 import { useFeature } from "@/shared/providers/FeatureProvider"
 import { ReferenceChips } from "./components/reference-chips"
 import type { PromptReference } from "./types/prompt-reference"
@@ -154,6 +156,30 @@ export function ExpandedFileItems({
                 hoverClass={hoverClass}
               />
             </div>
+          )
+        }
+
+        if (isVideoFile(file)) {
+          return (
+            <PromptVideoPreview
+              key={`${file.name}-${index}`}
+              file={file}
+              variant="expanded"
+              onRemove={() => onRemoveFile(index)}
+            />
+          )
+        }
+
+        if (isAudioFile(file)) {
+          return (
+            <PromptAudioPreview
+              key={`${file.name}-${index}`}
+              file={file}
+              variant="expanded"
+              isDarkTheme={isDarkTheme}
+              themeClasses={themeClasses}
+              onRemove={() => onRemoveFile(index)}
+            />
           )
         }
 

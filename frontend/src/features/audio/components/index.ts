@@ -14,3 +14,8 @@ export { LiveTranscriptionButton } from './LiveTranscriptionButton'
 export { MicHoverAudioPill } from './MicHoverAudioPill'
 
 export { InsertTranscriptOverlay } from './InsertTranscriptOverlay'
+
+export { AudioNotificationPlayer } from './AudioNotificationPlayer'
+
+export { TranscriptPreview } from './TranscriptPreview'
+export type { TranscriptPreviewData, TranscriptPreviewMode } from './TranscriptPreview'

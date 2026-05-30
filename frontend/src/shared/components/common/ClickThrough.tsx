@@ -105,12 +105,14 @@ const ClickThrough = () => {
 			updateState(true)
 
 			document.addEventListener('pointermove', handlePointerEvent, true)
+			document.addEventListener('pointerdown', handlePointerEvent, true)
 			document.addEventListener('pointerenter', handlePointerEvent, true)
 			window.addEventListener('mouseout', handleMouseOut)
 			window.addEventListener('blur', handleBlur)
 
 			return () => {
 				document.removeEventListener('pointermove', handlePointerEvent, true)
+				document.removeEventListener('pointerdown', handlePointerEvent, true)
 				document.removeEventListener('pointerenter', handlePointerEvent, true)
 				window.removeEventListener('mouseout', handleMouseOut)
 				window.removeEventListener('blur', handleBlur)

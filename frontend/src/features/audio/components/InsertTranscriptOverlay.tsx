@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion } from 'motion/react'
-import { Check, Loader2, MessageSquareText, Square, X } from 'lucide-react'
+import { motion, useDragControls } from 'motion/react'
+import { Check, GripVertical, Loader2, MessageSquareText, Square, X } from 'lucide-react'
 import { isAssemblyAIConfigured } from '@/lib/audio'
 import { isCerebrasVoiceIntentConfigured, rewriteTranscriptToIntent } from '@/lib/ai'
 import { cn } from '@/shared/lib'
@@ -11,7 +11,12 @@ import { useLiveTranscription } from '../hooks/useLiveTranscription'
 type InsertState = 'idle' | 'starting' | 'listening' | 'stopping' | 'inserting' | 'inserted' | 'failed'
 
 const waveBars = [0.35, 0.8, 0.55, 1, 0.45, 0.7, 0.4]
-const dragResetPosition = { x: 0, y: 0 }
+
+const popupSpring = {
+  type: 'spring' as const,
+  damping: 25,
+  stiffness: 300,
+}
 
 function collapseIncrementalTranscript(text: string) {
   const tokens = text.match(/\S+/g) ?? []
@@ -60,6 +65,7 @@ interface InsertTranscriptOverlayProps {
 
 export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayProps) {
   const isDark = useIsDark()
+  const dragControls = useDragControls()
   const [isAssemblyEnabled, setIsAssemblyEnabled] = useState(false)
   const [insertState, setInsertState] = useState<InsertState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -70,9 +76,6 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
   const isRecordingRef = useRef(false)
   const isStoppingRef = useRef(false)
   const hasInsertedCurrentRecordingRef = useRef(false)
-  const suppressClickAfterDragRef = useRef(false)
-  const [dragOffset, setDragOffset] = useState(dragResetPosition)
-
   const {
     isRecording,
     activeStream,
@@ -244,7 +247,6 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
 
     resetState()
     setInsertState('idle')
-    setDragOffset(dragResetPosition)
   }, [
     clearInsertedStateTimeout,
     clearStopGraceTimeout,
@@ -269,11 +271,6 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
   )
 
   const handleClick = useCallback(() => {
-    if (suppressClickAfterDragRef.current) {
-      suppressClickAfterDragRef.current = false
-      return
-    }
-
     if (isBusy || isStoppingRef.current) return
 
     if (isRecording || isTranscribing) {
@@ -283,29 +280,6 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
 
     handleStart().catch(console.error)
   }, [handleStart, handleStopAndInsert, isBusy, isRecording, isTranscribing])
-
-  const handleDragStart = useCallback(() => {
-    suppressClickAfterDragRef.current = true
-  }, [])
-
-  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number; y: number } }) => {
-    const wasDragged = Math.abs(info.offset.x) > 4 || Math.abs(info.offset.y) > 4
-
-    setDragOffset((currentOffset) => ({
-      x: currentOffset.x + info.offset.x,
-      y: currentOffset.y + info.offset.y,
-    }))
-
-    if (wasDragged) {
-      suppressClickAfterDragRef.current = true
-      window.setTimeout(() => {
-        suppressClickAfterDragRef.current = false
-      }, 100)
-      return
-    }
-
-    suppressClickAfterDragRef.current = false
-  }, [])
 
   useEffect(() => {
     if (!isAssemblyEnabled || !isRecording || !activeStream || isTranscribing || hasStartedTranscriptionRef.current) return
@@ -352,13 +326,14 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
     <motion.div
       className="group relative pointer-events-auto"
       drag
-      dragListener
+      dragControls={dragControls}
+      dragListener={false}
       dragMomentum={false}
-      dragElastic={0}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      initial={{ opacity: 0, y: 8, scale: 0.96 }}
-      animate={{ opacity: 1, x: dragOffset.x, y: dragOffset.y, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: 5 }}
+      transition={popupSpring}
+      data-no-clickthrough
     >
       {onDismiss && (
         <button
@@ -381,15 +356,31 @@ export function InsertTranscriptOverlay({ onDismiss }: InsertTranscriptOverlayPr
 
       <button
         type="button"
+        onPointerDown={(event) => dragControls.start(event)}
+        className={cn(
+          'absolute -left-1 top-1/2 z-10 flex h-7 w-5 -translate-y-1/2 items-center justify-center rounded-full transition-all duration-150',
+          'opacity-0 scale-75 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto',
+          isDark
+            ? 'text-zinc-500 hover:text-zinc-300'
+            : 'text-zinc-400 hover:text-zinc-600'
+        )}
+        aria-label="Move voice insert"
+        title="Move"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+
+      <button
+        type="button"
         onClick={handleClick}
         disabled={isBusy}
         className={cn(
-          'flex h-11 min-w-[104px] cursor-grab touch-none items-center gap-2 rounded-full border p-1.5 pr-3 shadow-xl transition-colors active:cursor-grabbing disabled:cursor-wait disabled:opacity-80',
+          'flex h-11 min-w-[104px] items-center gap-2 rounded-full border p-1.5 pr-3 shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-colors disabled:opacity-80',
           isActive
             ? 'border-red-500/50 bg-zinc-950 text-white hover:border-red-400/70'
             : isDark
-              ? 'border-zinc-800 bg-zinc-950 text-zinc-100 hover:bg-zinc-900'
-              : 'border-zinc-200 bg-white text-zinc-950 hover:bg-zinc-50'
+              ? 'border-blue-500/30 bg-zinc-950 text-zinc-100 shadow-[0_0_20px_rgba(37,99,235,0.15)] hover:bg-zinc-900'
+              : 'border-blue-200/50 bg-white text-zinc-950 shadow-[0_0_20px_rgba(37,99,235,0.1)] hover:bg-zinc-50'
         )}
         aria-label={isActive ? 'Stop voice insert and insert text' : 'Start voice insert'}
         title={showError ? error : undefined}
