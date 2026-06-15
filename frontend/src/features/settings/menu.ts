@@ -7,6 +7,7 @@ import {
   ChartBarIncreasing,
   Key,
   Plug,
+  Server,
   CircleHelp,
   Sparkles,
   CircleUser,
@@ -24,6 +25,7 @@ export type SettingsSectionId =
   | "model-profiles"
   | "custom-models"
   | "integrations"
+  | "mcp-servers"
   | "blocking"
   | "features"
   | "appearance"
@@ -122,6 +124,12 @@ export const SETTINGS_MENU_GROUPS: SettingsMenuGroup[] = [
         label: "Integrations",
         description: "Connected apps and Composio tools",
         icon: Plug,
+      },
+      {
+        id: "mcp-servers",
+        label: "MCP Servers",
+        description: "Model Context Protocol tool servers",
+        icon: Server,
       },
       {
         id: "blocking",

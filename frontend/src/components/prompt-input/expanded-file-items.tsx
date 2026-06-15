@@ -1,4 +1,4 @@
-import { Image, FileText, Cpu } from "lucide-react"
+import { FileText, Cpu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
@@ -6,8 +6,10 @@ import { FileRemoveButton } from "./components/file-remove-button"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { YoutubeVideoPlayer, extractVideoId } from "./youtube-video-player"
 import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { PromptImagePreview, isImageFile } from "./prompt-image-preview"
 import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
 import { useFeature } from "@/shared/providers/FeatureProvider"
+import { openYoutubePlayer, parseYoutubeClipboardUrl } from "@/lib/open-youtube-player"
 import { ReferenceChips } from "./components/reference-chips"
 import type { PromptReference } from "./types/prompt-reference"
 
@@ -19,7 +21,6 @@ interface ExpandedFileItemsProps {
   selectedLocalModelName: string | null
   onRemoveFile: (index: number) => void
   onRemoveClipboardItem?: (index: number) => void
-  isAutoScreenshot: (file: File) => boolean
   isDarkTheme: boolean
   themeClasses: {
     fileItem: string
@@ -38,7 +39,6 @@ export function ExpandedFileItems({
   onRemoveFile,
   onRemoveClipboardItem,
   onRemoveReference,
-  isAutoScreenshot,
   isDarkTheme,
   themeClasses,
   hoverClass,
@@ -95,21 +95,19 @@ export function ExpandedFileItems({
       )}
 
       {clipboardItems?.map((item, index) => {
-        if (isYoutubePlayerEnabled && item.startsWith('[YouTube] ')) {
-          const urlMatch = item.match(/\[YouTube\]\s+([^\s]+)/);
-          const url = urlMatch ? urlMatch[1] : '';
-          
-          if (url && extractVideoId(url)) {
+        const url = isYoutubePlayerEnabled ? parseYoutubeClipboardUrl(item) : null
+
+        if (url && extractVideoId(url)) {
             return (
               <div key={`clipboard-${index}`} className="relative shrink-0">
                 <YoutubeVideoPlayer 
                   url={url} 
                   className="max-w-[200px]" 
                   onRemove={() => onRemoveClipboardItem?.(index)}
+                  onOpenInOverlay={() => openYoutubePlayer(url)}
                 />
               </div>
             );
-          }
         }
         
         return (
@@ -135,27 +133,14 @@ export function ExpandedFileItems({
       })}
 
       {files.map((file, index) => {
-        const isAuto = isAutoScreenshot(file)
-
-        // For auto-screenshots, show with Image icon
-        if (isAuto) {
+        if (isImageFile(file)) {
           return (
-            <div
+            <PromptImagePreview
               key={`${file.name}-${index}`}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
-                themeClasses.fileItem
-              )}
-              onClick={e => e.stopPropagation()}
-            >
-              <Image className={`size-4 ${themeClasses.icon} shrink-0`} />
-              <FileRemoveButton
-                onClick={() => onRemoveFile(index)}
-                ariaLabel={`Remove ${file.name}`}
-                themeClasses={themeClasses}
-                hoverClass={hoverClass}
-              />
-            </div>
+              file={file}
+              variant="expanded"
+              onRemove={() => onRemoveFile(index)}
+            />
           )
         }
 

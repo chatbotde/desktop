@@ -29,8 +29,9 @@
  * - output-window: Separate output window
  */
 export const DEFAULT_ENABLED_FEATURES: string[] = [
-    // Only Output Window is enabled by default
-    'output-window',         // Output window feature
+    'output-window',              // Output window feature
+    'image-generation-window',    // Floating window when images are generated
+    'video-generation-window',    // Floating window when videos are generated
 ]
 
 /**

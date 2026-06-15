@@ -1,4 +1,4 @@
-import { ImageGeneration } from '../../components/image-generation/image-generation';
+import { ImageGeneration } from '@/components/image-generation';
 import { motion, useDragControls } from 'motion/react';
 import { useRef, useCallback, useState } from 'react';
 
@@ -100,7 +100,7 @@ export const TestComponent = () => {
     // Add multiple components here to easily cycle through them
     const [activeTab, setActiveTab] = useState(0);
     const tabs = [
-        { name: 'Image Gen', content: <ImageGeneration images={["https://images.unsplash.com/photo-1707343843437-caacff5cfa74"]} onClose={() => { }} /> },
+        { name: 'Image Gen', content: <ImageGeneration imageUrl={"https://images.unsplash.com/photo-1707343843437-caacff5cfa74"} /> },
         { name: 'Empty Box', content: <div style={{ width: 100, height: 100, background: '#ff5f57', borderRadius: 8 }} /> },
         { name: 'Text Mode', content: <p style={{ color: '#fff', padding: 20 }}>Testing simple text layout...</p> }
     ];

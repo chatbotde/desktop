@@ -24,6 +24,7 @@
     "@ai-sdk/togetherai": "^2.0.13",
     "@ai-sdk/xai": "^3.0.26",
     "@anthropic-ai/sdk": "^0.63.1",
+    "@fal-ai/client": "^1.10.1",
     "@google/genai": "^1.37.0",
     "@hookform/resolvers": "^5.2.1",
     "@json-render/core": "^0.12.0",

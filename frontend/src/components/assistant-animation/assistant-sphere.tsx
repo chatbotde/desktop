@@ -1,5 +1,4 @@
 import React, { useRef, useState, useSyncExternalStore, useCallback } from 'react';
-import * as d3 from 'd3';
 
 interface VoiceSphereProps {
     isActive: boolean;
@@ -39,9 +38,12 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
             let isMounted = true;
             const loadWorldData = async () => {
                 try {
-                    const response = await fetch(
-                        "https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json"
-                    );
+                    const [{ geoBounds }, response] = await Promise.all([
+                        import('d3'),
+                        fetch(
+                            "https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json"
+                        ),
+                    ]);
                     if (!response.ok) throw new Error("Failed to load land data");
 
                     const landFeatures = await response.json();
@@ -93,7 +95,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
 
                     // Generate dots
                     landFeatures.features.forEach((feature: any) => {
-                        const bounds = d3.geoBounds(feature);
+                        const bounds = geoBounds(feature);
                         const [[minLng, minLat], [maxLng, maxLat]] = bounds;
                         const dotSpacing = 20;
                         const stepSize = dotSpacing * 0.15;
@@ -132,7 +134,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
         () => null
     )
 
-    const timerRef = useRef<ReturnType<typeof d3.timer> | null>(null)
+    const animationFrameRef = useRef<number | null>(null)
 
     useSyncExternalStore(
         useCallback((_callback) => {
@@ -142,9 +144,8 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
             const ctx = canvas.getContext('2d')
             if (!ctx) return () => {}
 
-            // Stop existing timer if any
-            if (timerRef.current) {
-                timerRef.current.stop()
+            if (animationFrameRef.current !== null) {
+                cancelAnimationFrame(animationFrameRef.current)
             }
 
             // --- Configuration ---
@@ -181,8 +182,9 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                 })
             }
 
-            // Animation Loop
-            timerRef.current = d3.timer((elapsed: number) => {
+            const startTime = performance.now()
+            const animate = (now: number) => {
+                const elapsed = now - startTime
                 time = elapsed * 0.0005
                 const targetVolume = isActive ? volumeRef.current : 0
 
@@ -285,11 +287,15 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                     }
                     ctx.stroke()
                 }
-            })
+
+                animationFrameRef.current = requestAnimationFrame(animate)
+            }
+
+            animationFrameRef.current = requestAnimationFrame(animate)
 
             return () => {
-                if (timerRef.current) {
-                    timerRef.current.stop()
+                if (animationFrameRef.current !== null) {
+                    cancelAnimationFrame(animationFrameRef.current)
                 }
             }
         }, [isActive, earthParticles]),

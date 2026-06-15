@@ -43,11 +43,15 @@ function WalkCharacter() {
   )
 }
 
-useGLTF.preload('/walk.glb')
-
 export function ThreeSceneOverlay() {
   const { isFeatureEnabled } = useFeature()
   const enabled = isFeatureEnabled('three-scene-overlay')
+
+  useEffect(() => {
+    if (enabled) {
+      useGLTF.preload('/walk.glb')
+    }
+  }, [enabled])
 
   // Always render a fixed shell — returning null here collapses the Electron overlay window.
   return (

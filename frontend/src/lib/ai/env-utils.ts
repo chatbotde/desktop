@@ -153,6 +153,8 @@ export const PROVIDER_ENV_KEYS: Record<string, { primary: string; fallbacks?: st
   mistral: { primary: 'VITE_MISTRAL_API_KEY', fallbacks: ['MISTRAL_API_KEY'] },
   cerebras: { primary: 'VITE_CEREBRAS_API_KEY', fallbacks: ['CEREBRAS_API_KEY'] },
   kimi: { primary: 'VITE_KIMI_API_KEY', fallbacks: ['KIMI_API_KEY', 'MOONSHOT_API_KEY'] },
+  replicate: { primary: 'VITE_REPLICATE_API_TOKEN', fallbacks: ['REPLICATE_API_TOKEN'] },
+  fal: { primary: 'VITE_FALAI_API_KEY', fallbacks: ['FAL_KEY', 'VITE_FAL_KEY', 'FALAI_API_KEY'] },
 };
 
 /**

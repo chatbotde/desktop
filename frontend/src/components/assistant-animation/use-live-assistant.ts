@@ -9,7 +9,9 @@ import { MemoryService } from '@/lib/memory/memory-service';
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
 
-export const useLiveAssistant = () => {
+export type LiveAssistantState = ReturnType<typeof useLiveAssistantInternal>;
+
+export function useLiveAssistantInternal() {
     const [connected, setConnected] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false); // AI is speaking
     const [isUserSpeaking, setIsUserSpeaking] = useState(false); // User is speaking (VAD-like)
@@ -688,4 +690,4 @@ export const useLiveAssistant = () => {
         closeVideoGeneration: () => setVideoGeneration(prev => ({ ...prev, isVisible: false }))
     };
 
-};
+}

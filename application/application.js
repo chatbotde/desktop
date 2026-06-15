@@ -23,6 +23,7 @@ const { ApplicationMonitoring } = require('./application-monitoring');
 const { ApplicationLifecycle } = require('./application-lifecycle');
 const { ApplicationUpdater } = require('./application-updater');
 const { ComposioClient } = require('../composio/composio-client');
+const { McpClient } = require('../mcp/mcp-client');
 
 class Application {
   /**
@@ -77,11 +78,17 @@ class Application {
     // Composio Integration
     this.composioClient = new ComposioClient(this.ipcRegistry, this.authHandler);
 
+    // MCP client for external tool servers
+    this.mcpClient = new McpClient(this.ipcRegistry);
+
     // Auto-startup manager
     this.autoStartupManager = null;
 
-    // Auto-updater
-    this.updater = new ApplicationUpdater();
+    // Auto-updater (initialized after window manager is ready)
+    this.updater = new ApplicationUpdater({
+      windowManager: this.windowManager,
+      ipcRegistry: this.ipcRegistry,
+    });
   }
 
   /**
@@ -118,11 +125,11 @@ class Application {
       // Initialize auto-startup
       await this.setupAutoStartup();
 
-      // Initialize auto-updater
-      this.updater.initialize();
-
       // Create interface window in background; auth window appears on top for new users
       this.windowManager.createInterfaceWindow();
+
+      // Initialize auto-updater after the renderer can receive notifications
+      this.updater.initialize();
 
       if (!this.authHandler.isAuthenticated() && !this.authHandler.shouldSkipAuthWindow()) {
         this.authHandler.showAuthWindowIfNeeded();
@@ -139,6 +146,9 @@ class Application {
 
       // Setup Composio Integration
       this.composioClient.setup();
+
+      // Setup MCP client
+      this.mcpClient.setup();
 
       // Initialize YouTube transcript system
       const { initializeTranscript } = require('../youtube-transcript');
@@ -224,10 +234,14 @@ class Application {
    * Cleanup resources
    * @private
    */
-  cleanup() {
+  async cleanup() {
     console.log('Application: Cleaning up...');
 
     this.shortcutManager.unregisterAll();
+
+    if (this.mcpClient) {
+      await this.mcpClient.disconnectAll();
+    }
 
     console.log('Application: Cleanup complete');
   }

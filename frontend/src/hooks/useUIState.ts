@@ -19,9 +19,11 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [isImageWindowVisible, setIsImageWindowVisible] = useState(false)
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
   const [imageGenerationError, setImageGenerationError] = useState<string | null>(null)
+  const [imageLoadingPhrases, setImageLoadingPhrases] = useState<string[] | undefined>(undefined)
   const [generatedVideos, setGeneratedVideos] = useState<string[]>([])
-  const [isVideoWindowVisible, setIsVideoWindowVisible] = useState(true)
+  const [isVideoWindowVisible, setIsVideoWindowVisible] = useState(false)
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false)
+  const [videoGenerationError, setVideoGenerationError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
 
   // If the user disables the Output Window feature, hide the window immediately - using syncExternalStore
@@ -76,12 +78,16 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setIsGeneratingImages,
     imageGenerationError,
     setImageGenerationError,
+    imageLoadingPhrases,
+    setImageLoadingPhrases,
     generatedVideos,
     setGeneratedVideos,
     isVideoWindowVisible,
     setIsVideoWindowVisible,
     isGeneratingVideos,
     setIsGeneratingVideos,
+    videoGenerationError,
+    setVideoGenerationError,
     showSettings,
     setShowSettings,
   }

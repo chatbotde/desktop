@@ -37,6 +37,8 @@ const AppContext = createContext<AppContextType | null>(null)
 export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     const { isFeatureEnabled } = useFeature()
     const outputWindowEnabled = isFeatureEnabled('output-window')
+    const imageWindowEnabled = isFeatureEnabled('image-generation-window')
+    const videoWindowEnabled = isFeatureEnabled('video-generation-window')
 
     const uiState = useUIState(outputWindowEnabled)
     const messageManager = useMessageManager(outputWindowEnabled, {
@@ -44,7 +46,11 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         setIsImageWindowVisible: uiState.setIsImageWindowVisible,
         setIsGeneratingImages: uiState.setIsGeneratingImages,
         setImageGenerationError: uiState.setImageGenerationError,
-    })
+        setGeneratedVideos: uiState.setGeneratedVideos,
+        setIsVideoWindowVisible: uiState.setIsVideoWindowVisible,
+        setIsGeneratingVideos: uiState.setIsGeneratingVideos,
+        setVideoGenerationError: uiState.setVideoGenerationError,
+    }, imageWindowEnabled, videoWindowEnabled)
 
     // Chat History
     const { saveChat, updateChat, clearAllChats } = useChatHistory()
@@ -158,23 +164,30 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         attachments?: MediaAttachment[],
         options?: SendMessageOptions
     ) => {
-        // Check if it's an image generation model - don't open output window for images
+        // Check if it's a media generation model - don't open output window for images/videos
         const selectedModel = getSelectedModel()
         const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
         const isImageModel =
             selectedModel?.category === 'image-generation' ||
-            selectedModel?.provider === 'replicate' ||
             selectedModelKey.includes('gemini-2.5-flash-image')
+        const isVideoModel = selectedModel?.category === 'video-generation'
 
         // Show image window immediately for image models (before generation starts)
-        if (isImageModel) {
+        if (isImageModel && imageWindowEnabled) {
             uiState.setIsImageWindowVisible(true)
             uiState.setIsGeneratingImages(true)
             uiState.setImageGenerationError(null)
         }
 
-        // Only open output window for non-image models
-        if (outputWindowEnabled && !isImageModel) {
+        // Show video window immediately for video models (before generation starts)
+        if (isVideoModel && videoWindowEnabled) {
+            uiState.setIsVideoWindowVisible(true)
+            uiState.setIsGeneratingVideos(true)
+            uiState.setVideoGenerationError(null)
+        }
+
+        // Only open output window for non-media models
+        if (outputWindowEnabled && !isImageModel && !isVideoModel) {
             uiState.setIsOutputVisible(true)
         }
         await messageManager.handleSendMessage(message, attachments, options)

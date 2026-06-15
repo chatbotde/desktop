@@ -137,7 +137,6 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
     id: "voice-input",
     order: 10,
     component: () => {
-      const ctx = getContext()
       return (
         <PromptInputAction tooltip="Voice input" key="voice-input">
           <MicHoverAudioPill

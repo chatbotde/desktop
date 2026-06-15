@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useSyncExternalStore, useCallback } from "react"
+import { useState, useRef, useSyncExternalStore, useCallback, useEffect } from "react"
 import { Copy, Download, Check, X, Play, Pause, Volume2, VolumeX } from "lucide-react"
 import {
     Carousel,
@@ -12,17 +12,61 @@ import {
 } from "@/shared/components/ui/carousel"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/lib/utils"
+import { GLOBAL_THEME } from "@/global/theme"
 
-// Import the placeholder video if possible or just use the path as string
-// Since testd is in src, we might be able to import it if configured, but safe to use relative path or exact path if it's in public. 
-// However, the user pointed to src/testd. importing non-code assets from src usually requires a loader. 
-// For now, I'll accept 'videos' as string[] of URLs. The parent will pass the placeholder.
+const CONTROLS_Z = GLOBAL_THEME.zIndex.modal + 10
 
 interface VideoGenerationProps {
     videos: string[]
     className?: string
     onVideoIndexChange?: (index: number) => void
     onClose: () => void
+    isHovered?: boolean
+}
+
+function formatTime(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds < 0) return "0:00"
+    const total = Math.floor(seconds)
+    const mins = Math.floor(total / 60)
+    const secs = total % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+}
+
+async function fetchVideoBlob(videoUrl: string): Promise<Blob> {
+    const response = await fetch(videoUrl)
+    if (!response.ok) {
+        throw new Error(`Failed to fetch video (${response.status})`)
+    }
+    const blob = await response.blob()
+    if (blob.size === 0) {
+        throw new Error("Video file is empty")
+    }
+    return blob.type ? blob : new Blob([blob], { type: "video/mp4" })
+}
+
+export async function copyVideoToClipboard(videoUrl: string): Promise<void> {
+    const blob = await fetchVideoBlob(videoUrl)
+    const mimeType = blob.type || "video/mp4"
+
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({ [mimeType]: blob }),
+            ])
+            return
+        } catch (err) {
+            console.warn("[VideoGeneration] ClipboardItem copy failed, trying native buffer:", err)
+        }
+    }
+
+    const writeBuffer = window.electronAPI?.clipboard?.writeBuffer
+    if (typeof writeBuffer === "function") {
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        await writeBuffer(mimeType, bytes)
+        return
+    }
+
+    throw new Error("Video clipboard is not supported in this environment")
 }
 
 export function VideoGeneration({
@@ -30,15 +74,63 @@ export function VideoGeneration({
     className,
     onVideoIndexChange,
     onClose,
+    isHovered = false,
 }: VideoGenerationProps) {
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [api, setApi] = useState<CarouselApi>()
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPlaying, setIsPlaying] = useState(true)
     const [isMuted, setIsMuted] = useState(true)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
+    const progressRef = useRef<HTMLDivElement>(null)
 
-    // Listen to carousel changes - using syncExternalStore
+    const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0
+    const showControls = isHovered
+
+    useEffect(() => {
+        setCurrentTime(0)
+        setDuration(0)
+        const video = videoRefs.current[currentIndex]
+        if (video && Number.isFinite(video.duration)) {
+            setDuration(video.duration)
+            setCurrentTime(video.currentTime)
+            setIsPlaying(!video.paused)
+            setIsMuted(video.muted)
+        }
+    }, [currentIndex, videos])
+
+    const handleTimeUpdate = useCallback((index: number) => {
+        const video = videoRefs.current[index]
+        if (!video || index !== currentIndex) return
+        setCurrentTime(video.currentTime)
+        if (Number.isFinite(video.duration)) {
+            setDuration(video.duration)
+        }
+    }, [currentIndex])
+
+    const handleLoadedMetadata = useCallback((index: number) => {
+        const video = videoRefs.current[index]
+        if (!video || index !== currentIndex) return
+        if (Number.isFinite(video.duration)) {
+            setDuration(video.duration)
+        }
+        setCurrentTime(video.currentTime)
+    }, [currentIndex])
+
+    const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>, index: number) => {
+        e.stopPropagation()
+        const video = videoRefs.current[index]
+        const bar = progressRef.current
+        if (!video || !bar || !Number.isFinite(video.duration)) return
+
+        const rect = bar.getBoundingClientRect()
+        const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+        video.currentTime = ratio * video.duration
+        setCurrentTime(video.currentTime)
+    }, [])
+
     useSyncExternalStore(
         useCallback(() => {
             if (!api) return () => {}
@@ -48,7 +140,6 @@ export function VideoGeneration({
                 setCurrentIndex(index)
                 onVideoIndexChange?.(index)
 
-                // Pause all other videos, play current if it was playing
                 videoRefs.current.forEach((ref, i) => {
                     if (ref) {
                         if (i === index) {
@@ -62,7 +153,6 @@ export function VideoGeneration({
             }
 
             api.on("select", onSelect)
-            // Call once to set initial index
             onSelect()
 
             return () => {
@@ -96,13 +186,11 @@ export function VideoGeneration({
 
     const handleCopy = async (videoUrl: string, index: number) => {
         try {
-            // For video, we probably just copy the URL if it's external, or try to copy blob if local?
-            // Let's stick to copying URL for now as video blobs are large.
-            await navigator.clipboard.writeText(videoUrl)
+            await copyVideoToClipboard(videoUrl)
             setCopiedIndex(index)
             setTimeout(() => setCopiedIndex(null), 2000)
         } catch (error) {
-            console.error("Failed to copy video URL:", error)
+            console.error("Failed to copy video:", error)
         }
     }
 
@@ -128,141 +216,201 @@ export function VideoGeneration({
     }
 
     return (
-        <div
-            className={cn("relative w-full h-full bg-black", className)}
-        >
-            <Carousel
-                setApi={setApi}
-                className="w-full h-full"
-                opts={{ watchDrag: false }}
-            >
+        <div className={cn("relative h-full w-full overflow-hidden bg-black", className)}>
+            <Carousel setApi={setApi} className="h-full w-full" opts={{ watchDrag: false }}>
                 <CarouselContent className="h-full">
-                    {videos.map((videoUrl, index) => {
-                        return (
-                            <CarouselItem key={index} className="h-full">
+                    {videos.map((videoUrl, index) => (
+                        <CarouselItem key={index} className="h-full">
+                            <div
+                                className="group relative h-full w-full overflow-hidden select-none bg-black"
+                                onClick={() => togglePlay(index)}
+                            >
+                                <video
+                                    ref={(el) => { videoRefs.current[index] = el }}
+                                    src={videoUrl}
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                    loop
+                                    muted={isMuted}
+                                    autoPlay={index === 0}
+                                    playsInline
+                                    onTimeUpdate={() => handleTimeUpdate(index)}
+                                    onLoadedMetadata={() => handleLoadedMetadata(index)}
+                                    onPlay={() => index === currentIndex && setIsPlaying(true)}
+                                    onPause={() => index === currentIndex && setIsPlaying(false)}
+                                    onError={(e) => {
+                                        console.error("Video playback error", e)
+                                        e.currentTarget.style.display = "none"
+                                        e.currentTarget.parentElement?.querySelector(".error-message")?.classList.remove("hidden")
+                                    }}
+                                />
+
+                                <div className="error-message hidden absolute inset-0 flex items-center justify-center bg-black/80 font-mono text-sm text-red-500">
+                                    Failed to load video
+                                </div>
+
+                                {/* Center play icon on hover when paused */}
                                 <div
-                                    className="relative group h-full w-full overflow-hidden select-none flex items-center justify-center bg-black"
-                                    onClick={() => togglePlay(index)}
+                                    className={cn(
+                                        "pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-200",
+                                        showControls && !isPlaying ? "opacity-100" : "opacity-0"
+                                    )}
                                 >
-                                    <video
-                                        ref={el => { videoRefs.current[index] = el }}
-                                        src={videoUrl}
-                                        className="w-full h-full object-contain"
-                                        loop
-                                        muted={isMuted}
-                                        autoPlay={index === 0}
-                                        playsInline
-                                        onError={(e) => {
-                                            console.error("Video playback error", e)
-                                            // Could set a state to show error UI
-                                            e.currentTarget.style.display = 'none'
-                                            e.currentTarget.parentElement?.querySelector('.error-message')?.classList.remove('hidden')
-                                        }}
-                                    />
-
-                                    {/* Error Message */}
-                                    <div className="error-message hidden absolute inset-0 flex items-center justify-center text-red-500 font-mono text-sm bg-black/80">
-                                        Failed to load video
+                                    <div className="rounded-full border border-white/20 bg-black/40 p-4 backdrop-blur-sm">
+                                        <Play className="size-8 fill-white text-white" />
                                     </div>
+                                </div>
 
-                                    {/* Custom Controls Overlay - Visible on Hover */}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                        {!isPlaying && (
-                                            <div className="rounded-full bg-black/40 p-4 border border-white/20 backdrop-blur-sm">
-                                                <Play className="size-8 text-white fill-white" />
-                                            </div>
+                                {/* Top-right action buttons on hover */}
+                                {index === currentIndex && (
+                                    <div
+                                        className={cn(
+                                            "absolute right-2 top-2 flex items-center gap-1.5 transition-opacity duration-200",
+                                            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
                                         )}
-                                    </div>
-
-                                    {/* Bottom Controls */}
-                                    <div className="absolute bottom-4 left-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10" onClick={(e) => e.stopPropagation()}>
+                                        style={{ zIndex: CONTROLS_Z }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {videos.length > 1 && (
+                                            <span className="pointer-events-none rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white/70 backdrop-blur-sm">
+                                                {currentIndex + 1} / {videos.length}
+                                            </span>
+                                        )}
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-8 w-8 bg-black/60 hover:bg-black/80 text-white border-0 backdrop-blur-sm"
-                                            onClick={() => togglePlay(index)}
-                                        >
-                                            {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
-                                        </Button>
-                                        <Button
-                                            variant="secondary"
-                                            size="icon"
-                                            className="h-8 w-8 bg-black/60 hover:bg-black/80 text-white border-0 backdrop-blur-sm"
-                                            onClick={() => toggleMute(index)}
-                                        >
-                                            {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                                        </Button>
-                                    </div>
-
-
-                                    {/* Action buttons - appear on hover, top right corner */}
-                                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-10">
-                                        <Button
-                                            variant="secondary"
-                                            size="icon"
-                                            className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                                            className={cn(
+                                                "h-7 w-7 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-sm transition-colors",
+                                                copiedIndex === index
+                                                    ? "bg-green-500/25 hover:bg-green-500/35"
+                                                    : "hover:border-blue-400/60 hover:bg-blue-500"
+                                            )}
+                                            onMouseDown={(e) => e.stopPropagation()}
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                handleCopy(videoUrl, index)
+                                                void handleCopy(videoUrl, index)
                                             }}
-                                            title={copiedIndex === index ? "Copied Link!" : "Copy Video Link"}
+                                            title={copiedIndex === index ? "Video copied!" : "Copy video"}
                                         >
                                             {copiedIndex === index ? (
-                                                <Check className="h-4 w-4 text-green-400" />
+                                                <Check className="size-3.5 text-green-400" />
                                             ) : (
-                                                <Copy className="h-4 w-4" />
+                                                <Copy className="size-3.5" />
                                             )}
                                         </Button>
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                                            className="h-7 w-7 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+                                            onMouseDown={(e) => e.stopPropagation()}
                                             onClick={(e) => {
                                                 e.stopPropagation()
-                                                handleDownload(videoUrl)
+                                                void handleDownload(videoUrl)
                                             }}
-                                            title="Download video"
+                                            title="Download"
                                         >
-                                            <Download className="h-4 w-4" />
+                                            <Download className="size-3.5" />
                                         </Button>
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-8 w-8 bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md rounded-full transition-all duration-200"
+                                            className="h-7 w-7 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-sm hover:bg-red-500/80"
+                                            onMouseDown={(e) => e.stopPropagation()}
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 onClose()
                                             }}
                                             title="Close"
                                         >
-                                            <X className="h-4 w-4" />
+                                            <X className="size-3.5" />
                                         </Button>
                                     </div>
+                                )}
 
-                                </div>
-                            </CarouselItem>
-                        )
-                    })}
+                                {/* Bottom: progress bar + playback controls (right) */}
+                                {index === currentIndex && (
+                                    <div
+                                        className={cn(
+                                            "absolute inset-x-0 bottom-0 px-3 pb-3 pt-10 transition-opacity duration-200",
+                                            "bg-gradient-to-t from-black/85 via-black/50 to-transparent",
+                                            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                                        )}
+                                        style={{ zIndex: CONTROLS_Z }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div
+                                            ref={progressRef}
+                                            className="group/progress mb-2.5 h-1.5 w-full cursor-pointer rounded-full bg-white/20"
+                                            onClick={(e) => handleSeek(e, index)}
+                                            role="slider"
+                                            aria-label="Video progress"
+                                            aria-valuemin={0}
+                                            aria-valuemax={duration}
+                                            aria-valuenow={currentTime}
+                                        >
+                                            <div
+                                                className="relative h-full rounded-full bg-purple-500 transition-[width] duration-75 ease-linear"
+                                                style={{ width: `${progress}%` }}
+                                            >
+                                                <div className="absolute right-0 top-1/2 size-2.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-white opacity-0 shadow-md transition-opacity group-hover/progress:opacity-100" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="h-7 w-7 rounded-full border-0 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    togglePlay(index)
+                                                }}
+                                                title={isPlaying ? "Pause" : "Play"}
+                                            >
+                                                {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="h-7 w-7 rounded-full border-0 bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    toggleMute(index)
+                                                }}
+                                                title={isMuted ? "Unmute" : "Mute"}
+                                            >
+                                                {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+                                            </Button>
+                                            <span className="rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-medium tabular-nums text-white/90 backdrop-blur-sm">
+                                                {formatTime(currentTime)} / {formatTime(duration)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </CarouselItem>
+                    ))}
                 </CarouselContent>
 
-                {/* Navigation arrows and indicator - Overlaid */}
                 {videos.length > 1 && (
                     <>
                         <CarouselPrevious
-                            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-sm z-20"
+                            className={cn(
+                                "absolute left-2 top-1/2 z-30 h-8 w-8 -translate-y-1/2 border-0 bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-opacity duration-200",
+                                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                            )}
                             onClick={(e) => e.stopPropagation()}
                         />
                         <CarouselNext
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/40 hover:bg-black/60 text-white border-0 backdrop-blur-sm z-20"
+                            className={cn(
+                                "absolute right-2 top-1/2 z-30 h-8 w-8 -translate-y-1/2 border-0 bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-opacity duration-200",
+                                showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                            )}
                             onClick={(e) => e.stopPropagation()}
                         />
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-20">
-                            <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                                <span className="text-[10px] font-medium text-white tabular-nums block shadow-sm">
-                                    {currentIndex + 1} / {videos.length}
-                                </span>
-                            </div>
-                        </div>
                     </>
                 )}
             </Carousel>

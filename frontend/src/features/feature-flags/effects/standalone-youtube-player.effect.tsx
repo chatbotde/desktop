@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { useFeature } from "@/contexts/FeatureContext"
+import { openYoutubePlayer } from "@/lib/open-youtube-player"
 
 export const featureId = "standalone-youtube-player"
 
@@ -11,7 +12,7 @@ export function FeatureEffect() {
 
   useEffect(() => {
     if (!prevEnabled.current && enabled) {
-      window.dispatchEvent(new CustomEvent("open-youtube-player"))
+      openYoutubePlayer()
     }
     prevEnabled.current = enabled
   }, [enabled])

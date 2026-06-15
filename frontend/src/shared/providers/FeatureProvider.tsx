@@ -2,6 +2,50 @@ import { createContext, useContext, useState, useSyncExternalStore, useCallback,
 import type { FeatureId } from '@/features/feature-flags'
 import { getDefaultEnabledFeatureIds } from '@/features/feature-flags'
 
+const FEATURE_MIGRATIONS_KEY = 'feature-flag-migrations'
+
+/** One-time migrations that enable new default features for existing users. */
+const FEATURE_MIGRATIONS: Array<{ id: string; featureId: FeatureId }> = [
+  { id: '2025-06-video-generation-window', featureId: 'video-generation-window' },
+]
+
+function loadEnabledFeatures(): Set<FeatureId> {
+  const defaults = getDefaultEnabledFeatureIds()
+  const saved = localStorage.getItem('enabled-features')
+
+  let enabled: Set<FeatureId>
+  if (saved) {
+    try {
+      enabled = new Set(JSON.parse(saved) as FeatureId[])
+    } catch (e) {
+      console.error('Failed to parse enabled features', e)
+      enabled = new Set(defaults)
+    }
+  } else {
+    enabled = new Set(defaults)
+  }
+
+  const applied = new Set<string>(
+    JSON.parse(localStorage.getItem(FEATURE_MIGRATIONS_KEY) ?? '[]') as string[]
+  )
+  let migrationsChanged = false
+
+  for (const { id, featureId } of FEATURE_MIGRATIONS) {
+    if (!applied.has(id)) {
+      enabled.add(featureId)
+      applied.add(id)
+      migrationsChanged = true
+    }
+  }
+
+  if (migrationsChanged) {
+    localStorage.setItem(FEATURE_MIGRATIONS_KEY, JSON.stringify([...applied]))
+    localStorage.setItem('enabled-features', JSON.stringify([...enabled]))
+  }
+
+  return enabled
+}
+
 interface FeatureContextType {
   enabledFeatures: Set<FeatureId>
   isFeatureEnabled: (featureId: FeatureId) => boolean
@@ -13,18 +57,7 @@ const FeatureContext = createContext<FeatureContextType | undefined>(undefined)
 
 export function FeatureProvider({ children }: { children: ReactNode }) {
   // Initialize features from localStorage or default to enabled
-  const [enabledFeatures, setEnabledFeatures] = useState<Set<FeatureId>>(() => {
-    const saved = localStorage.getItem('enabled-features')
-    if (saved) {
-      try {
-        return new Set(JSON.parse(saved))
-      } catch (e) {
-        console.error('Failed to parse enabled features', e)
-      }
-    }
-    // Default: enable features marked as defaultEnabled in the registry
-    return new Set(getDefaultEnabledFeatureIds())
-  })
+  const [enabledFeatures, setEnabledFeatures] = useState<Set<FeatureId>>(() => loadEnabledFeatures())
 
   // Update localStorage when features change - using syncExternalStore
   useSyncExternalStore(

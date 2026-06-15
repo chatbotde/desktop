@@ -1,11 +1,13 @@
 import { FileText, PlaySquare } from "lucide-react"
 import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
 import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
+import { isImageFile } from "./prompt-image-preview"
 import { cn } from "@/lib/utils"
 import { getFileIcon } from "./prompt-shared"
 import type { FileItemsBaseProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { useFeature } from "@/shared/providers/FeatureProvider"
+import { openYoutubePlayer, parseYoutubeClipboardUrl } from "@/lib/open-youtube-player"
 import { ReferenceChips } from "./components/reference-chips"
 import type { PromptReference } from "./types/prompt-reference"
 
@@ -29,7 +31,11 @@ export function CollapsedFileItems({
   const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
 
   const hasReferences = references && references.length > 0
-  if (files.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
+  const inlineFiles = files
+    .map((file, index) => ({ file, index }))
+    .filter(({ file }) => !isImageFile(file) && !isVideoFile(file))
+
+  if (inlineFiles.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
     return null
   }
 
@@ -47,7 +53,11 @@ export function CollapsedFileItems({
           variant="collapsed"
         />
       )}
-      {clipboardItems?.map((item, index) => (
+      {clipboardItems?.map((item, index) => {
+        const youtubeUrl =
+          isYoutubePlayerEnabled ? parseYoutubeClipboardUrl(item) : null
+
+        return (
         <div
           key={`clipboard-${index}`}
           className={cn(
@@ -56,26 +66,24 @@ export function CollapsedFileItems({
           )}
           onClick={(e) => {
             e.stopPropagation()
+            if (youtubeUrl) {
+              openYoutubePlayer(youtubeUrl)
+              return
+            }
             onRemoveClipboardItem?.(index)
           }}
-          title={isYoutubePlayerEnabled && item.startsWith('[YouTube] ') ? 'YouTube Video' : item}
+          title={youtubeUrl ? 'Open YouTube player' : item}
         >
-          {isYoutubePlayerEnabled && item.startsWith('[YouTube] ') ? (
+          {youtubeUrl ? (
             <PlaySquare className={`size-4 ${themeClasses.icon}`} />
           ) : (
             <FileText className={`size-4 ${themeClasses.icon}`} />
           )}
         </div>
-      ))}
-      {files.map((file, index) =>
-        isVideoFile(file) ? (
-          <PromptVideoPreview
-            key={`${file.name}-${index}`}
-            file={file}
-            variant="collapsed"
-            onRemove={() => onRemoveFile?.(index)}
-          />
-        ) : isAudioFile(file) ? (
+        )
+      })}
+      {inlineFiles.map(({ file, index }) =>
+        isAudioFile(file) ? (
           <PromptAudioPreview
             key={`${file.name}-${index}`}
             file={file}

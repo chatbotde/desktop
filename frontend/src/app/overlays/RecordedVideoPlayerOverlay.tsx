@@ -35,11 +35,6 @@ function createHoverStore(getContainer: () => HTMLElement | null, enabled: boole
 
     if (inside !== isHovered) {
       isHovered = inside
-      if (inside) {
-        document.documentElement.setAttribute('data-lock-clickthrough', 'true')
-      } else {
-        document.documentElement.removeAttribute('data-lock-clickthrough')
-      }
       listeners.forEach((fn) => fn())
     }
   }
@@ -52,12 +47,13 @@ function createHoverStore(getContainer: () => HTMLElement | null, enabled: boole
       return () => {
         listeners.delete(notify)
         window.removeEventListener('mousemove', handler)
-        document.documentElement.removeAttribute('data-lock-clickthrough')
       }
     },
     getSnapshot: () => isHovered,
   }
 }
+
+const DEFAULT_SIZE = { width: 420, height: 236 }
 
 function defaultPosition(width: number) {
   const w = typeof window !== 'undefined' ? window.innerWidth : 1024
@@ -68,14 +64,22 @@ function defaultPosition(width: number) {
   }
 }
 
+function resetViewerLayout(
+  setPosition: (value: { x: number; y: number }) => void,
+  setSize: (value: { width: number; height: number }) => void,
+) {
+  setSize(DEFAULT_SIZE)
+  setPosition(defaultPosition(DEFAULT_SIZE.width))
+}
+
 export function RecordedVideoPlayerOverlay() {
   const [isOpen, setIsOpen] = useState(false)
   const [videoSrc, setVideoSrc] = useState<string | null>(null)
   const videoSrcRef = useRef<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const [position, setPosition] = useState(() => defaultPosition(420))
-  const [size, setSize] = useState({ width: 420, height: 236 })
+  const [position, setPosition] = useState(() => defaultPosition(DEFAULT_SIZE.width))
+  const [size, setSize] = useState(DEFAULT_SIZE)
 
   const clearVideo = useCallback(() => {
     if (videoSrcRef.current) {
@@ -88,6 +92,7 @@ export function RecordedVideoPlayerOverlay() {
   const handleClose = useCallback(() => {
     setIsOpen(false)
     clearVideo()
+    resetViewerLayout(setPosition, setSize)
   }, [clearVideo])
 
   useSyncExternalStore(
@@ -102,7 +107,7 @@ export function RecordedVideoPlayerOverlay() {
           const src = URL.createObjectURL(file)
           videoSrcRef.current = src
           setVideoSrc(src)
-          setPosition(defaultPosition(420))
+          resetViewerLayout(setPosition, setSize)
           setIsOpen(true)
         }
         window.addEventListener(OPEN_RECORDED_VIDEO_PLAYER_EVENT, handler as EventListener)
@@ -168,7 +173,6 @@ export function RecordedVideoPlayerOverlay() {
             width: `${size.width}px`,
             height: `${size.height}px`,
           }}
-          data-no-clickthrough
         >
           <div
             className="relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/90 shadow-2xl backdrop-blur-2xl"
@@ -218,7 +222,6 @@ export function RecordedVideoPlayerOverlay() {
               }}
               title="Close"
               aria-label="Close video"
-              data-no-clickthrough
             >
               <X className="h-4 w-4" />
             </button>
@@ -231,7 +234,6 @@ export function RecordedVideoPlayerOverlay() {
                 controlsList="nodownload"
                 autoPlay
                 playsInline
-                data-no-clickthrough
               />
             </div>
           </div>

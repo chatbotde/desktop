@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { VoiceSphere } from './assistant-sphere';
-import { useLiveAssistant } from './use-live-assistant';
+import { useLiveAssistant } from './live-assistant-provider';
 import { ImageGenerationWindow } from '../image-generation-window';
 import { VideoGenerationWindow } from '../video-generation-window';
 

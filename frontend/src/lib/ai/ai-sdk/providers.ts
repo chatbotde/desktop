@@ -8,18 +8,6 @@
  *                     Fireworks, Cerebras, Perplexity, Together
  */
 
-// Official AI SDK Providers
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createGroq } from '@ai-sdk/groq';
-import { createXai } from '@ai-sdk/xai';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createMistral } from '@ai-sdk/mistral';
-import { createFireworks } from '@ai-sdk/fireworks';
-import { createCerebras } from '@ai-sdk/cerebras';
-import { createPerplexity } from '@ai-sdk/perplexity';
-import { createTogetherAI } from '@ai-sdk/togetherai';
 import type { LanguageModel } from 'ai';
 import { resolveEnvValue } from '../env-utils';
 
@@ -57,8 +45,8 @@ export interface ProviderConfig {
     supportsTools?: boolean;
     /** Whether provider supports streaming */
     supportsStreaming?: boolean;
-    /** Factory function to create the provider instance */
-    createProvider?: (apiKey: string, options?: ProviderOptions) => unknown;
+    /** Factory function to create the provider instance (lazy-loads SDK on first use) */
+    createProvider?: (apiKey: string, options?: ProviderOptions) => Promise<unknown>;
 }
 
 export interface ProviderOptions {
@@ -123,11 +111,14 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey, options) => createOpenAI({
-        apiKey,
-        baseURL: options?.baseURL,
-        headers: options?.headers,
-    }),
+    createProvider: async (apiKey, options) => {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        return createOpenAI({
+            apiKey,
+            baseURL: options?.baseURL,
+            headers: options?.headers,
+        });
+    },
 });
 
 // Anthropic
@@ -142,7 +133,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createAnthropic({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createAnthropic } = await import('@ai-sdk/anthropic');
+        return createAnthropic({ apiKey });
+    },
 });
 
 // Google (Gemini)
@@ -157,7 +151,10 @@ registerProvider({
     supportsVideo: true,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createGoogleGenerativeAI({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
+        return createGoogleGenerativeAI({ apiKey });
+    },
 });
 
 // Groq
@@ -172,7 +169,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createGroq({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createGroq } = await import('@ai-sdk/groq');
+        return createGroq({ apiKey });
+    },
 });
 
 // xAI (Grok)
@@ -187,7 +187,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createXai({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createXai } = await import('@ai-sdk/xai');
+        return createXai({ apiKey });
+    },
 });
 
 // OpenRouter (OpenAI-compatible)
@@ -203,15 +206,18 @@ registerProvider({
     supportsVideo: true,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey, options) => createOpenAI({
-        apiKey,
-        baseURL: options?.baseURL || 'https://openrouter.ai/api/v1',
-        headers: {
-            'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-            'X-Title': 'SonicThinking AI',
-            ...options?.headers,
-        },
-    }),
+    createProvider: async (apiKey, options) => {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        return createOpenAI({
+            apiKey,
+            baseURL: options?.baseURL || 'https://openrouter.ai/api/v1',
+            headers: {
+                'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+                'X-Title': 'SonicThinking AI',
+                ...options?.headers,
+            },
+        });
+    },
 });
 
 // DeepSeek (Native SDK)
@@ -226,7 +232,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createDeepSeek({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createDeepSeek } = await import('@ai-sdk/deepseek');
+        return createDeepSeek({ apiKey });
+    },
 });
 
 // Together AI (Native SDK)
@@ -241,7 +250,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createTogetherAI({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createTogetherAI } = await import('@ai-sdk/togetherai');
+        return createTogetherAI({ apiKey });
+    },
 });
 
 // Perplexity (Native SDK)
@@ -256,7 +268,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: false,
     supportsStreaming: true,
-    createProvider: (apiKey) => createPerplexity({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createPerplexity } = await import('@ai-sdk/perplexity');
+        return createPerplexity({ apiKey });
+    },
 });
 
 // Fireworks AI (Native SDK)
@@ -271,7 +286,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createFireworks({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createFireworks } = await import('@ai-sdk/fireworks');
+        return createFireworks({ apiKey });
+    },
 });
 
 // Mistral AI (Native SDK)
@@ -286,7 +304,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createMistral({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createMistral } = await import('@ai-sdk/mistral');
+        return createMistral({ apiKey });
+    },
 });
 
 // Cerebras (Native SDK)
@@ -301,7 +322,10 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey) => createCerebras({ apiKey }),
+    createProvider: async (apiKey) => {
+        const { createCerebras } = await import('@ai-sdk/cerebras');
+        return createCerebras({ apiKey });
+    },
 });
 
 // Kimi / Moonshot (OpenAI-compatible)
@@ -317,10 +341,13 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (apiKey, options) => createOpenAI({
-        apiKey,
-        baseURL: options?.baseURL || 'https://api.moonshot.cn/v1',
-    }),
+    createProvider: async (apiKey, options) => {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        return createOpenAI({
+            apiKey,
+            baseURL: options?.baseURL || 'https://api.moonshot.cn/v1',
+        });
+    },
 });
 
 // Ollama (Local, OpenAI-compatible)
@@ -335,10 +362,13 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (_apiKey, options) => createOpenAI({
-        apiKey: 'ollama', // Ollama doesn't need an API key
-        baseURL: options?.baseURL || 'http://localhost:11434/v1',
-    }),
+    createProvider: async (_apiKey, options) => {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        return createOpenAI({
+            apiKey: 'ollama',
+            baseURL: options?.baseURL || 'http://localhost:11434/v1',
+        });
+    },
 });
 
 // LM Studio (Local, OpenAI-compatible)
@@ -353,10 +383,41 @@ registerProvider({
     supportsVideo: false,
     supportsTools: true,
     supportsStreaming: true,
-    createProvider: (_apiKey, options) => createOpenAI({
-        apiKey: 'lmstudio', // LM Studio doesn't need an API key
-        baseURL: options?.baseURL || 'http://localhost:1234/v1',
-    }),
+    createProvider: async (_apiKey, options) => {
+        const { createOpenAI } = await import('@ai-sdk/openai');
+        return createOpenAI({
+            apiKey: 'lmstudio',
+            baseURL: options?.baseURL || 'http://localhost:1234/v1',
+        });
+    },
+});
+
+// Replicate (image & video generation)
+registerProvider({
+    id: 'replicate',
+    name: 'Replicate',
+    category: 'custom',
+    envKey: 'VITE_REPLICATE_API_TOKEN',
+    envFallbacks: ['REPLICATE_API_TOKEN'],
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: true,
+    supportsTools: false,
+    supportsStreaming: false,
+});
+
+// fal.ai (image & video generation)
+registerProvider({
+    id: 'fal',
+    name: 'fal.ai',
+    category: 'custom',
+    envKey: 'VITE_FALAI_API_KEY',
+    envFallbacks: ['FAL_KEY', 'VITE_FAL_KEY', 'FALAI_API_KEY'],
+    supportsImages: true,
+    supportsAudio: false,
+    supportsVideo: true,
+    supportsTools: false,
+    supportsStreaming: false,
 });
 
 // ============================================================================
@@ -440,10 +501,10 @@ export function getConfiguredProviders(): ProviderConfig[] {
 /**
  * Create or get cached provider instance
  */
-export function getProviderInstance(
+export async function getProviderInstance(
     providerId: string,
     options?: ProviderOptions
-): ProviderInstance {
+): Promise<ProviderInstance> {
     // Return cached instance if no custom options
     if (!options && providerInstances.has(providerId)) {
         return providerInstances.get(providerId)!;
@@ -468,7 +529,7 @@ export function getProviderInstance(
         throw new Error(`Provider "${providerId}" does not have a createProvider function.`);
     }
 
-    const instance = config.createProvider(apiKey || '', {
+    const instance = await config.createProvider(apiKey || '', {
         baseURL: options?.baseURL || config.baseURL,
         headers: options?.headers || config.defaultHeaders,
     });
@@ -493,8 +554,8 @@ export function getProviderInstance(
 /**
  * Get a language model from a provider
  */
-export function getModel(providerId: string, modelId: string, options?: ProviderOptions): LanguageModel {
-    const instance = getProviderInstance(providerId, options);
+export async function getModel(providerId: string, modelId: string, options?: ProviderOptions): Promise<LanguageModel> {
+    const instance = await getProviderInstance(providerId, options);
     return instance.getModel(modelId);
 }
 
@@ -526,4 +587,6 @@ export type ProviderId =
     | 'kimi'
     | 'ollama'
     | 'lmstudio'
+    | 'replicate'
+    | 'fal'
     | (string & {}); // Allow custom provider IDs

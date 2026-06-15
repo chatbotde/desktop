@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useSyncExternalStore } from 'react'
 import { GLOBAL_THEME } from '@/global/theme'
 import CatBuddy from '@/components/lottie/cat'
 import type { CatPosture } from '@/components/lottie/cat'
-import { useLiveAssistant } from '@/components/assistant-animation/use-live-assistant'
+import { useLiveAssistant } from '@/components/assistant-animation/live-assistant-provider'
 import { ImageGenerationWindow } from '@/components/image-generation-window'
 import { VideoGenerationWindow } from '@/components/video-generation-window'
 

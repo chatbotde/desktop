@@ -12,10 +12,25 @@ import { PromptInputWithActions } from '@/components'
 import { GLOBAL_THEME } from '@/global/theme'
 import { useAppState } from '../context/AppContext'
 
+type DragConstraintBox = {
+  top: number
+  left: number
+  right: number
+  bottom: number
+}
+
+const DEFAULT_DRAG_CONSTRAINTS: DragConstraintBox = {
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+}
+
 export function PromptInputOverlay() {
   const { uiState, messageManager, handleSendMessage } = useAppState()
   const [hasMovedDown, setHasMovedDown] = useState(false)
-  const constraintsRef = useRef(null)
+  const [dragConstraints, setDragConstraints] = useState<DragConstraintBox>(DEFAULT_DRAG_CONSTRAINTS)
+  const draggableRef = useRef<HTMLDivElement>(null)
   const dragControls = useAnimation()
 
   // ✅ Legitimate useEffect: responding to external state change (input hiding)
@@ -23,10 +38,40 @@ export function PromptInputOverlay() {
     if (!uiState.isInputVisible) setHasMovedDown(false)
   }, [uiState.isInputVisible])
 
+  const updateDragConstraints = useCallback(() => {
+    const el = draggableRef.current
+    if (!el) return
+
+    const rect = el.getBoundingClientRect()
+    const padding = 8
+
+    setDragConstraints({
+      top: -rect.top + padding,
+      left: -rect.left + padding,
+      bottom: window.innerHeight - rect.bottom - padding,
+      right: window.innerWidth - rect.right - padding,
+    })
+  }, [])
+
+  // Re-measure drag bounds after the prompt moves or finishes its entrance animation.
+  useEffect(() => {
+    if (!uiState.isInputVisible) return
+
+    updateDragConstraints()
+    const settleTimer = window.setTimeout(updateDragConstraints, 450)
+
+    window.addEventListener('resize', updateDragConstraints)
+    return () => {
+      window.clearTimeout(settleTimer)
+      window.removeEventListener('resize', updateDragConstraints)
+    }
+  }, [uiState.isInputVisible, hasMovedDown, updateDragConstraints])
+
   // ✅ Legitimate useEffect: imperative animation API (Framer Motion animate)
   useEffect(() => {
     dragControls.start({ x: 0, y: 0, transition: { type: 'spring', damping: 30, stiffness: 300 } })
-  }, [hasMovedDown, dragControls])
+    updateDragConstraints()
+  }, [hasMovedDown, dragControls, updateDragConstraints])
 
   const onSendWrapper = useCallback(async (msg: string, attachments?: unknown[], options?: unknown) => {
     setHasMovedDown(true)
@@ -36,7 +81,7 @@ export function PromptInputOverlay() {
   if (!uiState.isInputVisible) return null
 
   return (
-    <div ref={constraintsRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: GLOBAL_THEME.zIndex.input }}>
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: GLOBAL_THEME.zIndex.input }}>
       <motion.div
         initial={{ y: '-55vh', x: '-50%', opacity: 0, scale: 0.95 }}
         animate={{
@@ -46,14 +91,17 @@ export function PromptInputOverlay() {
           scale: 1,
         }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        onAnimationComplete={updateDragConstraints}
         className="absolute bottom-5 left-1/2 w-full max-w-xl pointer-events-none"
       >
         <motion.div
+          ref={draggableRef}
           drag
-          dragConstraints={constraintsRef}
+          dragConstraints={dragConstraints}
           dragElastic={0.05}
           dragMomentum={false}
           animate={dragControls}
+          onDragEnd={updateDragConstraints}
           className="w-full !cursor-auto pointer-events-auto"
           data-no-clickthrough
         >

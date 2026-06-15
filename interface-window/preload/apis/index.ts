@@ -12,3 +12,4 @@ export { createFileAPI } from './file';
 export { createYouTubeTranscriptAPI } from './youtube';
 export { createWhisperAPI } from './whisper';
 export { createComposioAPI } from './composio';
+export { createMcpAPI } from './mcp';

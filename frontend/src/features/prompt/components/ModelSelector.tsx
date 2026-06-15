@@ -73,6 +73,8 @@ const getProviderColor = (provider: string) => {
       return 'bg-orange-100 text-orange-800 border-orange-200';
     case 'replicate':
       return 'bg-pink-100 text-pink-800 border-pink-200';
+    case 'fal':
+      return 'bg-violet-100 text-violet-800 border-violet-200';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }

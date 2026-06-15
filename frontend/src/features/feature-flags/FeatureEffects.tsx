@@ -1,23 +1,32 @@
-import type React from "react"
+import { Suspense, lazy, useMemo, type ComponentType } from "react"
 
 type EffectModule = {
   featureId: string
-  FeatureEffect: React.ComponentType
+  FeatureEffect: ComponentType
 }
 
-const effectModules = import.meta.glob<EffectModule>("./effects/*.effect.tsx", {
-  eager: true,
-})
+const effectLoaders = import.meta.glob<EffectModule>("./effects/*.effect.tsx")
+
+function lazyEffect(loader: () => Promise<EffectModule>) {
+  return lazy(async () => {
+    const module = await loader()
+    return { default: module.FeatureEffect }
+  })
+}
 
 export function FeatureEffects() {
-  const modules = Object.values(effectModules)
+  const lazyEffects = useMemo(
+    () => Object.values(effectLoaders).map((loader) => lazyEffect(loader)),
+    []
+  )
+
   return (
     <>
-      {modules.map((m) => {
-        const Effect = m.FeatureEffect
-        return <Effect key={m.featureId} />
-      })}
+      {lazyEffects.map((Effect, index) => (
+        <Suspense key={index} fallback={null}>
+          <Effect />
+        </Suspense>
+      ))}
     </>
   )
 }
-

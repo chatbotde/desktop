@@ -121,7 +121,7 @@ class AISDKService {
         prompt: string,
         options: StreamOptions = {}
     ) {
-        const model = this.getLanguageModel(provider, modelId, options.providerOptions);
+        const model = await this.getLanguageModel(provider, modelId, options.providerOptions);
 
         const messages: ModelMessage[] = options.messages || [
             { role: 'user', content: prompt }
@@ -157,7 +157,7 @@ class AISDKService {
         prompt: string,
         options: GenerateOptions = {}
     ) {
-        const model = this.getLanguageModel(provider, modelId, options.providerOptions);
+        const model = await this.getLanguageModel(provider, modelId, options.providerOptions);
 
         const messages: ModelMessage[] = options.messages || [
             { role: 'user', content: prompt }
@@ -194,7 +194,7 @@ class AISDKService {
         schema: z.ZodSchema<T>,
         options: GenerateOptions = {}
     ): Promise<{ object: T; usage?: FinishResult['usage'] }> {
-        const model = this.getLanguageModel(provider, modelId, options.providerOptions);
+        const model = await this.getLanguageModel(provider, modelId, options.providerOptions);
 
         const messages: ModelMessage[] = options.messages || [
             { role: 'user', content: prompt }
@@ -260,11 +260,11 @@ class AISDKService {
     /**
      * Get a language model instance
      */
-    getLanguageModel(
+    async getLanguageModel(
         provider: ProviderId,
         modelId: string,
         options?: ProviderOptions
-    ): LanguageModel {
+    ): Promise<LanguageModel> {
         return getModel(provider, modelId, options);
     }
 

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
 import {
   Tooltip,
@@ -6,7 +7,12 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip"
 import { cn } from "@/shared/lib/utils"
-import { Markdown } from "@/shared/components/markdown/Markdown"
+
+const LazyMarkdown = lazy(() =>
+  import("@/shared/components/markdown/Markdown").then((m) => ({
+    default: m.Markdown,
+  }))
+)
 
 export type MessageProps = {
   children: React.ReactNode
@@ -48,8 +54,7 @@ export type MessageContentProps = {
   children: React.ReactNode
   markdown?: boolean
   className?: string
-} & React.ComponentProps<typeof Markdown> &
-  React.HTMLProps<HTMLDivElement>
+} & React.HTMLProps<HTMLDivElement>
 
 const MessageContent = ({
   children,
@@ -63,9 +68,11 @@ const MessageContent = ({
   )
 
   return markdown ? (
-    <Markdown className={classNames} {...props}>
-      {children as string}
-    </Markdown>
+    <Suspense fallback={<div className={classNames}>{children}</div>}>
+      <LazyMarkdown className={classNames} {...props}>
+        {children as string}
+      </LazyMarkdown>
+    </Suspense>
   ) : (
     <div className={classNames} {...props}>
       {children}

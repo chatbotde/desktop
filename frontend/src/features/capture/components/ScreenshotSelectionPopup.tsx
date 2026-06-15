@@ -5,9 +5,9 @@
  * with expand-to-ask so they can ask AI about the screenshot in place.
  */
 
-import { useState, useSyncExternalStore, useCallback, useRef, useMemo } from 'react'
+import { useState, useSyncExternalStore, useCallback, useRef, useMemo, useLayoutEffect } from 'react'
 
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Shirt } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react'
 import { TextSelectionInput } from '@/features/text-selection/components/TextSelection'
 import { TextSelectionOutput } from '@/features/text-selection/components/TextSelectionOutput'
@@ -16,7 +16,17 @@ import { useFileToAttachment } from '@/components/prompt-input/hooks/use-file-to
 import { sendMessage as sendCloudMessage } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { triggerRectangleScreenshot } from '@/features/capture/lib/trigger-rectangle-screenshot'
+import {
+  clampPopupPosition,
+  centerPopupPosition,
+  getPopupEstimatedSize,
+  positionNearCapture,
+} from '@/features/capture/lib/screenshot-popup-position'
+import { VirtualTryOnPanel } from './VirtualTryOnPanel'
+import { runVirtualTryOnFromFiles, type TryOnCategory } from '@/lib/image/virtual-tryon'
 import { cn } from '@/lib/utils'
+import { GLOBAL_THEME } from '@/global/theme'
+import { useIsDark } from '@/shared/providers'
 
 const DIRECT_OUTPUT_INSTRUCTIONS = `
 IMPORTANT: Provide DIRECT OUTPUT ONLY.
@@ -88,7 +98,7 @@ function ScreenshotThumbnail({
       <div
         className={cn(
           'w-full h-full rounded overflow-hidden border',
-          isDarkTheme ? 'border-zinc-700 bg-zinc-900/60' : 'border-zinc-200 bg-zinc-50'
+          isDarkTheme ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-200 bg-zinc-50'
         )}
       >
         <img src={src} alt={alt} className="w-full h-full object-cover" draggable={false} />
@@ -119,19 +129,33 @@ function ScreenshotThumbnail({
 
 export interface ScreenshotSelectionPopupProps {
   isDarkTheme?: boolean
+  imageWindowEnabled?: boolean
+  onTryOnStart?: () => void
+  onTryOnSuccess?: (images: string[]) => void
+  onTryOnError?: (message: string) => void
 }
 
 export function ScreenshotSelectionPopup({
-  isDarkTheme = true,
+  isDarkTheme: isDarkThemeProp,
+  imageWindowEnabled = true,
+  onTryOnStart,
+  onTryOnSuccess,
+  onTryOnError,
 }: ScreenshotSelectionPopupProps) {
+  const isDarkThemeFromProvider = useIsDark()
+  const isDarkTheme = isDarkThemeProp ?? isDarkThemeFromProvider
+  const themeColors = isDarkTheme ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light
   const [isVisible, setIsVisible] = useState(false)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isTryOnMode, setIsTryOnMode] = useState(false)
+  const [isTryOnGenerating, setIsTryOnGenerating] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedOutput, setGeneratedOutput] = useState<string | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const stopRef = useRef(false)
   const { convertFilesToAttachments } = useFileToAttachment()
@@ -158,12 +182,88 @@ export function ScreenshotSelectionPopup({
   const handleClose = useCallback(() => {
     setIsVisible(false)
     setIsExpanded(false)
+    setIsTryOnMode(false)
+    setIsTryOnGenerating(false)
     setFiles([])
     setPrompt('')
     setIsGenerating(false)
     setGeneratedOutput(null)
     stopAutoHide()
   }, [stopAutoHide])
+
+  const handleVirtualTryOn = useCallback(
+    async (personIndex: number, garmentIndex: number, category: TryOnCategory) => {
+      if (!imageWindowEnabled || isTryOnGenerating) return
+
+      const personFile = files[personIndex]
+      const garmentFile = files[garmentIndex]
+      if (!personFile || !garmentFile) return
+
+      setIsTryOnGenerating(true)
+      stopAutoHide()
+      onTryOnStart?.()
+
+      try {
+        const images = await runVirtualTryOnFromFiles(personFile, garmentFile, { category })
+        onTryOnSuccess?.(images)
+        handleClose()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Virtual try-on failed'
+        onTryOnError?.(message)
+      } finally {
+        setIsTryOnGenerating(false)
+      }
+    },
+    [
+      files,
+      imageWindowEnabled,
+      isTryOnGenerating,
+      onTryOnStart,
+      onTryOnSuccess,
+      onTryOnError,
+      stopAutoHide,
+      handleClose,
+    ]
+  )
+
+  const hasTryOnAction = files.length >= 2 && imageWindowEnabled
+
+  const getEstimatedPopupSize = useCallback(
+    () =>
+      getPopupEstimatedSize({
+        isExpanded,
+        isTryOnMode,
+        hasTryOnAction,
+      }),
+    [isExpanded, isTryOnMode, hasTryOnAction]
+  )
+
+  const clampPositionToViewport = useCallback(
+    (pos: { top: number; left: number }, size?: { width: number; height: number }) => {
+      const resolvedSize = size ?? getEstimatedPopupSize()
+      return clampPopupPosition(pos, resolvedSize)
+    },
+    [getEstimatedPopupSize]
+  )
+
+  const openTryOnMode = useCallback(() => {
+    stopAutoHide()
+    setIsExpanded(true)
+    setIsTryOnMode(true)
+    setGeneratedOutput(null)
+    setPosition(centerPopupPosition(getPopupEstimatedSize({ isExpanded: true, isTryOnMode: true, hasTryOnAction: true })))
+  }, [stopAutoHide, hasTryOnAction])
+
+  const handleDragEnd = useCallback(() => {
+    if (!popupRef.current) return
+    const rect = popupRef.current.getBoundingClientRect()
+    setPosition(
+      clampPopupPosition(
+        { top: rect.top, left: rect.left },
+        { width: rect.width, height: rect.height }
+      )
+    )
+  }, [])
 
   const handleAddMoreScreenshot = useCallback(() => {
     stopAutoHide()
@@ -261,20 +361,13 @@ export function ScreenshotSelectionPopup({
           return
         }
 
-        const PILL_HEIGHT = 56
-        const PILL_WIDTH = 220
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
-        const padding = 20
-        const offset = 15
-        let top = pos.y + offset
-        let left = pos.x
-        if (top + PILL_HEIGHT > viewportHeight - padding) top = pos.y - PILL_HEIGHT - offset
-        if (top < padding) top = padding
-        if (left + PILL_WIDTH > viewportWidth - padding) left = viewportWidth - PILL_WIDTH - padding
-        if (left < padding) left = padding
+        const pillSize = getPopupEstimatedSize({
+          isExpanded: false,
+          isTryOnMode: false,
+          hasTryOnAction: imageWindowEnabled,
+        })
         setFiles([f])
-        setPosition({ top, left })
+        setPosition(positionNearCapture(pos, pillSize))
         setIsExpanded(false)
         setPrompt('')
         setGeneratedOutput(null)
@@ -287,10 +380,37 @@ export function ScreenshotSelectionPopup({
         window.removeEventListener('screenshot-selection-captured', handler as EventListener)
         stopAutoHide()
       }
-    }, [stopAutoHide]),
+    }, [stopAutoHide, imageWindowEnabled]),
     () => null,
     () => null
   )
+
+  useLayoutEffect(() => {
+    if (!isVisible || !position) return
+
+    setPosition((prev) => {
+      if (!prev) return prev
+      if (isTryOnMode) {
+        return centerPopupPosition(getEstimatedPopupSize())
+      }
+      return clampPositionToViewport(prev)
+    })
+  }, [isVisible, isExpanded, isTryOnMode, files.length, hasTryOnAction, clampPositionToViewport, getEstimatedPopupSize])
+
+  useLayoutEffect(() => {
+    if (!isVisible) return
+
+    const handleResize = () => {
+      setPosition((prev) => {
+        if (!prev) return prev
+        if (isTryOnMode) return centerPopupPosition(getEstimatedPopupSize())
+        return clampPositionToViewport(prev)
+      })
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [isVisible, isTryOnMode, clampPositionToViewport, getEstimatedPopupSize])
 
   // Auto-hide effect when expanded changes - using syncExternalStore
   useSyncExternalStore(
@@ -320,14 +440,17 @@ export function ScreenshotSelectionPopup({
   const extraCount = files.length - visibleThumbnails.length
 
   return (
-    <>
+    <div ref={viewportRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
       <AnimatePresence>
         <motion.div
           ref={popupRef}
           onMouseEnter={stopAutoHide}
           onMouseLeave={startAutoHide}
-          drag
+          drag={!isTryOnMode}
           dragMomentum={false}
+          dragConstraints={viewportRef}
+          dragElastic={0}
+          onDragEnd={handleDragEnd}
           layout
           initial={{ opacity: 0, scale: 0.9, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -338,14 +461,15 @@ export function ScreenshotSelectionPopup({
             stiffness: 300,
           }}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: position.top,
             left: position.left,
-            zIndex: 9999,
             pointerEvents: 'auto',
             touchAction: 'none',
+            maxWidth: `calc(100vw - ${32}px)`,
+            maxHeight: `calc(100vh - ${32}px)`,
           }}
-          className="cursor-grab active:cursor-grabbing"
+          className={cn(!isTryOnMode && 'cursor-grab active:cursor-grabbing')}
           data-no-clickthrough
         >
           <LayoutGroup>
@@ -354,10 +478,10 @@ export function ScreenshotSelectionPopup({
               className={cn(
                 'relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]',
                 isExpanded ? 'rounded-xl' : 'rounded-2xl',
-                isDarkTheme
-                  ? 'bg-zinc-950/95 border border-zinc-800 backdrop-blur-md'
-                  : 'bg-white/95 border border-zinc-200 backdrop-blur-md'
+                'border',
+                isDarkTheme ? 'border-zinc-800' : 'border-zinc-200'
               )}
+              style={{ backgroundColor: themeColors.background }}
             >
               <AnimatePresence mode="popLayout" initial={false}>
                 {!isExpanded ? (
@@ -402,12 +526,43 @@ export function ScreenshotSelectionPopup({
                     <div
                       className={cn(
                         'w-px h-7 mx-0.5',
-                        isDarkTheme ? 'bg-zinc-800' : 'bg-slate-200/50'
+                        isDarkTheme ? 'bg-zinc-800' : 'bg-zinc-200'
                       )}
                     />
+                    {files.length >= 2 && imageWindowEnabled && (
+                      <button
+                        type="button"
+                        onClick={openTryOnMode}
+                        className={cn(
+                          'flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95',
+                          isDarkTheme
+                            ? 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-500'
+                            : 'bg-blue-600 text-white hover:bg-blue-500 border border-blue-600'
+                        )}
+                        title="Virtual try-on with screenshots"
+                      >
+                        <Shirt className="w-3.5 h-3.5" />
+                        Try On
+                      </button>
+                    )}
                     <ExpandButton
                       isExpanded={false}
-                      onClick={() => setIsExpanded(true)}
+                      onClick={() => {
+                        setIsTryOnMode(false)
+                        setIsExpanded(true)
+                        setPosition((prev) =>
+                          prev
+                            ? clampPositionToViewport(
+                                prev,
+                                getPopupEstimatedSize({
+                                  isExpanded: true,
+                                  isTryOnMode: false,
+                                  hasTryOnAction,
+                                })
+                              )
+                            : prev
+                        )
+                      }}
                       isDarkTheme={isDarkTheme}
                       size="sm"
                       tooltip="Expand to ask AI"
@@ -417,8 +572,8 @@ export function ScreenshotSelectionPopup({
                       className={cn(
                         'p-1.5 rounded-full transition-all hover:scale-110 active:scale-95',
                         isDarkTheme
-                          ? 'hover:bg-zinc-800 text-zinc-500 hover:text-red-400'
-                          : 'hover:bg-slate-100/50 text-slate-600 hover:text-red-500'
+                          ? 'hover:bg-zinc-800 text-zinc-400 hover:text-red-400'
+                          : 'hover:bg-zinc-100 text-zinc-600 hover:text-red-500'
                       )}
                       title="Dismiss"
                     >
@@ -432,51 +587,89 @@ export function ScreenshotSelectionPopup({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex flex-col w-[320px] relative"
+                    className="flex flex-col w-[320px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] overflow-y-auto relative"
+                    style={{ backgroundColor: themeColors.background }}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-12 pointer-events-none bg-gradient-to-b from-blue-500/10 via-transparent to-transparent" />
+                    {!isTryOnMode && (
+                      <div
+                        className={cn(
+                          'absolute top-0 left-0 right-0 h-12 pointer-events-none',
+                          isDarkTheme
+                            ? 'bg-gradient-to-b from-zinc-900 to-transparent'
+                            : 'bg-gradient-to-b from-zinc-50 to-transparent'
+                        )}
+                      />
+                    )}
                     <div className="absolute top-1.5 right-1.5 z-10">
                       <button
                         onClick={handleClose}
                         className={cn(
-                          'p-1 rounded-full transition-all hover:scale-110 active:scale-95',
+                          'p-1 rounded-full transition-all hover:scale-110 active:scale-95 border',
                           isDarkTheme
-                            ? 'bg-zinc-800 text-zinc-500 hover:text-red-400'
-                            : 'bg-slate-100/50 text-slate-600 hover:text-red-500'
+                            ? 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:text-red-400'
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:text-red-500'
                         )}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    {imagePreviewUrls.length > 0 && (
-                      <div className="mx-2 mt-2 flex items-center gap-1.5 flex-wrap">
-                        {imagePreviewUrls.map((url, index) => (
-                          <ScreenshotThumbnail
-                            key={`${files[index]?.name ?? 'shot'}-${index}`}
-                            src={url}
-                            alt={`Screenshot ${index + 1}`}
-                            isDarkTheme={isDarkTheme}
-                            className="w-14 h-10"
-                            onRemove={() => handleRemoveImage(index)}
-                          />
-                        ))}
-                        <AddScreenshotSlot
-                          onClick={handleAddMoreScreenshot}
+                    {isTryOnMode && files.length >= 2 ? (
+                      <VirtualTryOnPanel
+                        imagePreviewUrls={imagePreviewUrls}
+                        files={files}
+                        isGenerating={isTryOnGenerating}
+                        onTryOn={handleVirtualTryOn}
+                        onBack={() => setIsTryOnMode(false)}
+                      />
+                    ) : (
+                      <>
+                        {imagePreviewUrls.length > 0 && (
+                          <div className="mx-2 mt-2 flex items-center gap-1.5 flex-wrap">
+                            {imagePreviewUrls.map((url, index) => (
+                              <ScreenshotThumbnail
+                                key={`${files[index]?.name ?? 'shot'}-${index}`}
+                                src={url}
+                                alt={`Screenshot ${index + 1}`}
+                                isDarkTheme={isDarkTheme}
+                                className="w-14 h-10"
+                                onRemove={() => handleRemoveImage(index)}
+                              />
+                            ))}
+                            <AddScreenshotSlot
+                              onClick={handleAddMoreScreenshot}
+                              isDarkTheme={isDarkTheme}
+                              className="w-14 h-10"
+                            />
+                            {files.length >= 2 && imageWindowEnabled && (
+                              <button
+                                type="button"
+                                onClick={openTryOnMode}
+                                className={cn(
+                                  'w-14 h-10 shrink-0 rounded-md border flex flex-col items-center justify-center gap-0.5 text-[9px] font-medium transition-colors',
+                                  isDarkTheme
+                                    ? 'border-blue-500 bg-blue-600 text-white hover:bg-blue-500'
+                                    : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-500'
+                                )}
+                                title="Virtual try-on"
+                              >
+                                <Shirt className="w-3.5 h-3.5" />
+                                Try On
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <TextSelectionInput
+                          value={prompt}
+                          onChange={setPrompt}
+                          onGenerate={handleGenerateInline}
+                          onStop={handleStop}
+                          onClose={handleClose}
+                          placeholder="Ask AI about this screenshot..."
+                          isGenerating={isGenerating}
                           isDarkTheme={isDarkTheme}
-                          className="w-14 h-10"
                         />
-                      </div>
+                      </>
                     )}
-                    <TextSelectionInput
-                      value={prompt}
-                      onChange={setPrompt}
-                      onGenerate={handleGenerateInline}
-                      onStop={handleStop}
-                      onClose={handleClose}
-                      placeholder="Ask AI about this screenshot..."
-                      isGenerating={isGenerating}
-                      isDarkTheme={isDarkTheme}
-                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -485,20 +678,23 @@ export function ScreenshotSelectionPopup({
         </motion.div>
       </AnimatePresence>
 
-      {isExpanded && (generatedOutput !== null || isGenerating) && (
+      {isExpanded && !isTryOnMode && (generatedOutput !== null || isGenerating) && position && (
         <TextSelectionOutput
           content={generatedOutput ?? ''}
           isStreaming={isGenerating}
           onCopy={handleCopyOutput}
           isDarkTheme={isDarkTheme}
           floating
-          anchorPosition={{ x: position.left, y: position.top }}
+          anchorPosition={{
+            x: clampPositionToViewport(position).left,
+            y: clampPositionToViewport(position).top,
+          }}
           onClose={() => {
             setGeneratedOutput(null)
             setIsGenerating(false)
           }}
         />
       )}
-    </>
+    </div>
   )
 }

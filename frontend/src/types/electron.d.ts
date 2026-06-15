@@ -275,6 +275,19 @@ declare global {
     };
 
     /**
+     * MCP (Model Context Protocol) client API
+     */
+    mcpAPI?: {
+      listServers: () => Promise<McpServerEntry[]>;
+      addServer: (config: McpServerConfigInput) => Promise<McpServerConfig>;
+      removeServer: (serverId: string) => Promise<{ success: boolean }>;
+      connect: (serverId: string) => Promise<McpConnectionStatus>;
+      disconnect: (serverId: string) => Promise<McpConnectionStatus>;
+      listTools: (serverId: string) => Promise<McpToolDefinition[]>;
+      callTool: (serverId: string, name: string, args?: Record<string, unknown>) => Promise<unknown>;
+    };
+
+    /**
      * Composio Integrations API
      */
     composioAPI?: {
@@ -289,6 +302,48 @@ declare global {
     };
 
   }
+}
+
+export type McpTransportType = 'stdio' | 'http';
+
+export interface McpTransportConfig {
+  type: McpTransportType;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  url?: string;
+  headers?: Record<string, string>;
+}
+
+export interface McpServerConfigInput {
+  name: string;
+  enabled?: boolean;
+  transport: McpTransportConfig;
+}
+
+export interface McpServerConfig extends McpServerConfigInput {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface McpConnectionStatus {
+  serverId: string;
+  name: string;
+  status: 'disconnected' | 'connecting' | 'connected' | 'error';
+  error: string | null;
+  serverInfo: unknown;
+}
+
+export interface McpServerEntry extends McpServerConfig {
+  connection: McpConnectionStatus;
+}
+
+export interface McpToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
 }
 
 export interface ComposioToolkit {

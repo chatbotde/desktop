@@ -54,10 +54,6 @@ export function PromptInputExpanded({
     handleToggleGrounding,
   } = useExpandedLocalLLM()
 
-  const isAutoScreenshot = (file: File): boolean => {
-    return !!(file as any).__isAutoScreenshot
-  }
-
   const canSubmit = useCanSubmit({ input, files, clipboardItems, references })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
 
@@ -131,7 +127,6 @@ export function PromptInputExpanded({
           onRemoveFile={onRemoveFile}
           onRemoveClipboardItem={onRemoveClipboardItem}
           onRemoveReference={onRemoveReference}
-          isAutoScreenshot={isAutoScreenshot}
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}
           hoverClass={hoverClass}

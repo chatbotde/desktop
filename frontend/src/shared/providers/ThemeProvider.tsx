@@ -90,6 +90,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     'app-color-theme',
     readStoredPalette()
   )
+  const [customCursor, setCustomCursorRaw] = useLocalStorageStore<boolean>(
+    CUSTOM_CURSOR_STORAGE_KEY,
+    false
+  )
   const [systemTheme, setSystemTheme] = useState<ResolvedAppearanceMode>(getSystemAppearanceMode)
 
   useEffect(() => {
@@ -123,6 +127,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     else console.warn(`Palette "${newTheme}" is not available.`)
   }
 
+  const setCustomCursor = (enabled: boolean) => setCustomCursorRaw(enabled)
+
   const contextValue = useMemo<ThemeContextType>(() => ({
     theme,
     isDark: resolvedTheme === 'dark',
@@ -136,7 +142,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setColorTheme,
     availableColorThemes: AVAILABLE_COLOR_THEMES,
     colorThemeConfig: COLOR_THEME_CONFIG,
-  }), [theme, resolvedTheme, colorTheme])
+
+    customCursor,
+    setCustomCursor,
+  }), [theme, resolvedTheme, colorTheme, customCursor])
 
   return (
     <ThemeContext.Provider value={contextValue}>

@@ -1,6 +1,7 @@
 import { useRef, useState, useSyncExternalStore, useCallback } from 'react'
 import { Copy, Check, Send, Play, AtSign, FileText } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
+import { openRecordedImageViewer } from '@/lib/events/recorded-image-player'
 import type { ChatMessage } from '../types'
 
 interface ParsedMessageContent {
@@ -164,12 +165,21 @@ export function UserMessageBubble({
                   )}
                 >
                   {attachment.mediaType === 'image' ? (
-                    <img
-                      src={attachment.data}
-                      alt={attachment.name}
-                      className="w-16 h-16 object-cover"
-                      loading="lazy"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => openRecordedImageViewer(attachment.data, attachment.name)}
+                      className="block cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-400"
+                      aria-label={`View ${attachment.name}`}
+                      title="View image"
+                    >
+                      <img
+                        src={attachment.data}
+                        alt={attachment.name}
+                        className="w-16 h-16 object-cover pointer-events-none"
+                        loading="lazy"
+                        draggable={false}
+                      />
+                    </button>
                   ) : (
                     <>
                       <video

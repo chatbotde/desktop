@@ -12,8 +12,11 @@ export function useResizable(
   size: Size,
   setSize: (size: Size) => void,
   position: Position,
-  setPosition: (pos: Position) => void
+  setPosition: (pos: Position) => void,
+  options?: { minWidth?: number; minHeight?: number }
 ): UseResizableResult {
+  const minWidth = options?.minWidth ?? 300
+  const minHeight = options?.minHeight ?? 200
   const [isResizing, setIsResizing] = useState(false)
   const [resizeStart, setResizeStart] = useState({ 
     x: 0, 
@@ -39,17 +42,17 @@ export function useResizable(
 
         // Handle different resize directions
         if (direction.includes('e')) {
-          newWidth = Math.max(300, resizeStart.width + deltaX)
+          newWidth = Math.max(minWidth, resizeStart.width + deltaX)
         }
         if (direction.includes('w')) {
-          newWidth = Math.max(300, resizeStart.width - deltaX)
+          newWidth = Math.max(minWidth, resizeStart.width - deltaX)
           newX = resizeStart.posX + deltaX
         }
         if (direction.includes('s')) {
-          newHeight = Math.max(200, resizeStart.height + deltaY)
+          newHeight = Math.max(minHeight, resizeStart.height + deltaY)
         }
         if (direction.includes('n')) {
-          newHeight = Math.max(200, resizeStart.height - deltaY)
+          newHeight = Math.max(minHeight, resizeStart.height - deltaY)
           newY = resizeStart.posY + deltaY
         }
 
@@ -70,7 +73,7 @@ export function useResizable(
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
       }
-    }, [isResizing, resizeStart, setSize, direction, setPosition]),
+    }, [isResizing, resizeStart, setSize, direction, setPosition, minWidth, minHeight]),
     () => null,
     () => null
   )

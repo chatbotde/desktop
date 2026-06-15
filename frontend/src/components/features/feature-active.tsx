@@ -1,6 +1,10 @@
 "use client"
 
+import { useMemo, useState } from "react"
+import { Search } from "lucide-react"
+
 import { Button } from "@/shared/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
 import {
   Tooltip,
   TooltipContent,
@@ -16,14 +20,34 @@ interface DynamicFeatureListProps {
   includeIds?: string[]
 }
 
+function matchesFeatureSearch(
+  feature: { id: string; label: string; description?: string },
+  query: string
+): boolean {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) return true
+
+  return (
+    feature.label.toLowerCase().includes(normalized) ||
+    feature.id.toLowerCase().includes(normalized) ||
+    (feature.description?.toLowerCase().includes(normalized) ?? false)
+  )
+}
+
 export function DynamicFeatureList({ includeIds }: DynamicFeatureListProps) {
   const { isFeatureEnabled, toggleFeature } = useFeature()
   const isDark = useIsDark()
-  let features = getFeaturesForList()
+  const [searchQuery, setSearchQuery] = useState("")
 
-  if (includeIds) {
-    features = features.filter((f) => includeIds.includes(f.id))
-  }
+  const features = useMemo(() => {
+    let list = getFeaturesForList()
+
+    if (includeIds) {
+      list = list.filter((f) => includeIds.includes(f.id))
+    }
+
+    return list.filter((f) => matchesFeatureSearch(f, searchQuery))
+  }, [includeIds, searchQuery])
 
   const handleFeatureClick = (featureId: string) => {
     if (featureId === "output-window") return
@@ -32,7 +56,36 @@ export function DynamicFeatureList({ includeIds }: DynamicFeatureListProps) {
 
   return (
     <div className="space-y-3" data-no-clickthrough>
+      <div className="relative">
+        <Search
+          className={cn(
+            "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
+            isDark ? "text-zinc-400" : "text-zinc-500"
+          )}
+        />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search features..."
+          className={cn(
+            "pl-9",
+            isDark &&
+              "border-zinc-800 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-700"
+          )}
+        />
+      </div>
+
       <TooltipProvider delayDuration={200}>
+        {features.length === 0 ? (
+          <p
+            className={cn(
+              "text-sm",
+              isDark ? "text-zinc-400" : "text-zinc-600"
+            )}
+          >
+            No features match your search.
+          </p>
+        ) : (
         <div className="flex flex-wrap gap-2">
           {features.map((feature) => {
             const Icon = feature.icon
@@ -72,6 +125,7 @@ export function DynamicFeatureList({ includeIds }: DynamicFeatureListProps) {
             )
           })}
         </div>
+        )}
       </TooltipProvider>
     </div>
   )

@@ -115,6 +115,7 @@ export function useVideoRecording(): UseVideoRecordingResult {
         videoBitsPerSecond: 2500000
     });
     const contentProtectionBeforeRecordingRef = useRef(false);
+    const didEnableContentProtectionRef = useRef(false);
 
     const setCaptureContentProtection = useCallback(async (enabled: boolean) => {
         if (typeof window === 'undefined' || !window.interfaceAPI?.setContentProtection) return
@@ -123,18 +124,15 @@ export function useVideoRecording(): UseVideoRecordingResult {
 
     const excludeOverlayFromCapture = useCallback(async () => {
         if (typeof window === 'undefined' || !window.interfaceAPI?.setContentProtection) return
-        try {
-            if (window.interfaceAPI.getContentProtection) {
-                contentProtectionBeforeRecordingRef.current = await window.interfaceAPI.getContentProtection()
-            }
-        } catch {
-            contentProtectionBeforeRecordingRef.current = false
-        }
+        contentProtectionBeforeRecordingRef.current = false
+        didEnableContentProtectionRef.current = true
         await setCaptureContentProtection(true)
     }, [setCaptureContentProtection])
 
     const restoreCaptureContentProtection = useCallback(async () => {
+        if (!didEnableContentProtectionRef.current) return
         await setCaptureContentProtection(contentProtectionBeforeRecordingRef.current)
+        didEnableContentProtectionRef.current = false
     }, [setCaptureContentProtection])
 
     // Computed states

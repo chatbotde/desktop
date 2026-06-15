@@ -1,7 +1,7 @@
-import { useMemo, useEffect } from 'react'
 import { Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { openRecordedVideoPlayer } from '@/lib/events/recorded-video-player'
+import { useFilePreviewUrl } from './hooks/use-file-preview-url'
 
 interface PromptVideoPreviewProps {
   file: File
@@ -20,11 +20,7 @@ export function PromptVideoPreview({
   className,
   variant = 'expanded',
 }: PromptVideoPreviewProps) {
-  const videoUrl = useMemo(() => URL.createObjectURL(file), [file])
-
-  useEffect(() => {
-    return () => URL.revokeObjectURL(videoUrl)
-  }, [videoUrl])
+  const videoUrl = useFilePreviewUrl(file)
 
   const isCollapsed = variant === 'collapsed'
   const sizeClass = isCollapsed ? 'h-6 w-10' : 'h-14 w-24'
@@ -50,13 +46,17 @@ export function PromptVideoPreview({
         aria-label={`Play ${file.name}`}
         title="Play in overlay"
       >
-        <video
-          src={videoUrl}
-          className="h-full w-full object-cover pointer-events-none"
-          preload="metadata"
-          muted
-          playsInline
-        />
+        {videoUrl ? (
+          <video
+            src={videoUrl}
+            className="h-full w-full object-cover pointer-events-none"
+            preload="metadata"
+            muted
+            playsInline
+          />
+        ) : (
+          <div className="h-full w-full animate-pulse bg-zinc-800" />
+        )}
         <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white/90 text-black shadow-sm">

@@ -1,6 +1,7 @@
 import { useCallback } from "react"
 import { useYoutubeTranscript } from "./use-youtube-transcript"
 import { toast } from "sonner"
+import { openYoutubePlayer } from "@/lib/open-youtube-player"
 
 interface UsePasteHandlerProps {
   onFilesAdded?: (files: File[]) => void
@@ -47,9 +48,7 @@ export function usePasteHandler({
         const url = pastedText.trim()
         e.preventDefault() // Prevent URL from being typed into input
 
-        window.dispatchEvent(
-          new CustomEvent('open-youtube-player', { detail: { url } })
-        )
+        openYoutubePlayer(url)
         
         // Show loading toast
         toast.loading('Fetching YouTube transcript...', { id: 'youtube-transcript' })

@@ -12,6 +12,8 @@ import { usePasteHandler } from "./prompt-shared"
 import { MicHoverAudioPill } from "@/features/audio"
 import { VideoHoverCapturePill } from "@/features/capture/components"
 import { CollapsedFileItems } from "./collapsed-file-items"
+import { PromptImagePreview, isImageFile } from "./prompt-image-preview"
+import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
 import { CollapsedSubmitButton } from "./collapsed-submit-button"
 import { usePromptTheme } from "./hooks/use-prompt-theme"
 import { useCanSubmit } from "./hooks/use-can-submit"
@@ -61,8 +63,38 @@ export function PromptInputCollapsed({
     setIsExpanded: expandedSetter,
   })
 
+  const mediaFiles = files.filter((file) => isImageFile(file) || isVideoFile(file))
+
   return (
-    <div className="relative flex items-center gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}>
+    <div className="relative flex flex-col gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}>
+      {mediaFiles.length > 0 && (
+        <div className="flex flex-wrap gap-2 justify-start px-1">
+          {files.map((file, index) => {
+            if (isImageFile(file)) {
+              return (
+                <PromptImagePreview
+                  key={`${file.name}-${index}`}
+                  file={file}
+                  variant="expanded"
+                  onRemove={() => onRemoveFile?.(index)}
+                />
+              )
+            }
+            if (isVideoFile(file)) {
+              return (
+                <PromptVideoPreview
+                  key={`${file.name}-${index}`}
+                  file={file}
+                  variant="expanded"
+                  onRemove={() => onRemoveFile?.(index)}
+                />
+              )
+            }
+            return null
+          })}
+        </div>
+      )}
+      <div className="relative flex items-center gap-2">
       <PromptInputHeader
         onClipboardItemAdd={onClipboardItemAdd}
         setInput={setInput}
@@ -153,6 +185,7 @@ export function PromptInputCollapsed({
           isDarkTheme={isDarkTheme}
           themeClasses={themeClasses}
         />
+      </div>
       </div>
     </div>
   )

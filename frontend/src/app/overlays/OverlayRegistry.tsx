@@ -1,59 +1,57 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import type { ComponentType } from 'react'
+import { Suspense, lazy, useState } from 'react'
+import type { ComponentType, LazyExoticComponent } from 'react'
 import { ANIMATION_REGISTRY } from '@/shared/registry/animationRegistry'
 import { GenericLottieOverlay } from './GenericLottieOverlay'
 import { useAnimations } from '@/shared/providers/AnimationsProvider'
 import { useConfig } from '@/shared/config/config-manager'
 import LogoIntro from '@/shared/components/common/logointro'
+import { LiveAssistantProvider } from '@/components/assistant-animation/live-assistant-provider'
 
-// ── Non-animation overlays (these are NOT in the registry) ────────────────────
-import { GlobalAssistantOverlay } from './GlobalAssistantOverlay'
-import { TextSelectionOverlay } from './TextSelectionOverlay'
-import { RightTransparentOverlay } from './RightTransparentOverlay'
-import { OutputMessagesOverlay } from './OutputMessagesOverlay'
-import { ExplanationOverlay } from './ExplanationOverlay'
-import { AudioRecordingOverlay } from './AudioRecordingOverlay'
-import { VideoScrollOverlay } from './VideoScrollOverlay'
-import { AreaScreenshotOverlay } from './AreaScreenshotOverlay'
-import { ScreenshotSelectionOverlay } from './ScreenshotSelectionOverlay'
-import { RectangleScreenshotOverlay } from './RectangleScreenshotOverlay'
-import { ImageGenerationOverlay } from './ImageGenerationOverlay'
+// ── Core overlays — loaded immediately (lightweight, always needed) ─────────
 import { PromptInputOverlay } from './PromptInputOverlay'
-import { SettingsOverlay } from './SettingsOverlay'
-import { CatAssistantOverlay } from './CatAssistantOverlay'
-
-import { PointerOverlay } from './PointerOverlay'
+import { OutputMessagesOverlay } from './OutputMessagesOverlay'
+import { TextSelectionOverlay } from './TextSelectionOverlay'
 import { PointerInputOverlay } from './PointerInputOverlay'
-import { YoutubePlayerOverlay } from './YoutubePlayerOverlay'
-import { RecordedVideoPlayerOverlay } from './RecordedVideoPlayerOverlay'
-import { ThreeSceneOverlay } from './ThreeSceneOverlay'
+import { RightTransparentOverlay } from './RightTransparentOverlay'
 
-/**
- * Non-animation overlays — manually imported because they are not
- * Lottie animations and don't belong in the animation registry.
- */
-const STATIC_OVERLAYS: ComponentType[] = [
-    GlobalAssistantOverlay,
-    TextSelectionOverlay,
-    RightTransparentOverlay,
-    OutputMessagesOverlay,
-    ExplanationOverlay,
-    AudioRecordingOverlay,
-    VideoScrollOverlay,
-    AreaScreenshotOverlay,
-    ScreenshotSelectionOverlay,
-    RectangleScreenshotOverlay,
-    ImageGenerationOverlay,
-    PromptInputOverlay,
-    SettingsOverlay,
-    CatAssistantOverlay,
-    PointerOverlay,
-    PointerInputOverlay,
-    YoutubePlayerOverlay,
-    RecordedVideoPlayerOverlay,
-    ThreeSceneOverlay,
+// ── Heavy overlays — lazy-loaded to reduce startup memory ─────────────────────
+const lazyOverlay = <T extends Record<string, ComponentType>>(
+  loader: () => Promise<T>,
+  exportName: keyof T
+) =>
+  lazy(() =>
+    loader().then((module) => ({
+      default: module[exportName] as ComponentType,
+    }))
+  )
+
+const LAZY_OVERLAYS: LazyExoticComponent<ComponentType>[] = [
+  lazyOverlay(() => import('./GlobalAssistantOverlay'), 'GlobalAssistantOverlay'),
+  lazyOverlay(() => import('./ExplanationOverlay'), 'ExplanationOverlay'),
+  lazyOverlay(() => import('./AudioRecordingOverlay'), 'AudioRecordingOverlay'),
+  lazyOverlay(() => import('./VideoScrollOverlay'), 'VideoScrollOverlay'),
+  lazyOverlay(() => import('./AreaScreenshotOverlay'), 'AreaScreenshotOverlay'),
+  lazyOverlay(() => import('./ScreenshotSelectionOverlay'), 'ScreenshotSelectionOverlay'),
+  lazyOverlay(() => import('./RectangleScreenshotOverlay'), 'RectangleScreenshotOverlay'),
+  lazyOverlay(() => import('./ImageGenerationOverlay'), 'ImageGenerationOverlay'),
+  lazyOverlay(() => import('./VideoGenerationOverlay'), 'VideoGenerationOverlay'),
+  lazyOverlay(() => import('./SettingsOverlay'), 'SettingsOverlay'),
+  lazyOverlay(() => import('./CatAssistantOverlay'), 'CatAssistantOverlay'),
+  lazyOverlay(() => import('./PointerOverlay'), 'PointerOverlay'),
+  lazyOverlay(() => import('./YoutubePlayerOverlay'), 'YoutubePlayerOverlay'),
+  lazyOverlay(() => import('./RecordedVideoPlayerOverlay'), 'RecordedVideoPlayerOverlay'),
+  lazyOverlay(() => import('./RecordedImagePlayerOverlay'), 'RecordedImagePlayerOverlay'),
+  lazyOverlay(() => import('./ThreeSceneOverlay'), 'ThreeSceneOverlay'),
+]
+
+const CORE_OVERLAYS: ComponentType[] = [
+  PromptInputOverlay,
+  OutputMessagesOverlay,
+  TextSelectionOverlay,
+  PointerInputOverlay,
+  RightTransparentOverlay,
 ]
 
 /**
@@ -63,10 +61,10 @@ const STATIC_OVERLAYS: ComponentType[] = [
  * from inside a positioned component which can collapse the Electron window.
  */
 function CustomOverlayGuard({ id, children }: { id: string; children: React.ReactNode }) {
-    const { isAnimationEnabled } = useAnimations()
-    const { animations: globalEnabled } = useConfig('ui')
-    if (!globalEnabled || !isAnimationEnabled(id)) return null
-    return <>{children}</>
+  const { isAnimationEnabled } = useAnimations()
+  const { animations: globalEnabled } = useConfig('ui')
+  if (!globalEnabled || !isAnimationEnabled(id)) return null
+  return <>{children}</>
 }
 
 /**
@@ -74,46 +72,41 @@ function CustomOverlayGuard({ id, children }: { id: string; children: React.Reac
  *
  * • LogoIntro plays on startup as a transparent overlay on top of everything.
  *   It unmounts itself once the snap animation completes.
- * • All other overlays render normally and are NOT affected by the intro.
+ * • Core overlays load immediately; heavy overlays are code-split and lazy-loaded.
  */
 export function OverlayRegistry() {
-    const [introComplete, setIntroComplete] = useState(false)
+  const [introComplete, setIntroComplete] = useState(false)
 
-    return (
-        <>
-            {/* Logo Intro — floats on top, unmounts when done. Does NOT affect other overlays. */}
-            {!introComplete && (
-                <LogoIntro onComplete={() => setIntroComplete(true)} />
-            )}
+  return (
+    <LiveAssistantProvider>
+      {!introComplete && (
+        <LogoIntro onComplete={() => setIntroComplete(true)} />
+      )}
 
-            {/* Static / non-animation overlays — always rendered */}
-            {STATIC_OVERLAYS.map((Overlay, index) => (
-                <Overlay key={`static-${index}`} />
-            ))}
+      {CORE_OVERLAYS.map((Overlay, index) => (
+        <Overlay key={`core-${index}`} />
+      ))}
 
-            {/* Animation overlays — auto-generated from registry */}
+      {LAZY_OVERLAYS.map((Overlay, index) => (
+        <Suspense key={`lazy-${index}`} fallback={null}>
+          <Overlay />
+        </Suspense>
+      ))}
 
-            {ANIMATION_REGISTRY.map(entry => {
-                if (entry.custom && entry.customOverlay) {
-                    const CustomOverlay = entry.customOverlay
-                    return (
-                        // CustomOverlayGuard checks isAnimationEnabled OUTSIDE the
-                        // custom component so the component itself never needs to
-                        // guard itself (which can cause window-collapse on toggle).
-                        <CustomOverlayGuard key={entry.id} id={entry.id}>
-                            <Suspense fallback={null}>
-                                <CustomOverlay />
-                            </Suspense>
-                        </CustomOverlayGuard>
-                    )
-                }
+      {ANIMATION_REGISTRY.map((entry) => {
+        if (entry.custom && entry.customOverlay) {
+          const CustomOverlay = entry.customOverlay
+          return (
+            <CustomOverlayGuard key={entry.id} id={entry.id}>
+              <Suspense fallback={null}>
+                <CustomOverlay />
+              </Suspense>
+            </CustomOverlayGuard>
+          )
+        }
 
-                // Generic overlay — config-driven
-                return (
-                    <GenericLottieOverlay key={entry.id} entry={entry} />
-                )
-            })}
-        </>
-    )
+        return <GenericLottieOverlay key={entry.id} entry={entry} />
+      })}
+    </LiveAssistantProvider>
+  )
 }
-

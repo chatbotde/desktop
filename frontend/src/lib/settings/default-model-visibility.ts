@@ -20,7 +20,11 @@ export const DEFAULT_VISIBLE_MODELS: string[] = [
     'gemini-2.5-pro',        // Most capable, best for complex tasks
     'gemini-2.0-flash',      // Previous generation flash
 
+    // fal.ai image generation
+    'fal-flux-schnell',
 
+    // fal.ai video generation
+    'fal-kling-v2',
 ]
 
 /**

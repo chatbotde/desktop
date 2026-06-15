@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useMemo, useState, useCallback } from "react"
+import { lazy, Suspense, useSyncExternalStore, useMemo, useState, useCallback } from "react"
 import { X } from "lucide-react"
 
 import { Card } from "@/shared/components/ui/card"
@@ -14,22 +14,47 @@ import {
 } from "@/lib/settings/general-settings"
 import { SETTINGS_MENU_GROUPS, SETTINGS_MENU_ITEMS, type SettingsSectionId } from "../menu"
 import { SettingsSidebar } from "./SettingsSidebar"
-import {
-  PersonalizationSection,
-  type PersonalizationValues,
-  GeneralSection,
-  AccountSection,
-  LocalLLMSection,
-  ModelProfileListSection,
-  CustomModelsSection,
-  IntegrationsSection,
-  BlockingSection,
-  FeaturesSection,
-  AnimationsSection,
-  AppearanceSection,
-  // VoiceSection,
-  HelpSection
-} from "../sections"
+import type { PersonalizationValues } from "../sections/PersonalizationSection"
+
+const PersonalizationSection = lazy(() =>
+  import("../sections/PersonalizationSection").then((m) => ({ default: m.PersonalizationSection }))
+)
+const GeneralSection = lazy(() =>
+  import("../sections/GeneralSection").then((m) => ({ default: m.GeneralSection }))
+)
+const AccountSection = lazy(() =>
+  import("../sections/AccountSection").then((m) => ({ default: m.AccountSection }))
+)
+const LocalLLMSection = lazy(() =>
+  import("../sections/LocalLLMSection").then((m) => ({ default: m.LocalLLMSection }))
+)
+const ModelProfileListSection = lazy(() =>
+  import("../sections/ModelProfileListSection").then((m) => ({ default: m.ModelProfileListSection }))
+)
+const CustomModelsSection = lazy(() =>
+  import("../sections/CustomModelsSection").then((m) => ({ default: m.CustomModelsSection }))
+)
+const IntegrationsSection = lazy(() =>
+  import("../sections/IntegrationsSection").then((m) => ({ default: m.IntegrationsSection }))
+)
+const McpServersSection = lazy(() =>
+  import("../sections/McpServersSection").then((m) => ({ default: m.McpServersSection }))
+)
+const BlockingSection = lazy(() =>
+  import("../sections/BlockingSection").then((m) => ({ default: m.BlockingSection }))
+)
+const FeaturesSection = lazy(() =>
+  import("../sections/FeaturesSection").then((m) => ({ default: m.FeaturesSection }))
+)
+const AppearanceSection = lazy(() =>
+  import("../sections/AppearanceSection").then((m) => ({ default: m.AppearanceSection }))
+)
+const AnimationsSection = lazy(() =>
+  import("../sections/AnimationsSection").then((m) => ({ default: m.AnimationsSection }))
+)
+const HelpSection = lazy(() =>
+  import("../sections/HelpSection").then((m) => ({ default: m.HelpSection }))
+)
 
 
 // ── localStorage keys ──
@@ -163,6 +188,7 @@ export function SettingsCard({
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+            <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
             {activeSection === "personalization" && (
               <PersonalizationSection
                 value={personalization}
@@ -196,6 +222,8 @@ export function SettingsCard({
 
             {activeSection === "integrations" && <IntegrationsSection isDarkTheme={isDark} />}
 
+            {activeSection === "mcp-servers" && <McpServersSection isDarkTheme={isDark} />}
+
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 
             {activeSection === "features" && <FeaturesSection />}
@@ -207,6 +235,7 @@ export function SettingsCard({
             {/* {activeSection === "voice" && <VoiceSection isDarkTheme={isDark} />} */}
 
             {activeSection === "help" && <HelpSection isDarkTheme={isDark} />}
+            </Suspense>
 
           </div>
         </div>

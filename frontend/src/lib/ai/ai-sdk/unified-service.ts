@@ -22,6 +22,10 @@ import {
     generateVideos as replicateGenerateVideos
 } from '../../image/replicate';
 import {
+    generateImages as falGenerateImages,
+    generateVideos as falGenerateVideos,
+} from '../../image/fal';
+import {
     generateGoogleImages,
     isGeminiImageModel,
 } from '../../image/google-image';
@@ -468,6 +472,16 @@ export class AISDKUnifiedService {
                 return result.images;
             }
 
+            if (provider === 'fal') {
+                const result = await falGenerateImages({
+                    prompt,
+                    model: requestedModel,
+                });
+
+                console.log(`[AISDKUnifiedService] Generated ${result.images.length} images using ${result.model}`);
+                return result.images;
+            }
+
             const result = await replicateGenerateImages({
                 prompt,
                 model: modelName as `${string}/${string}` | `${string}/${string}:${string}` | undefined,
@@ -491,6 +505,20 @@ export class AISDKUnifiedService {
     async generateVideos(prompt: string, modelName?: string): Promise<string[]> {
         try {
             console.log(`[AISDKUnifiedService] Generating videos with prompt: "${prompt.slice(0, 50)}..."`);
+
+            const selectedModel = getSelectedModel();
+            const provider = selectedModel?.provider;
+            const requestedModel = modelName || selectedModel?.name || selectedModel?.id;
+
+            if (provider === 'fal') {
+                const result = await falGenerateVideos({
+                    prompt,
+                    model: requestedModel,
+                });
+
+                console.log(`[AISDKUnifiedService] Generated ${result.videos.length} videos using ${result.model}`);
+                return result.videos;
+            }
 
             const result = await replicateGenerateVideos({
                 prompt,

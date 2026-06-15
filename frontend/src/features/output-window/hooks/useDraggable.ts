@@ -51,6 +51,11 @@ export function useDraggable(
   )
 
   const handleDragMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('button, a, [role="slider"], input, textarea, select')) {
+      return
+    }
+
     e.preventDefault()
     setIsDragging(true)
     const rect = cardRef.current?.getBoundingClientRect()

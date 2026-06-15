@@ -88,7 +88,9 @@ export function createInterfaceAPI(): InterfaceAPI {
             const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input', 'toggle-voice-insert', 'show-rectangle-screenshot'];
             if (validChannels.includes(channel)) {
                 const channelListeners = messageListeners.get(channel);
-                const wrappedListener = channelListeners?.get(func);
+                if (!channelListeners) return;
+
+                const wrappedListener = channelListeners.get(func);
                 if (!wrappedListener) return;
 
                 ipcRenderer.removeListener(channel, wrappedListener);

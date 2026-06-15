@@ -240,7 +240,6 @@ export function PointerInputOverlay() {
                                 fontFamily: FONT,
                                 fontWeight: 500,
                                 letterSpacing: '0.2px',
-                                border: 'none',
                                 ...shellStyle,
                             }}
                         >

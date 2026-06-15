@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, type Dispatch, type SetStateAction } from 'react'
 import { createChatMessage } from '@/utils/message-utils'
 import type { ChatMessage, MediaAttachment } from '../types'
 import { sendMessage as sendCloudMessage, unifiedAIService } from '@/lib/ai'
@@ -7,40 +7,57 @@ import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { getSelectedModel } from '@/lib/ai/model-config'
 
 interface UseMessageManagerProps {
-  setGeneratedImages?: (images: string[]) => void
+  setGeneratedImages?: Dispatch<SetStateAction<string[]>>
   setIsImageWindowVisible?: (visible: boolean) => void
   setIsGeneratingImages?: (loading: boolean) => void
   setImageGenerationError?: (error: string | null) => void
+  setGeneratedVideos?: Dispatch<SetStateAction<string[]>>
+  setIsVideoWindowVisible?: (visible: boolean) => void
+  setIsGeneratingVideos?: (loading: boolean) => void
+  setVideoGenerationError?: (error: string | null) => void
 }
 
 export const useMessageManager = (
   _outputWindowEnabled: boolean,
-  callbacks?: UseMessageManagerProps
+  callbacks?: UseMessageManagerProps,
+  imageWindowEnabled = true,
+  videoWindowEnabled = true,
 ) => {
   const [outputMessages, setOutputMessages] = useState<ChatMessage[]>([])
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const callbacksRef = useRef(callbacks)
+  const imageWindowEnabledRef = useRef(imageWindowEnabled)
+  const videoWindowEnabledRef = useRef(videoWindowEnabled)
+
+  callbacksRef.current = callbacks
+  imageWindowEnabledRef.current = imageWindowEnabled
+  videoWindowEnabledRef.current = videoWindowEnabled
 
   const handleSendMessage = useCallback(async (
     message: string,
     attachments?: MediaAttachment[],
     options?: SendMessageOptions
   ) => {
+    const callbacks = callbacksRef.current
+    const imageWindowEnabled = imageWindowEnabledRef.current
+    const videoWindowEnabled = videoWindowEnabledRef.current
     // Create abort controller for this request
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Check if selected model is an image generation model BEFORE adding messages
+    // Check if selected model is a media generation model BEFORE adding messages
     const selectedModel = getSelectedModel()
     const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
     const isImageModel =
       selectedModel?.category === 'image-generation' ||
-      selectedModel?.provider === 'replicate' ||
       selectedModelKey.includes('gemini-2.5-flash-image')
+    const isVideoModel = selectedModel?.category === 'video-generation'
+    const isMediaModel = isImageModel || isVideoModel
 
-    // Only add user message to output if NOT an image model
-    // Image generation is handled separately and doesn't use the output window
-    if (!isImageModel) {
+    // Only add user message to output if NOT a media generation model
+    // Media generation is handled separately and doesn't use the output window
+    if (!isMediaModel) {
       const userMessage = createChatMessage(message, 'user', attachments)
       setOutputMessages(prev => [...prev, userMessage])
       setIsWaitingForResponse(true)
@@ -68,14 +85,16 @@ export const useMessageManager = (
 
       if (isImageModel) {
         // Show loading state and window immediately
-        if (callbacks?.setIsImageWindowVisible) {
-          callbacks.setIsImageWindowVisible(true)
-        }
-        if (callbacks?.setIsGeneratingImages) {
-          callbacks.setIsGeneratingImages(true)
-        }
-        if (callbacks?.setImageGenerationError) {
-          callbacks.setImageGenerationError(null)
+        if (imageWindowEnabled) {
+          if (callbacks?.setIsImageWindowVisible) {
+            callbacks.setIsImageWindowVisible(true)
+          }
+          if (callbacks?.setIsGeneratingImages) {
+            callbacks.setIsGeneratingImages(true)
+          }
+          if (callbacks?.setImageGenerationError) {
+            callbacks.setImageGenerationError(null)
+          }
         }
 
         try {
@@ -93,30 +112,98 @@ export const useMessageManager = (
             return
           }
 
-          // Store images in UI state
-          if (callbacks?.setGeneratedImages) {
-            callbacks.setGeneratedImages(generatedImages)
-          }
-          if (callbacks?.setImageGenerationError) {
-            callbacks.setImageGenerationError(null)
-          }
+          // Append to stack so previous images are kept
+          if (imageWindowEnabled) {
+            if (callbacks?.setGeneratedImages) {
+              callbacks.setGeneratedImages((prev: string[]) => {
+                const next = [...prev]
+                for (const url of generatedImages) {
+                  if (!next.includes(url)) next.push(url)
+                }
+                return next
+              })
+            }
+            if (callbacks?.setIsImageWindowVisible) {
+              callbacks.setIsImageWindowVisible(true)
+            }
+            if (callbacks?.setImageGenerationError) {
+              callbacks.setImageGenerationError(null)
+            }
 
-          // Hide loading state
-          if (callbacks?.setIsGeneratingImages) {
-            callbacks.setIsGeneratingImages(false)
+            // Hide loading state
+            if (callbacks?.setIsGeneratingImages) {
+              callbacks.setIsGeneratingImages(false)
+            }
           }
 
           // Don't add image generation to messages - it's shown separately
           return
         } catch (error) {
-          // Hide loading state on error
-          if (callbacks?.setIsGeneratingImages) {
-            callbacks.setIsGeneratingImages(false)
+          if (imageWindowEnabled) {
+            if (callbacks?.setIsGeneratingImages) {
+              callbacks.setIsGeneratingImages(false)
+            }
+            if (callbacks?.setImageGenerationError) {
+              callbacks.setImageGenerationError(error instanceof Error ? error.message : String(error))
+            }
           }
-          if (callbacks?.setImageGenerationError) {
-            callbacks.setImageGenerationError(error instanceof Error ? error.message : String(error))
+          throw error
+        }
+      } else if (isVideoModel) {
+        if (videoWindowEnabled) {
+          if (callbacks?.setIsVideoWindowVisible) {
+            callbacks.setIsVideoWindowVisible(true)
           }
-          // Re-throw to be handled by outer catch
+          if (callbacks?.setIsGeneratingVideos) {
+            callbacks.setIsGeneratingVideos(true)
+          }
+          if (callbacks?.setVideoGenerationError) {
+            callbacks.setVideoGenerationError(null)
+          }
+        }
+
+        try {
+          const modelName = selectedModel?.name
+          const generatedVideos = await unifiedAIService.generateVideos(message, modelName)
+
+          if (abortController.signal.aborted) {
+            if (callbacks?.setIsGeneratingVideos) {
+              callbacks.setIsGeneratingVideos(false)
+            }
+            return
+          }
+
+          if (videoWindowEnabled) {
+            if (callbacks?.setGeneratedVideos) {
+              callbacks.setGeneratedVideos((prev: string[]) => {
+                const next = [...prev]
+                for (const url of generatedVideos) {
+                  if (!next.includes(url)) next.push(url)
+                }
+                return next
+              })
+            }
+            if (callbacks?.setIsVideoWindowVisible) {
+              callbacks.setIsVideoWindowVisible(true)
+            }
+            if (callbacks?.setVideoGenerationError) {
+              callbacks.setVideoGenerationError(null)
+            }
+            if (callbacks?.setIsGeneratingVideos) {
+              callbacks.setIsGeneratingVideos(false)
+            }
+          }
+
+          return
+        } catch (error) {
+          if (videoWindowEnabled) {
+            if (callbacks?.setIsGeneratingVideos) {
+              callbacks.setIsGeneratingVideos(false)
+            }
+            if (callbacks?.setVideoGenerationError) {
+              callbacks.setVideoGenerationError(error instanceof Error ? error.message : String(error))
+            }
+          }
           throw error
         }
       } else {
@@ -192,15 +279,29 @@ export const useMessageManager = (
           ? err
           : 'Unknown error'
 
-      // For image generation errors, show in console but don't add to output window
+      // For media generation errors, show in console but don't add to output window
       if (isImageModel) {
         console.error('Image generation failed:', err)
-        // Hide loading state
-        if (callbacks?.setIsGeneratingImages) {
-          callbacks.setIsGeneratingImages(false)
+        if (imageWindowEnabled) {
+          if (callbacks?.setIsGeneratingImages) {
+            callbacks.setIsGeneratingImages(false)
+          }
+          if (callbacks?.setImageGenerationError) {
+            callbacks.setImageGenerationError(errorMessage)
+          }
         }
-        if (callbacks?.setImageGenerationError) {
-          callbacks.setImageGenerationError(errorMessage)
+        throw err
+      }
+
+      if (isVideoModel) {
+        console.error('Video generation failed:', err)
+        if (videoWindowEnabled) {
+          if (callbacks?.setIsGeneratingVideos) {
+            callbacks.setIsGeneratingVideos(false)
+          }
+          if (callbacks?.setVideoGenerationError) {
+            callbacks.setVideoGenerationError(errorMessage)
+          }
         }
         throw err
       }
@@ -213,8 +314,8 @@ export const useMessageManager = (
       setOutputMessages(prev => [...prev, errorResponse])
       console.error('AI response failed:', err)
     } finally {
-      // Only set waiting to false if we were actually waiting (not image model)
-      if (!isImageModel) {
+      // Only set waiting to false if we were actually waiting (not a media model)
+      if (!isMediaModel) {
         setIsWaitingForResponse(false)
       }
       if (abortControllerRef.current === abortController) {
@@ -227,9 +328,12 @@ export const useMessageManager = (
     if (abortControllerRef.current) {
       console.log('Stopping message generation...')
       abortControllerRef.current.abort()
-      setIsWaitingForResponse(false)
       abortControllerRef.current = null
     }
+    setIsWaitingForResponse(false)
+    const cb = callbacksRef.current
+    cb?.setIsGeneratingImages?.(false)
+    cb?.setIsGeneratingVideos?.(false)
   }, [])
 
   const addMessage = useCallback((message: string, role: 'user' | 'assistant' = 'assistant') => {
