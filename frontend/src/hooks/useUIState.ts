@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore, useCallback } from 'react'
 import { useIsDark } from '@/shared/providers'
+import type { FactCheckResult } from '@/lib/search/fact-check-types'
 
 export const useUIState = (outputWindowEnabled: boolean) => {
   const [isInputVisible, setIsInputVisible] = useState(false)
@@ -25,6 +26,8 @@ export const useUIState = (outputWindowEnabled: boolean) => {
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false)
   const [videoGenerationError, setVideoGenerationError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [factCheckResult, setFactCheckResult] = useState<FactCheckResult | null>(null)
+  const [isFactCheckWindowVisible, setIsFactCheckWindowVisible] = useState(false)
 
   // If the user disables the Output Window feature, hide the window immediately - using syncExternalStore
   useSyncExternalStore(
@@ -90,5 +93,9 @@ export const useUIState = (outputWindowEnabled: boolean) => {
     setVideoGenerationError,
     showSettings,
     setShowSettings,
+    factCheckResult,
+    setFactCheckResult,
+    isFactCheckWindowVisible,
+    setIsFactCheckWindowVisible,
   }
 }

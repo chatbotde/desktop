@@ -28,7 +28,11 @@ Buddy is an Electron desktop productivity assistant. It combines a React/Vite re
 # Full dev (Vite + Electron hot reload)
 npm run dev
 
-# Frontend only
+# Frontend only � no Electron / webbuddy required
+npm run dev:ui
+# or: cd frontend && npm run dev:ui
+
+# Frontend Vite (browser mocks auto-install when not in Electron)
 cd frontend && npm run dev
 
 # Build frontend
@@ -46,6 +50,8 @@ cd frontend && npm test
 # Frontend lint
 cd frontend && npm run lint
 ```
+
+**Browser / UI-only guide:** `frontend/DEV.md`
 
 ---
 
@@ -87,6 +93,14 @@ cd frontend && npm run lint
 ### Native OS behavior (text selection, input hooks)
 
 - `interface-window/` — compiled separately (`npm run build:interface`)
+
+### Cua Driver & Agent OS automation
+
+- **Architecture & file map:** `docs/cua-architecture.md`
+- Cua feature module: `frontend/src/features/cua/`
+- Agent loop: `frontend/src/app/overlays/agent-engine.ts`
+- Main process: `mcp/cua-driver.js`, `mcp/mcp-client.js`
+- Smoke test: `npm run test-cua-driver`
 
 ---
 
@@ -168,6 +182,7 @@ import { Bar } from '../../../features/chat'       // ❌ relative cross-module
 | Detailed folder guide | `frontend/src/ARCHITECTURE.md` |
 | Feature flags | `frontend/src/features/feature-flags/README.md` |
 | Auth system | `auth/README.md` |
+| Frontend-only / browser mode | `frontend/DEV.md` |
 | Build & dist | `BUILD.md` |
 | Payments/subscription | `frontend/src/lib/subscription.ts`, `subscription-config` |
 | React perf (agents) | `frontend/.skills/react-best-practices/AGENTS.md` |

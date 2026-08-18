@@ -32,7 +32,7 @@ function normalizeSpec(candidate: unknown): ParsedJsonUiOutput {
       spec: null,
       error:
         catalogResult.error?.message ??
-        'The model returned JSON that does not match the Buddy JSON UI catalog.',
+        'The model returned JSON that does not match the SonicThinking JSON UI catalog.',
       warnings: [],
     }
   }
@@ -57,7 +57,7 @@ function normalizeSpec(candidate: unknown): ParsedJsonUiOutput {
 
 export function buildBuddyJsonUiSystemPrompt(): string {
   return buddyJsonUiCatalog.prompt({
-    system: 'You are a Buddy Generative UI assistant. Build compact, useful UI from the user request.',
+    system: 'You are a SonicThinking Generative UI assistant. Build compact, useful UI from the user request.',
     mode: 'standalone',
     customRules: [
       'Return only json-render SpecStream JSONL patches. Do not use markdown fences or prose.',

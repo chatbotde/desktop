@@ -18,7 +18,7 @@ export function ExpandedGroundingButton({
   isDarkTheme,
 }: ExpandedGroundingButtonProps) {
   return (
-    <PromptInputAction tooltip={groundingEnabled ? "Click to disable web search" : "Click to enable web search"}>
+    <PromptInputAction tooltip={groundingEnabled ? "Click to disable fact check" : "Click to enable fact check"}>
       <button
         onClick={(e) => {
           e.preventDefault()
@@ -40,7 +40,7 @@ export function ExpandedGroundingButton({
           // Active press effect
           "active:scale-95"
         )}
-        aria-label={groundingEnabled ? "Disable web search" : "Enable web search"}
+        aria-label={groundingEnabled ? "Disable fact check" : "Enable fact check"}
         aria-pressed={groundingEnabled}
         type="button"
       >

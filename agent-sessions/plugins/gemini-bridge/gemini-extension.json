@@ -1,0 +1,12 @@
+{
+  "name": "buddy-bridge",
+  "version": "1.0.0",
+  "description": "Forward Gemini CLI chat to Buddy Agents tab on your phone",
+  "mcpServers": {
+    "buddy-bridge": {
+      "command": "node",
+      "args": ["${extensionPath}${/}mcp-server.mjs"],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

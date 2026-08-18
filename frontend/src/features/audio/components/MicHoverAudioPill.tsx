@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button'
 import { getThemeClasses } from "@/features/prompt"
 import { AudioSourceSelector } from './AudioSourceSelector'
 import { AudioRecorderControls } from './AudioRecorderControls'
+import { useLiveAssistant } from '@/components/assistant-animation/live-assistant-provider'
 import {
     Tooltip,
     TooltipContent,
@@ -46,6 +47,8 @@ export function MicHoverAudioPill({
     const [isPillActive, setIsPillActive] = useState(false)
     const [source, setSource] = useState<AudioSourceType>('mic')
     const [isAssistantVisible, setIsAssistantVisible] = useState(false)
+    const { connected, isConnecting } = useLiveAssistant()
+    const isVoiceLive = connected || isConnecting
     const containerRef = useRef<HTMLDivElement>(null)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -247,11 +250,13 @@ export function MicHoverAudioPill({
                                             onClick={() => window.dispatchEvent(new CustomEvent('toggle-assistant-visibility'))}
                                             className={cn(
                                                 "h-8 w-8 rounded-full transition-all duration-200",
-                                                isAssistantVisible
+                                                isVoiceLive
                                                     ? "bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_12px_rgba(37,99,235,0.4)]"
-                                                    : (isDarkTheme
-                                                        ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
-                                                        : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900")
+                                                    : isAssistantVisible
+                                                        ? "bg-blue-600/40 text-blue-200 hover:bg-blue-600/50"
+                                                        : (isDarkTheme
+                                                            ? "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                                            : "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-900")
                                             )}
                                             variant="ghost"
                                             size="icon"

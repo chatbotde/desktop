@@ -4,7 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { MediaUploadCard } from "../../media-upload-card"
+import { MediaUploadCard, MEDIA_UPLOAD_CONSTANTS } from "../../media-upload-card"
 import { PromptInputAction } from "@/components/prompt-kit/prompt-input"
 import { ModelSelectorPopover } from "../../model-selector-popover"
 import { MicHoverAudioPill } from "@/features/audio"
@@ -49,10 +49,11 @@ export function registerDefaultActions(context: ExpandedActionsBarContext | (() 
             </button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto p-0 border-none bg-transparent shadow-none"
+            className={MEDIA_UPLOAD_CONSTANTS.POPOVER_CONTENT_CLASS}
             side="top"
             align="start"
             sideOffset={16}
+            collisionPadding={16}
             style={{ zIndex: 9999 }}
           >
             <MediaUploadCard

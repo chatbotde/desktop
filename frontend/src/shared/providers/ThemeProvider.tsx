@@ -1,23 +1,30 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useLocalStorageStore } from '@/shared/hooks/useLocalStorageStore'
 import {
   APPEARANCE_MODES,
   APPEARANCE_PALETTES,
-  DEFAULT_APPEARANCE_MODE,
   DEFAULT_APPEARANCE_PALETTE,
+  injectPaletteStylesheet,
   normalizeAppearancePalette,
-  isAppearanceMode,
+  normalizeAppearanceMode,
   isAppearancePalette,
+  isGlassCapablePalette,
+  APP_SURFACES,
+  readStoredSurfaceOpacity,
+  clampSurfaceOpacity,
+  SURFACE_OPACITY,
   type AppearanceModeId,
-  type AppearancePaletteId,
+  type ThemePaletteId,
 } from '@/lib/appearance'
 
 /** @deprecated Use AppearanceModeId from `@/lib/appearance` */
 export type Theme = AppearanceModeId
 
-/** @deprecated Use AppearancePaletteId from `@/lib/appearance` */
-export type ColorTheme = AppearancePaletteId
+/** @deprecated Use ThemePaletteId from `@/lib/appearance` */
+export type ColorTheme = ThemePaletteId
+
+type ResolvedMode = 'dark' | 'light'
 
 export const AVAILABLE_THEMES: Theme[] = APPEARANCE_MODES.map((m) => m.id)
 export const AVAILABLE_COLOR_THEMES: ColorTheme[] = APPEARANCE_PALETTES.map((p) => p.id)
@@ -34,7 +41,6 @@ export interface ColorThemeConfig {
   description?: string
 }
 
-/** Derived from global appearance registry — add modes in `lib/appearance/registry.ts`. */
 export const THEME_CONFIG: Record<Theme, ThemeConfig> = Object.fromEntries(
   APPEARANCE_MODES.map((m) => [
     m.id,
@@ -42,7 +48,6 @@ export const THEME_CONFIG: Record<Theme, ThemeConfig> = Object.fromEntries(
   ])
 ) as Record<Theme, ThemeConfig>
 
-/** Derived from global appearance registry — add palettes in `lib/appearance/registry.ts`. */
 export const COLOR_THEME_CONFIG: Record<ColorTheme, ColorThemeConfig> = Object.fromEntries(
   APPEARANCE_PALETTES.map((p) => [
     p.id,
@@ -53,11 +58,11 @@ export const COLOR_THEME_CONFIG: Record<ColorTheme, ColorThemeConfig> = Object.f
 export const CUSTOM_CURSOR_STORAGE_KEY = 'app-custom-cursor'
 
 interface ThemeContextType {
-  theme: Theme
+  theme: ResolvedMode
   isDark: boolean
   isLight: boolean
   toggleTheme: () => void
-  setTheme: (theme: Theme) => void
+  setTheme: (theme: ResolvedMode) => void
   availableThemes: Theme[]
   themeConfig: Record<Theme, ThemeConfig>
 
@@ -65,6 +70,13 @@ interface ThemeContextType {
   setColorTheme: (theme: ColorTheme) => void
   availableColorThemes: ColorTheme[]
   colorThemeConfig: Record<ColorTheme, ColorThemeConfig>
+  isGlassPalette: boolean
+  surfaces: typeof APP_SURFACES
+
+  surfaceOpacity: number
+  canAdjustSurfaceOpacity: boolean
+  setSurfaceOpacity: (value: number) => void
+  resetSurfaceOpacity: () => void
 
   customCursor: boolean
   setCustomCursor: (enabled: boolean) => void
@@ -72,54 +84,84 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-type ResolvedAppearanceMode = 'dark' | 'light'
-
-function getSystemAppearanceMode(): ResolvedAppearanceMode {
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+function readStoredTheme(): ResolvedMode {
+  if (typeof localStorage === 'undefined') return 'dark'
+  const raw = localStorage.getItem('app-theme')
+  if (raw === null) return 'dark'
+  try {
+    const parsed = JSON.parse(raw)
+    return normalizeAppearanceMode(parsed)
+  } catch {
+    return normalizeAppearanceMode(raw)
+  }
 }
 
 function readStoredPalette(): ColorTheme {
   if (typeof localStorage === 'undefined') return DEFAULT_APPEARANCE_PALETTE
-  return normalizeAppearancePalette(localStorage.getItem('app-color-theme'))
+  const raw = localStorage.getItem('app-color-theme')
+  if (raw === null) return DEFAULT_APPEARANCE_PALETTE
+  try {
+    const parsed = JSON.parse(raw)
+    return normalizeAppearancePalette(parsed)
+  } catch {
+    return normalizeAppearancePalette(raw)
+  }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeRaw] = useLocalStorageStore<Theme>('app-theme', DEFAULT_APPEARANCE_MODE)
-  const [colorTheme, setColorThemeRaw] = useLocalStorageStore<ColorTheme>(
+  useEffect(() => {
+    injectPaletteStylesheet()
+  }, [])
+
+  const [rawTheme, setThemeRaw] = useLocalStorageStore<string>('app-theme', readStoredTheme())
+  const theme = normalizeAppearanceMode(rawTheme)
+
+  const [rawColorTheme, setColorThemeRaw] = useLocalStorageStore<string>(
     'app-color-theme',
     readStoredPalette()
   )
+  const colorTheme = normalizeAppearancePalette(rawColorTheme)
   const [customCursor, setCustomCursorRaw] = useLocalStorageStore<boolean>(
     CUSTOM_CURSOR_STORAGE_KEY,
     false
   )
-  const [systemTheme, setSystemTheme] = useState<ResolvedAppearanceMode>(getSystemAppearanceMode)
+  const [surfaceOpacity, setSurfaceOpacityRaw] = useLocalStorageStore<number>(
+    'app-surface-opacity',
+    readStoredSurfaceOpacity()
+  )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const syncSystemTheme = () => setSystemTheme(media.matches ? 'dark' : 'light')
-    syncSystemTheme()
-    media.addEventListener('change', syncSystemTheme)
-    return () => media.removeEventListener('change', syncSystemTheme)
-  }, [])
-
-  const resolvedTheme: ResolvedAppearanceMode = theme === 'system' ? systemTheme : theme
+  const glassPaletteActive = isGlassCapablePalette(colorTheme)
+  const canAdjustSurfaceOpacity = theme === 'dark' && glassPaletteActive
+  const effectiveSurfaceOpacity = canAdjustSurfaceOpacity
+    ? clampSurfaceOpacity(surfaceOpacity)
+    : SURFACE_OPACITY.default
 
   useEffect(() => {
     if (typeof document === 'undefined') return
     const root = document.documentElement
-    root.classList.toggle('dark', resolvedTheme === 'dark')
-    root.classList.toggle('light', resolvedTheme === 'light')
+    root.classList.toggle('dark', theme === 'dark')
+    root.classList.toggle('light', theme === 'light')
     root.setAttribute('data-theme', colorTheme)
-  }, [resolvedTheme, colorTheme])
 
-  const toggleTheme = () => setThemeRaw(resolvedTheme === 'dark' ? 'light' : 'dark')
+    root.style.setProperty(
+      '--appearance-surface-opacity',
+      String(effectiveSurfaceOpacity / 100)
+    )
 
-  const setTheme = (newTheme: Theme) => {
-    if (isAppearanceMode(newTheme)) setThemeRaw(newTheme)
-    else console.warn(`Theme "${newTheme}" is not available.`)
+    const useGlass = theme === 'dark' && glassPaletteActive
+    if (useGlass) {
+      root.setAttribute('data-glass', 'true')
+    } else {
+      root.removeAttribute('data-glass')
+    }
+  }, [theme, colorTheme, effectiveSurfaceOpacity, glassPaletteActive])
+
+  const isGlassPalette = theme === 'dark' && glassPaletteActive
+
+  const toggleTheme = () => setThemeRaw(theme === 'dark' ? 'light' : 'dark')
+
+  const setTheme = (newTheme: ResolvedMode) => {
+    setThemeRaw(newTheme)
   }
 
   const setColorTheme = (newTheme: ColorTheme) => {
@@ -129,10 +171,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setCustomCursor = (enabled: boolean) => setCustomCursorRaw(enabled)
 
+  const setSurfaceOpacity = (value: number) => {
+    if (!canAdjustSurfaceOpacity) return
+    setSurfaceOpacityRaw(clampSurfaceOpacity(value))
+  }
+
+  const resetSurfaceOpacity = () => {
+    setSurfaceOpacityRaw(SURFACE_OPACITY.default)
+  }
+
   const contextValue = useMemo<ThemeContextType>(() => ({
     theme,
-    isDark: resolvedTheme === 'dark',
-    isLight: resolvedTheme === 'light',
+    isDark: theme === 'dark',
+    isLight: theme === 'light',
     toggleTheme,
     setTheme,
     availableThemes: AVAILABLE_THEMES,
@@ -142,10 +193,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setColorTheme,
     availableColorThemes: AVAILABLE_COLOR_THEMES,
     colorThemeConfig: COLOR_THEME_CONFIG,
+    isGlassPalette,
+    surfaces: APP_SURFACES,
+
+    surfaceOpacity: effectiveSurfaceOpacity,
+    canAdjustSurfaceOpacity,
+    setSurfaceOpacity,
+    resetSurfaceOpacity,
 
     customCursor,
     setCustomCursor,
-  }), [theme, resolvedTheme, colorTheme, customCursor])
+  }), [
+    theme,
+    colorTheme,
+    customCursor,
+    isGlassPalette,
+    surfaceOpacity,
+    effectiveSurfaceOpacity,
+    canAdjustSurfaceOpacity,
+  ])
 
   return (
     <ThemeContext.Provider value={contextValue}>

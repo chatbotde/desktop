@@ -15,7 +15,7 @@ type ComposioToolkit = {
 
 function getComposioUnavailableMessage(): string {
   if (!window.electronAPI) {
-    return "Integrations are only available in the Buddy desktop app. Open Settings from the desktop app, not the browser dev server."
+    return "Integrations are only available in the SonicThinking desktop app. Open Settings from the desktop app, not the browser dev server."
   }
   if (!window.composioAPI) {
     return "Composio integration is not loaded. Rebuild the preload (npm run build:interface) and restart the desktop app."
@@ -104,7 +104,7 @@ export function IntegrationsSection({ isDarkTheme = true }: { isDarkTheme?: bool
           dark: "text-zinc-400",
           light: "text-zinc-600"
         }, "text-xs")}>
-          Link external accounts so Buddy can use Composio toolkits on your behalf.
+          Link external accounts so SonicThinking can use Composio toolkits on your behalf.
         </p>
       </div>
 

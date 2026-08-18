@@ -30,7 +30,7 @@ function RoleSlot({
   isDark: boolean
   onClick: () => void
 }) {
-  const colors = isDark ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light
+  const colors = GLOBAL_THEME.vars
 
   return (
     <button
@@ -83,7 +83,7 @@ export function VirtualTryOnPanel({
   onBack,
 }: VirtualTryOnPanelProps) {
   const isDark = useIsDark()
-  const colors = isDark ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light
+  const colors = GLOBAL_THEME.vars
 
   const [personIndex, setPersonIndex] = useState(files.length >= 1 ? 0 : -1)
   const [garmentIndex, setGarmentIndex] = useState(files.length >= 2 ? 1 : -1)

@@ -18,6 +18,6 @@ export const createChatMessage = (
     content,
     timestamp: new Date(),
     attachments,
-    generatedImages
+    generatedImages,
   }
 }

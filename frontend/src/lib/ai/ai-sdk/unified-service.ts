@@ -42,12 +42,14 @@ import {
 } from '../capabilities';
 import { ai } from './service';
 import { getProvider, isProviderConfigured, type ProviderId } from './providers';
+import { buildFastReplyProviderOptions } from '../model-call-options';
 import { getResponseLanguageSystemSuffix, mergeSystemPromptWithResponseLanguage } from '@/lib/settings/general-settings';
 import {
     prepareComposioChatTools,
     buildComposioAISDKTools,
 } from '@/lib/composio/composio-chat-tools';
 import type { SendMessageOptions } from '@/features/chat/types/send-message-options';
+import type { UserContent } from 'ai';
 
 // ============================================================================
 // Types
@@ -56,7 +58,7 @@ import type { SendMessageOptions } from '@/features/chat/types/send-message-opti
 // Message type compatible with AI SDK
 interface Message {
     role: 'user' | 'assistant' | 'system';
-    content: string | Array<{ type: 'text'; text: string } | { type: 'image'; image: string | URL }>;
+    content: string | UserContent;
 }
 
 interface ChatHistory {
@@ -141,6 +143,23 @@ export class AISDKUnifiedService {
     // Media Conversion
     // ============================================================================
 
+    private async resolveAttachmentData(data: string): Promise<string | null> {
+        let resolved = data;
+
+        if (resolved.startsWith('blob:') || (resolved.startsWith('http') && !resolved.startsWith('data:'))) {
+            try {
+                const response = await fetch(resolved);
+                const blob = await response.blob();
+                resolved = await this.blobToBase64(blob);
+            } catch (error) {
+                console.error('Failed to resolve attachment data:', error);
+                return null;
+            }
+        }
+
+        return resolved;
+    }
+
     private async convertAttachmentsToContent(
         message: string,
         attachments?: MediaAttachment[]
@@ -150,34 +169,34 @@ export class AISDKUnifiedService {
             return { role: 'user', content: message };
         }
 
-        // Build multipart content
-        const content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string | URL }> = [];
+        const content: UserContent = [];
 
         // Add text first
         if (message.trim()) {
             content.push({ type: 'text', text: message });
         }
 
-        // Add attachments
+        // Add attachments as AI SDK content parts (images, audio, video)
         for (const attachment of attachments) {
+            const resolvedData = await this.resolveAttachmentData(attachment.data);
+            if (!resolvedData) continue;
+
+            const mediaType = attachment.type || (
+                attachment.mediaType === 'audio' ? 'audio/webm'
+                    : attachment.mediaType === 'video' ? 'video/mp4'
+                        : 'application/octet-stream'
+            );
+
             if (attachment.mediaType === 'image') {
-                let imageData = attachment.data;
-
-                // Convert blob URLs to base64
-                if (imageData.startsWith('blob:') || (imageData.startsWith('http') && !imageData.startsWith('data:'))) {
-                    try {
-                        const response = await fetch(imageData);
-                        const blob = await response.blob();
-                        imageData = await this.blobToBase64(blob);
-                    } catch (error) {
-                        console.error('Failed to convert blob to base64:', error);
-                        continue;
-                    }
-                }
-
-                content.push({ type: 'image', image: imageData });
+                content.push({ type: 'image', image: resolvedData, mediaType });
+            } else if (attachment.mediaType === 'audio' || attachment.mediaType === 'video') {
+                content.push({
+                    type: 'file',
+                    data: resolvedData,
+                    mediaType,
+                    filename: attachment.name,
+                });
             }
-            // TODO: Handle audio and video attachments when needed
         }
 
         return { role: 'user', content };
@@ -338,7 +357,13 @@ export class AISDKUnifiedService {
 
         // Capture model settings before generator (to avoid closure issues)
         const modelTemperature = selectedModel.temperature;
-        const modelMaxTokens = selectedModel.maxTokens;
+        const configuredMaxTokens =
+          selectedModel.maxTokens && selectedModel.maxTokens > 0
+            ? selectedModel.maxTokens
+            : 8192;
+        const modelMaxTokens = options?.maxOutputTokens
+          ? Math.min(options.maxOutputTokens, configuredMaxTokens)
+          : configuredMaxTokens;
         const composioToolkitSlugs = options?.composioToolkitSlugs;
 
         // Create tracked generator
@@ -391,6 +416,7 @@ export class AISDKUnifiedService {
                     maxOutputTokens: modelMaxTokens,
                     tools: composioTools,
                     maxSteps: composioTools ? 10 : undefined,
+                    modelCallProviderOptions: buildFastReplyProviderOptions(providerId, selectedModel),
                 });
 
                 for await (const chunk of result.textStream) {
@@ -625,9 +651,11 @@ export class AISDKUnifiedService {
             maxOutputTokens?: number;
         }
     ): Promise<AsyncGenerator<string, void, unknown>> {
+        const selectedModel = getSelectedModel();
         const result = await ai.stream(provider, modelId, prompt, {
             ...options,
             system: mergeSystemPromptWithResponseLanguage(options?.system),
+            modelCallProviderOptions: buildFastReplyProviderOptions(provider, selectedModel),
         });
 
         async function* generator(): AsyncGenerator<string, void, unknown> {
@@ -652,9 +680,11 @@ export class AISDKUnifiedService {
             maxOutputTokens?: number;
         }
     ): Promise<string> {
+        const selectedModel = getSelectedModel();
         const result = await ai.generate(provider, modelId, prompt, {
             ...options,
             system: mergeSystemPromptWithResponseLanguage(options?.system),
+            modelCallProviderOptions: buildFastReplyProviderOptions(provider, selectedModel),
         });
         return result.text;
     }

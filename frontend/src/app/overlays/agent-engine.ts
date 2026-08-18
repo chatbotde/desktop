@@ -7,6 +7,21 @@
 
 import { aiSDKUnifiedService } from '@/lib/ai/ai-sdk/unified-service'
 import type { MediaAttachment } from '@/lib/ai/gemini'
+import {
+    captureCuaWindowScreenshot,
+    cuaCoordsFromPercent,
+    executeSimpleCuaTask,
+    isCuaDriverReady,
+    launchAppByName,
+    listCuaWindows,
+    maybeLaunchAppForTask,
+    parseSimpleCuaTask,
+    performCuaAction,
+    pickAutomationWindow,
+    prepareCuaBackgroundSession,
+    typeInWindow,
+    type CuaWindow,
+} from '@/features/cua'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -43,6 +58,55 @@ interface AgentLoopDecision {
 
 const MAX_AGENT_STEPS = 40
 const MAX_CONSECUTIVE_ERRORS = 3
+
+let cuaTargetWindow: CuaWindow | null = null
+let cuaSessionActive = false
+
+async function initCuaSession(task: string): Promise<boolean> {
+    cuaTargetWindow = null
+    cuaSessionActive = false
+
+    if (window.cuaAPI?.ensureServer) {
+        await window.cuaAPI.ensureServer()
+    }
+
+    if (!(await isCuaDriverReady())) {
+        console.warn('[AgentEngine] Cua Driver not ready — falling back to screen capture + robotjs')
+        return false
+    }
+
+    await prepareCuaBackgroundSession()
+
+    const simple = parseSimpleCuaTask(task)
+    if (simple) {
+        const fromLaunch = await launchAppByName(simple.app)
+        if (fromLaunch) {
+            cuaTargetWindow = fromLaunch
+            cuaSessionActive = true
+            console.log('[AgentEngine] Cua target (launched):', fromLaunch.title ?? fromLaunch.pid)
+            return true
+        }
+    } else {
+        await maybeLaunchAppForTask(task)
+    }
+
+    const windows = await listCuaWindows()
+    const target = pickAutomationWindow(windows, task)
+    if (!target) {
+        console.warn('[AgentEngine] No automation target window found. Open the app you want to control first.')
+        return false
+    }
+
+    cuaTargetWindow = target
+    cuaSessionActive = true
+    console.log('[AgentEngine] Using Cua Driver target window:', target.title ?? target.pid)
+    return true
+}
+
+function resetCuaSession() {
+    cuaTargetWindow = null
+    cuaSessionActive = false
+}
 
 function throwIfAborted(signal: AbortSignal) {
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError')
@@ -98,6 +162,11 @@ async function streamResponse(
 
 export async function captureScreenshot(): Promise<MediaAttachment | null> {
     try {
+        if (cuaSessionActive && cuaTargetWindow) {
+            const cuaShot = await captureCuaWindowScreenshot(cuaTargetWindow)
+            if (cuaShot) return cuaShot
+        }
+
         // @ts-ignore – CaptureAPI is injected by Electron preload
         if (!window.CaptureAPI) return null
         // @ts-ignore
@@ -167,6 +236,8 @@ const AGENT_LOOP_PROMPT = [
     'Decide whether THIS task is FULLY COMPLETE or what SINGLE action to take next.',
     '',
     'Mark done=true ONLY when the user would see the expected final result for THIS task on screen.',
+    'For "open X and type Y" tasks: done=true ONLY when the exact text Y is visible in the target app.',
+    'Opening an app alone is NOT completion if typing was also requested.',
     'Do NOT mark done after partial progress (e.g. typed text but did not submit).',
     'Do NOT mark done=true if zero actions were taken unless the screen already shows THIS task\'s exact goal achieved.',
     '',
@@ -350,6 +421,68 @@ export async function performAction(
     clickEnabled: boolean,
     signal: AbortSignal,
 ): Promise<void> {
+    if (cuaSessionActive && cuaTargetWindow && result.action !== 'wait') {
+        const { x, y } = cuaCoordsFromPercent(cuaTargetWindow, result.x_percent, result.y_percent)
+
+        throwIfAborted(signal)
+
+        const runCua = async (action: Parameters<typeof performCuaAction>[1]) => {
+            const outcome = await performCuaAction(cuaTargetWindow!, action)
+            if (!outcome.success) {
+                console.error('[AgentEngine] Cua action failed:', outcome.error)
+                throw new Error(outcome.error ?? 'Cua action failed')
+            }
+        }
+
+        switch (result.action) {
+            case 'click':
+                await runCua({ type: 'click', x, y })
+                if (result.text_to_insert) {
+                    await sleep(200)
+                    const typed = await typeInWindow(cuaTargetWindow, result.text_to_insert)
+                    if (!typed.success) throw new Error(typed.error ?? 'Type failed')
+                }
+                await sleep(300)
+                return
+            case 'type':
+                if (result.text_to_insert) {
+                    const typed = await typeInWindow(cuaTargetWindow, result.text_to_insert)
+                    if (!typed.success) throw new Error(typed.error ?? 'Type failed')
+                } else {
+                    await runCua({ type: 'click', x, y })
+                }
+                await sleep(300)
+                return
+            case 'double_click':
+                await runCua({ type: 'double_click', x, y })
+                await sleep(300)
+                return
+            case 'right_click':
+                await runCua({ type: 'right_click', x, y })
+                await sleep(300)
+                return
+            case 'scroll':
+                await runCua({
+                    type: 'scroll',
+                    x,
+                    y,
+                    scrollAmount: result.scroll_amount || 5,
+                })
+                await sleep(500)
+                return
+            case 'key':
+                if (result.key) {
+                    await runCua({
+                        type: 'key',
+                        key: result.key,
+                        modifiers: result.key_modifiers,
+                    })
+                }
+                await sleep(300)
+                return
+        }
+    }
+
     const targetX = (result.x_percent / 100) * window.innerWidth
     const targetY = (result.y_percent / 100) * window.innerHeight
     const dpr = window.devicePixelRatio || 1
@@ -481,23 +614,48 @@ async function executeStepWithRetry(
 
 // ── Full agent run ───────────────────────────────────────────────────────
 
+export type AgentRunResult = {
+    status: 'completed' | 'stopped' | 'failed' | 'max_steps'
+    steps: AgentStep[]
+    message?: string
+    usedCua: boolean
+}
+
 export async function runAgent(
     task: string,
     clickEnabled: boolean,
     signal: AbortSignal,
     onUpdate?: StepCallback,
-): Promise<void> {
+): Promise<AgentRunResult> {
     const notify = (steps: AgentStep[], idx: number, status: string) => {
         onUpdate?.(steps, idx, status)
     }
 
-    throwIfAborted(signal)
-
-    // Brief settle so a new task starts from a stable screen state
-    await sleep(500)
-
-    const roadmap = await buildRoadmap(task, signal)
     const steps: AgentStep[] = []
+    let usedCua = false
+
+    try {
+        throwIfAborted(signal)
+
+        await sleep(500)
+
+        if (parseSimpleCuaTask(task)) {
+            const direct = await executeSimpleCuaTask(task, signal)
+            if (direct.ok) {
+                notify(steps, 0, 'completed')
+                return {
+                    status: 'completed',
+                    steps: [{ id: 0, instruction: task, status: 'done' }],
+                    usedCua: true,
+                    message: direct.message,
+                }
+            }
+            console.warn('[AgentEngine] Simple Cua path failed, falling back to vision loop:', direct.error)
+        }
+
+        usedCua = await initCuaSession(task)
+
+        const roadmap = await buildRoadmap(task, signal)
     const history: string[] = []
     let consecutiveErrors = 0
 
@@ -509,7 +667,14 @@ export async function runAgent(
         const screenshot = await captureScreenshot()
         if (!screenshot) {
             consecutiveErrors++
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                return {
+                    status: 'failed',
+                    steps,
+                    usedCua,
+                    message: 'Could not capture the screen. Open a target app (Notepad, Edge, etc.) and try again.',
+                }
+            }
             await sleep(600)
             continue
         }
@@ -518,7 +683,14 @@ export async function runAgent(
 
         if (!decision) {
             consecutiveErrors++
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                return {
+                    status: 'failed',
+                    steps,
+                    usedCua,
+                    message: 'AI could not decide the next step. Check your model/API key in Settings.',
+                }
+            }
             await sleep(600)
             continue
         }
@@ -535,19 +707,26 @@ export async function runAgent(
                 } else {
                     console.log('[AgentEngine] Task already complete:', decision.summary)
                     notify(steps, steps.length, 'completed')
-                    return
+                    return { status: 'completed', steps, usedCua, message: decision.summary ?? 'Task completed' }
                 }
             } else {
                 console.log('[AgentEngine] Task complete:', decision.summary)
                 notify(steps, steps.length, 'completed')
-                return
+                return { status: 'completed', steps, usedCua, message: decision.summary ?? 'Task completed' }
             }
         }
 
         const instruction = decision.instruction?.trim()
         if (!instruction) {
             consecutiveErrors++
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                return {
+                    status: 'failed',
+                    steps,
+                    usedCua,
+                    message: 'Agent stopped — no valid instruction from the model.',
+                }
+            }
             await sleep(600)
             continue
         }
@@ -570,7 +749,7 @@ export async function runAgent(
         if (signal.aborted) {
             step.status = 'skipped'
             notify(steps, step.id, 'stopped')
-            return
+            return { status: 'stopped', steps, usedCua }
         }
 
         if (outcome.ok) {
@@ -588,7 +767,12 @@ export async function runAgent(
 
             if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
                 console.warn('[AgentEngine] Stopping after consecutive failures')
-                return
+                return {
+                    status: 'failed',
+                    steps,
+                    usedCua,
+                    message: outcome.error ?? 'Too many failed steps.',
+                }
             }
         }
 
@@ -597,4 +781,8 @@ export async function runAgent(
 
     console.warn('[AgentEngine] Reached max steps without completion')
     notify(steps, steps.length, 'max_steps')
+    return { status: 'max_steps', steps, usedCua, message: 'Reached step limit before finishing.' }
+    } finally {
+        resetCuaSession()
+    }
 }

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useSyncExternalStore, useMemo } from 'react'
-import { Video, Camera, Square, Circle, Timer, Focus, Loader2 } from 'lucide-react'
+import { Video, Camera, Square, Circle, Timer, Focus, Loader2, Smartphone, Crop } from 'lucide-react'
 import { cn } from "@/shared/lib"
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -11,6 +11,12 @@ import { getThemeClasses } from "@/features/prompt"
 import { useVideoRecording, type VideoData } from '@/hooks/useVideoRecording'
 import { useFeature } from '@/contexts/FeatureContext'
 import { triggerRectangleScreenshot } from '@/features/capture/lib/trigger-rectangle-screenshot'
+import { triggerRectangleAreaRecording } from '@/features/capture/lib/trigger-rectangle-area-recording'
+import { CaptureAreaStore } from '@/features/capture/capture-area-store'
+import {
+    sendFileToPhone,
+    sendFileToPhoneErrorMessage,
+} from '@/lib/remote-pad/send-file-to-phone'
 
 // Constants for configuration
 const HOVER_DELAY_MS = 150
@@ -24,7 +30,7 @@ interface VideoHoverCapturePillProps {
     onScreenshotAdded?: (file: File) => void
 }
 
-type CaptureAction = 'video' | 'area-screenshot' | 'rectangle-screenshot' | 'quick-screenshot' | 'auto-screenshot' | 'set-area'
+type CaptureAction = 'video' | 'area-video' | 'area-screenshot' | 'rectangle-screenshot' | 'quick-screenshot' | 'auto-screenshot' | 'set-area' | 'send-to-phone'
 
 interface ActionButtonProps {
     onClick: () => void
@@ -111,6 +117,7 @@ export function VideoHoverCapturePill({
     // UI State
     const [isPillActive, setIsPillActive] = useState(false)
     const [isCapturing, setIsCapturing] = useState(false)
+    const [isSendingToPhone, setIsSendingToPhone] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -223,6 +230,39 @@ export function VideoHoverCapturePill({
         }
     }, [isRecording, startRecording, stopRecording, handleRecordingComplete])
 
+    const startAreaVideoRecording = useCallback(async (area: { x: number; y: number; width: number; height: number }) => {
+        setIsPillActive(true)
+        try {
+            const started = await startRecording({ fps: 30, audioEnabled: true, area })
+            if (!started) {
+                alert('Failed to start area recording')
+            }
+        } catch (err) {
+            alert(`Failed to start area recording: ${err instanceof Error ? err.message : String(err)}`)
+        }
+    }, [startRecording])
+
+    const handleAreaVideoRecording = useCallback(() => {
+        if (isRecording) {
+            void handleVideoClick()
+            return
+        }
+
+        setIsPillActive(false)
+
+        const savedArea = setCaptureAreaEnabled ? CaptureAreaStore.getArea() : null
+        if (savedArea) {
+            void startAreaVideoRecording(savedArea)
+            return
+        }
+
+        setIsCapturing(true)
+        triggerRectangleAreaRecording({
+            onAreaSelected: startAreaVideoRecording,
+            onComplete: () => setIsCapturing(false),
+        })
+    }, [isRecording, handleVideoClick, setCaptureAreaEnabled, startAreaVideoRecording])
+
     // Handle quick screenshot
     const handleQuickScreenshot = useCallback(async () => {
         if (!window.CaptureAPI) {
@@ -250,6 +290,35 @@ export function VideoHoverCapturePill({
             setIsPillActive(false)
         }
     }, [onScreenshotAdded])
+
+    const handleSendScreenshotToPhone = useCallback(async () => {
+        if (!window.CaptureAPI) {
+            console.error('CaptureAPI is not available')
+            return
+        }
+
+        setIsSendingToPhone(true)
+        try {
+            const result = await window.CaptureAPI.quickScreenshot()
+            if (!result.success || !result.screenshot) {
+                alert('Screenshot failed')
+                return
+            }
+
+            const blob = dataUrlToBlob(result.screenshot.data)
+            const file = new File([blob], result.screenshot.name, { type: result.screenshot.type })
+            const sendResult = await sendFileToPhone(file)
+            if (!sendResult.ok) {
+                alert(sendFileToPhoneErrorMessage(sendResult.reason))
+            }
+        } catch (err) {
+            console.error('Send to phone failed:', err)
+            alert(err instanceof Error ? err.message : 'Send to phone failed')
+        } finally {
+            setIsSendingToPhone(false)
+            setIsPillActive(false)
+        }
+    }, [])
 
     // Handle area screenshot (freehand draw) - trigger area selection overlay
     const handleAreaScreenshot = useCallback(() => {
@@ -316,14 +385,16 @@ export function VideoHoverCapturePill({
     const handleActionClick = useCallback((action: CaptureAction) => {
         const handlers: Record<CaptureAction, () => void> = {
             'video': handleVideoClick,
+            'area-video': handleAreaVideoRecording,
             'quick-screenshot': handleQuickScreenshot,
             'area-screenshot': handleAreaScreenshot,
             'rectangle-screenshot': handleRectangleScreenshot,
             'auto-screenshot': handleToggleAutoScreenshot,
             'set-area': handleSetAreaCapture,
+            'send-to-phone': handleSendScreenshotToPhone,
         }
         handlers[action]()
-    }, [handleVideoClick, handleQuickScreenshot, handleAreaScreenshot, handleRectangleScreenshot, handleToggleAutoScreenshot, handleSetAreaCapture])
+    }, [handleVideoClick, handleAreaVideoRecording, handleQuickScreenshot, handleAreaScreenshot, handleRectangleScreenshot, handleToggleAutoScreenshot, handleSetAreaCapture, handleSendScreenshotToPhone])
 
     // Toggle pill on click (in addition to hover) for easier access
     const handleCameraButtonClick = useCallback(() => {
@@ -404,6 +475,25 @@ export function VideoHoverCapturePill({
                         </ActionButton>
 
                         <ActionButton
+                            onClick={() => handleActionClick('area-video')}
+                            isActive={isRecording}
+                            activeColor="red"
+                            disabled={isCapturing}
+                            ariaLabel={isRecording ? "Stop area recording" : "Record selected area"}
+                            title={
+                                isRecording
+                                    ? "Stop recording"
+                                    : setCaptureAreaEnabled && CaptureAreaStore.getArea()
+                                        ? "Record capture area"
+                                        : "Record area — drag to select region"
+                            }
+                            className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
+                        >
+                            {isRecording ? <Square className="h-4 w-4" /> : <Crop className="h-4 w-4" />}
+                        </ActionButton>
+
+                        <ActionButton
                             onClick={() => handleActionClick('quick-screenshot')}
                             disabled={isCapturing}
                             ariaLabel="Screenshot"
@@ -458,6 +548,21 @@ export function VideoHoverCapturePill({
                             isDarkTheme={isDarkTheme}
                         >
                             <Focus className="h-4 w-4" />
+                        </ActionButton>
+
+                        <ActionButton
+                            onClick={() => handleActionClick('send-to-phone')}
+                            disabled={isCapturing || isSendingToPhone}
+                            ariaLabel="Send screenshot to phone"
+                            title="Send screenshot to phone"
+                            className={actionButtonClass}
+                            isDarkTheme={isDarkTheme}
+                        >
+                            {isSendingToPhone ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Smartphone className="h-4 w-4" />
+                            )}
                         </ActionButton>
                     </div>
                 </div>

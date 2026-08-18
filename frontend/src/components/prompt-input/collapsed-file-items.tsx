@@ -1,9 +1,9 @@
 import { FileText, PlaySquare } from "lucide-react"
-import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { isVideoFile } from "./prompt-video-preview"
 import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
 import { isImageFile } from "./prompt-image-preview"
 import { cn } from "@/lib/utils"
-import { getFileIcon } from "./prompt-shared"
+import { PromptGenericFilePreview } from "./prompt-generic-file-preview"
 import type { FileItemsBaseProps } from "./types/prompt-input-props"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { useFeature } from "@/shared/providers/FeatureProvider"
@@ -93,20 +93,13 @@ export function CollapsedFileItems({
             onRemove={() => onRemoveFile?.(index)}
           />
         ) : (
-          <div
+          <PromptGenericFilePreview
             key={`${file.name}-${index}`}
-            className={cn(
-              "flex items-center justify-center h-6 w-6 rounded bg-muted shrink-0 cursor-pointer",
-              themeClasses.fileItem
-            )}
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemoveFile?.(index)
-            }}
-            title={file.name}
-          >
-            {getFileIcon(file, themeClasses)}
-          </div>
+            file={file}
+            variant="collapsed"
+            themeClasses={themeClasses}
+            onRemove={() => onRemoveFile?.(index)}
+          />
         )
       )}
     </div>

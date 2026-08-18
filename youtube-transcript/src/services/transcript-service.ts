@@ -24,7 +24,8 @@ import {
   LanguageInfo,
 } from '../types';
 import { videoIdExtractor } from '../extractors';
-import { playerResponseFetcher, playabilityChecker } from '../fetchers';
+import { playerResponseFetcher, playabilityChecker, browserTranscriptFetcher } from '../fetchers';
+import type { BrowserTranscriptFetcher } from '../fetchers/browser-transcript-fetcher';
 import { captionTrackParser } from '../parsers';
 import { subtitleDownloader } from '../downloaders';
 import { subtitleParserFactory, SubtitleParserFactory } from '../parsers';
@@ -40,6 +41,7 @@ export interface TranscriptServiceDependencies {
   captionTrackParser: ICaptionTrackParser;
   subtitleDownloader: ISubtitleDownloader;
   subtitleParserFactory: SubtitleParserFactory;
+  browserTranscriptFetcher: BrowserTranscriptFetcher;
 }
 
 /**
@@ -52,6 +54,7 @@ const defaultDependencies: TranscriptServiceDependencies = {
   captionTrackParser,
   subtitleDownloader,
   subtitleParserFactory,
+  browserTranscriptFetcher,
 };
 
 /**
@@ -82,15 +85,32 @@ export class TranscriptService implements ITranscriptService {
     urlOrId: string,
     options: TranscriptOptions = {}
   ): Promise<TranscriptResult> {
+    const videoId = this.deps.videoIdExtractor.extract(urlOrId);
+    if (!videoId || !this.deps.videoIdExtractor.isValid(videoId)) {
+      return this.createErrorResult('Invalid YouTube URL or video ID', urlOrId);
+    }
+
+    const direct = await this.getViaDirect(videoId, urlOrId, options);
+    if (direct.success) {
+      return direct;
+    }
+
+    const browser = await this.getViaBrowser(videoId, urlOrId, options);
+    if (browser) {
+      return browser;
+    }
+
+    return direct;
+  }
+
+  private async getViaDirect(
+    videoId: string,
+    urlOrId: string,
+    options: TranscriptOptions
+  ): Promise<TranscriptResult> {
     const { includeTimestamps = false, languageCode } = options;
 
     try {
-      // Step 1: Extract and validate video ID
-      const videoId = this.deps.videoIdExtractor.extract(urlOrId);
-      if (!videoId || !this.deps.videoIdExtractor.isValid(videoId)) {
-        return this.createErrorResult('Invalid YouTube URL or video ID', urlOrId);
-      }
-
       // Step 2: Get player response
       const playerResponse = await this.deps.playerResponseFetcher.fetch(videoId);
 
@@ -146,6 +166,62 @@ export class TranscriptService implements ITranscriptService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return this.createErrorResult(errorMessage, urlOrId);
+    }
+  }
+
+  private async getViaBrowser(
+    videoId: string,
+    urlOrId: string,
+    options: TranscriptOptions
+  ): Promise<TranscriptResult | null> {
+    const fetcher = this.deps.browserTranscriptFetcher;
+    if (!fetcher.isAvailable()) {
+      return null;
+    }
+
+    const { includeTimestamps = false, languageCode } = options;
+
+    try {
+      const result = await fetcher.fetch(videoId, languageCode);
+      if (!result?.content.trim()) {
+        return null;
+      }
+
+      const transcript = this.deps.subtitleParserFactory.parse(result.content, {
+        includeTimestamps,
+      });
+
+      if (!transcript.trim()) {
+        return null;
+      }
+
+      const language = {
+        code: result.languageCode,
+        name: result.languageName,
+        kind: 'standard' as CaptionKind,
+      };
+
+      return this.createSuccessResult(
+        videoId,
+        transcript,
+        { languageCode: language.code, name: language.name, kind: language.kind },
+        {
+          includeTimestamps,
+          trackCount: 1,
+          availableLanguages: [
+            {
+              languageCode: language.code,
+              name: language.name,
+              kind: language.kind,
+              baseUrl: '',
+            },
+          ],
+        }
+      );
+    } catch (error) {
+      console.error('Browser transcript extraction failed:', error);
+      const message = error instanceof Error ? error.message : 'Browser extraction failed';
+      return this.createErrorResult(message, urlOrId);
     }
   }
 

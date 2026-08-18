@@ -6,10 +6,9 @@
     "lib": [
       "ES2022"
     ],
-    "module": "CommonJS",
+    "module": "Node16",
     /* Module Resolution */
-    "moduleResolution": "node",
-    "baseUrl": ".",
+    "moduleResolution": "Node16",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -21,7 +20,6 @@
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "skipLibCheck": true, // Skip type checking of declaration files - significant speedup
-    "ignoreDeprecations": "5.0",
     "forceConsistentCasingInFileNames": true,
     /* Emit */
     "outDir": "./dist",

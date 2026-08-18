@@ -70,6 +70,25 @@ export interface RichContentData {
     rtf?: string;           // RTF format (for Word, etc.)
 }
 
+export interface InsertPin {
+    number: number;
+    name: string;
+    processName: string;
+    windowTitleHint: string;
+    hwnd: string | null;
+    processId: number | null;
+    status: 'live' | 'offline';
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface InsertToPinResult {
+    success: boolean;
+    pin?: InsertPin;
+    reason?: 'not_found' | 'offline' | 'focus_failed' | 'insert_failed' | 'unavailable';
+    message?: string;
+}
+
 export interface TsfAPI {
     initialize: () => Promise<boolean>;
     insertText: (text: string, options?: TsfInsertOptions) => Promise<boolean>;
@@ -97,6 +116,18 @@ export interface TsfAPI {
     focusAndReplaceText: (text: string) => Promise<boolean>;
     deleteSelection: () => Promise<boolean>;
     onExternalFocusChanged: (callback: (focusInfo: any) => void) => void;
+    // Soft insert pins (survive app close; revive when app reopens)
+    listPins: () => Promise<InsertPin[]>;
+    assignPin: (number: number, name?: string) => Promise<InsertPin>;
+    assignPinCurrent: (number: number, name?: string) => Promise<InsertPin>;
+    removePin: (number: number) => Promise<boolean>;
+    renamePin: (number: number, name: string) => Promise<InsertPin | null>;
+    insertToPin: (number: number, text: string) => Promise<InsertToPinResult>;
+    focusPin: (number: number) => Promise<InsertToPinResult>;
+    getWindowRect: (hwnd: string) => Promise<{ x: number; y: number; width: number; height: number } | null>;
+    getInputAnchor: () => Promise<{ x: number; y: number } | null>;
+    onPinsChanged: (callback: (pins: InsertPin[]) => void) => void;
+    onPinRevived: (callback: (pin: InsertPin) => void) => void;
 }
 
 // Capture API Types
@@ -138,6 +169,76 @@ export interface CaptureAPI {
     getVideoRecordingDuration: () => Promise<any>;
     startAreaVideoRecording: (area: SelectionArea, options?: VideoRecordingOptions) => Promise<any>;
     getVideoSources: (includeWindows?: boolean) => Promise<any>;
+}
+
+export interface ManimRenderRequest {
+    topic: string;
+    manimCode: string;
+    narration?: string;
+    voiceUrl?: string;
+    quality?: 'ql' | 'qm' | 'qh' | 'qk';
+    jobId?: string;
+    chapterId?: string;
+}
+
+export interface ManimConcatRequest {
+    topic: string;
+    segmentPaths: string[];
+    jobId?: string;
+}
+
+export interface ManimRenderResult {
+    success: boolean;
+    error?: string;
+    jobId: string;
+    jobDir: string;
+    scenePath: string;
+    videoPath: string;
+    videoUrl: string;
+    videoBase64?: string;
+    audioPath: string | null;
+    warnings: string[];
+}
+
+export interface ManimSupportStatus {
+    manim: boolean;
+    ffmpeg: boolean;
+    python: boolean;
+    details: string[];
+}
+
+export interface ManimVideoAPI {
+    checkSupport: () => Promise<ManimSupportStatus>;
+    render: (request: ManimRenderRequest) => Promise<ManimRenderResult>;
+    concatSegments: (request: ManimConcatRequest) => Promise<ManimRenderResult>;
+}
+
+export interface MediaGifSupport {
+    ffmpeg: boolean;
+    maxDurationSeconds: number;
+    ffmpegPath?: string;
+    error?: string;
+}
+
+export interface ConvertVideoToGifRequest {
+    videoBase64: string;
+    mimeType?: string;
+    fileName?: string;
+    durationSeconds: number;
+}
+
+export interface ConvertVideoToGifResult {
+    success: boolean;
+    error?: string;
+    gifBase64?: string;
+    fileName?: string;
+    mimeType?: string;
+    maxDurationSeconds?: number;
+}
+
+export interface MediaAPI {
+    checkGifSupport: () => Promise<MediaGifSupport>;
+    convertVideoToGif: (request: ConvertVideoToGifRequest) => Promise<ConvertVideoToGifResult>;
 }
 
 // Block API Types
@@ -196,6 +297,21 @@ export interface FileContentResult {
     fileInfo?: FileInfo;
 }
 
+export interface DirEntry {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    size: number;
+    extension: string;
+    modified: number;
+}
+
+export interface QuickPath {
+    id: string;
+    label: string;
+    path: string;
+}
+
 export interface FileAPI {
     readFile: (filePath: string) => Promise<FileContentResult>;
     readFileBinary: (filePath: string) => Promise<{ success: boolean; data?: string; mimeType?: string; error?: string }>;
@@ -204,6 +320,8 @@ export interface FileAPI {
     isFile: (filePath: string) => Promise<boolean>;
     isDirectory: (dirPath: string) => Promise<boolean>;
     readDir: (dirPath: string) => Promise<{ success: boolean; files?: string[]; error?: string }>;
+    listDir: (dirPath: string) => Promise<{ success: boolean; path?: string; parent?: string | null; entries?: DirEntry[]; error?: string }>;
+    getQuickPaths: () => Promise<{ success: boolean; paths?: QuickPath[]; error?: string }>;
     getFileCategory: (filePath: string) => Promise<string>;
     getFileLanguage: (filePath: string) => Promise<string | null>;
     getMimeType: (filePath: string) => Promise<string | null>;

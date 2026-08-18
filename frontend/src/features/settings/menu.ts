@@ -8,10 +8,13 @@ import {
   Key,
   Plug,
   Server,
+  Smartphone,
+  BookOpen,
   CircleHelp,
   Sparkles,
   CircleUser,
   Paintbrush,
+  MapPin,
   // Mic2,
   type LucideIcon,
 } from "lucide-react"
@@ -26,6 +29,9 @@ export type SettingsSectionId =
   | "custom-models"
   | "integrations"
   | "mcp-servers"
+  | "skills"
+  | "remote-pad"
+  | "insert-pins"
   | "blocking"
   | "features"
   | "appearance"
@@ -130,6 +136,24 @@ export const SETTINGS_MENU_GROUPS: SettingsMenuGroup[] = [
         label: "MCP Servers",
         description: "Model Context Protocol tool servers",
         icon: Server,
+      },
+      {
+        id: "skills",
+        label: "Skills",
+        description: "Saved learning workflows and skill.md files",
+        icon: BookOpen,
+      },
+      {
+        id: "remote-pad",
+        label: "Remote connection",
+        description: "Connect your phone as a remote mouse & keyboard",
+        icon: Smartphone,
+      },
+      {
+        id: "insert-pins",
+        label: "Insert pins",
+        description: "Pin apps (Cursor, Edge…) to numbers for insert",
+        icon: MapPin,
       },
       {
         id: "blocking",

@@ -2,6 +2,7 @@ import React, { useRef, useState, useSyncExternalStore, useCallback } from 'reac
 
 interface VoiceSphereProps {
     isActive: boolean;
+    isConnecting?: boolean;
     volume: number; // 0.0 to 1.0
     level?: number;  // For visual intensity
     onClick?: () => void;
@@ -18,13 +19,16 @@ interface Particle {
     randomOffset: number;
 }
 
-export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, level = 0, onClick }) => {
+export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, isConnecting = false, volume, level = 0, onClick }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    // Use refs directly instead of syncing via useEffect
     const volumeRef = useRef(volume)
     volumeRef.current = volume
     const levelRef = useRef(level)
     levelRef.current = level
+    const isActiveRef = useRef(isActive)
+    isActiveRef.current = isActive
+    const isConnectingRef = useRef(isConnecting)
+    isConnectingRef.current = isConnecting
 
     // State to hold earth particles once generated
     const [earthParticles, setEarthParticles] = useState<Particle[]>([]);
@@ -186,7 +190,9 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
             const animate = (now: number) => {
                 const elapsed = now - startTime
                 time = elapsed * 0.0005
-                const targetVolume = isActive ? volumeRef.current : 0
+                const active = isActiveRef.current
+                const connecting = isConnectingRef.current
+                const targetVolume = active ? volumeRef.current : 0
 
                 if (targetVolume > smoothedVolume) {
                     smoothedVolume += (targetVolume - smoothedVolume) * 0.2
@@ -194,7 +200,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                     smoothedVolume += (targetVolume - smoothedVolume) * 0.05
                 }
 
-                rotationY += isActive ? 0.008 : 0.002
+                rotationY += active ? 0.008 : 0.002
 
                 const breathing = Math.sin(time * 2.5) * 0.03
                 const shrink = smoothedVolume * 0.55
@@ -242,12 +248,12 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
 
                 projectedParticles.sort((a, b) => b.z - a.z)
 
-                const shellR = isActive ? 14 : 255
-                const shellG = isActive ? 165 : 200
-                const shellB = isActive ? 233 : 0
-                const coreR = isActive ? 220 : 255
-                const coreG = isActive ? 245 : 255
-                const coreB = isActive ? 255 : 0
+                const shellR = active ? 37 : connecting ? 96 : 255
+                const shellG = active ? 99 : connecting ? 165 : 200
+                const shellB = active ? 235 : connecting ? 250 : 0
+                const coreR = active ? 147 : connecting ? 191 : 255
+                const coreG = active ? 197 : connecting ? 219 : 255
+                const coreB = active ? 253 : connecting ? 254 : 0
 
                 projectedParticles.forEach((p) => {
                     const alpha = Math.max(0.05, p.scale - 0.2)
@@ -265,7 +271,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                     ctx.fill()
                 })
 
-                if (isActive) {
+                if (active) {
                     ctx.lineWidth = 0.5
                     ctx.strokeStyle = `rgba(${shellR}, ${shellG}, ${shellB}, 0.2)`
                     ctx.beginPath()
@@ -298,7 +304,7 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
                     cancelAnimationFrame(animationFrameRef.current)
                 }
             }
-        }, [isActive, earthParticles]),
+        }, [earthParticles]),
         () => null,
         () => null
     )
@@ -310,8 +316,10 @@ export const VoiceSphere: React.FC<VoiceSphereProps> = ({ isActive, volume, leve
             className="w-full h-full cursor-pointer touch-none outline-none"
             style={{
                 filter: isActive
-                    ? 'drop-shadow(0 0 25px rgba(14, 165, 233, 0.5))'
-                    : 'none',
+                    ? 'drop-shadow(0 0 30px rgba(37, 99, 235, 0.75))'
+                    : isConnecting
+                        ? 'drop-shadow(0 0 18px rgba(96, 165, 250, 0.5))'
+                        : 'none',
                 transition: 'filter 0.5s ease'
             }}
         />

@@ -1,5 +1,5 @@
-import { useState, useSyncExternalStore, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { cn } from '@/lib/utils';
 import { VoiceSphere } from './assistant-sphere';
 import { useLiveAssistant } from './live-assistant-provider';
 import { ImageGenerationWindow } from '../image-generation-window';
@@ -7,11 +7,12 @@ import { VideoGenerationWindow } from '../video-generation-window';
 
 
 export const AssistantSphere = () => {
-    const [isVisible, setIsVisible] = useState(false);
     const {
         connect,
         disconnect,
         connected,
+        isVisible,
+        isConnecting,
         isSpeaking,
         volume,
         imageGeneration,
@@ -20,56 +21,10 @@ export const AssistantSphere = () => {
         closeVideoGeneration
     } = useLiveAssistant();
 
-    // Listen for visibility toggle - using syncExternalStore
-    useSyncExternalStore(
-        useCallback(() => {
-            const handleVisibilityToggle = () => setIsVisible(prev => !prev);
-            window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle);
-            return () => window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
-        }, []),
-        () => null,
-        () => null
-    )
-
-    // Listen for assistant-connect command from main process - using syncExternalStore
-    useSyncExternalStore(
-        useCallback(() => {
-            const handleAssistantConnect = () => {
-                setIsVisible(true);
-                if (!connected) {
-                    connect();
-                }
-            };
-
-            if (window.interfaceAPI?.onMessage) {
-                window.interfaceAPI.onMessage('assistant-connect', handleAssistantConnect);
-            }
-
-            return () => {
-                if (window.interfaceAPI?.removeMessageListener) {
-                    window.interfaceAPI.removeMessageListener('assistant-connect', handleAssistantConnect);
-                }
-            };
-        }, [connected, connect]),
-        () => null,
-        () => null
-    )
-
-    // Automatically disconnect when hidden - using syncExternalStore
-    useSyncExternalStore(
-        useCallback(() => {
-            if (!isVisible && connected) {
-                disconnect();
-            }
-            return () => {}
-        }, [isVisible, connected, disconnect]),
-        () => null,
-        () => null
-    )
-
     if (!isVisible) return null;
 
     const handleToggle = () => {
+        if (isConnecting) return;
         if (connected) {
             disconnect();
         } else {
@@ -80,13 +35,29 @@ export const AssistantSphere = () => {
     return (
         <>
             <motion.div
-                className="relative w-[150px] h-[150px] flex justify-center items-center cursor-pointer outline-none"
+                data-no-clickthrough
+                role="button"
+                tabIndex={0}
+                aria-label={connected ? 'Disconnect voice assistant' : 'Connect voice assistant'}
+                onTap={handleToggle}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleToggle();
+                    }
+                }}
+                className={cn(
+                    'relative w-[150px] h-[150px] flex justify-center items-center cursor-pointer outline-none pointer-events-auto rounded-full transition-shadow duration-300',
+                    connected && 'ring-2 ring-blue-500 shadow-[0_0_28px_rgba(37,99,235,0.7)]',
+                    isConnecting && !connected && 'ring-2 ring-blue-400/60 animate-pulse',
+                )}
                 drag
                 dragMomentum={false}
-                initial={{ scale: 0.2 }}
-                animate={{ scale: connected ? 0.4 : 0.2 }}
-                whileHover={{ scale: 1 }}
-                whileTap={{ scale: 0.9 }}
+                dragElastic={0.1}
+                initial={{ scale: 0.35 }}
+                animate={{ scale: connected ? 0.55 : isConnecting ? 0.45 : 0.35 }}
+                whileHover={{ scale: connected ? 0.6 : 0.55 }}
+                whileTap={{ scale: 0.45 }}
                 transition={{
                     type: "spring",
                     stiffness: 400,
@@ -96,12 +67,11 @@ export const AssistantSphere = () => {
             >
                 <VoiceSphere
                     isActive={connected}
-                    volume={isSpeaking ? (volume ?? 0.5) : 0}
-                    onClick={handleToggle}
+                    isConnecting={isConnecting && !connected}
+                    volume={connected ? Math.max(volume, isSpeaking ? 0.15 : 0.03) : 0}
                 />
             </motion.div>
 
-            {/* Tool Popups */}
             <ImageGenerationWindow
                 isVisible={imageGeneration.isVisible}
                 images={imageGeneration.images}
@@ -115,9 +85,6 @@ export const AssistantSphere = () => {
                 isLoading={videoGeneration.isLoading}
                 onClose={closeVideoGeneration}
             />
-
-            {/* Whisper Transcription Overlay is now in App.tsx */}
         </>
     );
 };
-

@@ -70,10 +70,13 @@ export class InterfaceWindow {
       console.error(`InterfaceWindow: Preload error in ${preloadPath}:`, error);
     });
 
-    // Listen for console messages from preload
+    // Listen for console messages from preload and the renderer so key logs
+    // (e.g. [LiveAssistant] connection errors) are visible in the main terminal.
     this.window.webContents.on('console-message', (_event, level, message, _line, sourceId) => {
       if (sourceId && sourceId.includes('preload')) {
         console.log(`[Preload Console ${level}]:`, message);
+      } else {
+        console.log(`[Renderer ${level}]:`, message);
       }
     });
 
@@ -139,6 +142,34 @@ export class InterfaceWindow {
 
     this.clickThroughManager = new ClickThroughManager(this.window);
     this.clickThroughManager.setup();
+
+    // DevTools can't be used while the window is click-through, so disable
+    // click-through whenever DevTools is open and restore it on close.
+    const devToolsContents = this.window.webContents;
+    devToolsContents.on('devtools-opened', () => {
+      this.clickThroughManager?.setDevToolsOpen(true);
+    });
+    devToolsContents.on('devtools-closed', () => {
+      this.clickThroughManager?.setDevToolsOpen(false);
+    });
+
+    // Toggle DevTools (detached, so it doesn't overlap the transparent overlay)
+    // with Ctrl+Shift+I / Cmd+Alt+I since this frameless window has no menu.
+    this.window.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return;
+      const key = input.key?.toLowerCase();
+      const isDevToolsShortcut =
+        ((input.control || input.meta) && input.shift && key === 'i') ||
+        key === 'f12';
+      if (isDevToolsShortcut) {
+        event.preventDefault();
+        if (devToolsContents.isDevToolsOpened()) {
+          devToolsContents.closeDevTools();
+        } else {
+          devToolsContents.openDevTools({ mode: 'detach' });
+        }
+      }
+    });
 
     this.window.once('ready-to-show', () => {
       // Check if locked before showing

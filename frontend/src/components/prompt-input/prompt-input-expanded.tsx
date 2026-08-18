@@ -103,6 +103,7 @@ export function PromptInputExpanded({
         onSubmit={onSubmit}
         className={cn(
           "flex-1 flex flex-col rounded-2xl border px-3 py-2 transition-all duration-200 ease-out overflow-visible",
+          themeClasses.containerSurface,
           themeClasses.containerBorder,
           isAnimatingIn ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}

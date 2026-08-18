@@ -119,8 +119,8 @@ declare global {
       setIgnoreMouseEvents: (ignore: boolean, options?: any) => void;
       setContentProtection: (enabled: boolean) => void;
       sendMessage: (channel: string, data: any) => void;
-      onMessage: (channel: 'interface-update' | 'text-selection-changed' | 'assistant-connect' | 'show-prompt-input' | 'toggle-voice-insert' | 'show-rectangle-screenshot' | string, func: (...args: any[]) => void) => void;
-      removeMessageListener: (channel: 'interface-update' | 'text-selection-changed' | 'assistant-connect' | 'show-prompt-input' | 'toggle-voice-insert' | 'show-rectangle-screenshot' | string, func: (...args: any[]) => void) => void;
+      onMessage: (channel: 'interface-update' | 'text-selection-changed' | 'assistant-connect' | 'show-prompt-input' | 'toggle-voice-insert' | 'show-rectangle-screenshot' | 'show-assign-pin' | string, func: (...args: any[]) => void) => void;
+      removeMessageListener: (channel: 'interface-update' | 'text-selection-changed' | 'assistant-connect' | 'show-prompt-input' | 'toggle-voice-insert' | 'show-rectangle-screenshot' | 'show-assign-pin' | string, func: (...args: any[]) => void) => void;
       // Automation methods (robotjs)
       clickAt?: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
       doubleClickAt?: (x: number, y: number) => Promise<{ success: boolean; error?: string }>;
@@ -137,13 +137,13 @@ declare global {
       initialize: () => Promise<void>;
       insertText: (text: string, options?: { useFallback?: boolean; force?: boolean }) => Promise<boolean>;
       insertTextFallback: (text: string) => Promise<boolean>;
-      getFocusInfo: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean }>;
+      getFocusInfo: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean; hwnd?: string }>;
       isTsfAvailable: () => Promise<boolean>;
       isEditableWindow: () => Promise<boolean>;
       setEnabled: (enabled: boolean) => void;
       isEnabled: () => Promise<boolean>;
-      getLastExternalFocus: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
-      getLastFocusedWindow: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean } | null>;
+      getLastExternalFocus: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean; hwnd?: string } | null>;
+      getLastFocusedWindow: () => Promise<{ windowTitle: string; processName: string; processId: number; isEditable: boolean; hwnd?: string } | null>;
       focusLastWindow: () => Promise<boolean>;
       focusAndInsertText: (text: string) => Promise<boolean>;
       focusAndInsertAtEnd: (text: string) => Promise<boolean>;
@@ -157,6 +157,35 @@ declare global {
       onInsertFailed: (callback: (data: any) => void) => void;
       onWarning: (callback: (data: any) => void) => void;
       onExternalFocusChanged: (callback: (focusInfo: any) => void) => void;
+      /** Soft pins survive app close; status becomes offline until app reopens */
+      listPins: () => Promise<Array<{
+        number: number;
+        name: string;
+        processName: string;
+        windowTitleHint: string;
+        hwnd: string | null;
+        processId: number | null;
+        anchorX: number | null;
+        anchorY: number | null;
+        status: 'live' | 'offline';
+        createdAt: number;
+        updatedAt: number;
+      }>>;
+      assignPin: (number: number, name?: string) => Promise<any>;
+      assignPinCurrent: (number: number, name?: string) => Promise<any>;
+      removePin: (number: number) => Promise<boolean>;
+      renamePin: (number: number, name: string) => Promise<any>;
+      insertToPin: (number: number, text: string) => Promise<{
+        success: boolean;
+        pin?: any;
+        reason?: 'not_found' | 'offline' | 'focus_failed' | 'insert_failed' | 'unavailable';
+        message?: string;
+      }>;
+      focusPin: (number: number) => Promise<{ success: boolean; pin?: any; reason?: string; message?: string }>;
+      getWindowRect: (hwnd: string) => Promise<{ x: number; y: number; width: number; height: number } | null>;
+      getInputAnchor: () => Promise<{ x: number; y: number } | null>;
+      onPinsChanged: (callback: (pins: any[]) => void) => void;
+      onPinRevived: (callback: (pin: any) => void) => void;
     };
 
     /**
@@ -258,6 +287,25 @@ declare global {
         files?: string[];
         error?: string;
       }>;
+      listDir: (dirPath: string) => Promise<{
+        success: boolean;
+        path?: string;
+        parent?: string | null;
+        entries?: Array<{
+          name: string;
+          path: string;
+          isDirectory: boolean;
+          size: number;
+          extension: string;
+          modified: number;
+        }>;
+        error?: string;
+      }>;
+      getQuickPaths: () => Promise<{
+        success: boolean;
+        paths?: Array<{ id: string; label: string; path: string }>;
+        error?: string;
+      }>;
       getFileCategory: (filePath: string) => Promise<string>;
       getFileLanguage: (filePath: string) => Promise<string | null>;
       getMimeType: (filePath: string) => Promise<string | null>;
@@ -288,6 +336,15 @@ declare global {
     };
 
     /**
+     * Cua Driver integration API
+     */
+    cuaAPI?: {
+      getStatus: () => Promise<CuaDriverStatus>;
+      ensureServer: () => Promise<{ ok: boolean; serverId?: string; created?: boolean; error?: string }>;
+      smokeTest: () => Promise<CuaSmokeTestResult>;
+    };
+
+    /**
      * Composio Integrations API
      */
     composioAPI?: {
@@ -301,10 +358,179 @@ declare global {
       ) => Promise<ComposioChatToolExecuteResult>;
     };
 
+    /**
+     * Remote Pad server API (phone control over LAN)
+     */
+    remotePadAPI?: {
+      getStatus: () => Promise<RemotePadStatus>;
+      getQrCode: () => Promise<RemotePadQrCode>;
+      openPairingWindow: () => Promise<RemotePadStatus>;
+      setEnabled: (enabled: boolean) => Promise<RemotePadStatus>;
+      setConfig: (partial: { port?: number; allowScreenView?: boolean; lanFallbackEnabled?: boolean; clipboardSyncEnabled?: boolean; meshHostOverride?: string }) => Promise<RemotePadStatus>;
+      regeneratePin: () => Promise<RemotePadStatus>;
+      disconnectClients: () => Promise<RemotePadStatus>;
+      sendFileToPhone: (input: {
+        filePath?: string;
+        data?: ArrayBuffer | Uint8Array;
+        filename?: string;
+        mime?: string;
+      }) => Promise<{ ok: boolean; filename?: string; reason?: string; transferId?: string }>;
+      cancelFileTransfer: (transferId?: string) => Promise<{ ok: boolean; transferId?: string; reason?: string }>;
+      startPhoneCamera: (options?: { facing?: 'front' | 'back'; virtualWebcam?: boolean }) => Promise<{ ok: boolean; reason?: string; facing?: string; deviceName?: string; virtualWebcam?: boolean }>;
+      stopPhoneCamera: () => Promise<{ ok: boolean; reason?: string }>;
+      openFirewallSetup: () => Promise<RemotePadStatus['windowsFirewall']>;
+      sendPhoneCamSignal: (message: PhoneCamSignalMessage) => Promise<{ ok: boolean; reason?: string }>;
+      onPhoneCamSignal: (callback: (message: PhoneCamSignalMessage) => void) => () => void;
+      onPhoneCamPreviewUpdate: (callback: (payload: PhoneCamPreviewUpdate) => void) => () => void;
+      onFileTransferProgress: (
+        callback: (progress: FileTransferProgressEvent) => void,
+      ) => () => void;
+    };
+
+    /**
+     * Local skills library API
+     */
+    skillsAPI?: {
+      list: () => Promise<SkillEntry[]>;
+      get: (idOrSlug: string) => Promise<SkillEntry | null>;
+      save: (input: SkillSaveInput) => Promise<SkillEntry>;
+      delete: (idOrSlug: string) => Promise<{ success: boolean }>;
+      recordUsage: (idOrSlug: string) => Promise<{ success: boolean }>;
+      getFolderPath: () => Promise<{ skillsFolder: string; databasePath: string }>;
+      openFolder: () => Promise<{ success: boolean; path: string }>;
+      openSkill: (idOrSlug: string) => Promise<{ success: boolean; path: string }>;
+    };
+
+    /**
+     * In-app PTY agent session API
+     */
+    agentSessionAPI?: {
+      start: (input: { command: string; cwd?: string; label?: string; agentId?: string }) => Promise<AgentSessionSnapshot>;
+      stop: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+      pause: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+      resume: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+      sendInput: (sessionId: string, text: string) => Promise<{ success: boolean; error?: string }>;
+      writeRaw: (sessionId: string, data: string) => Promise<{ success: boolean; error?: string }>;
+      resize: (sessionId: string, cols: number, rows: number) => Promise<{ success: boolean; error?: string }>;
+      focusWindow: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+      list: () => Promise<AgentSessionSnapshot[]>;
+      get: (sessionId: string) => Promise<AgentSessionSnapshot | null>;
+      listClis: () => Promise<AgentCliInfo[]>;
+      getDefaults: () => Promise<{ cwd: string; runtime?: string }>;
+      onOutput: (callback: (payload: { sessionId: string; chunk: string }) => void) => () => void;
+      onStatus: (
+        callback: (payload: {
+          sessionId: string;
+          status: AgentSessionStatus;
+          session: AgentSessionSnapshot;
+        }) => void,
+      ) => () => void;
+      onExit: (
+        callback: (payload: {
+          sessionId: string;
+          status: AgentSessionStatus;
+          session: AgentSessionSnapshot;
+        }) => void,
+      ) => () => void;
+      onOpenTerminal: (
+        callback: (payload: { sessionId: string; session: AgentSessionSnapshot }) => void,
+      ) => () => void;
+    };
+
+    /**
+     * Local Manim video rendering API.
+     */
+    manimVideoAPI?: {
+      checkSupport: () => Promise<ManimSupportStatus>;
+      render: (request: ManimRenderRequest) => Promise<ManimRenderResult>;
+      concatSegments: (request: ManimConcatRequest) => Promise<ManimRenderResult>;
+    };
+
+    /**
+     * Short recording → GIF export (ffmpeg).
+     */
+    mediaAPI?: {
+      checkGifSupport: () => Promise<{
+        ffmpeg: boolean;
+        maxDurationSeconds: number;
+        ffmpegPath?: string;
+        error?: string;
+      }>;
+      convertVideoToGif: (request: {
+        videoBase64: string;
+        mimeType?: string;
+        fileName?: string;
+        durationSeconds: number;
+      }) => Promise<{
+        success: boolean;
+        error?: string;
+        gifBase64?: string;
+        fileName?: string;
+        mimeType?: string;
+        maxDurationSeconds?: number;
+      }>;
+    };
+
   }
 }
 
 export type McpTransportType = 'stdio' | 'http';
+
+export type AgentSessionStatus =
+  | 'idle'
+  | 'starting'
+  | 'running'
+  | 'waiting'
+  | 'paused'
+  | 'stopped'
+  | 'error';
+
+export interface AgentSessionSnapshot {
+  id: string;
+  command: string;
+  cwd: string;
+  label: string;
+  agentId: string | null;
+  managed: boolean;
+  host: string;
+  status: AgentSessionStatus;
+  pid: number | null;
+  output: string;
+  startedAt: string;
+  exitCode: number | null;
+}
+
+export interface AgentCliInfo {
+  id: string;
+  label: string;
+  command: string;
+  description?: string;
+  installed: boolean;
+  version?: string;
+  source?: 'path' | 'npx';
+}
+
+export interface SkillEntry {
+  id: string;
+  title: string;
+  slug: string;
+  domain: string | null;
+  tags: string[];
+  filePath: string;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt: string | null;
+  contentMd?: string;
+}
+
+export interface SkillSaveInput {
+  id?: string;
+  title: string;
+  contentMd: string;
+  domain?: string;
+  tags?: string[];
+}
 
 export interface McpTransportConfig {
   type: McpTransportType;
@@ -346,6 +572,28 @@ export interface McpToolDefinition {
   inputSchema: Record<string, unknown>;
 }
 
+export interface CuaDriverStatus {
+  installed: boolean;
+  command: string | null;
+  source: 'bundled' | 'install' | 'path' | null;
+  registered: boolean;
+  serverId: string | null;
+}
+
+export interface CuaSmokeTestResult {
+  ok: boolean;
+  step: string;
+  error?: string;
+  message?: string;
+  command?: string;
+  source?: string;
+  serverId?: string;
+  toolNames?: string[];
+  windowCount?: number;
+  target?: { pid: number; window_id: number; title: string | null };
+  captureOk?: boolean;
+}
+
 export interface ComposioToolkit {
   slug: string;
   name: string;
@@ -374,6 +622,133 @@ export interface ComposioChatToolExecuteResult {
   data?: unknown;
   error?: string | Record<string, unknown>;
   logId?: string;
+}
+
+export type FileTransferProgressEvent = {
+  transferId: string;
+  filename: string;
+  direction: 'sending' | 'receiving';
+  percent: number;
+  current: number;
+  total: number;
+  elapsedMs: number;
+  etaMs?: number | null;
+  cancellable?: boolean;
+} | null;
+
+export interface RemotePadStatus {
+  enabled: boolean;
+  running: boolean;
+  connectedClients: number;
+  phoneConnected?: boolean;
+  buddyId: string;
+  ip: string;
+  meshVpnIp?: string | null;
+  meshVpnDetected?: string | null;
+  meshHostOverride?: string | null;
+  meshVpnIps?: string[];
+  port: number;
+  pin: string;
+  allowScreenView: boolean;
+  lanFallbackEnabled: boolean;
+  liveKitConfigured: boolean;
+  liveKitStreaming: boolean;
+  preferLiveKit: boolean;
+  preferLanMedia?: boolean;
+  preferLanP2p?: boolean;
+  lanP2pRunning?: boolean;
+  lanHttpRunning?: boolean;
+  lanHttpPort?: number;
+  clipboardSyncEnabled?: boolean;
+  cloudPairingConfigured: boolean;
+  cloudPairingActive: boolean;
+  phoneCameraActive?: boolean;
+  phoneCameraRequested?: boolean;
+  phoneCamera?: PhoneCameraDriverStatus;
+  windowsFirewall?: {
+    platform: string;
+    configured: boolean | null;
+    portRulesOk: boolean;
+    programRuleOk: boolean;
+    error: string | null;
+  };
+}
+
+export interface RemotePadQrCode {
+  payload: string;
+  dataUrl: string;
+}
+
+export interface PhoneCamSignalMessage {
+  type: string;
+  sdp?: string;
+  facing?: string;
+  candidate?: {
+    candidate?: string;
+    sdpMid?: string | null;
+    sdpMLineIndex?: number | null;
+  };
+}
+
+export interface PhoneCamPreviewUpdate {
+  previewDataUrl?: string;
+  connected?: boolean;
+  virtualWebcamConnected?: boolean;
+  error?: string;
+}
+
+export interface PhoneCameraDriverStatus {
+  available: boolean;
+  dllPath: string;
+  dllExists: boolean;
+  installerPath?: string;
+  installerExists?: boolean;
+  deviceName: string;
+  width: number;
+  height: number;
+  reason?: string;
+  active?: boolean;
+  virtualWebcamEnabled?: boolean;
+  virtualWebcamActive?: boolean;
+  virtualWebcamConnected?: boolean;
+  previewAvailable?: boolean;
+}
+
+export interface ManimRenderRequest {
+  topic: string;
+  manimCode: string;
+  narration?: string;
+  voiceUrl?: string;
+  quality?: 'ql' | 'qm' | 'qh' | 'qk';
+  jobId?: string;
+  chapterId?: string;
+  skipNarration?: boolean;
+}
+
+export interface ManimConcatRequest {
+  topic: string;
+  segmentPaths: string[];
+  jobId?: string;
+}
+
+export interface ManimRenderResult {
+  success: boolean;
+  error?: string;
+  jobId: string;
+  jobDir: string;
+  scenePath: string;
+  videoPath: string;
+  videoUrl: string;
+  videoBase64?: string;
+  audioPath: string | null;
+  warnings: string[];
+}
+
+export interface ManimSupportStatus {
+  manim: boolean;
+  ffmpeg: boolean;
+  python: boolean;
+  details: string[];
 }
 
 export { };

@@ -26,7 +26,7 @@ interface ReferencePickerProps {
 
 function getComposioUnavailableMessage(): string {
   if (!window.electronAPI) {
-    return "References need the Buddy desktop app."
+    return "References need the SonicThinking desktop app."
   }
   if (!window.composioAPI) {
     return "Integrations are not loaded. Restart the desktop app."

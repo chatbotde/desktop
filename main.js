@@ -7,9 +7,12 @@
  * - All logic delegated to focused components
  */
 
-const { app } = require('electron');
+const { app, protocol } = require('electron');
 const path = require('path');
+const { installProcessSocketSafetyHandlers } = require('./agent-sessions/socket-utils');
 const { ProtocolHandler } = require('./interface-window/dist/protocol-handler');
+
+installProcessSocketSafetyHandlers();
 
 // CRITICAL: Set App User Model ID BEFORE any windows are created
 // This is required for Windows to properly associate the app with its icon
@@ -18,8 +21,31 @@ if (process.platform === 'win32') {
 }
 
 // Register custom protocol schemes BEFORE app is ready
-// This must be done synchronously at startup
-ProtocolHandler.registerPrivileges();
+// This must be done synchronously at startup, and only once for ALL schemes.
+// - buddy-app: serves the packaged frontend
+// - sonic-media: streams locally rendered media (e.g. Manim videos) from disk
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'buddy-app',
+    privileges: {
+      standard: true,
+      secure: true,
+      allowServiceWorkers: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+  {
+    scheme: 'sonic-media',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: true,
+    },
+  },
+]);
 
 // Protocols and deep linking are now handled by the Auth module
 // which is initialized during application.initialize() below.

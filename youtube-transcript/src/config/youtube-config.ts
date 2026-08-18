@@ -11,6 +11,14 @@
 export const INNERTUBE_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
 
 /**
+ * Android Innertube client — caption URLs from this client do not require PO tokens.
+ */
+export const ANDROID_INNERTUBE_API_KEY = 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w';
+export const ANDROID_CLIENT_VERSION = '20.10.38';
+export const ANDROID_USER_AGENT =
+  'com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip';
+
+/**
  * YouTube client version
  */
 export const INNERTUBE_CLIENT_VERSION = '2.20231219.04.00';
@@ -43,12 +51,23 @@ export const REQUEST_HEADERS = {
     'Origin': 'https://www.youtube.com',
     'Referer': 'https://www.youtube.com/',
   },
+  INNERTUBE_ANDROID: {
+    'Content-Type': 'application/json',
+    'User-Agent': ANDROID_USER_AGENT,
+    'X-YouTube-Client-Name': '3',
+    'X-YouTube-Client-Version': ANDROID_CLIENT_VERSION,
+  },
   SUBTITLE: {
     'User-Agent': DEFAULT_USER_AGENT,
     'Accept': '*/*',
     'Accept-Language': 'en-US,en;q=0.9',
     'Origin': 'https://www.youtube.com',
     'Referer': 'https://www.youtube.com/',
+  },
+  SUBTITLE_ANDROID: {
+    'User-Agent': ANDROID_USER_AGENT,
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
   },
 } as const;
 
@@ -58,4 +77,5 @@ export const REQUEST_HEADERS = {
 export const ENDPOINTS = {
   WATCH_PAGE: (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`,
   INNERTUBE_PLAYER: `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_API_KEY}&prettyPrint=false`,
+  INNERTUBE_PLAYER_ANDROID: `https://www.youtube.com/youtubei/v1/player?key=${ANDROID_INNERTUBE_API_KEY}&prettyPrint=false`,
 } as const;

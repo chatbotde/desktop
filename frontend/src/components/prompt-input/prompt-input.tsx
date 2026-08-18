@@ -148,6 +148,7 @@ export function PromptInputWithActions({
 
   // Use controlled or internal visibility
   const isVisible = controlledVisible !== undefined ? controlledVisible : internalVisible
+
   const setIsVisible = (visible: boolean) => {
     if (onVisibilityChange) {
       onVisibilityChange(visible)

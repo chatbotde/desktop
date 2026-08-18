@@ -16,7 +16,12 @@ import {
     createYouTubeTranscriptAPI,
     createWhisperAPI,
     createComposioAPI,
-    createMcpAPI
+    createMcpAPI,
+    createCuaAPI,
+    createRemotePadAPI,
+    createManimVideoAPI,
+    createMediaAPI,
+    createSkillsAPI,
 } from './apis';
 
 // Verify contextBridge is available
@@ -132,6 +137,51 @@ try {
     console.log('[Preload] mcpAPI exposed successfully');
 } catch (error) {
     console.error('[Preload] Error exposing mcpAPI:', error);
+}
+
+// Expose cuaAPI
+try {
+    const cuaAPI = createCuaAPI();
+    contextBridge.exposeInMainWorld('cuaAPI', cuaAPI);
+    console.log('[Preload] cuaAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing cuaAPI:', error);
+}
+
+// Expose remotePadAPI
+try {
+    const remotePadAPI = createRemotePadAPI();
+    contextBridge.exposeInMainWorld('remotePadAPI', remotePadAPI);
+    console.log('[Preload] remotePadAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing remotePadAPI:', error);
+}
+
+// Expose manimVideoAPI
+try {
+    const manimVideoAPI = createManimVideoAPI();
+    contextBridge.exposeInMainWorld('manimVideoAPI', manimVideoAPI);
+    console.log('[Preload] manimVideoAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing manimVideoAPI:', error);
+}
+
+// Expose mediaAPI (short recording → GIF)
+try {
+    const mediaAPI = createMediaAPI();
+    contextBridge.exposeInMainWorld('mediaAPI', mediaAPI);
+    console.log('[Preload] mediaAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing mediaAPI:', error);
+}
+
+// Expose skillsAPI
+try {
+    const skillsAPI = createSkillsAPI();
+    contextBridge.exposeInMainWorld('skillsAPI', skillsAPI);
+    console.log('[Preload] skillsAPI exposed successfully');
+} catch (error) {
+    console.error('[Preload] Error exposing skillsAPI:', error);
 }
 
 console.log('[Preload] All APIs exposed, preload script complete');

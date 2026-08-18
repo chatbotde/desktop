@@ -1,7 +1,14 @@
-import { GLOBAL_THEME } from '@/global/theme'
+/**
+ * Prompt input theme — preserves original pill/rounded design.
+ * Uses CSS variables for palette colors only; shape stays component-defined.
+ */
 
 export interface ThemeClasses {
+  /** Background for inline styles (supports glass opacity via CSS vars) */
   containerBg: string
+  /** Optional glass blur hook — no border/radius */
+  containerSurface: string
+  /** Border color token only — pair with `border` on the element */
   containerBorder: string
   buttonBg: string
   buttonHover: string
@@ -13,29 +20,30 @@ export interface ThemeClasses {
   fileText: string
 }
 
-export function getThemeClasses(isDarkTheme: boolean): ThemeClasses {
-  const theme = isDarkTheme ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light;
+const SURFACE_BG = 'hsl(var(--card) / var(--appearance-surface-opacity, 1))'
 
+export function getThemeClasses(_isDarkTheme?: boolean): ThemeClasses {
   return {
-    containerBg: theme.background,
-    containerBorder: `border-${isDarkTheme ? 'zinc-800' : 'zinc-200'}`,
-    buttonBg: theme.background,
-    buttonHover: isDarkTheme ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100',
-    buttonBorder: `border-${isDarkTheme ? 'zinc-800' : 'zinc-200'}`,
-    input: `${theme.text === '#fafafa' ? 'text-zinc-200' : 'text-zinc-900'} placeholder:text-zinc-500`,
-    textarea: `${theme.text === '#fafafa' ? 'text-zinc-200' : 'text-zinc-900'} placeholder:text-zinc-500`,
-    icon: isDarkTheme ? 'text-zinc-300' : 'text-zinc-600',
-    fileItem: isDarkTheme ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-200',
-    fileText: isDarkTheme ? 'text-zinc-200' : 'text-zinc-900',
-  };
+    containerBg: SURFACE_BG,
+    containerSurface: 'glass-surface',
+    containerBorder: 'border-border',
+    buttonBg: SURFACE_BG,
+    buttonHover: 'hover:bg-muted/80',
+    buttonBorder: 'border-border',
+    input: 'text-foreground placeholder:text-muted-foreground',
+    textarea: 'text-foreground placeholder:text-muted-foreground',
+    icon: 'text-muted-foreground',
+    fileItem: 'bg-muted/80 border-border rounded-lg border',
+    fileText: 'text-foreground',
+  }
 }
 
-export function getHoverClass(isDarkTheme: boolean): string {
-  return isDarkTheme ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
+/** Circular-friendly hover — no rectangular app-hover rounding */
+export function getHoverClass(_isDarkTheme?: boolean): string {
+  return 'hover:bg-muted/80 transition-colors'
 }
 
-// Legacy alias for backward compatibility
 export const promptInputTheme = {
   getThemeClasses,
-  getHoverClass
+  getHoverClass,
 }

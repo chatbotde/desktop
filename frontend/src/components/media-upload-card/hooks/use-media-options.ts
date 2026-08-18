@@ -1,18 +1,15 @@
 import { useMemo } from "react"
 import { Image, Mic, Video, FileText, Camera, Circle, Settings, Crop, Clapperboard } from "lucide-react"
 import { useFeature } from "@/contexts/FeatureContext"
+import type { FileKind } from "@/components/file-picker"
 import { MEDIA_UPLOAD_CONSTANTS } from "../constants/media-upload-constants"
 import type { MediaOption } from "../types/media-upload-types"
 
 interface UseMediaOptionsProps {
   isCapturing: boolean
   onSettingsOpen: () => void
-  fileInputRefs: {
-    docInputRef: React.RefObject<HTMLInputElement | null>
-    imageInputRef: React.RefObject<HTMLInputElement | null>
-    videoInputRef: React.RefObject<HTMLInputElement | null>
-    audioInputRef: React.RefObject<HTMLInputElement | null>
-  }
+  /** Open the in-app file picker for a given media kind. */
+  onUpload: (kind: FileKind) => void
   screenshotHandlers: {
     handleQuickScreenshot: () => void
     handleAreaScreenshot: () => void
@@ -25,7 +22,7 @@ interface UseMediaOptionsProps {
 export function useMediaOptions({
   isCapturing,
   onSettingsOpen,
-  fileInputRefs,
+  onUpload,
   screenshotHandlers,
 }: UseMediaOptionsProps) {
   const { isFeatureEnabled } = useFeature()
@@ -41,13 +38,13 @@ export function useMediaOptions({
         id: 'document',
         label: 'Upload document',
         icon: FileText,
-        action: () => fileInputRefs.docInputRef.current?.click(),
+        action: () => onUpload('document'),
       },
       {
         id: 'image',
         label: 'Upload Image',
         icon: Image,
-        action: () => fileInputRefs.imageInputRef.current?.click(),
+        action: () => onUpload('image'),
       },
       {
         id: 'screenshot',
@@ -81,16 +78,16 @@ export function useMediaOptions({
         id: 'video',
         label: 'Upload Video',
         icon: Video,
-        action: () => fileInputRefs.videoInputRef.current?.click(),
+        action: () => onUpload('video'),
       },
       {
         id: 'audio',
         label: 'Upload Audio',
         icon: Mic,
-        action: () => fileInputRefs.audioInputRef.current?.click(),
+        action: () => onUpload('audio'),
       },
     ],
-    [isCapturing, fileInputRefs, screenshotHandlers]
+    [isCapturing, onUpload, screenshotHandlers]
   )
 
   const options = useMemo(() => {

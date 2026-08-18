@@ -11,7 +11,7 @@ export const sampleBuddyJsonUiSpec: Spec = {
     'intro-card': {
       type: 'Card',
       props: {
-        title: 'Buddy + json-render',
+        title: 'SonicThinking + json-render',
         description: 'Small catalog, predictable UI, generated from JSON.',
         maxWidth: 'full',
       },
@@ -20,7 +20,7 @@ export const sampleBuddyJsonUiSpec: Spec = {
     'intro-text': {
       type: 'Text',
       props: {
-        text: 'The model only sees Buddy primitives. The renderer handles composition, repeat, and bindings.',
+        text: 'The model only sees SonicThinking primitives. The renderer handles composition, repeat, and bindings.',
         variant: 'muted',
       },
     },

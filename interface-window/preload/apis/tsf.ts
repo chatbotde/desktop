@@ -158,6 +158,24 @@ export function createTsfAPI(): TsfAPI {
         // Event for external app focus changes
         onExternalFocusChanged: (callback: (focusInfo: any) => void) => {
             ipcRenderer.on('tsf:external-focus-changed', (_event: IpcRendererEvent, focusInfo: any) => callback(focusInfo));
-        }
+        },
+
+        // Soft insert pins — identity survives app close
+        listPins: () => ipcRenderer.invoke('tsf:pins:list'),
+        assignPin: (number: number, name?: string) => ipcRenderer.invoke('tsf:pins:assign', number, name),
+        assignPinCurrent: (number: number, name?: string) =>
+            ipcRenderer.invoke('tsf:pins:assign-current', number, name),
+        removePin: (number: number) => ipcRenderer.invoke('tsf:pins:remove', number),
+        renamePin: (number: number, name: string) => ipcRenderer.invoke('tsf:pins:rename', number, name),
+        insertToPin: (number: number, text: string) => ipcRenderer.invoke('tsf:pins:insert', number, text),
+        focusPin: (number: number) => ipcRenderer.invoke('tsf:pins:focus', number),
+        getWindowRect: (hwnd: string) => ipcRenderer.invoke('tsf:get-window-rect', hwnd),
+        getInputAnchor: () => ipcRenderer.invoke('tsf:get-input-anchor'),
+        onPinsChanged: (callback: (pins: any[]) => void) => {
+            ipcRenderer.on('tsf:pins-changed', (_event: IpcRendererEvent, pins: any[]) => callback(pins));
+        },
+        onPinRevived: (callback: (pin: any) => void) => {
+            ipcRenderer.on('tsf:pin-revived', (_event: IpcRendererEvent, pin: any) => callback(pin));
+        },
     };
 }

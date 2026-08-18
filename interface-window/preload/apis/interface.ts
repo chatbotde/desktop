@@ -6,6 +6,16 @@
 import { ipcRenderer, IpcRendererEvent } from 'electron';
 import { InterfaceAPI, IgnoreMouseEventsOptions } from '../types';
 
+const INTERFACE_MESSAGE_CHANNELS = [
+    'interface-update',
+    'text-selection-changed',
+    'assistant-connect',
+    'show-prompt-input',
+    'toggle-voice-insert',
+    'show-rectangle-screenshot',
+    'show-assign-pin',
+] as const;
+
 export function createInterfaceAPI(): InterfaceAPI {
     const messageListeners = new Map<string, Map<(...args: any[]) => void, (event: IpcRendererEvent, ...args: any[]) => void>>();
 
@@ -70,35 +80,35 @@ export function createInterfaceAPI(): InterfaceAPI {
 
         // Receive message from main process
         onMessage: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input', 'toggle-voice-insert', 'show-rectangle-screenshot'];
-            if (validChannels.includes(channel)) {
-                const channelListeners = messageListeners.get(channel) ?? new Map();
-                if (channelListeners.has(func)) return;
-
-                // Deliberately strip event as it includes `sender`
-                const wrappedListener = (_event: IpcRendererEvent, ...args: any[]) => func(...args);
-                channelListeners.set(func, wrappedListener);
-                messageListeners.set(channel, channelListeners);
-                ipcRenderer.on(channel, wrappedListener);
+            if (!INTERFACE_MESSAGE_CHANNELS.includes(channel as (typeof INTERFACE_MESSAGE_CHANNELS)[number])) {
+                return;
             }
+            const channelListeners = messageListeners.get(channel) ?? new Map();
+            if (channelListeners.has(func)) return;
+
+            // Deliberately strip event as it includes `sender`
+            const wrappedListener = (_event: IpcRendererEvent, ...args: any[]) => func(...args);
+            channelListeners.set(func, wrappedListener);
+            messageListeners.set(channel, channelListeners);
+            ipcRenderer.on(channel, wrappedListener);
         },
 
         // Remove message listener
         removeMessageListener: (channel: string, func: (...args: any[]) => void) => {
-            const validChannels = ['interface-update', 'text-selection-changed', 'assistant-connect', 'show-prompt-input', 'toggle-voice-insert', 'show-rectangle-screenshot'];
-            if (validChannels.includes(channel)) {
-                const channelListeners = messageListeners.get(channel);
-                if (!channelListeners) return;
-
-                const wrappedListener = channelListeners.get(func);
-                if (!wrappedListener) return;
-
-                ipcRenderer.removeListener(channel, wrappedListener);
-                channelListeners.delete(func);
-                if (channelListeners.size === 0) {
-                    messageListeners.delete(channel);
-                }
+            if (!INTERFACE_MESSAGE_CHANNELS.includes(channel as (typeof INTERFACE_MESSAGE_CHANNELS)[number])) {
+                return;
             }
-        }
+            const channelListeners = messageListeners.get(channel);
+            if (!channelListeners) return;
+
+            const wrappedListener = channelListeners.get(func);
+            if (!wrappedListener) return;
+
+            ipcRenderer.removeListener(channel, wrappedListener);
+            channelListeners.delete(func);
+            if (channelListeners.size === 0) {
+                messageListeners.delete(channel);
+            }
+        },
     };
 }

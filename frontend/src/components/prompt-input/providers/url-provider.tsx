@@ -60,7 +60,7 @@ export function UrlProviderPicker({
       <div className="flex-1 p-3 flex flex-col gap-2 justify-between">
         <div className="flex flex-col gap-1.5 w-full">
           <p className={cn("text-[10px]", isDarkTheme ? "text-zinc-400" : "text-zinc-500")}>
-            Enter a website URL. Buddy can extract contents from this webpage to help reply.
+            Enter a website URL. SonicThinking can extract contents from this webpage to help reply.
           </p>
           <input
             ref={inputRef}

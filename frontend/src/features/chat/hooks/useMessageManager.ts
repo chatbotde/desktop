@@ -5,6 +5,11 @@ import { sendMessage as sendCloudMessage, unifiedAIService } from '@/lib/ai'
 import type { SendMessageOptions } from '../types/send-message-options'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
 import { getSelectedModel } from '@/lib/ai/model-config'
+import { generateManimScriptPlan, isManimVideoPrompt } from '../lib/manim-video-request'
+import {
+  emitManimGenerationStatus,
+} from '@/lib/manim/manim-video-prompt'
+import { manimPipelineTimer } from '@/lib/manim/manim-timing'
 
 interface UseMessageManagerProps {
   setGeneratedImages?: Dispatch<SetStateAction<string[]>>
@@ -53,7 +58,14 @@ export const useMessageManager = (
       selectedModel?.category === 'image-generation' ||
       selectedModelKey.includes('gemini-2.5-flash-image')
     const isVideoModel = selectedModel?.category === 'video-generation'
-    const isMediaModel = isImageModel || isVideoModel
+    const isManimVideo = isManimVideoPrompt(message)
+    const isMediaModel = isImageModel || isVideoModel || isManimVideo
+
+    console.log('[Chat] handleSendMessage:', {
+      model: selectedModel?.name,
+      isManimVideo,
+      preview: message.slice(0, 40),
+    })
 
     // Only add user message to output if NOT a media generation model
     // Media generation is handled separately and doesn't use the output window
@@ -83,7 +95,51 @@ export const useMessageManager = (
         return
       }
 
-      if (isImageModel) {
+      if (isManimVideo) {
+        const manimTopic = message.replace(/^\/manim\b/i, '').trim() || message.trim()
+        console.log('[Manim] Prompt detected, generating script for review:', message)
+        manimPipelineTimer.start()
+        emitManimGenerationStatus({ phase: 'planning', topic: manimTopic })
+
+        try {
+          if (!window.manimVideoAPI) {
+            throw new Error('Manim renderer is not available in this Electron window.')
+          }
+
+          if (selectedModel?.category === 'video-generation' || selectedModel?.category === 'image-generation') {
+            throw new Error('Select a text or coding model first so it can write the Manim script and Python code.')
+          }
+
+          console.log('[Manim] Checking python/manim/ffmpeg support...')
+          const support = await window.manimVideoAPI.checkSupport()
+          console.log('[Manim] Support:', support)
+          if (!support.manim || !support.ffmpeg || !support.python) {
+            throw new Error('Manim needs python, manim, and ffmpeg on PATH before rendering.')
+          }
+
+          console.log('[Manim] Asking model for teaching script...')
+          const { plan, topic } = await generateManimScriptPlan(message)
+          manimPipelineTimer.markPlanningEnd()
+
+          if (abortController.signal.aborted) {
+            emitManimGenerationStatus({ phase: 'idle' })
+            return
+          }
+
+          emitManimGenerationStatus({
+            phase: 'review',
+            topic: plan.topic || topic,
+            userPrompt: message,
+            plan,
+          })
+          return
+        } catch (error) {
+          console.error('[Manim] Script planning error:', error)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          emitManimGenerationStatus({ phase: 'error', error: errorMessage })
+          return
+        }
+      } else if (isImageModel) {
         // Show loading state and window immediately
         if (imageWindowEnabled) {
           if (callbacks?.setIsImageWindowVisible) {
@@ -304,6 +360,11 @@ export const useMessageManager = (
           }
         }
         throw err
+      }
+
+      if (isManimVideo) {
+        console.error('Manim video generation failed:', err)
+        return
       }
 
       // For regular messages, add error to output window

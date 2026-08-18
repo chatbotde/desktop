@@ -7,7 +7,7 @@ export function formatReferencesForMessage(references: PromptReference[]): strin
     if (ref.kind === "integration") {
       const status = ref.meta?.connected ? "connected" : "not connected"
       const toolsHint = ref.meta?.connected
-        ? "Buddy can call this app's Composio tools for this message."
+        ? "SonicThinking can call this app's Composio tools for this message."
         : "Connect this app in Settings → Integrations to enable tools."
       return `- **${ref.label}** (${status} integration, slug: \`${ref.payload}\`) — ${toolsHint}`
     }

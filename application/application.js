@@ -24,6 +24,11 @@ const { ApplicationLifecycle } = require('./application-lifecycle');
 const { ApplicationUpdater } = require('./application-updater');
 const { ComposioClient } = require('../composio/composio-client');
 const { McpClient } = require('../mcp/mcp-client');
+const { RemotePadService } = require('../remote-pad');
+const { ManimVideoService } = require('../manim-video/manim-video-service');
+const { VideoGifService } = require('../media/video-gif-service');
+const { SkillsService } = require('../skills/skills-service');
+const { AgentSessionService } = require('../agent-sessions');
 
 class Application {
   /**
@@ -67,6 +72,9 @@ class Application {
       },
       () => {
         this.windowManager.showRectangleScreenshot();
+      },
+      () => {
+        this.windowManager.showAssignPin();
       }
     );
     this.ipcHandlers = new ApplicationIpcHandlers(this.ipcRegistry);
@@ -80,6 +88,21 @@ class Application {
 
     // MCP client for external tool servers
     this.mcpClient = new McpClient(this.ipcRegistry);
+
+    // Remote Pad — LAN mouse control from phone/tablet
+    this.remotePadService = new RemotePadService(this.ipcRegistry);
+
+    // Manim video rendering — local Python/FFmpeg/TTS pipeline
+    this.manimVideoService = new ManimVideoService(this.ipcRegistry);
+
+    // Short recording → GIF export (ffmpeg)
+    this.videoGifService = new VideoGifService(this.ipcRegistry);
+
+    // Local skills library — skill.md files + SQLite index
+    this.skillsService = new SkillsService(this.ipcRegistry);
+
+    // Universal agent session hub (buddy run + phone Agents tab)
+    this.agentSessionService = new AgentSessionService(this.ipcRegistry);
 
     // Auto-startup manager
     this.autoStartupManager = null;
@@ -141,7 +164,7 @@ class Application {
       // Setup monitoring
       this.monitoring.setup();
 
-      // Register IPC handlers
+      // Register IPC handlers first so core features always work
       this.ipcHandlers.register();
 
       // Setup Composio Integration
@@ -149,6 +172,25 @@ class Application {
 
       // Setup MCP client
       this.mcpClient.setup();
+
+      // Setup Remote Pad server (phone mouse control over LAN)
+      this.remotePadService.setup();
+      this.remotePadService.setAgentSessionService(this.agentSessionService);
+      this.agentSessionService.setup(this.remotePadService);
+      const status = this.remotePadService.getStatus();
+      console.log(
+        `[RemotePad] Ready — ${status.buddyId} ws://${status.ip}:${status.port} PIN: ${status.pin}`
+      );
+      console.log('[RemotePad] Phone pairing: Settings → Remote Pad, or run remote-pad:open-pairing-window');
+
+      // Setup local Manim renderer IPC
+      this.manimVideoService.setup();
+
+      // Setup short-video → GIF export IPC
+      this.videoGifService.setup();
+
+      // Setup local skills storage (skill.md + SQLite)
+      this.skillsService.setup();
 
       // Initialize YouTube transcript system
       const { initializeTranscript } = require('../youtube-transcript');
@@ -187,8 +229,69 @@ class Application {
   onTextSelection(selectionData) {
     // Send to interface window if it exists and has valid coordinates
     if (selectionData?.text) {
-      this.windowManager.sendToInterfaceWindow('text-selection-changed', selectionData);
+      const normalized = this.normalizeSelectionCoordinates(selectionData);
+      this.windowManager.sendToInterfaceWindow('text-selection-changed', normalized);
     }
+  }
+
+  /**
+   * Convert selection-hook coordinates into window-local logical (DIP) points
+   * the renderer can use directly for CSS positioning.
+   *
+   * selection-hook returns raw screen coordinates: physical pixels on
+   * Windows/Linux and already-logical pixels on macOS. Without this conversion
+   * the popup lands at the wrong spot on any display that uses scaling (HiDPI).
+   * See https://github.com/0xfullex/selection-hook/blob/main/docs/API.md
+   * @private
+   */
+  normalizeSelectionCoordinates(selectionData) {
+    const INVALID = -99999; // SelectionHook.INVALID_COORDINATE
+    const POINT_KEYS = ['mousePosStart', 'mousePosEnd', 'startTop', 'startBottom', 'endTop', 'endBottom'];
+
+    let screenModule;
+    try {
+      ({ screen: screenModule } = require('electron'));
+    } catch {
+      return selectionData;
+    }
+
+    // Origin of the overlay window in DIP space, so we can produce coordinates
+    // relative to the renderer viewport rather than the whole desktop.
+    let origin = { x: 0, y: 0 };
+    try {
+      const browserWindow = this.windowManager.getInterfaceWindow?.()?.window;
+      if (browserWindow && !browserWindow.isDestroyed()) {
+        const bounds = browserWindow.getBounds();
+        origin = { x: bounds.x, y: bounds.y };
+      }
+    } catch {
+      origin = { x: 0, y: 0 };
+    }
+
+    const isMac = process.platform === 'darwin';
+    const canConvert = !isMac && typeof screenModule.screenToDipPoint === 'function';
+
+    const convertPoint = (point) => {
+      if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') return point;
+      // Preserve the sentinel so the renderer can detect unavailable coordinates.
+      if (point.x === INVALID || point.y === INVALID) return point;
+
+      let dip = point;
+      if (canConvert) {
+        try {
+          dip = screenModule.screenToDipPoint({ x: point.x, y: point.y });
+        } catch {
+          dip = point;
+        }
+      }
+      return { x: dip.x - origin.x, y: dip.y - origin.y };
+    };
+
+    const normalized = { ...selectionData };
+    for (const key of POINT_KEYS) {
+      if (normalized[key]) normalized[key] = convertPoint(normalized[key]);
+    }
+    return normalized;
   }
 
   /**
@@ -241,6 +344,14 @@ class Application {
 
     if (this.mcpClient) {
       await this.mcpClient.disconnectAll();
+    }
+
+    if (this.remotePadService) {
+      await this.remotePadService.shutdown();
+    }
+
+    if (this.agentSessionService) {
+      await this.agentSessionService.shutdown();
     }
 
     console.log('Application: Cleanup complete');

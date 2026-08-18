@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "name": "buddy-bridge-start",
+            "command": "node \"${extensionPath}${/}bridge-daemon.mjs\""
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "name": "buddy-bridge-after-agent",
+            "command": "node \"${extensionPath}${/}hook-after-agent.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

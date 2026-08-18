@@ -40,6 +40,15 @@ const IntegrationsSection = lazy(() =>
 const McpServersSection = lazy(() =>
   import("../sections/McpServersSection").then((m) => ({ default: m.McpServersSection }))
 )
+const SkillsSection = lazy(() =>
+  import("../sections/SkillsSection").then((m) => ({ default: m.SkillsSection }))
+)
+const RemotePadSection = lazy(() =>
+  import("../sections/RemotePadSection").then((m) => ({ default: m.RemotePadSection }))
+)
+const InsertPinsSection = lazy(() =>
+  import("../sections/InsertPinsSection").then((m) => ({ default: m.InsertPinsSection }))
+)
 const BlockingSection = lazy(() =>
   import("../sections/BlockingSection").then((m) => ({ default: m.BlockingSection }))
 )
@@ -223,6 +232,12 @@ export function SettingsCard({
             {activeSection === "integrations" && <IntegrationsSection isDarkTheme={isDark} />}
 
             {activeSection === "mcp-servers" && <McpServersSection isDarkTheme={isDark} />}
+
+            {activeSection === "skills" && <SkillsSection isDarkTheme={isDark} />}
+
+            {activeSection === "remote-pad" && <RemotePadSection isDarkTheme={isDark} />}
+
+            {activeSection === "insert-pins" && <InsertPinsSection isDarkTheme={isDark} />}
 
             {activeSection === "blocking" && <BlockingSection isDarkTheme={isDark} />}
 

@@ -13,14 +13,16 @@ class ApplicationShortcutManager {
    * @param {Function} showPromptInput - Callback to show window and open prompt input
    * @param {Function} toggleVoiceInsert - Callback to show window and toggle voice insert
    * @param {Function} showRectangleScreenshot - Callback to show window and open rectangle screenshot overlay
+   * @param {Function} showAssignPin - Callback to show insert-pin assign overlay
    */
-  constructor(shortcutRegistry, toggleInterfaceWindow, showAndConnectAssistant = null, showPromptInput = null, toggleVoiceInsert = null, showRectangleScreenshot = null) {
+  constructor(shortcutRegistry, toggleInterfaceWindow, showAndConnectAssistant = null, showPromptInput = null, toggleVoiceInsert = null, showRectangleScreenshot = null, showAssignPin = null) {
     this.shortcutRegistry = shortcutRegistry;
     this.toggleInterfaceWindow = toggleInterfaceWindow;
     this.showAndConnectAssistant = showAndConnectAssistant;
     this.showPromptInput = showPromptInput;
     this.toggleVoiceInsert = toggleVoiceInsert;
     this.showRectangleScreenshot = showRectangleScreenshot;
+    this.showAssignPin = showAssignPin;
   }
 
   /**
@@ -91,19 +93,34 @@ class ApplicationShortcutManager {
       console.log('ApplicationShortcutManager: toggleVoiceInsert is null, not registering Ctrl+M');
     }
 
-    // Ctrl+Shift+S / Cmd+Shift+S - Rectangle screenshot (drag to select area)
+    // Ctrl+Shift+g / Cmd+Shift+g - Rectangle screenshot (drag to select area)
     if (this.showRectangleScreenshot) {
-      console.log('ApplicationShortcutManager: Registering Ctrl+Shift+S shortcut');
+      console.log('ApplicationShortcutManager: Registering Ctrl+Shift+g shortcut');
       this.shortcutRegistry.register(
-        'CommandOrControl+Shift+S',
+        'CommandOrControl+Shift+g',
         () => {
-          console.log('Shortcut: Ctrl+Shift+S pressed - Starting rectangle screenshot');
+          console.log('Shortcut: Ctrl+Shift+g pressed - Starting rectangle screenshot');
           this.showRectangleScreenshot();
         },
         'Rectangle screenshot'
       );
     } else {
       console.log('ApplicationShortcutManager: showRectangleScreenshot is null, not registering Ctrl+Shift+S');
+    }
+
+    // Ctrl+Shift+P - Assign insert pin to current/last focused app (small overlay)
+    if (this.showAssignPin) {
+      console.log('ApplicationShortcutManager: Registering Ctrl+Shift+P shortcut');
+      this.shortcutRegistry.register(
+        'CommandOrControl+Shift+P',
+        () => {
+          console.log('Shortcut: Ctrl+Shift+P pressed - Assign insert pin');
+          this.showAssignPin();
+        },
+        'Assign insert pin'
+      );
+    } else {
+      console.log('ApplicationShortcutManager: showAssignPin is null, not registering Ctrl+Shift+P');
     }
   }
 

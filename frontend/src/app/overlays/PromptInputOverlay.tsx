@@ -6,7 +6,7 @@
  * @placement fixed, center-bottom, draggable
  */
 
-import { motion, useAnimation } from 'framer-motion'
+import { motion, useMotionValue, animate } from 'framer-motion'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PromptInputWithActions } from '@/components'
 import { GLOBAL_THEME } from '@/global/theme'
@@ -31,7 +31,8 @@ export function PromptInputOverlay() {
   const [hasMovedDown, setHasMovedDown] = useState(false)
   const [dragConstraints, setDragConstraints] = useState<DragConstraintBox>(DEFAULT_DRAG_CONSTRAINTS)
   const draggableRef = useRef<HTMLDivElement>(null)
-  const dragControls = useAnimation()
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
 
   // ✅ Legitimate useEffect: responding to external state change (input hiding)
   useEffect(() => {
@@ -45,13 +46,22 @@ export function PromptInputOverlay() {
     const rect = el.getBoundingClientRect()
     const padding = 8
 
+    // Framer Motion box constraints are relative to the element's layout
+    // origin (where the drag offset is 0). getBoundingClientRect() includes
+    // the current drag offset, so subtract it to recover that origin —
+    // otherwise the reachable area shifts/shrinks every time we re-measure.
+    const originLeft = rect.left - x.get()
+    const originTop = rect.top - y.get()
+    const originRight = rect.right - x.get()
+    const originBottom = rect.bottom - y.get()
+
     setDragConstraints({
-      top: -rect.top + padding,
-      left: -rect.left + padding,
-      bottom: window.innerHeight - rect.bottom - padding,
-      right: window.innerWidth - rect.right - padding,
+      top: -originTop + padding,
+      left: -originLeft + padding,
+      right: window.innerWidth - originRight - padding,
+      bottom: window.innerHeight - originBottom - padding,
     })
-  }, [])
+  }, [x, y])
 
   // Re-measure drag bounds after the prompt moves or finishes its entrance animation.
   useEffect(() => {
@@ -69,9 +79,13 @@ export function PromptInputOverlay() {
 
   // ✅ Legitimate useEffect: imperative animation API (Framer Motion animate)
   useEffect(() => {
-    dragControls.start({ x: 0, y: 0, transition: { type: 'spring', damping: 30, stiffness: 300 } })
+    const controls = [
+      animate(x, 0, { type: 'spring', damping: 30, stiffness: 300 }),
+      animate(y, 0, { type: 'spring', damping: 30, stiffness: 300 }),
+    ]
     updateDragConstraints()
-  }, [hasMovedDown, dragControls, updateDragConstraints])
+    return () => controls.forEach(c => c.stop())
+  }, [hasMovedDown, x, y, updateDragConstraints])
 
   const onSendWrapper = useCallback(async (msg: string, attachments?: unknown[], options?: unknown) => {
     setHasMovedDown(true)
@@ -100,7 +114,7 @@ export function PromptInputOverlay() {
           dragConstraints={dragConstraints}
           dragElastic={0.05}
           dragMomentum={false}
-          animate={dragControls}
+          style={{ x, y }}
           onDragEnd={updateDragConstraints}
           className="w-full !cursor-auto pointer-events-auto"
           data-no-clickthrough

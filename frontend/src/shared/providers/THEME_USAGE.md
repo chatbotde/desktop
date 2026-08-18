@@ -1,146 +1,95 @@
 # Global Theme System
 
-The theme system has been centralized to eliminate the need to pass theme props through every component. All theme management happens in one place: `ThemeProvider`.
+All palettes are defined in **one command file**: `src/lib/appearance/themes.ts`.
+
+CSS variables are injected automatically at runtime — no need to edit `index.css` when adding a palette.
 
 ## Quick Start
 
-### Using Theme in Components
-
 ```tsx
-import { useTheme, useIsDark } from '@/shared/providers'
-import { getThemeClasses } from '@/shared/utils/theme'
+import { useTheme } from '@/shared/providers'
+import { APP_SURFACES, surface } from '@/lib/appearance'
 
-function MyComponent() {
-  // Option 1: Get full theme context
-  const { theme, isDark, isLight, toggleTheme, setTheme } = useTheme()
-  
-  // Option 2: Just check if dark (most common use case)
-  const isDark = useIsDark()
-  
-  // Option 3: Use utility for theme-aware classes
-  const className = getThemeClasses(isDark, {
-    dark: 'bg-zinc-900 text-zinc-100',
-    light: 'bg-white text-zinc-900'
-  }, 'p-4 rounded-lg')
-  
-  return <div className={className}>Content</div>
+function MyPanel() {
+  const { surfaces, isGlassPalette, colorTheme } = useTheme()
+
+  return (
+    <div className={surfaces.base}>
+      <p className={surfaces.textMuted}>Glass active: {String(isGlassPalette)}</p>
+      <input className={surface('input')} placeholder="Type here…" />
+    </div>
+  )
 }
 ```
 
-## Available Hooks
+## Semantic Surface Classes
 
-### `useTheme()`
-Returns the full theme context:
-- `theme`: Current theme ('dark' | 'light')
-- `isDark`: Boolean for dark theme
-- `isLight`: Boolean for light theme
-- `toggleTheme()`: Toggle between dark/light
-- `setTheme(theme)`: Set a specific theme
-- `availableThemes`: Array of available themes
-- `themeConfig`: Configuration object for all themes
-- `colorTheme`: Current palette preset (e.g. 'zinc' | 'ocean' | 'rose' | 'emerald')
-- `setColorTheme(theme)`: Set palette preset
-- `availableColorThemes`: Array of available palette presets
-- `colorThemeConfig`: Configuration object for palette presets
+Use these instead of `isDark ? 'bg-zinc-900' : 'bg-white'`:
 
-### `useIsDark()`
-Simple hook that returns `true` if dark theme is active.
+| Class / constant | Purpose |
+|------------------|---------|
+| `APP_SURFACES.base` | Primary panel / card |
+| `APP_SURFACES.elevated` | Panel with shadow |
+| `APP_SURFACES.muted` | Secondary / chip background |
+| `APP_SURFACES.overlay` | Modal / floating shell |
+| `APP_SURFACES.input` | Text input styling |
+| `APP_SURFACES.textMuted` | Helper text |
+| `APP_SURFACES.icon` | Icon color |
+| `APP_SURFACES.hover` | Interactive hover |
+| `APP_SURFACES.chip` | File / tag chip |
 
-### `useThemeClass(darkClass, lightClass)`
-Hook that returns the appropriate class based on current theme.
+Glass blur applies automatically when the **Glass** palette is selected (`html[data-glass="true"]`).
 
-## Utility Functions
+## Adding a New Palette
 
-### `getThemeClass(isDark, darkClass, lightClass, baseClass?)`
-Utility function for conditional class names:
+Edit **`lib/appearance/themes.ts`** only:
+
+```typescript
+{
+  id: "ocean",
+  label: "Ocean",
+  description: "Cool blue tones",
+  preview: { light: "#e0f2fe", dark: "#0c4a6e" },
+  // Optional glassmorphism:
+  glass: { blur: "18px", surfaceOpacity: 0.65, dark: { surfaceOpacity: 0.5 } },
+  light: { ...BASE_LIGHT, primary: "200 80% 40%", /* … */ },
+  dark: { ...BASE_DARK, primary: "200 80% 70%", /* … */ },
+},
+```
+
+The palette appears in Settings → Appearance automatically.
+
+## Mode vs Palette
+
+| Setting | Storage key | Controls |
+|---------|-------------|----------|
+| **Mode** | `app-theme` | `dark` / `light` / `system` → `.dark` class on `<html>` |
+| **Palette** | `app-color-theme` | `data-theme` + CSS variables |
+
+## Hooks
+
+- `useTheme()` — full context including `colorTheme`, `setColorTheme`, `isGlassPalette`, `surfaces`
+- `useIsDark()` — boolean dark mode
+- `useThemeClass(dark, light)` — legacy helper; prefer `APP_SURFACES`
+
+## Inline Styles (legacy)
+
+For components not yet migrated to classes:
+
 ```tsx
-const className = getThemeClass(isDark, 'bg-zinc-900', 'bg-white', 'p-4')
+import { GLOBAL_THEME } from '@/global/theme'
+
+style={{ backgroundColor: GLOBAL_THEME.vars.card }}
 ```
 
-### `getThemeClasses(isDark, classes, baseClass?)`
-Utility function for multiple class variants:
+## Migration
+
+**Before:**
 ```tsx
-const className = getThemeClasses(isDark, {
-  dark: 'bg-zinc-900 text-zinc-100 border-zinc-800',
-  light: 'bg-white text-zinc-900 border-zinc-200'
-}, 'p-4 rounded-lg')
+className={isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}
 ```
 
-## Adding New Themes
-
-To add a new theme (e.g., 'blue', 'green'):
-
-1. Update `Theme` type in `ThemeProvider.tsx`:
+**After:**
 ```tsx
-export type Theme = 'dark' | 'light' | 'blue'
-export const AVAILABLE_THEMES: Theme[] = ['dark', 'light', 'blue']
+className={APP_SURFACES.base}
 ```
-
-2. Add theme configuration:
-```tsx
-export const THEME_CONFIG: Record<Theme, ThemeConfig> = {
-  // ... existing themes
-  blue: {
-    name: 'blue',
-    displayName: 'Blue',
-    description: 'Blue theme for a calming experience'
-  }
-}
-```
-
-3. Add CSS classes in your global styles or Tailwind config for the new theme.
-
-## Adding New Color Themes (Palette Presets)
-
-Palette presets are the scalable way to add many themes without mixing them with dark/light mode.
-
-1. Update `ColorTheme` in `ThemeProvider.tsx`:
-```tsx
-export type ColorTheme = 'zinc' | 'ocean' | 'my-brand'
-export const AVAILABLE_COLOR_THEMES: ColorTheme[] = ['zinc', 'ocean', 'my-brand']
-```
-
-2. Add to `COLOR_THEME_CONFIG`.
-
-3. Add CSS variable overrides in `src/index.css`:
-```css
-:root[data-theme="my-brand"] { --primary: ...; --ring: ...; }
-.dark[data-theme="my-brand"] { --primary: ...; --ring: ...; }
-```
-
-## Migration Guide
-
-### Before (Passing Props)
-```tsx
-// ❌ Old way - passing props everywhere
-function Parent() {
-  const [isDark, setIsDark] = useState(true)
-  return <Child isDarkTheme={isDark} onThemeChange={setIsDark} />
-}
-
-function Child({ isDarkTheme, onThemeChange }) {
-  return <div className={isDarkTheme ? 'dark' : 'light'}>Content</div>
-}
-```
-
-### After (Using Context)
-```tsx
-// ✅ New way - use global context
-function Parent() {
-  return <Child />
-}
-
-function Child() {
-  const isDark = useIsDark()
-  return <div className={isDark ? 'dark' : 'light'}>Content</div>
-}
-```
-
-## Benefits
-
-1. **No Prop Drilling**: Theme is available anywhere via context
-2. **Single Source of Truth**: Theme state managed in one place
-3. **Easy to Extend**: Add new themes by updating ThemeProvider
-4. **Type Safe**: Full TypeScript support
-5. **Persistent**: Theme preference saved to localStorage automatically
-

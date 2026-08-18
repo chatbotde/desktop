@@ -13,7 +13,8 @@ export {
   PromptInputCollapsed,
   PromptInputExpanded,
   ModelSelector,
-  ModelSelectorPopover
+  ModelSelectorPopover,
+  ExpandableSearchInput,
 } from './components'
 
 // Theme

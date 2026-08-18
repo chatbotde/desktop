@@ -47,7 +47,7 @@ export function TextSelectionInput({
   isDarkTheme = true,
 }: TextSelectionInputProps) {
   const themeClasses = getThemeClasses(isDarkTheme)
-  const themeColors = isDarkTheme ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light
+  const themeColors = GLOBAL_THEME.vars
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   const adjustHeight = React.useCallback(() => {

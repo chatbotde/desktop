@@ -5,7 +5,8 @@
       "sources": [
         "src/tsf_module.cpp",
         "src/text_inserter.cpp",
-        "src/focus_tracker.cpp"
+        "src/focus_tracker.cpp",
+        "src/uia_helper.cpp"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")"
@@ -18,7 +19,9 @@
       "libraries": [
         "ole32.lib",
         "oleaut32.lib",
-        "user32.lib"
+        "user32.lib",
+        "UIAutomationCore.lib",
+        "oleacc.lib"
       ],
       "msvs_settings": {
         "VCCLCompilerTool": {

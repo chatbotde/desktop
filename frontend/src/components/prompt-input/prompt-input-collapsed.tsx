@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { MediaUploadCard } from "../media-upload-card"
+import { MediaUploadCard, MEDIA_UPLOAD_CONSTANTS } from "../media-upload-card"
 import { useRef } from "react"
 import { cn } from "@/lib/utils"
 import { usePasteHandler } from "./prompt-shared"
@@ -14,6 +14,9 @@ import { VideoHoverCapturePill } from "@/features/capture/components"
 import { CollapsedFileItems } from "./collapsed-file-items"
 import { PromptImagePreview, isImageFile } from "./prompt-image-preview"
 import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { PromptGenericFilePreview } from "./prompt-generic-file-preview"
+import { PromptManimGeneratingPreview } from "./prompt-manim-generating-preview"
+import { useManimGenerationStatus } from "./hooks/use-manim-generation-status"
 import { CollapsedSubmitButton } from "./collapsed-submit-button"
 import { usePromptTheme } from "./hooks/use-prompt-theme"
 import { useCanSubmit } from "./hooks/use-can-submit"
@@ -52,6 +55,8 @@ export function PromptInputCollapsed({
   const { themeClasses, hoverClass } = usePromptTheme(isDarkTheme)
   const canSubmit = useCanSubmit({ input, files, clipboardItems, references })
   const handleKeyDown = useKeyboardSubmit(onSubmit)
+  const manimStatus = useManimGenerationStatus()
+  const isManimGenerating = manimStatus.phase === 'generating'
 
   // Create a dummy setter if not provided (for backwards compatibility)
   const clipboardSetter = setClipboardItems ?? (() => { })
@@ -64,11 +69,22 @@ export function PromptInputCollapsed({
   })
 
   const mediaFiles = files.filter((file) => isImageFile(file) || isVideoFile(file))
+  const documentFiles = files.filter(
+    (file) => !isImageFile(file) && !isVideoFile(file),
+  )
+  const showAttachmentRow =
+    isManimGenerating || mediaFiles.length > 0 || documentFiles.length > 0
 
   return (
     <div className="relative flex flex-col gap-2 mx-0 mb-0 transition-all duration-300 ease-in-out" style={{ zIndex: PROMPT_INPUT_CONSTANTS.Z_INDEX.CONTAINER }}>
-      {mediaFiles.length > 0 && (
+      {showAttachmentRow && (
         <div className="flex flex-wrap gap-2 justify-start px-1">
+          {isManimGenerating && (
+            <PromptManimGeneratingPreview
+              topic={manimStatus.phase === 'generating' ? manimStatus.topic : undefined}
+              variant="expanded"
+            />
+          )}
           {files.map((file, index) => {
             if (isImageFile(file)) {
               return (
@@ -90,7 +106,16 @@ export function PromptInputCollapsed({
                 />
               )
             }
-            return null
+            return (
+              <PromptGenericFilePreview
+                key={`${file.name}-${index}`}
+                file={file}
+                variant="expanded"
+                themeClasses={themeClasses}
+                hoverClass={hoverClass}
+                onRemove={() => onRemoveFile?.(index)}
+              />
+            )
           })}
         </div>
       )}
@@ -106,6 +131,7 @@ export function PromptInputCollapsed({
       <div
         className={cn(
           "flex items-center gap-2 rounded-full px-2 py-1 border flex-1 transition-all duration-300 ease-in-out",
+          themeClasses.containerSurface,
           themeClasses.containerBorder
         )}
         style={{ backgroundColor: themeClasses.containerBg }}
@@ -122,7 +148,14 @@ export function PromptInputCollapsed({
               <Plus className={`size-4 ${themeClasses.icon}`} />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 border-none bg-transparent shadow-none z-[1002]" align="start" side="top" sideOffset={8}>
+          <PopoverContent
+            className={MEDIA_UPLOAD_CONSTANTS.POPOVER_CONTENT_CLASS}
+            align="start"
+            side="top"
+            sideOffset={8}
+            collisionPadding={16}
+            style={{ zIndex: 1002 }}
+          >
             <MediaUploadCard onFileUpload={onFilesAdded} isDarkTheme={isDarkTheme} onMoreClick={onMoreClick} onThemeChange={onThemeChange} />
           </PopoverContent>
         </Popover>

@@ -162,6 +162,13 @@ const ClickThrough = () => {
 			const findBlockingHost = (start: HTMLElement | null) => {
 				let el: HTMLElement | null = start
 				for (let i = 0; i < 30 && el; i++) {
+					// Some targets (Document, SVG, or forwarded synthetic events in the
+					// transparent overlay window) lack Element.matches — skip them safely
+					// so a thrown error can't abort click-through updates mid-drag.
+					if (typeof el.matches !== 'function') {
+						el = el.parentElement
+						continue
+					}
 					if (el.matches('[data-clickthrough]')) return null
 					if (el.matches(INTERACTIVE_SELECTOR)) return el
 					if (isFullScreenCaptureLayer(el)) return el
@@ -174,9 +181,9 @@ const ClickThrough = () => {
 			}
 
 			const handlePointerEvent = (event: PointerEvent) => {
-				const target = event.target as HTMLElement | null
-				if (!target) return
-				updateState(!findBlockingHost(target))
+				const target = event.target
+				if (!(target instanceof Element)) return
+				updateState(!findBlockingHost(target as HTMLElement))
 			}
 
 			const handleMouseOut = (event: MouseEvent) => {
@@ -189,9 +196,16 @@ const ClickThrough = () => {
 
 			updateState(true)
 
+			const handleWheelEvent = (event: WheelEvent) => {
+				const target = event.target
+				if (!(target instanceof Element)) return
+				updateState(!findBlockingHost(target as HTMLElement))
+			}
+
 			document.addEventListener('pointermove', handlePointerEvent, true)
 			document.addEventListener('pointerdown', handlePointerEvent, true)
 			document.addEventListener('pointerenter', handlePointerEvent, true)
+			document.addEventListener('wheel', handleWheelEvent, { capture: true, passive: true })
 			window.addEventListener('mouseout', handleMouseOut)
 			window.addEventListener('blur', handleBlur)
 
@@ -199,6 +213,7 @@ const ClickThrough = () => {
 				document.removeEventListener('pointermove', handlePointerEvent, true)
 				document.removeEventListener('pointerdown', handlePointerEvent, true)
 				document.removeEventListener('pointerenter', handlePointerEvent, true)
+				document.removeEventListener('wheel', handleWheelEvent, { capture: true })
 				window.removeEventListener('mouseout', handleMouseOut)
 				window.removeEventListener('blur', handleBlur)
 				updateState(true)

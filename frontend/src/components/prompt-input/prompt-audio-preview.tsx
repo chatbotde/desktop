@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Mic, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AudioNotificationPlayer } from '@/features/audio/components/AudioNotificationPlayer'
+import { SendToPhoneHoverButton } from './components/send-to-phone-button'
 
 interface PromptAudioPreviewProps {
   file: File
@@ -69,6 +70,14 @@ export function PromptAudioPreview({
             </>
           )}
         </button>
+
+        <div className="absolute bottom-0 left-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+          <SendToPhoneHoverButton
+            file={file}
+            className={cn(isCollapsed ? 'h-5 w-5' : 'h-6 w-6')}
+            iconClassName={isCollapsed ? 'h-3 w-3' : 'h-3.5 w-3.5'}
+          />
+        </div>
 
         {onRemove && (
           <button

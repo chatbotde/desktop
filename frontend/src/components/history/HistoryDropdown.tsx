@@ -7,7 +7,6 @@ import { formatDistanceToNow } from 'date-fns'
 import { useChatHistory } from '@/hooks/useChatHistory'
 import { useIsDark } from '@/shared/providers'
 import { getThemeClasses } from '@/shared/utils/theme'
-import { GLOBAL_THEME } from '@/global/theme'
 
 interface HistoryDropdownProps {
     isOpen: boolean
@@ -75,11 +74,7 @@ export function HistoryDropdown({ isOpen, onClose, onSelect, className }: Histor
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     ref={ref}
                     className={cn(
-                        "absolute top-8 right-0 w-64 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col",
-                        getThemeClasses(isDark, {
-                            dark: `bg-[${GLOBAL_THEME.colors.dark.background}] border border-zinc-800 shadow-black/50`,
-                            light: `bg-[${GLOBAL_THEME.colors.light.background}] border border-zinc-200 shadow-zinc-900/10`
-                        }),
+                        "absolute top-8 right-0 w-64 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col app-surface glass-surface border-border",
                         className
                     )}
                 >

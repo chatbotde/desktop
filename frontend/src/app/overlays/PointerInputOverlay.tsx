@@ -3,10 +3,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MousePointer2, ArrowUp, X, Square } from 'lucide-react'
+import { toast } from 'sonner'
 import { GLOBAL_THEME } from '@/global/theme'
 import { useFeature } from '@/contexts/FeatureContext'
 import { useIsDark } from '@/shared/providers'
 import { runAgent } from './agent-engine'
+import { isCuaDriverReady } from '@/features/cua'
 
 const FONT = "'Inter', 'Segoe UI', system-ui, sans-serif"
 const PILL_RADIUS = 9999
@@ -20,19 +22,18 @@ export function PointerInputOverlay() {
     const isVisible = isFeatureEnabled('pointer-always-visible')
     const isDark = useIsDark()
 
-    const theme = useMemo(
-        () => (isDark ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light),
-        [isDark],
-    )
+    const theme = GLOBAL_THEME.vars
 
     const [isExpanded, setIsExpanded] = useState(false)
     const [inputValue, setInputValue] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
+    const [statusText, setStatusText] = useState('Working…')
 
     const inputRef = useRef<HTMLInputElement>(null)
     const abortRef = useRef<AbortController | null>(null)
     const runIdRef = useRef(0)
+    const silentRunRef = useRef(false)
 
     const canSubmit = inputValue.trim().length > 0
 
@@ -68,7 +69,10 @@ export function PointerInputOverlay() {
     const finishRun = useCallback((runId: number, reopenInput = true) => {
         if (runId !== runIdRef.current) return
 
-        setAgentRunning(false)
+        if (!silentRunRef.current) {
+            setAgentRunning(false)
+        }
+        silentRunRef.current = false
         abortRef.current = null
         setIsLoading(false)
 
@@ -109,16 +113,21 @@ export function PointerInputOverlay() {
         }
     }, [])
 
-    const beginRun = useCallback(() => {
+    const beginRun = useCallback(async () => {
         if (abortRef.current) {
             abortRef.current.abort()
             abortRef.current = null
         }
 
         const runId = ++runIdRef.current
+        const silent = await isCuaDriverReady()
+        silentRunRef.current = silent
+
         setIsLoading(true)
         setIsExpanded(false)
-        setAgentRunning(true)
+        if (!silent) {
+            setAgentRunning(true)
+        }
 
         const ac = new AbortController()
         abortRef.current = ac
@@ -129,11 +138,32 @@ export function PointerInputOverlay() {
         const text = (inputRef.current?.value ?? inputValue).trim()
         if (!text || isLoading) return
 
-        const { ac, runId } = beginRun()
+        const { ac, runId } = await beginRun()
+        setStatusText('Starting…')
         const isClickEnabled = isFeatureEnabled('pointer-click')
 
         try {
-            await runAgent(text, isClickEnabled, ac.signal)
+            const result = await runAgent(text, isClickEnabled, ac.signal, (steps, idx) => {
+                if (idx >= 0 && steps[idx]) {
+                    setStatusText(steps[idx].instruction)
+                } else if (steps.length === 0) {
+                    setStatusText('Analyzing screen…')
+                }
+            })
+
+            if (result.status === 'completed') {
+                toast.success(result.message ?? 'Task completed')
+            } else if (result.status === 'failed') {
+                toast.error(result.message ?? 'Agent could not complete the task')
+            } else if (result.status === 'max_steps') {
+                toast.warning(result.message ?? 'Stopped at step limit')
+            } else if (result.status === 'stopped') {
+                toast.info('Agent stopped')
+            }
+
+            if (!result.usedCua && result.steps.length === 0) {
+                toast.message('Tip: open Notepad or Edge first, or enable Auto-Click in Features for robotjs fallback.')
+            }
         } catch (err: unknown) {
             if (err instanceof DOMException && err.name === 'AbortError') return
             console.error('[PointerInput] Agent error:', err)
@@ -156,6 +186,9 @@ export function PointerInputOverlay() {
     )
 
     if (!isVisible) return null
+
+    // Cua runs in the background — no pointer animation or status pill while working.
+    if (isLoading && silentRunRef.current) return null
 
     const mutedBtnBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
 
@@ -193,6 +226,20 @@ export function PointerInputOverlay() {
                             }}
                         >
                             <MousePointer2 size={16} style={{ color: theme.accent, flexShrink: 0 }} />
+                            <span
+                                style={{
+                                    color: theme.textMuted,
+                                    fontSize: 12,
+                                    fontFamily: FONT,
+                                    maxWidth: 200,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                                title={statusText}
+                            >
+                                {statusText}
+                            </span>
                             <motion.button
                                 type="button"
                                 onClick={handleStop}

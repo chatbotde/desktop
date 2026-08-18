@@ -9,6 +9,8 @@ import type { MediaAttachment } from '@/features/chat'
 import type { PromptReference } from "../types/prompt-reference"
 import { formatReferencesForMessage } from "../utils/format-prompt-references"
 import { getIntegrationSlugsFromReferences } from "@/lib/composio/composio-chat-tools"
+import { getGroundingEnabled } from "@/lib/settings/grounding-toggle"
+import { isFactCheckConfigured } from "@/lib/search"
 import type { SendMessageOptions } from "@/features/chat/types/send-message-options"
 
 interface UsePromptSubmitProps {
@@ -100,6 +102,17 @@ export function usePromptSubmit({
     // Convert files to MediaAttachment format for validation
     const attachments = filesToSend.length > 0 ? await convertFilesToAttachments(filesToSend) : undefined
 
+    const hasAudioAttachment = filesToSend.some((f) => f.type.startsWith("audio/"))
+    const factCheckMode =
+      getGroundingEnabled() &&
+      isFactCheckConfigured() &&
+      (hasAudioAttachment || Boolean(textToSubmit.trim()))
+
+    if (getGroundingEnabled() && !isFactCheckConfigured()) {
+      setValidationError("Fact check needs VITE_GOOGLE_API_KEY and VITE_EXA_API_KEY in .env")
+      return
+    }
+
     // Check if local model is selected
     const localModel = unifiedLocalLLMService.getCurrentModel()
     const cloudModel = getSelectedModel()
@@ -107,25 +120,36 @@ export function usePromptSubmit({
     // Use cloud model for validation (local models typically don't support images)
     const modelToValidate = cloudModel || null
 
-    // Validate message and attachments before sending
-    // If local model is selected and attachments are present, it likely doesn't support images
-    if (attachments && attachments.length > 0 && localModel) {
-      // Show simple popup above input
-      setValidationError(`${localModel.displayName} doesn't support images`)
-      return // Don't send the message
-    }
+    // Validate message and attachments before sending (skip for fact-check — uses its own pipeline)
+    if (!factCheckMode) {
+      // Local models do not support multimodal attachments (image/audio/video)
+      if (attachments && attachments.length > 0 && localModel) {
+        const mediaTypes = [...new Set(attachments.map((a) => a.mediaType))]
+        const label = mediaTypes.length === 1
+          ? mediaTypes[0]
+          : 'media'
+        setValidationError(`${localModel.displayName} doesn't support ${label} attachments`)
+        return
+      }
 
-    // Validate message (this also checks if model is selected)
-    const validation = validateMessage(messageToSend, attachments, modelToValidate)
+      // Validate message (this also checks if model is selected)
+      const validation = validateMessage(messageToSend, attachments, modelToValidate)
 
-    if (!validation.isValid) {
-      // Get the first error message for simplicity
-      const firstError = validation.errors[0]
-      const errorMessage = firstError?.message || "This model doesn't support the requested capability"
+      if (!validation.isValid) {
+        // Get the first error message for simplicity
+        const firstError = validation.errors[0]
+        const errorMessage = firstError?.message || "This model doesn't support the requested capability"
 
-      // Show simple popup above input
-      setValidationError(errorMessage)
-      return // Don't send the message
+        // Show simple popup above input
+        setValidationError(errorMessage)
+        return // Don't send the message
+      }
+    } else if (hasAudioAttachment) {
+      const audioAttachments = attachments?.filter((a) => a.mediaType === 'audio') ?? []
+      if (audioAttachments.length === 0 && filesToSend.some((f) => f.type.startsWith('audio/'))) {
+        setValidationError('Could not read audio attachment. Try recording again.')
+        return
+      }
     }
 
     // Clear validation error if validation passes
@@ -145,9 +169,12 @@ export function usePromptSubmit({
 
     try {
       if ((messageToSend.trim() || clipboardItemsToSend.length > 0 || attachments) && onSendMessage) {
-        const message = messageToSend || (attachments ? "See attached media" : "")
+        const message =
+          messageToSend ||
+          (factCheckMode && hasAudioAttachment ? "" : attachments ? "See attached media" : "")
         await onSendMessage(message, attachments, {
           composioToolkitSlugs: composioToolkitSlugs.length > 0 ? composioToolkitSlugs : undefined,
+          factCheckMode,
         })
       }
     } catch (error) {

@@ -117,7 +117,8 @@ async function getFocusInfo() {
             windowTitle: '',
             processName: '',
             processId: 0,
-            isEditable: false
+            isEditable: false,
+            hwnd: ''
         };
     }
 }
@@ -179,17 +180,21 @@ async function cleanup() {
 }
 
 /**
- * Store the current focused window as "last focused"
- * Call this before your window gets focus to remember where to insert text
+ * Store a window as "last focused"
+ * @param {string} [hwnd] - Optional hwnd string; defaults to current foreground
  * @returns {Promise<void>}
  */
-async function setLastFocusedWindow() {
+async function setLastFocusedWindow(hwnd) {
     if (!native) {
         throw new Error('TSF native module not loaded');
     }
     
     try {
-        native.setLastFocusedWindow();
+        if (hwnd) {
+            native.setLastFocusedWindow(String(hwnd));
+        } else {
+            native.setLastFocusedWindow();
+        }
     } catch (err) {
         console.error('Failed to set last focused window:', err);
     }
@@ -212,7 +217,8 @@ async function getLastFocusedWindow() {
             windowTitle: '',
             processName: '',
             processId: 0,
-            isEditable: false
+            isEditable: false,
+            hwnd: ''
         };
     }
 }
@@ -230,6 +236,181 @@ async function focusLastWindow() {
         return native.focusLastWindow();
     } catch (err) {
         console.error('Failed to focus last window:', err);
+        return false;
+    }
+}
+
+/**
+ * Focus a specific window by hwnd string
+ * @param {string} hwnd
+ * @returns {Promise<boolean>}
+ */
+async function focusWindow(hwnd) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    if (!hwnd) return false;
+    try {
+        return native.focusWindow(String(hwnd));
+    } catch (err) {
+        console.error('Failed to focus window:', err);
+        return false;
+    }
+}
+
+/**
+ * HWND string of the window currently in the foreground (before pin insert).
+ * @returns {Promise<string|null>}
+ */
+async function getForegroundHwnd() {
+    if (!native) return null;
+    try {
+        return native.getForegroundHwnd() || null;
+    } catch (err) {
+        console.error('Failed to get foreground hwnd:', err);
+        return null;
+    }
+}
+
+/**
+ * Capture UI Automation element at screen point (physical px).
+ * @returns {Promise<object|null>}
+ */
+async function captureUiaTargetAt(x, y) {
+    if (!native || typeof x !== 'number' || typeof y !== 'number') return null;
+    try {
+        return native.captureUiaTargetAt(Math.round(x), Math.round(y)) || null;
+    } catch (err) {
+        console.warn('UIA capture failed:', err);
+        return null;
+    }
+}
+
+/**
+ * Insert text via UI Automation without raising the target window.
+ * @param {object} target - snapshot from captureUiaTargetAt
+ * @param {string} text
+ * @returns {Promise<boolean>}
+ */
+async function insertTextViaUia(target, text) {
+    if (!native || !target || !text) return false;
+    try {
+        return !!native.insertTextViaUia(target, String(text));
+    } catch (err) {
+        console.warn('UIA insert failed:', err);
+        return false;
+    }
+}
+
+function isUiaAvailable() {
+    if (!native) return false;
+    try {
+        return !!native.isUiaAvailable();
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * @param {string} hwnd
+ * @returns {Promise<boolean>}
+ */
+async function isWindowValid(hwnd) {
+    if (!native || !hwnd) return false;
+    try {
+        return native.isWindowValid(String(hwnd));
+    } catch (err) {
+        return false;
+    }
+}
+
+/**
+ * Find visible top-level windows for a process (e.g. "Cursor.exe")
+ * @param {string} processName
+ * @returns {Promise<Array>}
+ */
+async function findWindowsByProcessName(processName) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    if (!processName) return [];
+    try {
+        return native.findWindowsByProcessName(String(processName)) || [];
+    } catch (err) {
+        console.error('Failed to find windows by process:', err);
+        return [];
+    }
+}
+
+/**
+ * @param {string} hwnd
+ * @returns {Promise<{x:number,y:number,width:number,height:number}|null>}
+ */
+async function getWindowRect(hwnd) {
+    if (!native || !hwnd) return null;
+    try {
+        return native.getWindowRect(String(hwnd)) || null;
+    } catch (err) {
+        console.error('Failed to get window rect:', err);
+        return null;
+    }
+}
+
+/**
+ * Caret position in the focused app (screen px), or mouse cursor fallback.
+ * @returns {Promise<{x:number,y:number}|null>}
+ */
+async function getInputAnchor() {
+    if (!native) return null;
+    try {
+        return native.getInputAnchor() || null;
+    } catch (err) {
+        console.error('Failed to get input anchor:', err);
+        return null;
+    }
+}
+
+/**
+ * Focus a specific hwnd and insert text via clipboard paste
+ * @param {string} hwnd
+ * @param {string} text
+ * @returns {Promise<boolean>}
+ */
+async function focusHwndAndInsertText(hwnd, text) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    if (!initialized) {
+        await initialize();
+    }
+    if (!hwnd || typeof text !== 'string') {
+        return false;
+    }
+    try {
+        return native.focusHwndAndInsertText(String(hwnd), text);
+    } catch (err) {
+        console.error('Failed to focus hwnd and insert text:', err);
+        return false;
+    }
+}
+
+async function insertTextAtPinAnchor(hwnd, anchorX, anchorY, text, restoreHwnd) {
+    if (!native) {
+        throw new Error('TSF native module not loaded');
+    }
+    if (!initialized) {
+        await initialize();
+    }
+    if (!hwnd || typeof text !== 'string') {
+        return false;
+    }
+    try {
+        if (restoreHwnd) {
+            return native.insertTextAtPinAnchor(String(hwnd), anchorX, anchorY, text, String(restoreHwnd));
+        }
+        return native.insertTextAtPinAnchor(String(hwnd), anchorX, anchorY, text);
+    } catch (err) {
+        console.error('Failed to insert text at pin anchor:', err);
         return false;
     }
 }
@@ -395,7 +576,18 @@ module.exports = {
     setLastFocusedWindow,
     getLastFocusedWindow,
     focusLastWindow,
+    focusWindow,
+    getForegroundHwnd,
+    isUiaAvailable,
+    captureUiaTargetAt,
+    insertTextViaUia,
+    isWindowValid,
+    findWindowsByProcessName,
+    getWindowRect,
+    getInputAnchor,
     focusAndInsertText,
+    focusHwndAndInsertText,
+    insertTextAtPinAnchor,
     simulateCtrlV,
     // Text replacement APIs
     getSelectedText,

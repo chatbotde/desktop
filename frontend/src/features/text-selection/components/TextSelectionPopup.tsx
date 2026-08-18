@@ -393,8 +393,11 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
         let anchorX = data.mousePosEnd?.x ?? data.mousePosStart?.x ?? data.endBottom?.x ?? data.startTop?.x
         let anchorY = data.mousePosEnd?.y ?? data.mousePosStart?.y ?? data.endBottom?.y ?? data.startTop?.y
 
+        // Coordinates arrive as window-local logical (DIP) pixels from the main
+        // process. Reject the -99999 sentinel (coordinate unavailable) and any
+        // wildly out-of-range value; anything else is treated as usable.
         const isValidCoordinate = (val: number | undefined): boolean => {
-          return val !== undefined && !isNaN(val) && isFinite(val) && val >= 0
+          return val !== undefined && !isNaN(val) && isFinite(val) && val > -10000 && val < 100000
         }
 
         if (!isValidCoordinate(anchorX) || !isValidCoordinate(anchorY)) {
@@ -469,12 +472,14 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
         }
 
         // Debounce: the backend fires multiple events per selection.
-        // Buffer the latest data and commit after 300ms of silence.
+        // The native monitor already debounces ~300ms, so keep this short to
+        // stay responsive (avoids the popup feeling laggy) while still
+        // collapsing any duplicate events into a single commit.
         pendingDataRef.current = data
         if (debounceRef.current) {
           clearTimeout(debounceRef.current)
         }
-        debounceRef.current = setTimeout(commitSelection, 300)
+        debounceRef.current = setTimeout(commitSelection, 90)
       }
 
       if (window.interfaceAPI?.onMessage) {
@@ -523,7 +528,6 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
             onMouseLeave={() => startAutoHide(inst.id)}
             drag
             dragMomentum={false}
-            layout
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{
               opacity: 1,
@@ -533,16 +537,11 @@ export function TextSelectionPopup({ isDarkTheme = true }: TextSelectionPopupPro
             exit={{ opacity: 0, scale: 0.95, y: 5 }}
             transition={{
               type: "spring",
-              damping: 25,
-              stiffness: 300,
-              layout: {
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-              }
+              damping: 26,
+              stiffness: 320,
             }}
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: inst.position.top,
               left: inst.position.left,
               zIndex: 9999,

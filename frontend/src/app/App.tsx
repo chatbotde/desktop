@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import ClickThrough from '@/components/click-through'
+import { FileTransferBanner } from '@/components/remote-pad/FileTransferBanner'
 import { AppStateProvider } from './context/AppContext'
 import { OverlayRegistry } from './overlays/OverlayRegistry'
 
@@ -7,11 +8,12 @@ import { OverlayRegistry } from './overlays/OverlayRegistry'
  * App - Root component of the application.
  * Modular architecture:
  * 1. AppStateProvider: Manages all global UI and AI logic via Context.
- * 2. OverlayRegistry: Renders all registered features/overlays.
+ * 2. OverlayRegistry: Hash-routed shell + on-demand overlay panels (`#/o/...`).
  *
- * To add a new feature:
- * 1. Create a new overlay component in src/app/overlays/
- * 2. Register it in src/app/overlays/OverlayRegistry.tsx
+ * To add a heavy overlay panel:
+ * 1. Create the overlay in src/app/overlays/
+ * 2. Add its id to overlayRouteIds.ts and loader in overlayRouteMap.ts
+ * 3. Open it via uiState / event / feature bridge (or navigate to `#/o/{id}`)
  */
 function App() {
   // ✅ Legitimate useEffect: one-time debug log on mount — side effect, no store needed.
@@ -32,6 +34,7 @@ function App() {
         <ClickThrough />
         {/* All application features and overlays are rendered here */}
         <OverlayRegistry />
+        <FileTransferBanner />
       </div>
     </AppStateProvider>
   )

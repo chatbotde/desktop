@@ -33,6 +33,7 @@ import {
     type Tool,
     type StopCondition,
 } from 'ai';
+import type { ProviderOptions as ModelCallProviderOptions } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
     type ProviderId,
@@ -89,8 +90,10 @@ export interface StreamOptions {
     onChunk?: (chunk: string) => void;
     /** Callback when generation finishes */
     onFinish?: (result: FinishResult) => void;
-    /** Provider-specific options */
+    /** Provider registry options (API key, base URL) for model instantiation */
     providerOptions?: ProviderOptions;
+    /** Per-call provider options passed to the AI SDK (e.g. disable thinking) */
+    modelCallProviderOptions?: ModelCallProviderOptions;
     /** Headers to include in request */
     headers?: Record<string, string>;
 }
@@ -145,6 +148,7 @@ class AISDKService {
             stopWhen,
             abortSignal: options.abortSignal,
             headers: options.headers,
+            providerOptions: options.modelCallProviderOptions,
         });
     }
 
@@ -181,6 +185,7 @@ class AISDKService {
             stopWhen,
             abortSignal: options.abortSignal,
             headers: options.headers,
+            providerOptions: options.modelCallProviderOptions,
         });
     }
 

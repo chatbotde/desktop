@@ -12,6 +12,9 @@ import type { SendMessageOptions } from '@/features/chat/types/send-message-opti
 import { getSelectedModel } from '@/lib/ai/model-config'
 import { unifiedAIService } from '@/lib/ai'
 import { unifiedLocalLLMService } from '@/lib/ai/local-llm'
+import { isManimVideoPrompt } from '@/features/chat'
+import { runFactCheckPipeline } from '@/lib/search'
+import type { FactCheckResult } from '@/lib/search/fact-check-types'
 
 // Define the type for our context
 interface AppContextType {
@@ -164,6 +167,53 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         attachments?: MediaAttachment[],
         options?: SendMessageOptions
     ) => {
+        // Fact-check runs in its own floating panel — never uses the output window
+        if (options?.factCheckMode) {
+            const audioAttachment = attachments?.find((a) => a.mediaType === 'audio')
+            const factCheckText =
+                message.trim() && message.trim().toLowerCase() !== 'see attached media'
+                    ? message.trim()
+                    : undefined
+            const initialClaim = factCheckText ?? ''
+
+            const loadingFactCheck: FactCheckResult = {
+                claim: initialClaim,
+                verdict: 'unverified',
+                summary: '',
+                sources: [],
+                stage: audioAttachment ? 'transcribing' : 'checking',
+            }
+
+            uiState.setIsFactCheckWindowVisible(true)
+            uiState.setFactCheckResult(loadingFactCheck)
+
+            try {
+                const result = await runFactCheckPipeline({
+                    text: factCheckText,
+                    audioAttachment,
+                    onProgress: ({ stage, claim }) => {
+                        uiState.setFactCheckResult((prev) => ({
+                            ...(prev ?? loadingFactCheck),
+                            stage,
+                            claim: claim ?? prev?.claim ?? initialClaim,
+                        }))
+                    },
+                })
+                uiState.setFactCheckResult(result)
+            } catch (err) {
+                const errorMessage = err instanceof Error ? err.message : 'Fact check failed'
+                uiState.setFactCheckResult({
+                    claim: initialClaim,
+                    verdict: 'unverified',
+                    summary: '',
+                    sources: [],
+                    stage: 'error',
+                    error: errorMessage,
+                })
+            }
+            return
+        }
+
         // Check if it's a media generation model - don't open output window for images/videos
         const selectedModel = getSelectedModel()
         const selectedModelKey = `${selectedModel?.id ?? ''} ${selectedModel?.name ?? ''}`.toLowerCase()
@@ -171,6 +221,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
             selectedModel?.category === 'image-generation' ||
             selectedModelKey.includes('gemini-2.5-flash-image')
         const isVideoModel = selectedModel?.category === 'video-generation'
+        const isManimVideo = isManimVideoPrompt(message)
 
         // Show image window immediately for image models (before generation starts)
         if (isImageModel && imageWindowEnabled) {
@@ -179,15 +230,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
             uiState.setImageGenerationError(null)
         }
 
-        // Show video window immediately for video models (before generation starts)
+        // Show video window for cloud video models only (Manim uses prompt preview UX)
         if (isVideoModel && videoWindowEnabled) {
             uiState.setIsVideoWindowVisible(true)
             uiState.setIsGeneratingVideos(true)
             uiState.setVideoGenerationError(null)
         }
 
+        if (isManimVideo) {
+            uiState.setIsInputVisible(true)
+        }
+
         // Only open output window for non-media models
-        if (outputWindowEnabled && !isImageModel && !isVideoModel) {
+        if (outputWindowEnabled && !isImageModel && !isVideoModel && !isManimVideo) {
             uiState.setIsOutputVisible(true)
         }
         await messageManager.handleSendMessage(message, attachments, options)

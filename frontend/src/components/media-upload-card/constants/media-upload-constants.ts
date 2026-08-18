@@ -6,11 +6,19 @@ export const MEDIA_UPLOAD_CONSTANTS = {
   // Z-index
   Z_INDEX: 1002,
 
-  // Card styling
-  CARD: {
-    WIDTH: "w-48",
-    CLASSES: "overflow-hidden shadow-xl rounded-xl p-0 border",
+  // Compact panel — ~1/4 viewport (Electron overlay is fullscreen; menu must stay small)
+  PANEL: {
+    /** Fixed width with viewport cap */
+    WIDTH_CLASS: "w-48 max-w-[25vw]",
+    /** Scroll when options exceed 1/4 screen height */
+    MAX_HEIGHT_CLASS: "max-h-[25vh]",
+    CLASSES:
+      "shrink-0 overflow-hidden shadow-xl rounded-xl border pointer-events-auto flex flex-col",
   },
+
+  /** Popover wrapper — explicit size so Radix does not stretch to full screen */
+  POPOVER_CONTENT_CLASS:
+    "w-48 max-w-[25vw] max-h-[25vh] p-0 border-none bg-transparent shadow-none pointer-events-auto overflow-hidden",
 
   // File input accept types
   FILE_ACCEPT: {
@@ -39,4 +47,3 @@ export const MEDIA_UPLOAD_CONSTANTS = {
     TRIGGER_VIDEO_RECORDING: 'trigger-video-recording',
   },
 } as const
-

@@ -1,13 +1,95 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
+import { toast } from 'sonner';
 import { LIVE_ASSISTANT_PROMPT } from '@/services/prompts/prompts/system-prompts';
 import { getLiveAssistantLanguageClause } from '@/lib/settings/general-settings';
 import { getProviderConfig } from '@/lib/settings/custom-providers';
+import { getProviderApiKey } from '@/lib/ai/ai-sdk/providers';
+import { hasValidEnvValue, PROVIDER_ENV_KEYS, resolveEnvValue } from '@/lib/ai/env-utils';
 import { TOOLS_CONFIG } from './assistant-tools';
 import { MemoryService } from '@/lib/memory/memory-service';
 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const MODEL_NAME = 'gemini-2.5-flash-native-audio-preview-12-2025';
+/** Gemini Live API requires 16 kHz little-endian PCM input. */
+const INPUT_PCM_RATE = 16000;
+const OUTPUT_PCM_RATE = 24000;
+const SETUP_TIMEOUT_MS = 20000;
+/** Pause mic briefly after AI finishes speaking to avoid speaker→mic echo loops. */
+const MIC_RESUME_DELAY_MS = 350;
+
+function buildSystemInstruction(): string {
+    const memories = MemoryService.getMemories();
+    const memoryBlock = memories.length > 0
+        ? `\n\nYour Memories:\n${memories.map(m => `- ${m.content}`).join('\n')}`
+        : '';
+    return LIVE_ASSISTANT_PROMPT
+        + memoryBlock
+        + getLiveAssistantLanguageClause()
+        + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself, echo the user, or restate what was just said.\n3. Give each answer exactly once — do not repeat phrases or sentences.\n4. Follow LANGUAGE PREFERENCE when it appears above if the user's spoken language is unclear; when they are clearly speaking one language, respond in that language.\n5. Do not use conversational filler words.\n6. NEVER mention that you are using a tool. For example, if you take a screenshot, do not say 'I am using the take_screenshot tool', just act naturally like you are looking at their screen. Same for listening to audio.";
+}
+
+function resampleTo16k(input: Float32Array, inputRate: number): Float32Array {
+    if (inputRate === INPUT_PCM_RATE) return input;
+    const ratio = inputRate / INPUT_PCM_RATE;
+    const outLength = Math.max(1, Math.round(input.length / ratio));
+    const output = new Float32Array(outLength);
+    for (let i = 0; i < outLength; i++) {
+        const srcIndex = i * ratio;
+        const idx = Math.floor(srcIndex);
+        const frac = srcIndex - idx;
+        const s0 = input[idx] ?? 0;
+        const s1 = input[idx + 1] ?? s0;
+        output[i] = s0 + frac * (s1 - s0);
+    }
+    return output;
+}
+
+function float32ToPcmBase64(samples: Float32Array): string {
+    const pcmData = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.max(-1, Math.min(1, samples[i]));
+        pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    const uint8Array = new Uint8Array(pcmData.buffer);
+    let binary = '';
+    for (let i = 0; i < uint8Array.byteLength; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binary);
+}
+
+/** Prefer .env key for voice unless the user explicitly enabled custom voice API. */
+async function resolveVoiceApiKey(shouldUseCustom: boolean, customKey: string): Promise<string | undefined> {
+    if (shouldUseCustom) return customKey;
+
+    const envConfig = PROVIDER_ENV_KEYS.google;
+    const fromEnv = resolveEnvValue(envConfig.primary, {
+        fallbacks: envConfig.fallbacks,
+        provider: 'Google',
+    });
+    if (hasValidEnvValue(fromEnv)) return fromEnv.value;
+
+    if (window.electronAPI?.getEnvVariable) {
+        try {
+            const runtimeKey = await window.electronAPI.getEnvVariable('VITE_GOOGLE_API_KEY');
+            if (runtimeKey?.trim()) return runtimeKey.trim();
+        } catch {
+            // Fall through to provider/localStorage resolution.
+        }
+    }
+
+    return getProviderApiKey('google');
+}
+
+/** Live API WebSocket uses the host root — REST paths like /v1beta break the socket URL. */
+function getLiveApiBaseUrl(customBaseUrl?: string): string | undefined {
+    const trimmed = customBaseUrl?.trim();
+    if (!trimmed) return undefined;
+    if (trimmed.includes('/v1beta') || trimmed.includes('/v1/')) {
+        return 'https://generativelanguage.googleapis.com/';
+    }
+    return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
+}
 
 export type LiveAssistantState = ReturnType<typeof useLiveAssistantInternal>;
 
@@ -18,14 +100,29 @@ export function useLiveAssistantInternal() {
     const [volume, setVolume] = useState(0);
 
     const audioContextRef = useRef<AudioContext | null>(null);
+    const playbackContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const processorRef = useRef<ScriptProcessorNode | null>(null);
     const sessionRef = useRef<any>(null);
     const audioQueueRef = useRef<Float32Array[]>([]);
     const sourceNodesRef = useRef<AudioBufferSourceNode[]>([]);
     const isPlayingRef = useRef(false);
+    const isProcessingQueueRef = useRef(false);
+    const micSendPausedRef = useRef(false);
+    const micResumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastVolumeUiUpdateRef = useRef(0);
     const scheduledTimeRef = useRef(0);
     const connectingRef = useRef(false);
+    const setupCompleteRef = useRef(false);
+    const connectedRef = useRef(false);
+    const setupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const inputSampleRateRef = useRef(INPUT_PCM_RATE);
+
+    const [connectionError, setConnectionError] = useState<string | null>(null);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+
+    connectedRef.current = connected;
 
     // System Audio Refs
     const systemAudioStreamRef = useRef<MediaStream | null>(null);
@@ -46,20 +143,104 @@ export function useLiveAssistantInternal() {
     }>({ isVisible: false, videos: [], isLoading: false });
 
 
-    const ensureAudioContext = useCallback(() => {
+    const ensureAudioContext = useCallback(async () => {
         if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-                sampleRate: 16000, // Force 16kHz to match model preference and reduce data
-            });
+            try {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                    sampleRate: 16000,
+                });
+            } catch {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
         }
         if (audioContextRef.current.state === 'suspended') {
-            audioContextRef.current.resume();
+            await audioContextRef.current.resume();
         }
     }, []);
 
-    const playAudioChunk = useCallback((base64Data: string) => {
-        if (!audioContextRef.current) return;
+    const ensurePlaybackContext = useCallback(async () => {
+        if (!playbackContextRef.current || playbackContextRef.current.state === 'closed') {
+            playbackContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                sampleRate: OUTPUT_PCM_RATE,
+            });
+        }
+        if (playbackContextRef.current.state === 'suspended') {
+            await playbackContextRef.current.resume();
+        }
+    }, []);
 
+    const pauseMicSend = useCallback((resumeAfterMs = 0) => {
+        micSendPausedRef.current = true;
+        if (micResumeTimeoutRef.current) {
+            clearTimeout(micResumeTimeoutRef.current);
+            micResumeTimeoutRef.current = null;
+        }
+        if (resumeAfterMs > 0) {
+            micResumeTimeoutRef.current = setTimeout(() => {
+                micSendPausedRef.current = false;
+                micResumeTimeoutRef.current = null;
+            }, resumeAfterMs);
+        }
+    }, []);
+
+    const processAudioQueueRef = useRef<() => void>(() => {});
+
+    const processAudioQueue = useCallback(async () => {
+        if (audioQueueRef.current.length === 0 || isProcessingQueueRef.current) return;
+
+        isProcessingQueueRef.current = true;
+        try {
+            await ensurePlaybackContext();
+            const ctx = playbackContextRef.current;
+            if (!ctx) return;
+
+            const currentTime = ctx.currentTime;
+            if (scheduledTimeRef.current < currentTime) {
+                scheduledTimeRef.current = currentTime + 0.02;
+            }
+
+            micSendPausedRef.current = true;
+
+            while (audioQueueRef.current.length > 0) {
+                const chunk = audioQueueRef.current.shift();
+                if (!chunk) continue;
+
+                const buffer = ctx.createBuffer(1, chunk.length, OUTPUT_PCM_RATE);
+                buffer.copyToChannel(chunk as Float32Array<ArrayBuffer>, 0);
+
+                const source = ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(ctx.destination);
+
+                sourceNodesRef.current.push(source);
+
+                source.start(scheduledTimeRef.current);
+                scheduledTimeRef.current += buffer.duration;
+
+                setIsSpeaking(true);
+                isPlayingRef.current = true;
+
+                source.onended = () => {
+                    sourceNodesRef.current = sourceNodesRef.current.filter(s => s !== source);
+                    if (sourceNodesRef.current.length === 0 && audioQueueRef.current.length === 0) {
+                        isPlayingRef.current = false;
+                        setIsSpeaking(false);
+                        scheduledTimeRef.current = ctx.currentTime;
+                        pauseMicSend(MIC_RESUME_DELAY_MS);
+                    }
+                    if (audioQueueRef.current.length > 0) {
+                        processAudioQueueRef.current();
+                    }
+                };
+            }
+        } finally {
+            isProcessingQueueRef.current = false;
+        }
+    }, [ensurePlaybackContext, pauseMicSend]);
+
+    processAudioQueueRef.current = () => { void processAudioQueue(); };
+
+    const playAudioChunk = useCallback((base64Data: string) => {
         const binaryString = window.atob(base64Data);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
@@ -74,48 +255,7 @@ export function useLiveAssistantInternal() {
         }
 
         audioQueueRef.current.push(float32Array);
-        processAudioQueue();
-    }, []);
-
-    const processAudioQueue = useCallback(() => {
-        if (audioQueueRef.current.length === 0 || !audioContextRef.current) return;
-
-        const currentTime = audioContextRef.current.currentTime;
-        if (scheduledTimeRef.current < currentTime) {
-            // Reduced lookahead from 0.05 to 0.015 (15ms) for snappier playback
-            scheduledTimeRef.current = currentTime + 0.015;
-        }
-
-        while (audioQueueRef.current.length > 0) {
-            const chunk = audioQueueRef.current.shift();
-            if (!chunk) continue;
-
-            const buffer = audioContextRef.current.createBuffer(1, chunk.length, 24000);
-            buffer.copyToChannel(chunk as Float32Array<ArrayBuffer>, 0);
-
-            const source = audioContextRef.current.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContextRef.current.destination);
-
-            sourceNodesRef.current.push(source);
-
-            source.start(scheduledTimeRef.current);
-            scheduledTimeRef.current += buffer.duration;
-
-            setIsSpeaking(true);
-            isPlayingRef.current = true;
-
-            source.onended = () => {
-                sourceNodesRef.current = sourceNodesRef.current.filter(s => s !== source);
-                if (sourceNodesRef.current.length === 0 && audioQueueRef.current.length === 0) {
-                    isPlayingRef.current = false;
-                    setIsSpeaking(false);
-                    if (audioContextRef.current) {
-                        scheduledTimeRef.current = audioContextRef.current.currentTime;
-                    }
-                }
-            };
-        }
+        processAudioQueueRef.current();
     }, []);
 
     const stopSystemAudio = useCallback(() => {
@@ -200,50 +340,72 @@ export function useLiveAssistantInternal() {
     }, [stopSystemAudio]);
 
     const connect = useCallback(async () => {
-        if (connected || connectingRef.current) return;
+        if (connectedRef.current || connectingRef.current) return;
 
         connectingRef.current = true;
+        setupCompleteRef.current = false;
+        setConnectionError(null);
+        setIsConnecting(true);
 
         try {
-            ensureAudioContext();
+            await ensureAudioContext();
 
-            // Resolve configuration from settings or environment
             const googleConfig = getProviderConfig('google');
-
-            // Check if user explicitly enabled custom API for voice
             const useCustomApi = localStorage.getItem('voice-use-custom-api') === 'true';
             const hasCustomKey = googleConfig.apiKey.trim().length > 0;
-
-            // Use custom API only if: toggle is ON AND custom key exists
             const shouldUseCustom = useCustomApi && hasCustomKey;
-            const apiKey = shouldUseCustom ? googleConfig.apiKey : API_KEY;
-            const baseUrl = shouldUseCustom ? googleConfig.baseUrl : undefined;
+            const apiKey = await resolveVoiceApiKey(
+                shouldUseCustom,
+                googleConfig.apiKey.trim(),
+            );
 
             if (!apiKey) {
-                throw new Error("No API key available. Please configure Google AI in settings or .env file.");
+                throw new Error('No API key available. Add a Google key in Settings or set VITE_GOOGLE_API_KEY in .env.');
             }
 
-            console.log(`[LiveAssistant] Using ${shouldUseCustom ? 'Custom' : 'Default'} API`);
+            console.log(`[LiveAssistant] Using ${shouldUseCustom ? 'custom' : 'default'} API, key length: ${apiKey.length}`);
 
-            // Client and Model setup
+            // Request mic during the user gesture before opening the WebSocket
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    sampleRate: INPUT_PCM_RATE,
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                }
+            });
+            mediaStreamRef.current = stream;
+
+            const liveBaseUrl = shouldUseCustom ? getLiveApiBaseUrl(googleConfig.baseUrl) : undefined;
             const client = new GoogleGenAI({
                 apiKey,
-                // @ts-ignore
-                baseUrl
+                ...(liveBaseUrl ? { httpOptions: { baseUrl: liveBaseUrl } } : {}),
             });
 
             const config = {
                 responseModalities: [Modality.AUDIO],
-                systemInstruction: {
-                    parts: [{
-                        text: LIVE_ASSISTANT_PROMPT + (
-                            MemoryService.getMemories().length > 0
-                                ? `\n\nYour Memories:\n${MemoryService.getMemories().map(m => `- ${m.content}`).join('\n')}`
-                                : ''
-                        ) + getLiveAssistantLanguageClause() + "\n\nCRITICAL INSTRUCTIONS:\n1. Keep responses extremely brief and concise to minimize latency.\n2. NEVER repeat yourself or what the user says.\n3. Follow LANGUAGE PREFERENCE when it appears above if the user's spoken language is unclear; when they are clearly speaking one language, respond in that language.\n4. Do not use conversational filler words.\n5. NEVER mention that you are using a tool. For example, if you take a screenshot, do not say 'I am using the take_screenshot tool', just act naturally like you are looking at their screen. Same for listening to audio."
-                    }]
-                },
+                systemInstruction: buildSystemInstruction(),
                 tools: TOOLS_CONFIG as any,
+            };
+
+            const clearSetupTimeout = () => {
+                if (setupTimeoutRef.current) {
+                    clearTimeout(setupTimeoutRef.current);
+                    setupTimeoutRef.current = null;
+                }
+            };
+
+            const markReady = () => {
+                if (setupCompleteRef.current) return;
+                setupCompleteRef.current = true;
+                clearSetupTimeout();
+                micSendPausedRef.current = false;
+                setConnected(true);
+                setIsConnecting(false);
+                connectingRef.current = false;
+                window.dispatchEvent(new CustomEvent('assistant-connection-changed', { detail: { connected: true } }));
+                console.log('[LiveAssistant] Ready — mic streaming enabled');
             };
 
             const session = await client.live.connect({
@@ -251,11 +413,15 @@ export function useLiveAssistantInternal() {
                 config,
                 callbacks: {
                     onopen: () => {
-                        console.log('Connected to Gemini Live');
-                        setConnected(true);
-                        connectingRef.current = false;
+                        console.log('[LiveAssistant] WebSocket open, waiting for setupComplete...');
                     },
                     onmessage: async (message: any) => {
+                        if (message.setupComplete) {
+                            console.log('[LiveAssistant] Setup complete');
+                            markReady();
+                            return;
+                        }
+
                         if (message.serverContent?.interrupted) {
                             console.log('Model interrupted by user, clearing queue');
                             audioQueueRef.current = [];
@@ -263,9 +429,17 @@ export function useLiveAssistantInternal() {
                                 try { source.stop(); } catch (e) { }
                             });
                             sourceNodesRef.current = [];
-                            scheduledTimeRef.current = audioContextRef.current?.currentTime || 0;
-                            setIsSpeaking(false);
                             isPlayingRef.current = false;
+                            isProcessingQueueRef.current = false;
+                            if (playbackContextRef.current) {
+                                scheduledTimeRef.current = playbackContextRef.current.currentTime;
+                            }
+                            setIsSpeaking(false);
+                            micSendPausedRef.current = false;
+                            if (micResumeTimeoutRef.current) {
+                                clearTimeout(micResumeTimeoutRef.current);
+                                micResumeTimeoutRef.current = null;
+                            }
                         }
 
                         if (message.serverContent?.modelTurn?.parts) {
@@ -274,6 +448,10 @@ export function useLiveAssistantInternal() {
                                     playAudioChunk(part.inlineData.data);
                                 }
                             }
+                        }
+
+                        if (message.serverContent?.turnComplete) {
+                            return;
                         }
 
                         if (message.toolCall) {
@@ -497,70 +675,90 @@ export function useLiveAssistantInternal() {
                         }
                     },
                     onclose: () => {
-                        console.log('Disconnected from Gemini Live');
+                        console.log('[LiveAssistant] Disconnected from Gemini Live');
+                        clearSetupTimeout();
                         setConnected(false);
+                        setIsConnecting(false);
+                        connectingRef.current = false;
+                        setupCompleteRef.current = false;
                     },
                     onerror: (error: any) => {
-                        console.error('Gemini Live error:', error);
+                        console.error('[LiveAssistant] Gemini Live error:', error);
+                        const errMsg = error?.message || error?.reason || 'Voice connection failed';
+                        setConnectionError(errMsg);
+                        toast.error(errMsg);
                         setConnected(false);
+                        setIsConnecting(false);
+                        connectingRef.current = false;
+                        setupCompleteRef.current = false;
                     }
                 }
             });
 
             sessionRef.current = session;
 
-            // Microphone Setup
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    sampleRate: 16000,
-                    channelCount: 1,
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                }
-            });
-            mediaStreamRef.current = stream;
+            setupTimeoutRef.current = setTimeout(() => {
+                if (setupCompleteRef.current) return;
+                const errMsg = 'Voice connection timed out. Check your Google API key and network.';
+                console.error('[LiveAssistant]', errMsg);
+                setConnectionError(errMsg);
+                toast.error(errMsg);
+                try { sessionRef.current?.close?.(); } catch { /* ignore */ }
+                sessionRef.current = null;
+                mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+                mediaStreamRef.current = null;
+                setConnected(false);
+                setIsConnecting(false);
+                connectingRef.current = false;
+                setupCompleteRef.current = false;
+                clearSetupTimeout();
+            }, SETUP_TIMEOUT_MS);
 
-            if (!audioContextRef.current) return;
+            if (!audioContextRef.current) {
+                throw new Error('Audio context unavailable');
+            }
 
+            inputSampleRateRef.current = audioContextRef.current.sampleRate;
             const source = audioContextRef.current.createMediaStreamSource(stream);
-            // Reduced buffer size from 2048 to 1024 to halve input latency
-            const processor = audioContextRef.current.createScriptProcessor(1024, 1, 1);
+            const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
 
             processor.onaudioprocess = (e) => {
+                if (!sessionRef.current || !setupCompleteRef.current) return;
+
                 const inputData = e.inputBuffer.getChannelData(0);
 
-                // Volume detection for UI
                 let sum = 0;
                 for (let i = 0; i < inputData.length; i++) {
                     sum += inputData[i] * inputData[i];
                 }
                 const rms = Math.sqrt(sum / inputData.length);
-                setVolume(rms);
-                setIsUserSpeaking(rms > 0.01);
 
-                // Convert to PCM 16-bit
-                const pcmData = new Int16Array(inputData.length);
-                for (let i = 0; i < inputData.length; i++) {
-                    const s = Math.max(-1, Math.min(1, inputData[i]));
-                    pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                const now = performance.now();
+                if (now - lastVolumeUiUpdateRef.current > 80) {
+                    lastVolumeUiUpdateRef.current = now;
+                    setVolume(rms);
+                    setIsUserSpeaking(rms > 0.01);
                 }
 
-                // Faster Base64 encode using chunked processing
-                const uint8Array = new Uint8Array(pcmData.buffer);
-                let binary = '';
-                const len = uint8Array.byteLength;
-                for (let i = 0; i < len; i++) {
-                    binary += String.fromCharCode(uint8Array[i]);
-                }
-                const base64Audio = btoa(binary);
+                // Half-duplex: don't send mic while AI is speaking (prevents echo/repeat loops)
+                if (isPlayingRef.current || micSendPausedRef.current) return;
 
-                session.sendRealtimeInput({
-                    audio: {
-                        data: base64Audio,
-                        mimeType: 'audio/pcm;rate=16000'
-                    }
-                });
+                const pcmSamples = resampleTo16k(
+                    new Float32Array(inputData),
+                    inputSampleRateRef.current,
+                );
+                const base64Audio = float32ToPcmBase64(pcmSamples);
+
+                try {
+                    sessionRef.current.sendRealtimeInput({
+                        audio: {
+                            data: base64Audio,
+                            mimeType: `audio/pcm;rate=${INPUT_PCM_RATE}`,
+                        }
+                    });
+                } catch (sendErr) {
+                    console.error('[LiveAssistant] Failed to send audio chunk:', sendErr);
+                }
             };
 
             source.connect(processor);
@@ -575,13 +773,47 @@ export function useLiveAssistantInternal() {
             processorRef.current = processor;
 
         } catch (error) {
-            console.error('Failed to connect:', error);
+            let errMsg = error instanceof Error ? error.message : 'Failed to connect to voice assistant';
+            if (errMsg.includes('NotAllowedError') || errMsg.includes('Permission denied')) {
+                errMsg = 'Microphone permission denied. Allow mic access for this app in Windows settings.';
+            }
+            console.error('[LiveAssistant] Failed to connect:', error);
+            if (setupTimeoutRef.current) {
+                clearTimeout(setupTimeoutRef.current);
+                setupTimeoutRef.current = null;
+            }
+            setConnectionError(errMsg);
+            toast.error(errMsg);
             setConnected(false);
+            setIsConnecting(false);
             connectingRef.current = false;
+            setupCompleteRef.current = false;
+
+            if (mediaStreamRef.current) {
+                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+                mediaStreamRef.current = null;
+            }
+            if (sessionRef.current) {
+                try {
+                    sessionRef.current.close?.();
+                } catch { /* ignore */ }
+                sessionRef.current = null;
+            }
         }
-    }, [connected, ensureAudioContext, playAudioChunk, startSystemAudio, stopSystemAudio]);
+    }, [ensureAudioContext, playAudioChunk, startSystemAudio, stopSystemAudio]);
 
     const disconnect = useCallback(() => {
+        if (setupTimeoutRef.current) {
+            clearTimeout(setupTimeoutRef.current);
+            setupTimeoutRef.current = null;
+        }
+        if (micResumeTimeoutRef.current) {
+            clearTimeout(micResumeTimeoutRef.current);
+            micResumeTimeoutRef.current = null;
+        }
+        micSendPausedRef.current = false;
+        isProcessingQueueRef.current = false;
+
         if (sessionRef.current) {
             try {
                 // @ts-ignore
@@ -608,19 +840,66 @@ export function useLiveAssistantInternal() {
         scheduledTimeRef.current = 0;
         isPlayingRef.current = false;
 
-        // Don't close AudioContext if we want to reuse it, but suspend it
+        // Don't close capture AudioContext if we want to reuse it, but suspend it
         if (audioContextRef.current) {
             audioContextRef.current.suspend();
         }
+        if (playbackContextRef.current && playbackContextRef.current.state !== 'closed') {
+            playbackContextRef.current.close().catch(() => {});
+            playbackContextRef.current = null;
+        }
 
         setConnected(false);
+        window.dispatchEvent(new CustomEvent('assistant-connection-changed', { detail: { connected: false } }));
+        setIsConnecting(false);
         setIsSpeaking(false);
         setIsUserSpeaking(false);
         setVolume(0);
+        setConnectionError(null);
+        connectingRef.current = false;
+        setupCompleteRef.current = false;
 
         // Also stop system audio
         stopSystemAudio();
     }, [stopSystemAudio]);
+
+    // Keep refs for stable event listeners registered once at provider mount.
+    const connectRef = useRef(connect);
+    const disconnectRef = useRef(disconnect);
+    connectRef.current = connect;
+    disconnectRef.current = disconnect;
+
+    useEffect(() => {
+        const handleVisibilityToggle = (event: Event) => {
+            const detail = (event as CustomEvent<{ connect?: boolean }>).detail;
+            setIsVisible(prev => {
+                const next = !prev;
+                if (next && detail?.connect !== false) {
+                    connectRef.current();
+                }
+                return next;
+            });
+        };
+
+        const handleAssistantConnect = () => {
+            setIsVisible(true);
+            connectRef.current();
+        };
+
+        window.addEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+        window.interfaceAPI?.onMessage?.('assistant-connect', handleAssistantConnect);
+
+        return () => {
+            window.removeEventListener('toggle-assistant-visibility', handleVisibilityToggle);
+            window.interfaceAPI?.removeMessageListener?.('assistant-connect', handleAssistantConnect);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible && connected) {
+            disconnectRef.current();
+        }
+    }, [isVisible, connected]);
 
     const isCustomActive = (() => {
         const config = getProviderConfig('google');
@@ -678,9 +957,12 @@ export function useLiveAssistantInternal() {
         connect,
         disconnect,
         connected,
+        isVisible,
         isSpeaking,
         isUserSpeaking,
         volume,
+        connectionError,
+        isConnecting,
         isCustomActive,
         isSystemAudioActive,
         imageGeneration,

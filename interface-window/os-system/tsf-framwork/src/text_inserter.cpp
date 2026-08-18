@@ -120,20 +120,13 @@ bool TextInserter::InsertText(const std::wstring& text) {
     return true;
 }
 
-bool TextInserter::InsertTextFallback(const std::wstring& text) {
-    if (text.empty()) {
-        return false;
-    }
-
-    // Get the foreground window to ensure focus
-    HWND hwndTarget = GetForegroundWindow();
-    if (!hwndTarget) {
+bool TextInserter::InsertTextFallbackToHwnd(HWND hwnd, const std::wstring& text) {
+    if (text.empty() || !hwnd || !IsWindow(hwnd)) {
         return false;
     }
 
     // Save current clipboard content
     if (!OpenClipboard(nullptr)) {
-        // Retry once after a short delay
         Sleep(50);
         if (!OpenClipboard(nullptr)) {
             return false;
@@ -142,7 +135,7 @@ bool TextInserter::InsertTextFallback(const std::wstring& text) {
 
     HANDLE hOldData = GetClipboardData(CF_UNICODETEXT);
     std::wstring oldClipboard;
-    
+
     if (hOldData) {
         wchar_t* pOldData = (wchar_t*)GlobalLock(hOldData);
         if (pOldData) {
@@ -151,12 +144,11 @@ bool TextInserter::InsertTextFallback(const std::wstring& text) {
         }
     }
 
-    // Set new clipboard content
     EmptyClipboard();
-    
+
     size_t size = (text.length() + 1) * sizeof(wchar_t);
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
-    
+
     if (!hMem) {
         CloseClipboard();
         return false;
@@ -180,33 +172,25 @@ bool TextInserter::InsertTextFallback(const std::wstring& text) {
 
     CloseClipboard();
 
-    // Ensure target window still has focus
-    SetForegroundWindow(hwndTarget);
-    
-    // Wait for clipboard to be ready and window to be focused
-    Sleep(100);
+    SetForegroundWindow(hwnd);
+    Sleep(150);
 
-    // Simulate Ctrl+V with proper timing
     SimulatePaste();
+    Sleep(250);
 
-    // Wait for paste to complete (important for large text or slow apps)
-    Sleep(200);
-
-    // Restore old clipboard content
     if (!oldClipboard.empty()) {
-        // Try to open clipboard with retries
         int retries = 3;
         while (retries > 0 && !OpenClipboard(nullptr)) {
             Sleep(50);
             retries--;
         }
-        
+
         if (retries > 0) {
             EmptyClipboard();
-            
+
             size_t oldSize = (oldClipboard.length() + 1) * sizeof(wchar_t);
             HGLOBAL hOldMem = GlobalAlloc(GMEM_MOVEABLE, oldSize);
-            
+
             if (hOldMem) {
                 wchar_t* pOldMem = (wchar_t*)GlobalLock(hOldMem);
                 if (pOldMem) {
@@ -215,12 +199,26 @@ bool TextInserter::InsertTextFallback(const std::wstring& text) {
                     SetClipboardData(CF_UNICODETEXT, hOldMem);
                 }
             }
-            
+
             CloseClipboard();
         }
     }
 
     return true;
+}
+
+bool TextInserter::InsertTextFallback(const std::wstring& text) {
+    if (text.empty()) {
+        return false;
+    }
+
+    // Get the foreground window to ensure focus
+    HWND hwndTarget = GetForegroundWindow();
+    if (!hwndTarget) {
+        return false;
+    }
+
+    return InsertTextFallbackToHwnd(hwndTarget, text);
 }
 
 void TextInserter::SimulatePaste() {

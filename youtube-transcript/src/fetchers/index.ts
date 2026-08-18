@@ -8,3 +8,8 @@ export {
   playerResponseFetcher,
   playabilityChecker,
 } from './player-response-fetcher';
+
+export {
+  BrowserTranscriptFetcher,
+  browserTranscriptFetcher,
+} from './browser-transcript-fetcher';

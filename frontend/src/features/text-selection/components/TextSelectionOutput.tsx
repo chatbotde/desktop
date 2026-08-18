@@ -481,7 +481,7 @@ export function TextSelectionOutput({
       ref={containerRef}
       data-no-clickthrough
       className={cn(
-        "fixed z-[10000] flex flex-col group",
+        "fixed z-[10000] flex flex-col group pointer-events-auto",
         "transition-opacity duration-300 ease-out",
         showContent ? "opacity-100" : "opacity-0",
         (isDragging || isResizing) && "select-none",

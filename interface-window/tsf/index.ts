@@ -6,4 +6,6 @@
 
 export { TsfManager, tsfManager } from './tsf-manager';
 export type { FocusInfo, InsertOptions, RichContentData } from './tsf-manager';
+export { PinManager, pinManager } from './pin-manager';
+export type { InsertPin, PinStatus, AssignPinInput, InsertToPinResult } from './pin-manager';
 export { setupTsfIpc, initializeTsf, cleanupTsf } from './tsf-ipc-handlers';

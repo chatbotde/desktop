@@ -197,7 +197,7 @@ export const ANIMATION_REGISTRY: AnimationEntry[] = [
     // ── Custom overlays (have their own component file) ───────────────────────
     {
         id: 'cat',
-        label: 'Cat Buddy',
+        label: 'Cat',
         description: 'An animated cat that sits in the corner cycling through poses.',
         custom: true,
         customOverlay: lazy(() => import('@/app/overlays/CatOverlay').then(m => ({ default: m.CatOverlay }))),

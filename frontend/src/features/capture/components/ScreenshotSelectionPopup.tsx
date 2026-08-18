@@ -144,7 +144,7 @@ export function ScreenshotSelectionPopup({
 }: ScreenshotSelectionPopupProps) {
   const isDarkThemeFromProvider = useIsDark()
   const isDarkTheme = isDarkThemeProp ?? isDarkThemeFromProvider
-  const themeColors = isDarkTheme ? GLOBAL_THEME.colors.dark : GLOBAL_THEME.colors.light
+  const themeColors = GLOBAL_THEME.vars
   const [isVisible, setIsVisible] = useState(false)
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
   const [files, setFiles] = useState<File[]>([])
@@ -158,6 +158,8 @@ export function ScreenshotSelectionPopup({
   const viewportRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const stopRef = useRef(false)
+  const isDraggingRef = useRef(false)
+  const [isDragging, setIsDragging] = useState(false)
   const { convertFilesToAttachments } = useFileToAttachment()
 
   const imagePreviewUrls = useMemo(
@@ -254,16 +256,60 @@ export function ScreenshotSelectionPopup({
     setPosition(centerPopupPosition(getPopupEstimatedSize({ isExpanded: true, isTryOnMode: true, hasTryOnAction: true })))
   }, [stopAutoHide, hasTryOnAction])
 
-  const handleDragEnd = useCallback(() => {
-    if (!popupRef.current) return
-    const rect = popupRef.current.getBoundingClientRect()
-    setPosition(
-      clampPopupPosition(
-        { top: rect.top, left: rect.left },
-        { width: rect.width, height: rect.height }
-      )
-    )
-  }, [])
+  const handlePopupDragMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (isTryOnMode || isExpanded || !position) return
+
+      const target = e.target as HTMLElement
+      if (target.closest('button, a, input, textarea, select, [role="button"]')) return
+
+      e.preventDefault()
+
+      const startX = e.clientX
+      const startY = e.clientY
+      const originTop = position.top
+      const originLeft = position.left
+
+      isDraggingRef.current = true
+      setIsDragging(true)
+      stopAutoHide()
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        if (!isDraggingRef.current) return
+        setPosition({
+          top: originTop + (ev.clientY - startY),
+          left: originLeft + (ev.clientX - startX),
+        })
+      }
+
+      const handleMouseUp = () => {
+        isDraggingRef.current = false
+        setIsDragging(false)
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+
+        const el = popupRef.current
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          const clamped = clampPopupPosition(
+            { top: rect.top, left: rect.left },
+            { width: rect.width, height: rect.height }
+          )
+          setPosition((prev) => {
+            if (!prev) return clamped
+            if (clamped.top === prev.top && clamped.left === prev.left) return prev
+            return clamped
+          })
+        }
+
+        startAutoHide()
+      }
+
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    },
+    [isTryOnMode, isExpanded, position, stopAutoHide, startAutoHide]
+  )
 
   const handleAddMoreScreenshot = useCallback(() => {
     stopAutoHide()
@@ -338,6 +384,15 @@ export function ScreenshotSelectionPopup({
     if (generatedOutput) navigator.clipboard.writeText(generatedOutput)
   }, [generatedOutput])
 
+  const handleInsertOutput = useCallback(async () => {
+    if (!generatedOutput) return
+    try {
+      await window.tsfAPI?.focusAndInsertText(generatedOutput)
+    } catch (error) {
+      console.error('[ScreenshotSelectionPopup] Insert failed:', error)
+    }
+  }, [generatedOutput])
+
   // Listen for screenshot selection captured event - using syncExternalStore
   useSyncExternalStore(
     useCallback((_callback) => {
@@ -386,16 +441,26 @@ export function ScreenshotSelectionPopup({
   )
 
   useLayoutEffect(() => {
-    if (!isVisible || !position) return
+    if (!isVisible || !position || isDragging) return
 
     setPosition((prev) => {
       if (!prev) return prev
       if (isTryOnMode) {
         return centerPopupPosition(getEstimatedPopupSize())
       }
-      return clampPositionToViewport(prev)
+
+      const size = popupRef.current
+        ? {
+            width: popupRef.current.offsetWidth,
+            height: popupRef.current.offsetHeight,
+          }
+        : getEstimatedPopupSize()
+
+      const clamped = clampPositionToViewport(prev, size)
+      if (clamped.top === prev.top && clamped.left === prev.left) return prev
+      return clamped
     })
-  }, [isVisible, isExpanded, isTryOnMode, files.length, hasTryOnAction, clampPositionToViewport, getEstimatedPopupSize])
+  }, [isVisible, isExpanded, isTryOnMode, files.length, hasTryOnAction, isDragging, clampPositionToViewport, getEstimatedPopupSize])
 
   useLayoutEffect(() => {
     if (!isVisible) return
@@ -442,24 +507,11 @@ export function ScreenshotSelectionPopup({
   return (
     <div ref={viewportRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
       <AnimatePresence>
-        <motion.div
+        <div
           ref={popupRef}
           onMouseEnter={stopAutoHide}
           onMouseLeave={startAutoHide}
-          drag={!isTryOnMode}
-          dragMomentum={false}
-          dragConstraints={viewportRef}
-          dragElastic={0}
-          onDragEnd={handleDragEnd}
-          layout
-          initial={{ opacity: 0, scale: 0.9, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 5 }}
-          transition={{
-            type: 'spring',
-            damping: 25,
-            stiffness: 300,
-          }}
+          onMouseDown={handlePopupDragMouseDown}
           style={{
             position: 'fixed',
             top: position.top,
@@ -469,12 +521,25 @@ export function ScreenshotSelectionPopup({
             maxWidth: `calc(100vw - ${32}px)`,
             maxHeight: `calc(100vh - ${32}px)`,
           }}
-          className={cn(!isTryOnMode && 'cursor-grab active:cursor-grabbing')}
+          className={cn(
+            !isTryOnMode && !isExpanded && 'cursor-grab',
+            isDragging && 'cursor-grabbing select-none'
+          )}
           data-no-clickthrough
         >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{
+              type: 'spring',
+              damping: 25,
+              stiffness: 300,
+            }}
+          >
           <LayoutGroup>
             <motion.div
-              layout
+              layout={!isDragging}
               className={cn(
                 'relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]',
                 isExpanded ? 'rounded-xl' : 'rounded-2xl',
@@ -487,7 +552,7 @@ export function ScreenshotSelectionPopup({
                 {!isExpanded ? (
                   <motion.div
                     key="pill"
-                    layout
+                    layout={!isDragging}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
@@ -583,7 +648,7 @@ export function ScreenshotSelectionPopup({
                 ) : (
                   <motion.div
                     key="expanded"
-                    layout
+                    layout={!isDragging}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
@@ -675,7 +740,8 @@ export function ScreenshotSelectionPopup({
               </AnimatePresence>
             </motion.div>
           </LayoutGroup>
-        </motion.div>
+          </motion.div>
+        </div>
       </AnimatePresence>
 
       {isExpanded && !isTryOnMode && (generatedOutput !== null || isGenerating) && position && (
@@ -683,6 +749,7 @@ export function ScreenshotSelectionPopup({
           content={generatedOutput ?? ''}
           isStreaming={isGenerating}
           onCopy={handleCopyOutput}
+          onInsert={handleInsertOutput}
           isDarkTheme={isDarkTheme}
           floating
           anchorPosition={{

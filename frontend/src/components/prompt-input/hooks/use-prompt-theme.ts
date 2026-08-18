@@ -1,13 +1,10 @@
 import { useMemo } from "react"
 import { getThemeClasses, getHoverClass } from "../prompt-input-theme"
 
-/**
- * Shared hook to get theme classes and hover class
- */
-export function usePromptTheme(isDarkTheme: boolean) {
-  const themeClasses = useMemo(() => getThemeClasses(isDarkTheme), [isDarkTheme])
-  const hoverClass = useMemo(() => getHoverClass(isDarkTheme), [isDarkTheme])
+/** Shared hook — theme is global; isDarkTheme kept for backward-compatible call sites. */
+export function usePromptTheme(_isDarkTheme?: boolean) {
+  const themeClasses = useMemo(() => getThemeClasses(), [])
+  const hoverClass = useMemo(() => getHoverClass(), [])
 
   return { themeClasses, hoverClass }
 }
-

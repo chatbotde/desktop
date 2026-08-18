@@ -199,15 +199,25 @@ export const presets = {
         inputCost: 0.05,
         outputCost: 0.08,
     },
-    'mixtral-8x7b': {
+    'gpt-oss-120b': {
         provider: 'groq',
-        modelId: 'mixtral-8x7b-32768',
-        name: 'Mixtral 8x7B',
-        description: 'Fast MoE model',
+        modelId: 'openai/gpt-oss-120b',
+        name: 'GPT OSS 120B',
+        description: 'Open-weight reasoning model via Groq',
+        category: 'powerful',
+        contextWindow: 131072,
+        inputCost: 0.15,
+        outputCost: 0.60,
+    },
+    'qwen3-32b': {
+        provider: 'groq',
+        modelId: 'qwen/qwen3-32b',
+        name: 'Qwen3 32B',
+        description: 'Fast reasoning model via Groq',
         category: 'balanced',
-        contextWindow: 32768,
-        inputCost: 0.24,
-        outputCost: 0.24,
+        contextWindow: 131072,
+        inputCost: 0.29,
+        outputCost: 0.59,
     },
 
     // xAI Models

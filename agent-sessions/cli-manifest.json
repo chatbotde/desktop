@@ -1,0 +1,38 @@
+{
+  "entries": [
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "binaries": ["opencode"],
+      "hookConfig": "~/.config/opencode/opencode.json",
+      "hookTemplate": "generic-forward"
+    },
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "binaries": ["claude"],
+      "hookConfig": "~/.claude/settings.json",
+      "hookTemplate": "generic-forward"
+    },
+    {
+      "id": "gemini-cli",
+      "label": "Gemini CLI",
+      "binaries": ["@google/gemini-cli", "gemini-cli/dist/index.js", "gemini-cli", "gemini"],
+      "hookConfig": "~/.gemini/settings.json",
+      "hookTemplate": "generic-forward"
+    },
+    {
+      "id": "codex",
+      "label": "Codex",
+      "binaries": ["codex"],
+      "hookConfig": "~/.codex/hooks.json",
+      "hookTemplate": "generic-forward"
+    },
+    {
+      "id": "aider",
+      "label": "Aider",
+      "binaries": ["aider"],
+      "hookTemplate": "managed-only"
+    }
+  ]
+}

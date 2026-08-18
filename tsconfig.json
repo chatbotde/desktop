@@ -6,10 +6,9 @@
     "lib": [
       "ES2022"
     ],
-    "module": "CommonJS",
+    "module": "Node16",
     /* Module Resolution */
-    "moduleResolution": "node",
-    "baseUrl": ".",
+    "moduleResolution": "Node16",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

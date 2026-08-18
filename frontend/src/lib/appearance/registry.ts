@@ -1,67 +1,20 @@
-import { Monitor, Moon, Sun } from "lucide-react"
+import {
+  APPEARANCE_MODES,
+  APPEARANCE_PALETTES,
+  DEFAULT_THEME_PALETTE,
+  type AppearanceModeDefinition,
+  type AppearanceModeId,
+  type AppearancePaletteDefinition,
+  type ThemePaletteId,
+} from "./themes"
 
-import type {
-  AppearanceModeDefinition,
-  AppearanceModeId,
-  AppearancePaletteDefinition,
-  AppearancePaletteId,
-} from "./types"
+export {
+  APPEARANCE_MODES,
+  APPEARANCE_PALETTES,
+  DEFAULT_APPEARANCE_MODE,
+} from "./themes"
 
-/**
- * Global appearance registry.
- * Add new modes or palettes here, then define CSS in `src/index.css`.
- */
-export const APPEARANCE_MODES: AppearanceModeDefinition[] = [
-  {
-    id: "system",
-    label: "System",
-    description: "Match your device appearance",
-    icon: Monitor,
-  },
-  {
-    id: "dark",
-    label: "Dark",
-    description: "Black background, light text",
-    icon: Moon,
-  },
-  {
-    id: "light",
-    label: "Light",
-    description: "White background, dark text",
-    icon: Sun,
-  },
-]
-
-export const APPEARANCE_PALETTES: AppearancePaletteDefinition[] = [
-  {
-    id: "neutral",
-    label: "Neutral",
-    description: "Soft grayscale — easy on the eyes",
-    preview: { light: "#f4f4f5", dark: "#18181b" },
-  },
-  {
-    id: "mono",
-    label: "Mono",
-    description: "Pure black & white — high contrast",
-    preview: { light: "#ffffff", dark: "#000000" },
-  },
-  {
-    id: "glass",
-    label: "Glass",
-    description: "Frosted translucent surfaces — cool & airy",
-    preview: { light: "#e8eef6", dark: "#1e2638" },
-    previewVariant: "glass",
-  },
-  {
-    id: "charcoal",
-    label: "Charcoal",
-    description: "Deep warm grays — soft & refined",
-    preview: { light: "#f5f3f0", dark: "#1c1917" },
-  },
-]
-
-export const DEFAULT_APPEARANCE_MODE: AppearanceModeId = "dark"
-export const DEFAULT_APPEARANCE_PALETTE: AppearancePaletteId = "neutral"
+export { DEFAULT_THEME_PALETTE as DEFAULT_APPEARANCE_PALETTE } from "./themes"
 
 export const APPEARANCE_MODE_MAP = Object.fromEntries(
   APPEARANCE_MODES.map((m) => [m.id, m])
@@ -69,21 +22,28 @@ export const APPEARANCE_MODE_MAP = Object.fromEntries(
 
 export const APPEARANCE_PALETTE_MAP = Object.fromEntries(
   APPEARANCE_PALETTES.map((p) => [p.id, p])
-) as Record<AppearancePaletteId, AppearancePaletteDefinition>
+) as Record<ThemePaletteId, AppearancePaletteDefinition>
 
-/** Maps legacy localStorage values to the current palette ids. */
 const VALID_PALETTES = new Set(APPEARANCE_PALETTES.map((p) => p.id))
 
-export function normalizeAppearancePalette(raw: string | null | undefined): AppearancePaletteId {
-  if (raw && VALID_PALETTES.has(raw as AppearancePaletteId)) return raw as AppearancePaletteId
-  if (raw === "zinc") return "neutral"
-  return DEFAULT_APPEARANCE_PALETTE
+export function normalizeAppearancePalette(raw: string | null | undefined): ThemePaletteId {
+  if (!raw) return DEFAULT_THEME_PALETTE
+  const clean = raw.replace(/^"|"$/g, "")
+  if (VALID_PALETTES.has(clean as ThemePaletteId)) return clean as ThemePaletteId
+  if (clean === "zinc") return "neutral"
+  return DEFAULT_THEME_PALETTE
+}
+
+export function normalizeAppearanceMode(raw: string | null | undefined): "dark" | "light" {
+  if (!raw) return "dark"
+  const clean = raw.replace(/^"|"$/g, "")
+  return clean === "light" ? "light" : "dark"
 }
 
 export function isAppearanceMode(value: string): value is AppearanceModeId {
   return value === "system" || value === "dark" || value === "light"
 }
 
-export function isAppearancePalette(value: string): value is AppearancePaletteId {
-  return VALID_PALETTES.has(value as AppearancePaletteId)
+export function isAppearancePalette(value: string): value is ThemePaletteId {
+  return VALID_PALETTES.has(value as ThemePaletteId)
 }

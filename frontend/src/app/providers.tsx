@@ -3,6 +3,7 @@ import { ThemeProvider, FeatureProvider, AnimationsProvider } from '@/shared/pro
 import { FeatureEffects } from '@/features/feature-flags'
 import { VoiceProvider } from '@/features/voice'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { FilePickerProvider } from '@/components/file-picker'
 
 
 interface AppProvidersProps {
@@ -30,8 +31,10 @@ export function AppProviders({ children }: AppProvidersProps) {
         <AuthProvider>
           <AnimationsProvider>
             <VoiceProvider>
-              <FeatureEffects />
-              {children}
+              <FilePickerProvider>
+                <FeatureEffects />
+                {children}
+              </FilePickerProvider>
             </VoiceProvider>
           </AnimationsProvider>
         </AuthProvider>

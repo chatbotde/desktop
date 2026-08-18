@@ -13,7 +13,9 @@ import { kimiModels } from './kimi';
 import { xaiModels } from './xai';
 import { replicateModels } from './replicate';
 import { falModels } from './fal';
-import { groqModels } from './groq';
+import { groqModels, GROQ_MODEL_MIGRATIONS } from './groq';
+
+export { GROQ_MODEL_MIGRATIONS };
 
 // Aggregate all models
 export const AVAILABLE_MODELS = [

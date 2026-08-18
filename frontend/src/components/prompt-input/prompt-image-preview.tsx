@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { openRecordedImagePlayer } from '@/lib/events/recorded-image-player'
 import { useFilePreviewUrl } from './hooks/use-file-preview-url'
+import { SendToPhoneHoverButton } from './components/send-to-phone-button'
 
 interface PromptImagePreviewProps {
   file: File
@@ -57,6 +58,14 @@ export function PromptImagePreview({
         )}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
       </button>
+
+      <div className="absolute bottom-0 left-0 z-10 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+        <SendToPhoneHoverButton
+          file={file}
+          className="h-6 w-6"
+          iconClassName="h-3.5 w-3.5"
+        />
+      </div>
 
       {onRemove && (
         <button

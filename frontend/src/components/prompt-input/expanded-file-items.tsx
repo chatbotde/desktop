@@ -1,13 +1,15 @@
 import { FileText, Cpu } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getFileIcon } from "./prompt-shared"
 import { unifiedLocalLLMService } from "@/lib/ai/local-llm"
 import { FileRemoveButton } from "./components/file-remove-button"
 import { PROMPT_INPUT_CONSTANTS } from "./constants/prompt-input-constants"
 import { YoutubeVideoPlayer, extractVideoId } from "./youtube-video-player"
 import { PromptVideoPreview, isVideoFile } from "./prompt-video-preview"
+import { PromptManimGeneratingPreview } from "./prompt-manim-generating-preview"
+import { useManimGenerationStatus } from "./hooks/use-manim-generation-status"
 import { PromptImagePreview, isImageFile } from "./prompt-image-preview"
 import { PromptAudioPreview, isAudioFile } from "./prompt-audio-preview"
+import { PromptGenericFilePreview } from "./prompt-generic-file-preview"
 import { useFeature } from "@/shared/providers/FeatureProvider"
 import { openYoutubePlayer, parseYoutubeClipboardUrl } from "@/lib/open-youtube-player"
 import { ReferenceChips } from "./components/reference-chips"
@@ -46,9 +48,11 @@ export function ExpandedFileItems({
 }: ExpandedFileItemsProps) {
   const { isFeatureEnabled } = useFeature()
   const isYoutubePlayerEnabled = isFeatureEnabled('youtube-player')
+  const manimStatus = useManimGenerationStatus()
+  const isManimGenerating = manimStatus.phase === 'generating'
 
   const hasReferences = references && references.length > 0
-  if (!selectedLocalModelName && files.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
+  if (!isManimGenerating && !selectedLocalModelName && files.length === 0 && (!clipboardItems || clipboardItems.length === 0) && !hasReferences) {
     return null
   }
 
@@ -92,6 +96,13 @@ export function ExpandedFileItems({
             size="sm"
           />
         </div>
+      )}
+
+      {isManimGenerating && (
+        <PromptManimGeneratingPreview
+          topic={manimStatus.phase === 'generating' ? manimStatus.topic : undefined}
+          variant="expanded"
+        />
       )}
 
       {clipboardItems?.map((item, index) => {
@@ -168,24 +179,16 @@ export function ExpandedFileItems({
           )
         }
 
-        // For regular files, show compact icon form
+        // PDF, documents, and any other attachment
         return (
-          <div
+          <PromptGenericFilePreview
             key={`${file.name}-${index}`}
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-1 py-1 text-sm border",
-              themeClasses.fileItem
-            )}
-            onClick={e => e.stopPropagation()}
-          >
-            {getFileIcon(file, themeClasses)}
-            <FileRemoveButton
-              onClick={() => onRemoveFile(index)}
-              ariaLabel={`Remove ${file.name}`}
-              themeClasses={themeClasses}
-              hoverClass={hoverClass}
-            />
-          </div>
+            file={file}
+            variant="expanded"
+            themeClasses={themeClasses}
+            hoverClass={hoverClass}
+            onRemove={() => onRemoveFile(index)}
+          />
         )
       })}
     </div>

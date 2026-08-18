@@ -1,6 +1,60 @@
 #include "focus_tracker.h"
 #include <psapi.h>
 #include <vector>
+#include <algorithm>
+
+namespace {
+
+struct EnumFindContext {
+    std::wstring processNameLower;
+    std::vector<FocusTracker::FocusInfo>* results;
+    FocusTracker* tracker;
+};
+
+std::wstring ToLower(std::wstring value) {
+    std::transform(value.begin(), value.end(), value.begin(), ::towlower);
+    return value;
+}
+
+BOOL CALLBACK EnumWindowsForProcessProc(HWND hwnd, LPARAM lParam) {
+    auto* ctx = reinterpret_cast<EnumFindContext*>(lParam);
+    if (!ctx || !ctx->results || !ctx->tracker) {
+        return TRUE;
+    }
+
+    if (!IsWindowVisible(hwnd)) {
+        return TRUE;
+    }
+
+    // Skip owned/tool windows without a title bar when possible
+    if (GetWindow(hwnd, GW_OWNER) != nullptr) {
+        return TRUE;
+    }
+
+    LONG style = GetWindowLongW(hwnd, GWL_STYLE);
+    if (!(style & WS_VISIBLE)) {
+        return TRUE;
+    }
+
+    wchar_t title[256] = {0};
+    GetWindowTextW(hwnd, title, sizeof(title) / sizeof(wchar_t));
+    if (title[0] == L'\0') {
+        return TRUE;
+    }
+
+    FocusTracker::FocusInfo info = ctx->tracker->GetWindowInfo(hwnd);
+    if (info.processName.empty()) {
+        return TRUE;
+    }
+
+    if (ToLower(info.processName) == ctx->processNameLower) {
+        ctx->results->push_back(info);
+    }
+
+    return TRUE;
+}
+
+} // namespace
 
 FocusTracker::FocusTracker() : m_lastFocusedWindow(nullptr) {
 }
@@ -8,46 +62,62 @@ FocusTracker::FocusTracker() : m_lastFocusedWindow(nullptr) {
 FocusTracker::~FocusTracker() {
 }
 
-FocusTracker::FocusInfo FocusTracker::GetCurrentFocus() {
-    FocusInfo info = {};
-    
-    info.hwnd = GetForegroundWindow();
-    if (!info.hwnd) {
-        return info;
+std::wstring FocusTracker::GetProcessNameForPid(DWORD processId) {
+    if (processId == 0) {
+        return L"";
     }
 
-    // Get window title
-    wchar_t title[256] = {0};
-    GetWindowTextW(info.hwnd, title, sizeof(title) / sizeof(wchar_t));
-    info.windowTitle = title;
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+    if (!hProcess) {
+        // Fallback for some protected processes
+        hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+    }
+    if (!hProcess) {
+        return L"";
+    }
 
-    // Get process ID and name
-    GetWindowThreadProcessId(info.hwnd, &info.processId);
-    
-    if (info.processId != 0) {
-        HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, info.processId);
-        if (hProcess) {
-            wchar_t processName[MAX_PATH] = {0};
-            DWORD size = MAX_PATH;
-            
-            if (QueryFullProcessImageNameW(hProcess, 0, processName, &size)) {
-                std::wstring fullPath(processName);
-                size_t lastSlash = fullPath.find_last_of(L"\\/");
-                if (lastSlash != std::wstring::npos) {
-                    info.processName = fullPath.substr(lastSlash + 1);
-                } else {
-                    info.processName = fullPath;
-                }
-            }
-            
-            CloseHandle(hProcess);
+    wchar_t processName[MAX_PATH] = {0};
+    DWORD size = MAX_PATH;
+    std::wstring result;
+
+    if (QueryFullProcessImageNameW(hProcess, 0, processName, &size)) {
+        std::wstring fullPath(processName);
+        size_t lastSlash = fullPath.find_last_of(L"\\/");
+        if (lastSlash != std::wstring::npos) {
+            result = fullPath.substr(lastSlash + 1);
+        } else {
+            result = fullPath;
         }
     }
 
-    // Check if window is editable
-    info.isEditable = IsEditableWindow();
+    CloseHandle(hProcess);
+    return result;
+}
+
+FocusTracker::FocusInfo FocusTracker::GetWindowInfo(HWND hwnd) {
+    FocusInfo info = {};
+    if (!hwnd || !IsWindow(hwnd)) {
+        return info;
+    }
+
+    info.hwnd = hwnd;
+
+    wchar_t title[256] = {0};
+    GetWindowTextW(hwnd, title, sizeof(title) / sizeof(wchar_t));
+    info.windowTitle = title;
+
+    GetWindowThreadProcessId(hwnd, &info.processId);
+    info.processName = GetProcessNameForPid(info.processId);
+
+    std::wstring className = GetWindowClassName(hwnd);
+    info.isEditable = IsEditableClassName(className);
 
     return info;
+}
+
+FocusTracker::FocusInfo FocusTracker::GetCurrentFocus() {
+    HWND hwnd = GetForegroundWindow();
+    return GetWindowInfo(hwnd);
 }
 
 bool FocusTracker::IsEditableWindow() {
@@ -113,67 +183,98 @@ void FocusTracker::SetLastFocusedWindow(HWND hwnd) {
 }
 
 FocusTracker::FocusInfo FocusTracker::GetLastFocusedWindow() {
-    FocusInfo info = {};
-    
-    if (!m_lastFocusedWindow || !IsWindow(m_lastFocusedWindow)) {
-        return info;
+    return GetWindowInfo(m_lastFocusedWindow);
+}
+
+bool FocusTracker::FocusWindow(HWND hwnd) {
+    if (!hwnd || !IsWindow(hwnd)) {
+        return false;
     }
-    
-    info.hwnd = m_lastFocusedWindow;
-    
-    // Get window title
-    wchar_t title[256] = {0};
-    GetWindowTextW(m_lastFocusedWindow, title, sizeof(title) / sizeof(wchar_t));
-    info.windowTitle = title;
-    
-    // Get process ID and name
-    GetWindowThreadProcessId(m_lastFocusedWindow, &info.processId);
-    
-    if (info.processId != 0) {
-        HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, info.processId);
-        if (hProcess) {
-            wchar_t processName[MAX_PATH] = {0};
-            DWORD size = MAX_PATH;
-            
-            if (QueryFullProcessImageNameW(hProcess, 0, processName, &size)) {
-                std::wstring fullPath(processName);
-                size_t lastSlash = fullPath.find_last_of(L"\\/");
-                if (lastSlash != std::wstring::npos) {
-                    info.processName = fullPath.substr(lastSlash + 1);
-                } else {
-                    info.processName = fullPath;
-                }
-            }
-            
-            CloseHandle(hProcess);
-        }
+
+    if (IsIconic(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
     }
-    
-    return info;
+
+    HWND foreground = GetForegroundWindow();
+    DWORD targetThread = GetWindowThreadProcessId(hwnd, nullptr);
+    DWORD foregroundThread = foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
+    DWORD currentThread = GetCurrentThreadId();
+
+    bool attachedForeground = false;
+    bool attachedTarget = false;
+
+    if (foregroundThread && foregroundThread != currentThread) {
+        attachedForeground = AttachThreadInput(currentThread, foregroundThread, TRUE) != 0;
+    }
+    if (targetThread && targetThread != currentThread && targetThread != foregroundThread) {
+        attachedTarget = AttachThreadInput(currentThread, targetThread, TRUE) != 0;
+    }
+
+    BringWindowToTop(hwnd);
+    ShowWindow(hwnd, SW_SHOW);
+    BOOL focused = SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
+
+    if (attachedTarget) {
+        AttachThreadInput(currentThread, targetThread, FALSE);
+    }
+    if (attachedForeground) {
+        AttachThreadInput(currentThread, foregroundThread, FALSE);
+    }
+
+    // Allow a brief settle even if SetForegroundWindow reports false
+    // (Windows foreground lock can lie while still switching).
+    Sleep(50);
+    return focused || GetForegroundWindow() == hwnd;
 }
 
 bool FocusTracker::FocusLastWindow() {
-    if (!m_lastFocusedWindow || !IsWindow(m_lastFocusedWindow)) {
-        return false;
-    }
-    
-    // Check if window is minimized
-    if (IsIconic(m_lastFocusedWindow)) {
-        ShowWindow(m_lastFocusedWindow, SW_RESTORE);
-    }
-    
-    // Bring window to front
-    SetForegroundWindow(m_lastFocusedWindow);
-    
-    // Small delay to ensure focus is set
-    Sleep(50);
-    
-    // Set focus to the window
-    SetFocus(m_lastFocusedWindow);
-    
-    return true;
+    return FocusWindow(m_lastFocusedWindow);
 }
 
 bool FocusTracker::IsWindowValid(HWND hwnd) {
     return hwnd != nullptr && IsWindow(hwnd);
+}
+
+bool FocusTracker::GetWindowRectPx(HWND hwnd, RECT* outRect) {
+    if (!hwnd || !outRect || !IsWindow(hwnd)) {
+        return false;
+    }
+    return GetWindowRect(hwnd, outRect) != 0;
+}
+
+bool FocusTracker::GetCaretOrCursorPoint(POINT* outPoint) {
+    if (!outPoint) {
+        return false;
+    }
+
+    HWND hwnd = GetForegroundWindow();
+    if (hwnd) {
+        DWORD threadId = GetWindowThreadProcessId(hwnd, nullptr);
+        GUITHREADINFO gti = {};
+        gti.cbSize = sizeof(GUITHREADINFO);
+
+        if (GetGUIThreadInfo(threadId, &gti) && !IsRectEmpty(&gti.rcCaret)) {
+            outPoint->x = gti.rcCaret.left;
+            outPoint->y = gti.rcCaret.top;
+            return true;
+        }
+    }
+
+    return GetCursorPos(outPoint) != 0;
+}
+
+std::vector<FocusTracker::FocusInfo> FocusTracker::FindWindowsByProcessName(const std::wstring& processName) {
+    std::vector<FocusInfo> results;
+    if (processName.empty()) {
+        return results;
+    }
+
+    EnumFindContext ctx;
+    ctx.processNameLower = ToLower(processName);
+    ctx.results = &results;
+    ctx.tracker = this;
+
+    EnumWindows(EnumWindowsForProcessProc, reinterpret_cast<LPARAM>(&ctx));
+    return results;
 }

@@ -14,6 +14,7 @@ import {
 } from '../types';
 import {
   INNERTUBE_CLIENT_VERSION,
+  ANDROID_CLIENT_VERSION,
   REQUEST_HEADERS,
   ENDPOINTS,
 } from '../config';
@@ -42,7 +43,17 @@ export class PlayerResponseFetcher implements IPlayerResponseFetcher {
    * @returns Player response object
    */
   async fetch(videoId: VideoId): Promise<PlayerResponse> {
-    // Try Innertube API first (more reliable for captions)
+    // Android client caption URLs work without YouTube's PO token (BotGuard).
+    try {
+      const response = await this.fetchViaAndroid(videoId);
+      if (response?.playabilityStatus) {
+        return response;
+      }
+    } catch {
+      // Fall through to WEB client
+    }
+
+    // Try WEB Innertube API (may return PO-token-gated caption URLs)
     try {
       const response = await this.fetchViaInnertube(videoId);
       if (response?.playabilityStatus) {
@@ -54,6 +65,35 @@ export class PlayerResponseFetcher implements IPlayerResponseFetcher {
 
     // Fallback to HTML scraping
     return this.fetchViaHtml(videoId);
+  }
+
+  /**
+   * Fetch player response using the Android Innertube client.
+   */
+  private async fetchViaAndroid(videoId: VideoId): Promise<PlayerResponse> {
+    const body = {
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: ANDROID_CLIENT_VERSION,
+          hl: 'en',
+          gl: 'US',
+        },
+      },
+      videoId,
+    };
+
+    const response = await fetch(ENDPOINTS.INNERTUBE_PLAYER_ANDROID, {
+      method: 'POST',
+      headers: REQUEST_HEADERS.INNERTUBE_ANDROID,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Android Innertube API returned ${response.status}`);
+    }
+
+    return response.json() as Promise<PlayerResponse>;
   }
 
   /**

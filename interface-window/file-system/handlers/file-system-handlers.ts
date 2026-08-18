@@ -3,7 +3,9 @@
  * Exposes file system operations to the renderer process
  */
 
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
+import { promises as fsp } from 'fs';
+import * as nodePath from 'path';
 
 type FileTypeCategoryValue =
     | 'code'
@@ -37,6 +39,27 @@ export interface FileInfo {
     isCodeFile: boolean;
     isImageFile: boolean;
     isDocumentFile: boolean;
+}
+
+/**
+ * A single entry returned when listing a directory.
+ */
+export interface DirEntry {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    size: number;
+    extension: string;
+    modified: number;
+}
+
+/**
+ * A quick-access location (Home, Desktop, Downloads, etc.).
+ */
+export interface QuickPath {
+    id: string;
+    label: string;
+    path: string;
 }
 
 /**
@@ -175,6 +198,99 @@ export function registerFileSystemHandlers(): void {
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    /**
+     * List directory contents with rich metadata (used by the in-app file picker).
+     * Returns directories first, then files, both sorted alphabetically.
+     */
+    ipcMain.handle('fs:list-dir', async (_event, dirPath: string): Promise<{ success: boolean; path?: string; parent?: string | null; entries?: DirEntry[]; error?: string }> => {
+        try {
+            const dirents = await fsp.readdir(dirPath, { withFileTypes: true });
+            const entries: DirEntry[] = [];
+
+            for (const dirent of dirents) {
+                // Skip hidden / system files (those beginning with a dot).
+                if (dirent.name.startsWith('.')) continue;
+
+                const fullPath = nodePath.join(dirPath, dirent.name);
+                let isDirectory = dirent.isDirectory();
+                let size = 0;
+                let modified = 0;
+
+                try {
+                    const stats = await fsp.stat(fullPath);
+                    isDirectory = stats.isDirectory();
+                    size = stats.size;
+                    modified = stats.mtimeMs;
+                } catch {
+                    // Unreadable entry (permissions, broken symlink) — keep best-effort defaults.
+                }
+
+                entries.push({
+                    name: dirent.name,
+                    path: fullPath,
+                    isDirectory,
+                    size,
+                    extension: isDirectory ? '' : nodePath.extname(dirent.name).toLowerCase(),
+                    modified,
+                });
+            }
+
+            entries.sort((a, b) => {
+                if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+            });
+
+            const parent = nodePath.dirname(dirPath);
+            return {
+                success: true,
+                path: dirPath,
+                parent: parent === dirPath ? null : parent,
+                entries,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
+    });
+
+    /**
+     * Return quick-access locations for the in-app file picker.
+     */
+    ipcMain.handle('fs:quick-paths', async (): Promise<{ success: boolean; paths?: QuickPath[]; error?: string }> => {
+        try {
+            const candidates: Array<{ id: string; label: string; key: Parameters<typeof app.getPath>[0] }> = [
+                { id: 'home', label: 'Home', key: 'home' },
+                { id: 'desktop', label: 'Desktop', key: 'desktop' },
+                { id: 'downloads', label: 'Downloads', key: 'downloads' },
+                { id: 'documents', label: 'Documents', key: 'documents' },
+                { id: 'pictures', label: 'Pictures', key: 'pictures' },
+                { id: 'music', label: 'Music', key: 'music' },
+                { id: 'videos', label: 'Videos', key: 'videos' },
+            ];
+
+            const paths: QuickPath[] = [];
+            for (const candidate of candidates) {
+                try {
+                    const resolved = app.getPath(candidate.key);
+                    if (resolved) {
+                        paths.push({ id: candidate.id, label: candidate.label, path: resolved });
+                    }
+                } catch {
+                    // Some platforms don't define every well-known path — skip those.
+                }
+            }
+
+            return { success: true, paths };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
             };
         }
     });

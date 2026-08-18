@@ -9,4 +9,5 @@ export { InsertButton } from './insert-button'
 export { ReplaceButton } from './replace-button'
 export { ImageGenerationWindow } from './image-generation-window'
 export { VideoGenerationWindow } from './video-generation-window'
+export { ManimScriptWindow } from './manim-script-window'
 

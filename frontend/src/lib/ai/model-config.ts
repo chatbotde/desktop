@@ -5,7 +5,7 @@
  */
 
 // Import for internal use with different name to avoid circular reference
-import { AVAILABLE_MODELS as models } from './model-config/index';
+import { AVAILABLE_MODELS as models, GROQ_MODEL_MIGRATIONS } from './model-config/index';
 import type { AIModel } from './model-config/types';
 import { getAllCustomModels, CUSTOM_PROVIDERS_CHANGED_EVENT, type CustomModel } from '@/lib/settings/custom-providers';
 
@@ -190,8 +190,18 @@ export class ModelConfigManager {
    */
   initializeFromStorage(): void {
     const savedModelId = localStorage.getItem('selected-ai-model');
-    if (savedModelId && this.modelConfigs.has(savedModelId)) {
-      this.selectedModelId = savedModelId;
+    if (!savedModelId) return;
+
+    const migratedId = GROQ_MODEL_MIGRATIONS[savedModelId] ?? savedModelId;
+    if (migratedId !== savedModelId) {
+      console.warn(
+        `[ModelConfig] Groq model "${savedModelId}" was retired; switching to "${migratedId}".`
+      );
+      localStorage.setItem('selected-ai-model', migratedId);
+    }
+
+    if (this.modelConfigs.has(migratedId)) {
+      this.selectedModelId = migratedId;
     }
   }
 

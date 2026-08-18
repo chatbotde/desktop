@@ -56,9 +56,17 @@ export class SubtitleDownloader implements ISubtitleDownloader {
         if (content && content.trim().length > 10) {
           return content;
         }
+        if (this.requiresPoToken(url)) {
+          throw new Error(
+            'YouTube captions require a PO token for this video. The public timedtext API returned an empty response.'
+          );
+        }
         lastError = new Error(`Empty response for format ${format}`);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
+        if (this.requiresPoToken(url) && lastError.message.includes('PO token')) {
+          break;
+        }
       }
     }
 
@@ -77,7 +85,9 @@ export class SubtitleDownloader implements ISubtitleDownloader {
     url += url.includes('?') ? `&fmt=${format}` : `?fmt=${format}`;
 
     const response = await fetch(url, {
-      headers: REQUEST_HEADERS.SUBTITLE,
+      headers: this.requiresPoToken(baseUrl)
+        ? REQUEST_HEADERS.SUBTITLE
+        : REQUEST_HEADERS.SUBTITLE_ANDROID,
       redirect: 'follow',
     });
 
@@ -86,6 +96,14 @@ export class SubtitleDownloader implements ISubtitleDownloader {
     }
 
     return response.text();
+  }
+
+  /**
+   * YouTube marks PO-token-gated caption URLs with exp=xpe. Those URLs return
+   * HTTP 200 with an empty body unless a runtime-generated pot parameter exists.
+   */
+  private requiresPoToken(url: string): boolean {
+    return /[?&]exp=xpe(?:&|$)/.test(url) && !/[?&]pot=/.test(url);
   }
 }
 

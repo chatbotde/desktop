@@ -1,5 +1,10 @@
 const { McpStore } = require('./mcp-store');
 const { McpConnection } = require('./mcp-connection');
+const {
+  ensureCuaDriverMcpServer,
+  getCuaDriverStatus,
+  runCuaDriverSmokeTest,
+} = require('./cua-driver');
 
 class McpClient {
   constructor(ipcRegistry) {
@@ -11,6 +16,22 @@ class McpClient {
 
   setup() {
     this.registerIpcHandlers();
+    this.ensureCuaDriverServer();
+  }
+
+  ensureCuaDriverServer() {
+    try {
+      const ensured = ensureCuaDriverMcpServer(this.store);
+      if (ensured?.created) {
+        console.log('[CuaDriver] Registered MCP server:', ensured.server.id);
+      } else if (ensured) {
+        console.log('[CuaDriver] MCP server already registered:', ensured.server.id);
+      } else {
+        console.log('[CuaDriver] Not installed — agent will fall back to robotjs until cua-driver is available.');
+      }
+    } catch (err) {
+      console.warn('[CuaDriver] Failed to auto-register MCP server:', err instanceof Error ? err.message : err);
+    }
   }
 
   getConnection(serverId) {
@@ -96,6 +117,22 @@ class McpClient {
       const connection = this.getConnection(serverId);
       await connection.connect();
       return connection.callTool(name, args);
+    });
+
+    this.ipcRegistry.register('cua:get-status', async () => {
+      return getCuaDriverStatus(this.store);
+    });
+
+    this.ipcRegistry.register('cua:ensure-server', async () => {
+      const ensured = ensureCuaDriverMcpServer(this.store);
+      if (!ensured) {
+        return { ok: false, error: 'cua-driver not found on this machine.' };
+      }
+      return { ok: true, serverId: ensured.server.id, created: ensured.created };
+    });
+
+    this.ipcRegistry.register('cua:smoke-test', async () => {
+      return runCuaDriverSmokeTest(this);
     });
   }
 

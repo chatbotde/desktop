@@ -58,6 +58,18 @@ export function createFileAPI(): FileAPI {
         readDir: (dirPath: string) => ipcRenderer.invoke('fs:read-dir', dirPath),
 
         /**
+         * List directory contents with rich metadata (folders first)
+         * @param dirPath - Path to directory
+         * @returns Entries with type/size info plus parent path
+         */
+        listDir: (dirPath: string) => ipcRenderer.invoke('fs:list-dir', dirPath),
+
+        /**
+         * Get quick-access locations (Home, Desktop, Downloads, etc.)
+         */
+        getQuickPaths: () => ipcRenderer.invoke('fs:quick-paths'),
+
+        /**
          * Get file type category
          * @param filePath - Path to file
          * @returns Category string

@@ -2,6 +2,7 @@ import { Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { openRecordedVideoPlayer } from '@/lib/events/recorded-video-player'
 import { useFilePreviewUrl } from './hooks/use-file-preview-url'
+import { SendToPhoneHoverButton } from './components/send-to-phone-button'
 
 interface PromptVideoPreviewProps {
   file: File
@@ -64,6 +65,14 @@ export function PromptVideoPreview({
           </div>
         </div>
       </button>
+
+      <div className="absolute bottom-0 left-0 z-10 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+        <SendToPhoneHoverButton
+          file={file}
+          className="h-5 w-5"
+          iconClassName="h-3 w-3"
+        />
+      </div>
 
       {onRemove && (
         <button

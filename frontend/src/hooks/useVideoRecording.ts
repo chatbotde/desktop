@@ -5,9 +5,17 @@
  */
 
 import { useState, useCallback, useRef, useSyncExternalStore } from 'react';
+import { electronAdapter } from '@/shared/adapters';
 
 // Types
 export type RecordingState = 'idle' | 'recording' | 'paused';
+
+export interface CaptureArea {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
 
 export interface VideoRecordingOptions {
     sourceId?: string | null;
@@ -16,6 +24,7 @@ export interface VideoRecordingOptions {
     width?: number;
     height?: number;
     audioEnabled?: boolean;
+    area?: CaptureArea;
 }
 
 export interface VideoData {
@@ -28,6 +37,7 @@ export interface VideoData {
     duration: number;
     fps: number;
     timestamp: number;
+    selectionArea?: CaptureArea;
 }
 
 export interface UseVideoRecordingResult {
@@ -95,6 +105,115 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     return btoa(binary);
 }
 
+async function getScreenDimensions(): Promise<{ width: number; height: number }> {
+    try {
+        const display = await electronAdapter.screen.getPrimaryDisplay();
+        return {
+            width: display.bounds.width,
+            height: display.bounds.height,
+        };
+    } catch {
+        return {
+            width: window.screen.width,
+            height: window.screen.height,
+        };
+    }
+}
+
+interface CropStreamResult {
+    stream: MediaStream;
+    dimensions: { width: number; height: number };
+    stopLoop: () => void;
+}
+
+async function createCroppedVideoStream(
+    videoStream: MediaStream,
+    area: CaptureArea,
+    screenWidth: number,
+    screenHeight: number,
+    fps: number,
+): Promise<CropStreamResult> {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    // Hidden in DOM — some Chromium builds won't decode off-DOM video for canvas
+    video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+    document.body.appendChild(video);
+    video.srcObject = videoStream;
+    await video.play();
+
+    await new Promise<void>((resolve) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
+            resolve();
+            return;
+        }
+        const onReady = () => {
+            video.removeEventListener('loadeddata', onReady);
+            video.removeEventListener('loadedmetadata', onReady);
+            resolve();
+        };
+        video.addEventListener('loadeddata', onReady);
+        video.addEventListener('loadedmetadata', onReady);
+    });
+
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    if (!videoWidth || !videoHeight) {
+        document.body.removeChild(video);
+        throw new Error('Failed to read desktop capture dimensions for area recording');
+    }
+
+    const scaleX = videoWidth / screenWidth;
+    const scaleY = videoHeight / screenHeight;
+
+    const cropX = Math.max(0, Math.round(area.x * scaleX));
+    const cropY = Math.max(0, Math.round(area.y * scaleY));
+    const cropW = Math.max(2, Math.min(Math.round(area.width * scaleX), videoWidth - cropX));
+    const cropH = Math.max(2, Math.min(Math.round(area.height * scaleY), videoHeight - cropY));
+
+    console.log(`[useVideoRecording] Crop: source ${videoWidth}x${videoHeight}, screen ${screenWidth}x${screenHeight}, region ${cropX},${cropY} ${cropW}x${cropH}`);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cropW;
+    canvas.height = cropH;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) {
+        document.body.removeChild(video);
+        throw new Error('Failed to create canvas context for area recording');
+    }
+
+    let animationFrameId: number | null = null;
+    let isRunning = true;
+
+    const drawFrame = () => {
+        if (!isRunning) return;
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        }
+        animationFrameId = requestAnimationFrame(drawFrame);
+    };
+    drawFrame();
+
+    const croppedStream = canvas.captureStream(fps);
+
+    return {
+        stream: croppedStream,
+        dimensions: { width: cropW, height: cropH },
+        stopLoop: () => {
+            isRunning = false;
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            video.pause();
+            video.srcObject = null;
+            if (video.parentNode) {
+                video.parentNode.removeChild(video);
+            }
+        },
+    };
+}
+
 export function useVideoRecording(): UseVideoRecordingResult {
     const [recordingState, setRecordingState] = useState<RecordingState>('idle');
     const [duration, setDuration] = useState<number>(0);
@@ -116,6 +235,10 @@ export function useVideoRecording(): UseVideoRecordingResult {
     });
     const contentProtectionBeforeRecordingRef = useRef(false);
     const didEnableContentProtectionRef = useRef(false);
+    const cropStopLoopRef = useRef<(() => void) | null>(null);
+    const sourceVideoStreamRef = useRef<MediaStream | null>(null);
+    const recordingAreaRef = useRef<CaptureArea | null>(null);
+    const cropDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
 
     const setCaptureContentProtection = useCallback(async (enabled: boolean) => {
         if (typeof window === 'undefined' || !window.interfaceAPI?.setContentProtection) return
@@ -139,13 +262,29 @@ export function useVideoRecording(): UseVideoRecordingResult {
     const isRecording = recordingState === 'recording';
     const isPaused = recordingState === 'paused';
 
+    const stopCropLoop = useCallback(() => {
+        cropStopLoopRef.current?.();
+        cropStopLoopRef.current = null;
+    }, []);
+
+    const cleanupCropResources = useCallback(() => {
+        stopCropLoop();
+        if (sourceVideoStreamRef.current) {
+            sourceVideoStreamRef.current.getTracks().forEach(track => track.stop());
+            sourceVideoStreamRef.current = null;
+        }
+        recordingAreaRef.current = null;
+        cropDimensionsRef.current = { width: 0, height: 0 };
+    }, [stopCropLoop]);
+
     // Cleanup media stream
     const cleanupStream = useCallback(() => {
+        cleanupCropResources();
         if (mediaStreamRef.current) {
             mediaStreamRef.current.getTracks().forEach(track => track.stop());
             mediaStreamRef.current = null;
         }
-    }, []);
+    }, [cleanupCropResources]);
 
     // Cleanup duration interval
     const clearDurationInterval = useCallback(() => {
@@ -235,8 +374,15 @@ export function useVideoRecording(): UseVideoRecordingResult {
                 videoBitsPerSecond = 2500000,
                 width = 1920,
                 height = 1080,
-                audioEnabled = true
+                audioEnabled = true,
+                area = undefined,
             } = options;
+
+            recordingAreaRef.current = area ?? null;
+
+            const screenDimensions = area ? await getScreenDimensions() : null;
+            const captureWidth = area ? screenDimensions!.width : width;
+            const captureHeight = area ? screenDimensions!.height : height;
 
             // Get source ID if not provided
             let targetSourceId = sourceId;
@@ -248,7 +394,7 @@ export function useVideoRecording(): UseVideoRecordingResult {
                 targetSourceId = sources[0].id;
             }
 
-            console.log(`[useVideoRecording] Starting recording with sourceId: ${targetSourceId}, audio: ${audioEnabled}`);
+            console.log(`[useVideoRecording] Starting recording with sourceId: ${targetSourceId}, audio: ${audioEnabled}${area ? `, area: ${area.width}x${area.height} at (${area.x},${area.y})` : ''}`);
 
             // Step 1: Get video stream (without audio in the same call - audio needs separate handling)
             const videoConstraints: MediaStreamConstraints = {
@@ -258,10 +404,10 @@ export function useVideoRecording(): UseVideoRecordingResult {
                     mandatory: {
                         chromeMediaSource: 'desktop',
                         chromeMediaSourceId: targetSourceId,
-                        minWidth: width,
-                        maxWidth: width,
-                        minHeight: height,
-                        maxHeight: height,
+                        minWidth: captureWidth,
+                        maxWidth: captureWidth,
+                        minHeight: captureHeight,
+                        maxHeight: captureHeight,
                         minFrameRate: fps,
                         maxFrameRate: fps
                     }
@@ -270,6 +416,22 @@ export function useVideoRecording(): UseVideoRecordingResult {
 
             console.log('[useVideoRecording] Getting video stream...');
             const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+
+            let recordingVideoStream = videoStream;
+            if (area && screenDimensions) {
+                sourceVideoStreamRef.current = videoStream;
+                const cropResult = await createCroppedVideoStream(
+                    videoStream,
+                    area,
+                    screenDimensions.width,
+                    screenDimensions.height,
+                    fps
+                );
+                cropStopLoopRef.current = cropResult.stopLoop;
+                cropDimensionsRef.current = cropResult.dimensions;
+                recordingVideoStream = cropResult.stream;
+                console.log(`[useVideoRecording] Cropping to ${cropResult.dimensions.width}x${cropResult.dimensions.height}`);
+            }
 
             // Step 2: If audio is enabled, get system audio separately
             // Note: For Electron desktop audio, we MUST request video too (even 1x1), then discard video tracks
@@ -308,8 +470,8 @@ export function useVideoRecording(): UseVideoRecordingResult {
                     // Combine video and audio tracks into one stream
                     finalStream = new MediaStream();
 
-                    // Add video tracks from video stream
-                    videoStream.getVideoTracks().forEach(track => {
+                    // Add video tracks from recording stream (cropped or full)
+                    recordingVideoStream.getVideoTracks().forEach(track => {
                         finalStream.addTrack(track);
                     });
 
@@ -323,10 +485,10 @@ export function useVideoRecording(): UseVideoRecordingResult {
 
                 } catch (audioError) {
                     console.warn('[useVideoRecording] Failed to capture system audio, continuing with video only:', audioError);
-                    finalStream = videoStream;
+                    finalStream = recordingVideoStream;
                 }
             } else {
-                finalStream = videoStream;
+                finalStream = recordingVideoStream;
             }
 
             mediaStreamRef.current = finalStream;
@@ -398,17 +560,21 @@ export function useVideoRecording(): UseVideoRecordingResult {
                         const base64Data = arrayBufferToBase64(arrayBuffer);
                         const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
-                        // Get video dimensions from stream
-                        let width = 0;
-                        let height = 0;
-                        if (mediaStreamRef.current) {
-                            const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
-                            if (videoTrack) {
-                                const settings = videoTrack.getSettings();
-                                width = settings.width || 0;
-                                height = settings.height || 0;
+                        // Get video dimensions from stream or crop
+                        let outputWidth = cropDimensionsRef.current.width;
+                        let outputHeight = cropDimensionsRef.current.height;
+                        if (!outputWidth || !outputHeight) {
+                            if (mediaStreamRef.current) {
+                                const videoTrack = mediaStreamRef.current.getVideoTracks()[0];
+                                if (videoTrack) {
+                                    const settings = videoTrack.getSettings();
+                                    outputWidth = settings.width || 0;
+                                    outputHeight = settings.height || 0;
+                                }
                             }
                         }
+
+                        const selectionArea = recordingAreaRef.current ?? undefined;
 
                         // Cleanup
                         cleanupStream();
@@ -426,10 +592,11 @@ export function useVideoRecording(): UseVideoRecordingResult {
                             size: videoBlob.size,
                             data: dataUrl,
                             blob: videoBlob,
-                            dimensions: { width, height },
+                            dimensions: { width: outputWidth, height: outputHeight },
                             duration: totalDuration,
                             fps,
-                            timestamp: Date.now()
+                            timestamp: Date.now(),
+                            selectionArea,
                         });
 
                     } catch (error: any) {

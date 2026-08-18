@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import * as path from 'path';
 import { ElectronClipboardService } from '../electron-api/clipboard';
 import { ElectronGlobalShortcutService } from '../electron-api/global-shortcut';
+import { pinManager } from './pin-manager';
 
 // Import the native TSF module
 // Try multiple paths to ensure it works in both dev and production
@@ -45,6 +46,8 @@ export interface FocusInfo {
     processName: string;
     processId: number;
     isEditable: boolean;
+    /** Native HWND as decimal string (may be empty on older native builds) */
+    hwnd?: string;
 }
 
 export interface InsertOptions {
@@ -183,6 +186,11 @@ export class TsfManager extends EventEmitter {
      * Start monitoring focus changes
      */
     startFocusMonitoring(interval: number = 1000): void {
+        if (!this.isAvailable()) {
+            console.warn('TSF Manager: Skipping focus monitoring — native module unavailable');
+            return;
+        }
+
         if (this.focusCheckInterval) {
             clearInterval(this.focusCheckInterval);
         }
@@ -215,13 +223,35 @@ export class TsfManager extends EventEmitter {
 
                             // Capture this window as the target for insertion
                             try {
-                                await tsf.setLastFocusedWindow();
+                                if (focusInfo.hwnd) {
+                                    await tsf.setLastFocusedWindow(focusInfo.hwnd);
+                                } else {
+                                    await tsf.setLastFocusedWindow();
+                                }
                                 console.log(`✅ TSF Manager: Captured window handle for: ${focusInfo.processName}`);
                             } catch (e) {
                                 console.error('❌ TSF Manager: Failed to set last focused window:', e);
                             }
 
+                            // Soft-revive insert pins when matching app comes back into focus
+                            try {
+                                pinManager.onFocusSeen(focusInfo);
+                            } catch (e) {
+                                console.warn('TSF Manager: pin revive on focus failed:', e);
+                            }
+
                             this.emit('external-focus-changed', focusInfo);
+                        } else {
+                            // Same process still focused — keep last focus + pin HWND fresh
+                            this.lastExternalFocusInfo = focusInfo;
+                            try {
+                                if (focusInfo.hwnd) {
+                                    await tsf.setLastFocusedWindow(focusInfo.hwnd);
+                                }
+                                pinManager.onFocusSeen(focusInfo);
+                            } catch {
+                                // ignore
+                            }
                         }
                     }
                 }
@@ -245,16 +275,23 @@ export class TsfManager extends EventEmitter {
      * Get current focus information
      */
     async getFocusInfo(): Promise<FocusInfo> {
+        const empty: FocusInfo = {
+            windowTitle: '',
+            processName: '',
+            processId: 0,
+            isEditable: false,
+            hwnd: '',
+        };
+
+        if (!this.isAvailable() || typeof tsf?.getFocusInfo !== 'function') {
+            return empty;
+        }
+
         try {
             return await tsf.getFocusInfo();
         } catch (err) {
             console.error('TSF Manager: Error getting focus info:', err);
-            return {
-                windowTitle: '',
-                processName: '',
-                processId: 0,
-                isEditable: false
-            };
+            return empty;
         }
     }
 
@@ -314,6 +351,47 @@ export class TsfManager extends EventEmitter {
             return await tsf.getLastFocusedWindow();
         } catch (err) {
             console.error('TSF Manager: Error getting last focused window:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Screen-space bounds for a window hwnd string
+     */
+    async getWindowRect(
+        hwnd: string
+    ): Promise<{ x: number; y: number; width: number; height: number } | null> {
+        if (!hwnd || typeof tsf?.getWindowRect !== 'function') return null;
+        try {
+            return await tsf.getWindowRect(hwnd);
+        } catch (err) {
+            console.error('TSF Manager: Error getting window rect:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Caret position in foreground app (physical screen px), or cursor fallback.
+     */
+    async getInputAnchor(): Promise<{ x: number; y: number } | null> {
+        if (typeof tsf?.getInputAnchor !== 'function') return null;
+        try {
+            return await tsf.getInputAnchor();
+        } catch (err) {
+            console.error('TSF Manager: Error getting input anchor:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Capture UI Automation target at screen point for background pin insert.
+     */
+    async captureUiaTargetAt(x: number, y: number): Promise<any | null> {
+        if (typeof tsf?.captureUiaTargetAt !== 'function') return null;
+        try {
+            return await tsf.captureUiaTargetAt(x, y);
+        } catch (err) {
+            console.warn('TSF Manager: UIA capture failed:', err);
             return null;
         }
     }

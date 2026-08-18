@@ -27,6 +27,9 @@ public:
     
     // Insert text using fallback methods (clipboard + paste)
     bool InsertTextFallback(const std::wstring& text);
+
+    // Insert text via clipboard paste into a specific window (focuses hwnd first)
+    bool InsertTextFallbackToHwnd(HWND hwnd, const std::wstring& text);
     
     // Replace text using fallback methods (clipboard + paste)
     bool ReplaceTextFallback(const std::wstring& text);

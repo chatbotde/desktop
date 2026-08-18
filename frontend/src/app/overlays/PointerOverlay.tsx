@@ -9,7 +9,7 @@
  * @placement fixed, full-screen, pointer-events-none
  */
 
-import { useSyncExternalStore, useRef, useCallback, useMemo } from 'react'
+import { useSyncExternalStore, useRef, useCallback } from 'react'
 import { MousePointer2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFeature } from '@/contexts/FeatureContext'
@@ -78,10 +78,7 @@ export function PointerOverlay() {
   const { isFeatureEnabled } = useFeature()
   const isAlwaysVisible = isFeatureEnabled('pointer-always-visible')
   const isDark = useIsDark()
-  const accent = useMemo(
-    () => (isDark ? GLOBAL_THEME.colors.dark.accent : GLOBAL_THEME.colors.light.accent),
-    [isDark],
-  )
+  const accent = GLOBAL_THEME.vars.accent
 
   const storeRef = useRef<ReturnType<typeof createPointerStore> | null>(null)
   if (!storeRef.current) storeRef.current = createPointerStore(isAlwaysVisible)

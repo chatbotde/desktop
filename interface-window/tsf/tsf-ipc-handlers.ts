@@ -9,6 +9,7 @@
 
 import { ipcMain, BrowserWindow } from 'electron';
 import { tsfManager } from './tsf-manager';
+import { pinManager } from './pin-manager';
 
 /**
  * Setup TSF IPC handlers
@@ -105,6 +106,80 @@ export function setupTsfIpc(window?: BrowserWindow): void {
         return await tsfManager.deleteSelection();
     });
 
+    // --- Insert pins (soft identity; survive app close) ---
+    ipcMain.handle('tsf:pins:list', async () => {
+        return await pinManager.refreshStatuses();
+    });
+
+    ipcMain.handle('tsf:pins:assign', async (_event, number: number, name?: string) => {
+        const focus =
+            tsfManager.getLastExternalFocus() ||
+            (await tsfManager.getFocusInfo());
+        if (!focus?.processName) {
+            throw new Error('No external app focused to pin. Focus Cursor/Edge/etc first.');
+        }
+        const fresh = await tsfManager.getFocusInfo();
+        const anchor = await tsfManager.getInputAnchor();
+        let uiaTarget = null;
+        if (anchor?.x != null && anchor?.y != null) {
+            uiaTarget = await tsfManager.captureUiaTargetAt(anchor.x, anchor.y);
+        }
+        const withHwnd = {
+            ...focus,
+            hwnd: fresh?.hwnd || (focus as any).hwnd,
+        };
+        return pinManager.assignPin({
+            number,
+            name,
+            focus: withHwnd,
+            anchorX: anchor?.x ?? null,
+            anchorY: anchor?.y ?? null,
+            uiaTarget,
+        });
+    });
+
+    ipcMain.handle('tsf:pins:assign-current', async (_event, number: number, name?: string) => {
+        const focus = await tsfManager.getFocusInfo();
+        const anchor = await tsfManager.getInputAnchor();
+        let uiaTarget = null;
+        if (anchor?.x != null && anchor?.y != null) {
+            uiaTarget = await tsfManager.captureUiaTargetAt(anchor.x, anchor.y);
+        }
+        return pinManager.assignPin({
+            number,
+            name,
+            focus,
+            anchorX: anchor?.x ?? null,
+            anchorY: anchor?.y ?? null,
+            uiaTarget,
+        });
+    });
+
+    ipcMain.handle('tsf:pins:remove', async (_event, number: number) => {
+        return pinManager.removePin(number);
+    });
+
+    ipcMain.handle('tsf:pins:rename', async (_event, number: number, name: string) => {
+        return pinManager.renamePin(number, name);
+    });
+
+    ipcMain.handle('tsf:pins:insert', async (_event, number: number, text: string) => {
+        return await pinManager.insertToPin(number, text);
+    });
+
+    ipcMain.handle('tsf:pins:focus', async (_event, number: number) => {
+        return await pinManager.focusPin(number);
+    });
+
+    ipcMain.handle('tsf:get-window-rect', async (_event, hwnd: string) => {
+        return await tsfManager.getWindowRect(hwnd);
+    });
+
+    ipcMain.handle('tsf:get-input-anchor', async () => {
+        return await tsfManager.getInputAnchor();
+    });
+
+
     // Forward TSF manager events to renderer (if window provided)
     if (window) {
         setupEventForwarding(window);
@@ -167,6 +242,18 @@ function setupEventForwarding(window: BrowserWindow): void {
 
     tsfManager.on('error', (error) => {
         console.error('TSF Manager error:', error);
+    });
+
+    const forwardPins = (pins: unknown) => {
+        if (window && !window.isDestroyed()) {
+            window.webContents.send('tsf:pins-changed', pins);
+        }
+    };
+    pinManager.on('pins-changed', forwardPins);
+    pinManager.on('pin-revived', (pin) => {
+        if (window && !window.isDestroyed()) {
+            window.webContents.send('tsf:pin-revived', pin);
+        }
     });
 }
 

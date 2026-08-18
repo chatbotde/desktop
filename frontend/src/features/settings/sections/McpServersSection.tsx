@@ -15,10 +15,11 @@ import { Input } from "@/shared/components/ui/input"
 import { cn } from "@/shared/lib"
 import { getThemeClasses as getThemeUtils } from "@/shared/utils/theme"
 import type { McpServerEntry, McpTransportType } from "@/types/electron"
+import { CuaDriverPanel } from "@/features/cua/components/CuaDriverPanel"
 
 function getMcpUnavailableMessage(): string {
   if (!window.electronAPI) {
-    return "MCP servers are only available in the Buddy desktop app."
+    return "MCP servers are only available in the SonicThinking desktop app."
   }
   if (!window.mcpAPI) {
     return "MCP client is not loaded. Rebuild the preload (npm run build:interface) and restart the app."
@@ -239,6 +240,8 @@ export function McpServersSection({ isDarkTheme = true }: { isDarkTheme?: boolea
           <span>{notice}</span>
         </div>
       )}
+
+      <CuaDriverPanel isDarkTheme={isDarkTheme} />
 
       <div
         className={getThemeUtils(

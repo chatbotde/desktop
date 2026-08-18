@@ -3,11 +3,12 @@
 /**
  * @overlay RecordedVideoPlayerOverlay
  * @description Floating player for recorded / uploaded prompt videos.
+ * Short clips (< 14s) can also be downloaded as GIF via ffmpeg.
  */
 
 import { useState, useRef, useCallback, useSyncExternalStore } from 'react'
 import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, Download, ImagePlay, Loader2 } from 'lucide-react'
 import {
   OPEN_RECORDED_VIDEO_PLAYER_EVENT,
   type OpenRecordedVideoPlayerDetail,
@@ -18,6 +19,7 @@ import type { ResizeDirection } from '@/features/output-window'
 import { cn } from '@/lib/utils'
 
 const PLAYER_Z = GLOBAL_THEME.zIndex.modal
+const MAX_GIF_DURATION_SECONDS = 14
 
 function createHoverStore(getContainer: () => HTMLElement | null, enabled: boolean) {
   let isHovered = false
@@ -72,11 +74,38 @@ function resetViewerLayout(
   setPosition(defaultPosition(DEFAULT_SIZE.width))
 }
 
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(binary)
+}
+
 export function RecordedVideoPlayerOverlay() {
   const [isOpen, setIsOpen] = useState(false)
   const [videoSrc, setVideoSrc] = useState<string | null>(null)
+  const [downloadName, setDownloadName] = useState('video.mp4')
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null)
+  const [gifExporting, setGifExporting] = useState(false)
+  const [gifError, setGifError] = useState<string | null>(null)
   const videoSrcRef = useRef<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const [position, setPosition] = useState(() => defaultPosition(DEFAULT_SIZE.width))
   const [size, setSize] = useState(DEFAULT_SIZE)
@@ -87,6 +116,10 @@ export function RecordedVideoPlayerOverlay() {
       videoSrcRef.current = null
     }
     setVideoSrc(null)
+    setVideoFile(null)
+    setDurationSeconds(null)
+    setGifError(null)
+    setGifExporting(false)
   }, [])
 
   const handleClose = useCallback(() => {
@@ -107,6 +140,8 @@ export function RecordedVideoPlayerOverlay() {
           const src = URL.createObjectURL(file)
           videoSrcRef.current = src
           setVideoSrc(src)
+          setVideoFile(file)
+          setDownloadName(custom.detail?.name ?? file.name)
           resetViewerLayout(setPosition, setSize)
           setIsOpen(true)
         }
@@ -152,6 +187,61 @@ export function RecordedVideoPlayerOverlay() {
   )
   const getSnapshot = useCallback(() => storeRef.current!.getSnapshot(), [])
   const isHovered = useSyncExternalStore(subscribe, getSnapshot, () => false)
+
+  const canDownloadGif =
+    durationSeconds != null &&
+    durationSeconds > 0 &&
+    durationSeconds <= MAX_GIF_DURATION_SECONDS &&
+    Boolean(window.mediaAPI?.convertVideoToGif)
+
+  const handleSave = useCallback(() => {
+    if (!videoSrc) return
+    const link = document.createElement('a')
+    link.href = videoSrc
+    link.download = downloadName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }, [videoSrc, downloadName])
+
+  const handleSaveGif = useCallback(async () => {
+    if (!videoFile || !canDownloadGif || gifExporting) return
+    const api = window.mediaAPI
+    if (!api?.convertVideoToGif) {
+      setGifError('GIF export is unavailable in this build.')
+      return
+    }
+
+    setGifExporting(true)
+    setGifError(null)
+    try {
+      const support = await api.checkGifSupport?.()
+      if (support && !support.ffmpeg) {
+        throw new Error('ffmpeg not found. Install ffmpeg on PATH to export GIFs.')
+      }
+
+      const buffer = await videoFile.arrayBuffer()
+      const result = await api.convertVideoToGif({
+        videoBase64: arrayBufferToBase64(buffer),
+        mimeType: videoFile.type,
+        fileName: downloadName,
+        durationSeconds: durationSeconds ?? 0,
+      })
+
+      if (!result.success || !result.gifBase64) {
+        throw new Error(result.error || 'GIF conversion failed.')
+      }
+
+      const binary = atob(result.gifBase64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+      downloadBlob(new Blob([bytes], { type: 'image/gif' }), result.fileName || 'recording.gif')
+    } catch (error) {
+      setGifError(error instanceof Error ? error.message : 'GIF export failed')
+    } finally {
+      setGifExporting(false)
+    }
+  }, [videoFile, canDownloadGif, gifExporting, downloadName, durationSeconds])
 
   return (
     <div
@@ -212,6 +302,42 @@ export function RecordedVideoPlayerOverlay() {
               />
             )}
 
+            {canDownloadGif && (
+              <button
+                type="button"
+                className="absolute top-2 right-[4.75rem] z-[60] flex h-7 items-center gap-1 rounded-full bg-black/70 px-2 text-[11px] font-medium text-white shadow-md transition-colors hover:bg-emerald-500/90 disabled:opacity-60"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void handleSaveGif()
+                }}
+                disabled={gifExporting}
+                title={`Download GIF (≤ ${MAX_GIF_DURATION_SECONDS}s)`}
+                aria-label="Download GIF"
+              >
+                {gifExporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ImagePlay className="h-3.5 w-3.5" />
+                )}
+                GIF
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="absolute top-2 right-10 z-[60] flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white shadow-md transition-colors hover:bg-blue-500/90"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleSave()
+              }}
+              title="Save video"
+              aria-label="Save video"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+
             <button
               type="button"
               className="absolute top-2 right-2 z-[60] flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white shadow-md transition-colors hover:bg-red-500/90 hover:text-white"
@@ -226,14 +352,27 @@ export function RecordedVideoPlayerOverlay() {
               <X className="h-4 w-4" />
             </button>
 
+            {gifError && (
+              <div className="absolute bottom-2 left-2 right-2 z-[60] rounded-md bg-black/80 px-2 py-1 text-[11px] text-red-300">
+                {gifError}
+              </div>
+            )}
+
             <div className="relative z-0 flex h-full w-full flex-1 flex-col bg-black">
               <video
+                ref={videoRef}
                 src={videoSrc}
                 className="h-full w-full object-contain"
                 controls
                 controlsList="nodownload"
                 autoPlay
                 playsInline
+                onLoadedMetadata={(e) => {
+                  const seconds = e.currentTarget.duration
+                  if (Number.isFinite(seconds) && seconds > 0) {
+                    setDurationSeconds(seconds)
+                  }
+                }}
               />
             </div>
           </div>

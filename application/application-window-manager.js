@@ -175,6 +175,30 @@ class ApplicationWindowManager {
       }, 1000);
     }
   }
+
+  /**
+   * Show interface window and open the insert-pin assign overlay near the focused app.
+   */
+  showAssignPin() {
+    console.log('Application: Assign insert pin requested');
+
+    if (this.interfaceWindow && this.interfaceWindow.isLocked && this.interfaceWindow.isLocked()) {
+      console.log('Application: Cannot assign pin - application is locked');
+      return;
+    }
+
+    if (this.interfaceWindow) {
+      this.interfaceWindow.show();
+      this.sendToInterfaceWindow('show-assign-pin', {});
+    } else {
+      this.interfaceWindow = new InterfaceWindow(this.shortcutRegistry);
+      this.interfaceWindow.create();
+      this.interfaceWindow.show();
+      setTimeout(() => {
+        this.sendToInterfaceWindow('show-assign-pin', {});
+      }, 1000);
+    }
+  }
 }
 
 module.exports = { ApplicationWindowManager };

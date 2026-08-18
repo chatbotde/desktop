@@ -12,6 +12,15 @@ interface IgnoreMouseEventsOptions {
 export class ClickThroughManager {
   private window: BrowserWindow | null;
   private contentProtectionEnabled: boolean = false;
+  /**
+   * While DevTools is open we must keep the window capturing mouse events,
+   * otherwise clicks pass straight through and DevTools (when docked inside
+   * this window) becomes impossible to interact with. We remember the
+   * renderer's last requested state so we can restore it on close.
+   */
+  private devToolsOpen: boolean = false;
+  private lastRequestedIgnore: boolean = true;
+  private lastRequestedOptions: IgnoreMouseEventsOptions = { forward: true };
 
   constructor(window: BrowserWindow) {
     this.window = window;
@@ -61,6 +70,18 @@ export class ClickThroughManager {
   setIgnoreMouseEvents(ignore: boolean, options?: IgnoreMouseEventsOptions): void {
     if (!this.window || this.window.isDestroyed()) return;
 
+    // Remember what the renderer wanted so we can restore it once DevTools closes.
+    this.lastRequestedIgnore = ignore;
+    this.lastRequestedOptions = options ?? { forward: true };
+
+    // While DevTools is open, force the window to capture clicks so DevTools
+    // (and the app UI) stay interactive. Ignore renderer hover requests.
+    if (this.devToolsOpen) {
+      console.log('[ClickThrough] Request ignored — DevTools open, keeping window interactive');
+      this.window.setIgnoreMouseEvents(false);
+      return;
+    }
+
     if (ignore) {
       // Enable click-through: Mouse events are passed to OS, but forwarded to renderer for hover detection
       // 'forward: true' is crucial here. It lets the browser still receive 'mousemove' / 'mouseenter'
@@ -75,6 +96,26 @@ export class ClickThroughManager {
       // Disable click-through: Window captures all mouse events (for UI interaction)
       console.log('[ClickThrough] DISABLED - window captures clicks');
       this.window.setIgnoreMouseEvents(false);
+    }
+  }
+
+  /**
+   * Toggle DevTools-open state. When open, the window is forced to capture
+   * mouse events (click-through disabled) so DevTools can be used. When it
+   * closes, the renderer's last requested click-through state is restored.
+   * @param open - Whether DevTools is currently open.
+   */
+  setDevToolsOpen(open: boolean): void {
+    if (!this.window || this.window.isDestroyed()) return;
+
+    this.devToolsOpen = open;
+
+    if (open) {
+      console.log('[ClickThrough] DevTools opened — disabling click-through');
+      this.window.setIgnoreMouseEvents(false);
+    } else {
+      console.log('[ClickThrough] DevTools closed — restoring click-through');
+      this.setIgnoreMouseEvents(this.lastRequestedIgnore, this.lastRequestedOptions);
     }
   }
 
