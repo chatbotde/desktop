@@ -262,7 +262,12 @@ export interface AuthAPI {
     validateSession: () => Promise<boolean>;
     refreshTokens: () => Promise<boolean>;
     submitManualToken: (token: string) => Promise<any>;
-    getConfig: () => Promise<any>;
+    getConfig: () => Promise<{
+        webAuthUrl?: string;
+        protocol?: string;
+        isAuthenticated?: boolean;
+        hostedAuthEnabled?: boolean;
+    }>;
     clearTokens: () => Promise<{ success: boolean; error?: string }>;
     subscribe: () => void;
     unsubscribe: () => void;

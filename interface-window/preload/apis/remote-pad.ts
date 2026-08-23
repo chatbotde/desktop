@@ -12,6 +12,14 @@ export type FileTransferProgressEvent = {
     cancellable?: boolean;
 } | null;
 
+export type IncomingShareItem = {
+    id: string;
+    filename: string;
+    mime: string;
+    createdAt: number;
+    kind: 'image' | 'file';
+};
+
 export function createRemotePadAPI() {
     return {
         getStatus: () => ipcRenderer.invoke('remote-pad:get-status'),
@@ -30,6 +38,15 @@ export function createRemotePadAPI() {
         }) => ipcRenderer.invoke('remote-pad:send-file-to-phone', input),
         cancelFileTransfer: (transferId?: string) =>
             ipcRenderer.invoke('remote-pad:cancel-file-transfer', transferId ?? ''),
+        listIncomingShares: () => ipcRenderer.invoke('remote-pad:list-incoming-shares'),
+        incomingSharePreview: (id: string) =>
+            ipcRenderer.invoke('remote-pad:incoming-share-preview', id),
+        saveIncomingShare: (id: string) =>
+            ipcRenderer.invoke('remote-pad:save-incoming-share', id),
+        copyIncomingShare: (id: string) =>
+            ipcRenderer.invoke('remote-pad:copy-incoming-share', id),
+        pasteIncomingShare: (id: string) =>
+            ipcRenderer.invoke('remote-pad:paste-incoming-share', id),
         startPhoneCamera: (options?: { facing?: 'front' | 'back'; virtualWebcam?: boolean }) =>
             ipcRenderer.invoke('remote-pad:start-phone-camera', options ?? {}),
         stopPhoneCamera: () => ipcRenderer.invoke('remote-pad:stop-phone-camera'),
@@ -97,6 +114,15 @@ export function createRemotePadAPI() {
             ipcRenderer.on('remote-pad:file-transfer-progress', handler);
             return () => {
                 ipcRenderer.removeListener('remote-pad:file-transfer-progress', handler);
+            };
+        },
+        onIncomingShare: (callback: (items: IncomingShareItem[]) => void) => {
+            const handler = (_event: IpcRendererEvent, items: IncomingShareItem[]) => {
+                callback(items);
+            };
+            ipcRenderer.on('remote-pad:incoming-share', handler);
+            return () => {
+                ipcRenderer.removeListener('remote-pad:incoming-share', handler);
             };
         },
     };

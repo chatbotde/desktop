@@ -221,7 +221,12 @@ declare global {
       validateSession: () => Promise<boolean>;
       refreshTokens: () => Promise<boolean>;
       submitManualToken: (token: string) => Promise<any>;
-      getConfig: () => Promise<any>;
+      getConfig: () => Promise<{
+        webAuthUrl?: string;
+        protocol?: string;
+        isAuthenticated?: boolean;
+        hostedAuthEnabled?: boolean;
+      }>;
       clearTokens: () => Promise<{ success: boolean; error?: string }>;
       subscribe: () => void;
       unsubscribe: () => void;
@@ -376,6 +381,11 @@ declare global {
         mime?: string;
       }) => Promise<{ ok: boolean; filename?: string; reason?: string; transferId?: string }>;
       cancelFileTransfer: (transferId?: string) => Promise<{ ok: boolean; transferId?: string; reason?: string }>;
+      listIncomingShares: () => Promise<{ ok: boolean; items: IncomingShareItem[] }>;
+      incomingSharePreview: (id: string) => Promise<{ ok: boolean; previewDataUrl?: string | null }>;
+      saveIncomingShare: (id: string) => Promise<{ ok: boolean; path?: string; reason?: string }>;
+      copyIncomingShare: (id: string) => Promise<{ ok: boolean; action?: string; reason?: string }>;
+      pasteIncomingShare: (id: string) => Promise<{ ok: boolean; action?: string; reason?: string }>;
       startPhoneCamera: (options?: { facing?: 'front' | 'back'; virtualWebcam?: boolean }) => Promise<{ ok: boolean; reason?: string; facing?: string; deviceName?: string; virtualWebcam?: boolean }>;
       stopPhoneCamera: () => Promise<{ ok: boolean; reason?: string }>;
       openFirewallSetup: () => Promise<RemotePadStatus['windowsFirewall']>;
@@ -385,6 +395,7 @@ declare global {
       onFileTransferProgress: (
         callback: (progress: FileTransferProgressEvent) => void,
       ) => () => void;
+      onIncomingShare: (callback: (items: IncomingShareItem[]) => void) => () => void;
     };
 
     /**
@@ -635,6 +646,14 @@ export type FileTransferProgressEvent = {
   etaMs?: number | null;
   cancellable?: boolean;
 } | null;
+
+export interface IncomingShareItem {
+  id: string;
+  filename: string;
+  mime: string;
+  createdAt: number;
+  kind: 'image' | 'file';
+}
 
 export interface RemotePadStatus {
   enabled: boolean;

@@ -21,6 +21,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Enable hosted auth (official SonicThinking releases only)
+        if: github.repository == 'sonicthinking/buddy'
+        run: printf '%s\n' '{"hostedAuth":true,"authServerUrl":"https://www.sonicthinking.com"}' > auth/build-config.json
+        shell: bash
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

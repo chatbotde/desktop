@@ -1,6 +1,17 @@
 # Buddy Authentication System
 
-A robust desktop → web → desktop authentication system for Electron applications, similar to Cursor, VS Code, and other modern desktop apps.
+A desktop → web → desktop login used **only** on official SonicThinking builds.
+
+Open-source forks and `npm run dev` use **local mode**: no login window, no guest-trial lockout. Users bring their own API keys.
+
+| Mode | When | What users see |
+|------|------|----------------|
+| Local (default) | `auth/build-config.json` has `"hostedAuth": false` | Overlay opens; Settings → Account says “Local mode” |
+| Hosted | Official CI, or `REQUIRE_AUTH=true` / `AUTH_SERVER_URL` | Login at sonicthinking.com (or your server) |
+
+Force local: `SKIP_AUTH=true`. Enable hosted against your own backend: set `AUTH_SERVER_URL`.
+
+Logic: `auth-mode.js`. Packaged official flag: `auth/build-config.json`.
 
 ## Architecture Overview
 

@@ -140,4 +140,5 @@ module.exports = {
   
   // Configuration
   config,
+  isHostedAuthEnabled: require('./auth-mode').isHostedAuthEnabled,
 };

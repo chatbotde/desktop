@@ -48,6 +48,8 @@ class RemotePadInputHandler {
     this.onFileTransferCancel = null;
     /** @type {((progress: Record<string, unknown> | null) => void) | null} */
     this.onFileTransferProgress = null;
+    /** @type {((item: { filename: string, mime: string, buffer: Buffer }) => Promise<void>) | null} */
+    this.onPhoneShare = null;
     /** @type {Map<string, { chunks: string[]; received: number; total: number; mime: string; timer: NodeJS.Timeout }>} */
     this.imageTransfers = new Map();
     /** @type {Map<string, { chunks: string[]; received: number; total: number; filename: string; mime: string; timer: NodeJS.Timeout; startedAt: number }>} */
@@ -384,7 +386,7 @@ class RemotePadInputHandler {
       clearTimeout(entry.timer);
       this.imageTransfers.delete(transferId);
       const base64 = entry.chunks.join('');
-      await this.insertImage(base64, entry.mime);
+      await this.deliverShare(base64, `phone-${Date.now()}.jpg`, entry.mime);
     }
 
     return null;
@@ -437,7 +439,7 @@ class RemotePadInputHandler {
       this.fileTransfers.delete(transferId);
       this.onFileTransferProgress?.(null);
       const base64 = entry.chunks.join('');
-      await this.insertFile(base64, entry.filename, entry.mime);
+      await this.deliverShare(base64, entry.filename, entry.mime);
     }
 
     return null;
@@ -503,8 +505,30 @@ class RemotePadInputHandler {
   }
 
   /**
-   * Put a file on the clipboard and auto-paste at the focused cursor (like images).
-   * Images are pasted as bitmaps; other files use a temp path on the OS file clipboard.
+   * Keep the received file in the desktop inbox. Do not autosave or paste.
+   * @param {string} base64
+   * @param {string} filename
+   * @param {string} mime
+   */
+  async deliverShare(base64, filename, mime) {
+    if (!base64) {
+      console.error('[RemotePad] Empty share payload');
+      return;
+    }
+    const buffer = Buffer.from(base64, 'base64');
+    if (this.onPhoneShare) {
+      await this.onPhoneShare({
+        filename: filename || `phone-${Date.now()}.bin`,
+        mime: mime || 'application/octet-stream',
+        buffer,
+      });
+      return;
+    }
+    console.warn('[RemotePad] Share inbox unavailable; dropping received file');
+  }
+
+  /**
+   * Put a file on the clipboard and paste at the focused cursor (user-triggered Send).
    * @param {string} base64 raw base64 (no data URL prefix)
    * @param {string} filename
    * @param {string} mime

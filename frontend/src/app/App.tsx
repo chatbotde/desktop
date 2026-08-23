@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import ClickThrough from '@/components/click-through'
 import { FileTransferBanner } from '@/components/remote-pad/FileTransferBanner'
+import { PhoneShareInbox } from '@/components/remote-pad/PhoneShareInbox'
 import { AppStateProvider } from './context/AppContext'
 import { OverlayRegistry } from './overlays/OverlayRegistry'
 
@@ -35,6 +36,7 @@ function App() {
         {/* All application features and overlays are rendered here */}
         <OverlayRegistry />
         <FileTransferBanner />
+        <PhoneShareInbox />
       </div>
     </AppStateProvider>
   )

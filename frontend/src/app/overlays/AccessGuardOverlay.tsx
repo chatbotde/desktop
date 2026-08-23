@@ -4,9 +4,9 @@ import { GLOBAL_THEME } from '@/global/theme'
 import { Button } from '@/shared/components/ui/button'
 
 export function AccessGuardOverlay() {
-    const { user, isLoading, accessExpired, subscriptionStatus } = useAuth();
+    const { user, isLoading, accessExpired, subscriptionStatus, hostedAuthEnabled } = useAuth();
 
-    if (isLoading || !accessExpired) {
+    if (isLoading || !hostedAuthEnabled || !accessExpired) {
         return null;
     }
 

@@ -10,6 +10,7 @@
 
 import { getGuestTrialStatus, GUEST_TRIAL_DAYS } from './guest-trial';
 import { canUseOwnModelForRequest } from './own-model-access';
+import { isHostedAuthEnabled } from './hosted-auth';
 
 export type SubscriptionPlan = 'free' | 'monthly' | 'yearly';
 
@@ -71,6 +72,20 @@ function buildGuestSubscriptionStatus(validatedAt = Date.now()): SubscriptionSta
   };
 }
 
+function localOpenSourceStatus(validatedAt = Date.now()): SubscriptionStatus {
+  return {
+    plan: 'free',
+    isActive: true,
+    trialDaysUsed: 0,
+    trialDaysTotal: GUEST_TRIAL_DAYS,
+    canMakeRequest: true,
+    isVip: false,
+    isGuestTrial: false,
+    guestTrialExpired: false,
+    validatedAt,
+  };
+}
+
 export class SubscriptionService {
   private cachedStatus: SubscriptionStatus | null = null;
   private cacheTimeout: number = 60000;
@@ -87,6 +102,13 @@ export class SubscriptionService {
 
     const token = await getAuthToken();
     
+    if (!(await isHostedAuthEnabled())) {
+      const status = localOpenSourceStatus(now);
+      this.cachedStatus = status;
+      this.lastFetchTime = now;
+      return status;
+    }
+
     if (!token) {
       const isDev = import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true';
       if (isDev) {
@@ -194,6 +216,10 @@ export class SubscriptionService {
   async checkCanMakeRequest(): Promise<{ allowed: boolean; reason?: string; status?: SubscriptionStatus }> {
     const token = await getAuthToken();
 
+    if (!(await isHostedAuthEnabled())) {
+      return { allowed: true, status: localOpenSourceStatus() };
+    }
+
     if (!token) {
       if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
         return { allowed: true, status: buildGuestSubscriptionStatus() };
@@ -256,6 +282,10 @@ export class SubscriptionService {
   }
 
   async validateSubscriptionWithServer(): Promise<{ allowed: boolean; reason?: string }> {
+    if (!(await isHostedAuthEnabled())) {
+      return { allowed: true };
+    }
+
     if (import.meta.env.DEV || import.meta.env.VITE_DISABLE_SUBSCRIPTION === 'true') {
       return { allowed: true };
     }

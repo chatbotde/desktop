@@ -6,12 +6,10 @@
  */
 
 const { app } = require('electron');
+const { PRODUCTION_AUTH_URL, isHostedAuthEnabled, getWebAuthUrl } = require('./auth-mode');
 
 // Get the app name for protocol registration
 const APP_NAME = app?.name || 'buddy';
-
-// Production URL
-const PRODUCTION_AUTH_URL = 'https://www.sonicthinking.com';
 
 const config = {
   // ===========================================
@@ -19,10 +17,14 @@ const config = {
   // ===========================================
 
   /**
-   * Base URL of your web authentication server
-   * Always uses the production sonicthinking.com website
+   * Hosted login URL. Empty in local / open-source mode (forks).
+   * Official builds enable this via auth/build-config.json or AUTH_SERVER_URL.
    */
-  WEB_AUTH_URL: process.env.AUTH_SERVER_URL || PRODUCTION_AUTH_URL,
+  get WEB_AUTH_URL() {
+    return getWebAuthUrl() || PRODUCTION_AUTH_URL;
+  },
+
+  isHostedAuthEnabled,
 
   /**
    * Auth endpoints on your web server

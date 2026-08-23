@@ -1,5 +1,9 @@
 # Frontend Architecture - Scalable Modular Design
 
+> **Current tree and overlay routing:** [docs/frontend-architecture.md](../docs/frontend-architecture.md)  
+> **Every feature:** [docs/features.md](../docs/features.md)  
+> This file is the **module isolation / import-rules** guide. If a folder name here disagrees with disk, trust the repo and the docs above.
+
 ## Overview
 
 This document describes the scalable, modular architecture designed to support multiple developers working in parallel with minimal merge conflicts.

@@ -1,26 +1,29 @@
 # Contributing to Buddy
 
-This guide helps multiple developers work in parallel without merge conflicts.
+Thanks for helping. This repo is the **Electron desktop app**. The Android companion is a [separate project](https://github.com/sonicthinking/remote-desktop).
 
-## Repository Layout
+## First 15 minutes
 
-Buddy is a monorepo. Most UI work happens in `frontend/`. Electron main-process code lives at the repo root and in `application/`, `auth/`, and `interface-window/`.
+1. [docs/getting-started.md](docs/getting-started.md) — install and `npm run dev`
+2. [docs/architecture.md](docs/architecture.md) — how main, renderer, and the phone app connect
+3. [docs/features.md](docs/features.md) — pick the feature you will change
+4. That feature’s `README.md` (next to the code) + [AGENTS.md](AGENTS.md)
+5. [docs/frontend-architecture.md](docs/frontend-architecture.md) — UI import rules
 
-**Read before your first change:**
-- `AGENTS.md` — quick navigation for agents and new contributors
-- `frontend/ARCHITECTURE.md` — module structure and import rules
+Copy `.env.example` to `.env` if you want env-based keys. Never commit `.env`.
 
-## Development Setup
+## Development setup
 
 ```bash
-npm install          # root (includes electron deps)
+npm install
 cd frontend && npm install
-npm run dev          # starts Vite + Electron
+cd ..
+npm run dev
 ```
 
-Copy `.env.example` to `.env` and fill in required keys.
+UI-only: `cd frontend && npm run dev` — see [frontend/DEV.md](frontend/DEV.md).
 
-## Branch Strategy
+## Branch names
 
 ```
 feature/{module}-{short-description}
@@ -28,92 +31,72 @@ bugfix/{module}-{short-description}
 refactor/{module}-{short-description}
 ```
 
-Examples:
-- `feature/chat-voice-messages`
-- `bugfix/capture-overlay-crash`
-- `refactor/settings-appearance`
+Examples: `feature/chat-voice-messages`, `bugfix/capture-overlay-crash`.
 
-## PR Scope Rules
+## PR scope
 
-| Change type | Scope |
-|-------------|-------|
-| New UI feature | One folder under `frontend/src/features/{name}/` |
-| Bug fix | Smallest module that owns the bug |
-| Shared component | `frontend/src/shared/` or `frontend/src/components/` — needs extra review |
-| AI provider | `frontend/src/services/ai/` only |
-| IPC / main process | `application/`, `auth/`, or relevant root module |
+| Change type | Stay inside |
+|-------------|-------------|
+| New UI feature | `frontend/src/features/{name}/` |
+| Bug fix | Smallest owning module |
+| Shared component | `frontend/src/shared/` or `frontend/src/components/` — extra review |
+| AI provider | `frontend/src/services/ai/` |
+| IPC / main | `application/`, `auth/`, or the owning root module |
 | OS hooks | `interface-window/` |
+| Phone protocol | `remote-pad/` **and** a matching PR in remote-desktop |
 
-**Avoid:** One PR touching `features/chat/` and `features/settings/` unless it's a coordinated refactor approved by the team.
+Avoid one PR that edits two feature folders unless the change is coordinated.
 
-## Module Conventions
+## Module conventions
 
-### Barrel exports
-
-Every module exposes a public API via `index.ts`:
-
-```typescript
-// frontend/src/features/my-feature/index.ts
-export { MyComponent } from './components/MyComponent'
-export { useMyHook } from './hooks/useMyHook'
-export type { MyType } from './types'
-```
-
-When adding exports, **append** to `index.ts` — do not re-sort existing lines (reduces merge conflicts).
-
-### Imports
+Every feature exposes a public API via `index.ts`. **Append** new exports; do not re-sort existing lines.
 
 ```typescript
-// ✅ Good
+// good
 import { useChat } from '@/features/chat'
-import { Button } from '@/components/ui/button'
 
-// ❌ Bad
+// bad
 import { useChat } from '@/features/chat/hooks/useChat'
-import { Foo } from '../../../features/chat/utils/foo'
 ```
 
-### Feature isolation
+Features must not import other features. Use `shared/`, `services/`, or feature flags.
 
-Features must not import from other features. Communicate via:
-- `shared/providers/` (shared context)
-- `services/` (business logic)
-- Feature flags (`features/feature-flags/`)
-
-## Adding a New Feature
+## Adding a feature
 
 1. Create `frontend/src/features/{name}/` with `components/`, `hooks/`, `types/`, `index.ts`
-2. Add namespace export to `frontend/src/features/index.ts` (append at end)
-3. Wire into `frontend/src/app/` (overlay or provider)
-4. Optional: add `.feature.ts` in `features/feature-flags/definitions/`
-5. Optional: add `README.md` in the feature folder documenting public API
+2. Append a namespace export in `frontend/src/features/index.ts`
+3. Wire it in `frontend/src/app/`
+4. Optional: `.feature.ts` under `features/feature-flags/definitions/`
+5. Add or update that feature’s `README.md` and a row in [docs/features.md](docs/features.md)
 
-## Code Review Checklist
+## Review checklist
 
-**Authors:**
-- [ ] Only one feature module changed (or shared change is justified)
+**Authors**
+
+- [ ] One feature module (or a justified shared change)
 - [ ] Barrel `index.ts` updated
-- [ ] No deep relative imports (`../../`)
-- [ ] No cross-feature imports
-- [ ] Feature flag used if work is incomplete
+- [ ] No `../../` cross-module imports
+- [ ] Incomplete work behind a feature flag
+- [ ] No secrets in the diff
 
-**Reviewers:**
-- [ ] Imports use `@/` aliases from barrel exports
-- [ ] No new global `document`/`window` listeners without cleanup
-- [ ] Overlay/event components have scoped handlers
+**Reviewers**
 
-## Ownership
-
-See `.github/CODEOWNERS` for path-based ownership. Update team handles when adding a new feature folder.
+- [ ] Imports use `@/` barrels
+- [ ] Global `document` / `window` listeners are cleaned up
+- [ ] Overlay handlers are scoped
 
 ## Testing
 
 ```bash
-cd frontend && npm test        # Vitest
-cd frontend && npm run lint    # ESLint
-npm run build:all              # Full build before release PRs
+cd frontend && npm test
+cd frontend && npm run lint
+npm run build:all          # before release PRs
 ```
 
-## Cursor / AI Assistants
+## Cursor / AI assistants
 
-Project rules live in `.cursor/rules/`. Agents should read `AGENTS.md` first, then the relevant feature README if one exists.
+Project rules: `.cursor/rules/`. Agents should read `AGENTS.md` first.
+
+## Code of conduct
+
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

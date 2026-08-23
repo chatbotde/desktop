@@ -16,9 +16,7 @@ Buddy is an Electron desktop productivity assistant. It combines a React/Vite re
 | Composio | `composio/` | Third-party tool integrations |
 | YouTube transcript | `youtube-transcript/` | Transcript fetching helper |
 
-**Start here for frontend structure:** `frontend/ARCHITECTURE.md` and `frontend/src/ARCHITECTURE.md`
-
-**Cursor rules (always read before editing):** `.cursor/rules/*.mdc`
+**Start here:** `docs/architecture.md`, then `docs/features.md`. Frontend structure: `docs/frontend-architecture.md`. Cursor rules: `.cursor/rules/*.mdc`.
 
 ---
 
@@ -28,11 +26,7 @@ Buddy is an Electron desktop productivity assistant. It combines a React/Vite re
 # Full dev (Vite + Electron hot reload)
 npm run dev
 
-# Frontend only � no Electron / webbuddy required
-npm run dev:ui
-# or: cd frontend && npm run dev:ui
-
-# Frontend Vite (browser mocks auto-install when not in Electron)
+# Frontend only (browser mocks; no native capture)
 cd frontend && npm run dev
 
 # Build frontend
@@ -178,8 +172,19 @@ import { Bar } from '../../../features/chat'       // ❌ relative cross-module
 
 | Topic | File |
 |-------|------|
-| Frontend architecture | `frontend/ARCHITECTURE.md` |
-| Detailed folder guide | `frontend/src/ARCHITECTURE.md` |
+| New contributor setup | `docs/getting-started.md` |
+| **System architecture** | `docs/architecture.md` |
+| Renderer architecture | `docs/frontend-architecture.md` |
+| Data flows (mermaid) | `docs/data-flows.md` |
+| IPC / preload | `docs/ipc.md` |
+| **Every feature** | `docs/features.md` |
+| Overlay routes | `docs/overlays.md` |
+| Settings pages | `docs/settings.md` |
+| Main-process modules | `docs/main-process.md` |
+| Remote Pad + Android | `docs/remote-pad.md` |
+| UI feature READMEs | `frontend/src/features/README.md` |
+| Import-rules guide | `frontend/ARCHITECTURE.md` |
+| Folder encyclopedia | `frontend/src/ARCHITECTURE.md` |
 | Feature flags | `frontend/src/features/feature-flags/README.md` |
 | Auth system | `auth/README.md` |
 | Frontend-only / browser mode | `frontend/DEV.md` |

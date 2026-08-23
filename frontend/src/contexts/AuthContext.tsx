@@ -27,6 +27,7 @@ interface AuthState {
   isLoading: boolean
   subscriptionStatus: SubscriptionStatus | null
   isCheckingSubscription: boolean
+  hostedAuthEnabled: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ function createAuthStore() {
     isLoading: true,
     subscriptionStatus: null,
     isCheckingSubscription: false,
+    hostedAuthEnabled: false,
   }
 
   const listeners = new Set<() => void>()
@@ -75,13 +77,15 @@ function createAuthStore() {
     initialized = true
 
     if (!window.authAPI) {
-      setState({ isLoading: false })
+      setState({ isLoading: false, hostedAuthEnabled: false })
       return
     }
 
     try {
+      const cfg = await window.authAPI.getConfig?.()
+      const hostedAuthEnabled = cfg?.hostedAuthEnabled === true
       const userData = await window.authAPI.getUser?.()
-      setState({ user: userData || null, isLoading: false })
+      setState({ user: userData || null, isLoading: false, hostedAuthEnabled })
 
       startPeriodicRefresh()
       await refreshSubscription()
@@ -160,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const accessExpired = Boolean(
+    authState.hostedAuthEnabled &&
     authState.subscriptionStatus &&
     (
       (authState.user &&

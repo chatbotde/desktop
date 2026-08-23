@@ -48,7 +48,7 @@
     "productivity"
   ],
   "author": "sonicthinking",
-  "license": "ISC",
+  "license": "GPL-3.0-only",
   "description": "A desktop companion",
   "build": {
     "appId": "com.sonicthinking.sonicthinking",

@@ -34,6 +34,12 @@ function registerAuthIpcHandlers() {
    */
   ipcMain.on('auth:login', async (event, options = {}) => {
     console.log('Auth IPC: Login requested');
+    if (!config.isHostedAuthEnabled()) {
+      event.reply('auth:error', {
+        message: 'Hosted sign-in is off in this build. Add API keys in Settings.',
+      });
+      return;
+    }
     try {
       await authService.login(options);
     } catch (error) {
@@ -47,6 +53,12 @@ function registerAuthIpcHandlers() {
    */
   ipcMain.on('auth:signup', async (event, options = {}) => {
     console.log('Auth IPC: Signup requested');
+    if (!config.isHostedAuthEnabled()) {
+      event.reply('auth:error', {
+        message: 'Hosted sign-up is off in this build. Add API keys in Settings.',
+      });
+      return;
+    }
     try {
       await authService.signup(options);
     } catch (error) {
@@ -147,10 +159,12 @@ function registerAuthIpcHandlers() {
    * Get auth configuration (safe values only)
    */
   ipcMain.handle('auth:get-config', async () => {
+    const hostedAuthEnabled = config.isHostedAuthEnabled();
     return {
-      webAuthUrl: config.WEB_AUTH_URL,
+      webAuthUrl: hostedAuthEnabled ? config.WEB_AUTH_URL : '',
       protocol: config.PROTOCOL,
       isAuthenticated: authService.isLoggedIn(),
+      hostedAuthEnabled,
     };
   });
 

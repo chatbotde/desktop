@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Android companion
+    url: https://github.com/sonicthinking/remote-desktop/issues
+    about: Bugs in the phone app (Remote Pad client) belong in remote-desktop.
+  - name: Security report
+    url: https://github.com/sonicthinking/buddy/security/advisories/new
+    about: Privately report a vulnerability. Do not file a public issue.

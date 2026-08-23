@@ -7,6 +7,7 @@
 
 const { initializeAuth, authService, AuthWindow } = require('../auth');
 const { guestModeStore } = require('../auth/guest-mode-store');
+const { isHostedAuthEnabled } = require('../auth/auth-mode');
 
 class ApplicationAuthHandler {
   /**
@@ -65,9 +66,12 @@ class ApplicationAuthHandler {
   }
 
   /**
-   * Whether guest trial was chosen and is still active (skip auth window on launch)
+   * Skip the login window: local/open-source mode, or an active guest trial.
    */
   shouldSkipAuthWindow() {
+    if (!isHostedAuthEnabled()) {
+      return true;
+    }
     return guestModeStore.shouldSkipAuthWindow();
   }
 
@@ -75,15 +79,18 @@ class ApplicationAuthHandler {
    * Show auth window if user is not authenticated
    */
   showAuthWindowIfNeeded() {
+    if (this.shouldSkipAuthWindow()) {
+      console.log('Application: Local mode or guest trial — not showing hosted login');
+      return false;
+    }
     if (!this.isAuthenticated()) {
       this.authWindow = new AuthWindow();
       this.authWindow.create();
       console.log('Application: Showing auth window (user not authenticated)');
       return true;
-    } else {
-      console.log('Application: User authenticated, skipping auth window');
-      return false;
     }
+    console.log('Application: User authenticated, skipping auth window');
+    return false;
   }
 
   /**
@@ -104,7 +111,9 @@ class ApplicationAuthHandler {
    */
   handleAuthLogout() {
     console.log('Application: User logged out');
-    this.showAuthWindowIfNeeded();
+    if (isHostedAuthEnabled()) {
+      this.showAuthWindowIfNeeded();
+    }
     if (this.onAuthLogout) {
       this.onAuthLogout();
     }
@@ -128,7 +137,9 @@ class ApplicationAuthHandler {
    */
   handleAuthExpired() {
     console.log('Application: Session expired');
-    this.showAuthWindowIfNeeded();
+    if (isHostedAuthEnabled()) {
+      this.showAuthWindowIfNeeded();
+    }
     if (this.onAuthExpired) {
       this.onAuthExpired();
     }

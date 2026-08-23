@@ -1,5 +1,8 @@
 # Frontend Architecture Guide
 
+> **Start with** [docs/frontend-architecture.md](../../docs/frontend-architecture.md) (what exists today).  
+> Sections below are a detailed encyclopedia. Some listed files may have moved; search the tree if a path 404s.
+
 This document outlines the folder structure and organization principles for the frontend codebase.
 
 ---

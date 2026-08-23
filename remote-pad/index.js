@@ -1,6 +1,7 @@
 const crypto = require('crypto');
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, dialog, clipboard, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
 const { RemotePadServer } = require('./remote-pad-server');
 const { getLocalIpAddress, getMeshVpnAddresses, isMeshVpnAddress } = require('./network');
 const { DEFAULT_PORT, LAN_HTTP_PORT_OFFSET, SERVER_MESSAGE_TYPES, CLIENT_MESSAGE_TYPES } = require('./protocol');
@@ -12,6 +13,7 @@ const { LanStreamCapture } = require('./lan-stream-capture');
 const { LanP2pPublisher } = require('./lan-p2p');
 const { LanBeacon } = require('./lan-beacon');
 const { RemotePadInputHandler } = require('./input-handler');
+const { PhoneShareInbox } = require('./phone-share-inbox');
 const { RemotePadCloudPairing } = require('./cloud-pairing');
 const { ClipboardSyncService } = require('./clipboard-sync');
 const {
@@ -101,6 +103,13 @@ class RemotePadService {
     };
     this.inputHandler.onFileTransferProgress = (progress) => {
       this.emitFileTransferProgress(progress);
+    };
+    this.shareInbox = new PhoneShareInbox();
+    this.shareInbox.onChange = (items) => {
+      this.emitIncomingShare(items);
+    };
+    this.inputHandler.onPhoneShare = async ({ filename, mime, buffer }) => {
+      await this.shareInbox.add({ filename, mime, buffer });
     };
     this.clipboardSync = new ClipboardSyncService();
     this.cloudPairing = new RemotePadCloudPairing(() => this.createSubscriberCredentials());
@@ -653,6 +662,14 @@ class RemotePadService {
     }
   }
 
+  emitIncomingShare(items) {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('remote-pad:incoming-share', items);
+      }
+    }
+  }
+
   /**
    * @param {Record<string, unknown> | null} progress
    */
@@ -691,6 +708,58 @@ class RemotePadService {
     }
 
     return { ok: false, reason: 'no_active_transfer' };
+  }
+
+  async saveIncomingShare(id) {
+    const item = this.shareInbox.get(id);
+    if (!item) {
+      return { ok: false, reason: 'not_found' };
+    }
+    const owner = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+    const options = {
+      defaultPath: item.filename,
+      title: 'Save from phone',
+    };
+    const result = owner
+      ? await dialog.showSaveDialog(owner, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) {
+      return { ok: false, reason: 'cancelled' };
+    }
+    await fs.copyFile(item.filePath, result.filePath);
+    return { ok: true, path: result.filePath };
+  }
+
+  async copyIncomingShare(id) {
+    const item = this.shareInbox.get(id);
+    if (!item) {
+      return { ok: false, reason: 'not_found' };
+    }
+    if (item.kind === 'image') {
+      const img = nativeImage.createFromPath(item.filePath);
+      if (img.isEmpty()) {
+        return { ok: false, reason: 'empty_image' };
+      }
+      clipboard.writeImage(img);
+      return { ok: true, action: 'copied' };
+    }
+    await this.inputHandler.writeFilePathsToClipboard([item.filePath]);
+    return { ok: true, action: 'copied' };
+  }
+
+  async pasteIncomingShare(id) {
+    const item = this.shareInbox.get(id);
+    if (!item) {
+      return { ok: false, reason: 'not_found' };
+    }
+    const buffer = await fs.readFile(item.filePath);
+    const base64 = buffer.toString('base64');
+    if (item.kind === 'image') {
+      await this.inputHandler.insertImage(base64, item.mime);
+    } else {
+      await this.inputHandler.insertFile(base64, item.filename, item.mime);
+    }
+    return { ok: true, action: 'sent' };
   }
 
   /**
@@ -940,6 +1009,27 @@ class RemotePadService {
 
     this.ipcRegistry.register('remote-pad:cancel-file-transfer', async (_event, transferId) => {
       return this.cancelFileTransfer(typeof transferId === 'string' ? transferId : '');
+    });
+
+    this.ipcRegistry.register('remote-pad:list-incoming-shares', async () => {
+      return { ok: true, items: this.shareInbox.list() };
+    });
+
+    this.ipcRegistry.register('remote-pad:incoming-share-preview', async (_event, id) => {
+      const previewDataUrl = await this.shareInbox.previewDataUrl(String(id || ''));
+      return { ok: Boolean(previewDataUrl), previewDataUrl };
+    });
+
+    this.ipcRegistry.register('remote-pad:save-incoming-share', async (_event, id) => {
+      return this.saveIncomingShare(String(id || ''));
+    });
+
+    this.ipcRegistry.register('remote-pad:copy-incoming-share', async (_event, id) => {
+      return this.copyIncomingShare(String(id || ''));
+    });
+
+    this.ipcRegistry.register('remote-pad:paste-incoming-share', async (_event, id) => {
+      return this.pasteIncomingShare(String(id || ''));
     });
 
     this.ipcRegistry.register('remote-pad:start-phone-camera', async () => {

@@ -19,6 +19,7 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
     isLoading: isLoadingUser,
     subscriptionStatus,
     isCheckingSubscription: isLoadingSubscription,
+    hostedAuthEnabled,
     redeemVipCode,
   } = useAuth()
 
@@ -86,6 +87,21 @@ export function AccountSection({ isDarkTheme = false }: { isDarkTheme?: boolean 
   }
 
   if (!user) {
+    if (!hostedAuthEnabled) {
+      return (
+        <div className="space-y-6">
+          <div className={cn("text-center py-6", isDarkTheme ? "text-zinc-400" : "text-zinc-600")}>
+            <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium mb-1">Local mode</p>
+            <p className="text-xs opacity-80">
+              This build does not use SonicThinking sign-in. Add your own API keys in Custom Models,
+              or run a local model under Local AI.
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     const guestTrialProgress = subscriptionStatus
       ? Math.min((subscriptionStatus.trialDaysUsed / subscriptionStatus.trialDaysTotal) * 100, 100)
       : 0
